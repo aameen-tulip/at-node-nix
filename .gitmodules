@@ -1,3 +1,6 @@
 [submodule "ref/node2nix"]
 	path = ref/node2nix
 	url = git@github.com:aameen-tulip/node2nix.git
+[submodule "ref/nijs"]
+	path = ref/nijs
+	url = https://github.com/svanderburg/nijs.git
