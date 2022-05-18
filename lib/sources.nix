@@ -1,5 +1,14 @@
-{ nix-gitignore }:
-rec {
+{ pkgs          ? import <nixpkgs> {}
+, nix-gitignore ? pkgs.nix-gitignore
+, lib           ? pkgs.lib
+}:
+let
+  inherit (lib.sources) cleanSource cleanSourceWith;
+  inherit (nix-gitignore) gitignoreSourcePure gitignoreSource;
+in rec {
+
+  /* ------------------------------------------------------------------------ */
+
   # Preserve only top level Node.js package information files.
   nodePackageFiles = [
     "package.json"
@@ -42,4 +51,31 @@ rec {
   filterNodePackageFiles = src:
     nix-gitignore.gitignoreSourcePure
       ( ["*"] ++ ( map ( file: "!" + file ) nodePackageFiles ) ) src;
+
+
+  /* ------------------------------------------------------------------------ */
+
+  # Remove `*/.yarn/cache' directories.
+  cleanYarnCacheFilter = name: type:
+    ! ( ( type == "directory" )                       &&
+        ( ( baseNameOf name ) == "cache" )            &&
+        ( ( baseNameOf ( dirOf name ) ) == ".yarn" )
+      );
+
+  # Remove `*/node_modules' directories
+  cleanNodeModulesFilter = name: type:
+    ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
+
+  # Clean cached Node.js artifacts, and apply Nix's default clean routine.
+  cleanNodeSource = src:
+    cleanSourceWith {
+      filter = cleanYarnCacheFilter;
+      src = cleanSourceWith {
+        filter = cleanNodeModulesFilter;
+        src = cleanSource src;
+      };
+    };
+
+
+  /* ------------------------------------------------------------------------ */
 }

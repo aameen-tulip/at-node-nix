@@ -4,3 +4,6 @@
 [submodule "ref/nijs"]
 	path = ref/nijs
 	url = https://github.com/svanderburg/nijs.git
+[submodule "ref/yarn-plugin-nixify"]
+	path = ref/yarn-plugin-nixify
+	url = git@github.com:aameen-tulip/yarn-plugin-nixify.git
