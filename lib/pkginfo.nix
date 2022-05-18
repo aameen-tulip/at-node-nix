@@ -5,7 +5,13 @@
 let
   inherit (akJSONLib) stripCommentsJSONStr readJSON;
 
+  # Split a `package.json' name field into "scope" ( if any ) and the
+  # package name, yielding a set with the original name, "pname", and scope.
+  # Ex:
+  #   "@foo/bar" ==> { name = "@foo/bar"; pname = "bar"; scope = "foo" }
+  #   "bar" ==> { name = "bar"; pname = "bar"; scope = null }
   pkgNameSplit = name:
+    # "@foo/bar" ==> [ "@foo/" "foo" "bar" ]
     let splitName = builtins.match "(@([^/]+)/)?(.*)" name;
     in {
       inherit name;
