@@ -25,7 +25,7 @@ let
   }: if scope != null then "${scope}-${pname}-${version}.tgz"
                       else "${pname}-${version}.tgz";
 
-  mkPkgInfo = args@{ name , version , ... }:
+  mkPkgInfo = args@{ name, version, ... }:
     let inherit ( pkgNameSplit name ) pname scope;
     in args // {
       inherit pname scope;
