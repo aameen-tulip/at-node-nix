@@ -4,6 +4,6 @@ let
     runCommandNoCC ( ( baseNameOf tarball ) + "-package.json" ) {
       inherit tarball;
     } ''
-    tar -xzq --strip 1 --to-stdout -f ${tarball} package/package.json > $out
+    tar -xz --strip 1 --to-stdout -f ${tarball} package/package.json > $out
   '';
 in extractPackageJSON

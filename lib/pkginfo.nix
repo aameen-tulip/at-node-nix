@@ -3,7 +3,7 @@
                           "aakropotkin/ak-nix/main/lib/json.nix" ) )
 }:
 let
-  inherit (akJSONLib) stripCommentsJSONStr readJSON;
+  inherit (akJSONLib) readJSON;
 
   # Split a `package.json' name field into "scope" ( if any ) and the
   # package name, yielding a set with the original name, "pname", and scope.
@@ -19,13 +19,20 @@ let
       scope = builtins.elemAt splitName 1;
     };
 
+  # Replace special characters in a Node.js package name to create a name which
+  # is usable as a shell variable or ( unquoted ) Nix attribute name.
+  # Doing this consistently is essential for organizing package sets.
+  # This function may also be used to canonicalize tarball names.
+  # Ex:
+  #   "@foo/bar-baz"          ==> "__at__foo__slash__bar__bar__baz"
+  #   "foo-bar-baz-1.0.0.tgz" ==> "foo__bar__bar__baz__bar__1__dot__0__dot__0__dot__tgz"
   canonicalizePkgName =
-    builtins.replaceStrings ["@"    "/"       "-"     "."]
-                            ["_at_" "_slash_" "_bar_" "_dot_"];
+    builtins.replaceStrings ["@"      "/"         "-"       "."]
+                            ["__at__" "__slash__" "__bar__" "__dot__"];
 
   unCanonicalizePkgName =
-    builtins.replaceStrings ["_at_" "_slash_" "_bar_" "_dot_"]
-                            ["@"    "/"       "-"     "."];
+    builtins.replaceStrings ["__at__" "__slash__" "__bar__" "__dot__"]
+                            ["@"      "/"         "-"       "."];
 
   asTarballName = {
     name  ? if scope != null then "@${scope}/${pname}" else pname
