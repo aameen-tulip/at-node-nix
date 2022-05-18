@@ -23,6 +23,10 @@ let
     builtins.replaceStrings ["@"    "/"       "-"     "."]
                             ["_at_" "_slash_" "_bar_" "_dot_"];
 
+  unCanonicalizePkgName =
+    builtins.replaceStrings ["_at_" "_slash_" "_bar_" "_dot_"]
+                            ["@"    "/"       "-"     "."];
+
   asTarballName = {
     name  ? if scope != null then "@${scope}/${pname}" else pname
   , pname ? builtins.elemAt 1 ( builtins.match "(@[^/]+/)?([^]+)" name )
@@ -41,6 +45,7 @@ let
     };
 
 in {
-  inherit pkgNameSplit canonicalizePkgName asTarballName mkPkgInfo;
+  inherit pkgNameSplit canonicalizePkgName unCanonicalizePkgName asTarballName
+          mkPkgInfo;
   readPkgInfo = file: mkPkgInfo ( readJSON file );
 }
