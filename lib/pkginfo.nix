@@ -17,7 +17,7 @@ let
       inherit name;
       pname = builtins.elemAt splitName 2;
       scope = builtins.elemAt splitName 1;
-     };
+    };
 
   canonicalizePkgName =
     builtins.replaceStrings ["@"    "/"       "-"     "."]
