@@ -6,9 +6,10 @@
 let
   inherit (lib-pkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
   inherit (builtins) readFile fromJSON attrValues head filter
-                     replaceStrings;
+                     replaceStrings unsafeDiscardStringContext;
 
-  sanitizeName = replaceStrings ["@"] ["%40"];
+  sanitizeName = name:
+    unsafeDiscardStringContext ( replaceStrings ["@"] ["%40"] name );
 
   fetchJSON = name:
     readFile ( builtins.fetchurl

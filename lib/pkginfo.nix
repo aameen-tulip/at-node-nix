@@ -16,13 +16,13 @@ let
       inherit (builtins) match elemAt length;
       splitName = match "(@([^/]+)/)?([^@]+)(@.*)?" name;
       # FIXME: Handle spaces for ranges
-      version = elemAt splitName 3;
+      version = if builtins.isList splitName then elemAt splitName 3 else null;
       splitVersion = match ".*@(npm:)?(latest|\\*|([<>=~^])?([0-9.]+))"
                            ( if version == null then "" else version );
     in {
       inherit name;
-      pname  = elemAt splitName 2;
-      scope  = elemAt splitName 1;
+      pname  = if builtins.isList splitName then elemAt splitName 2 else null;
+      scope  = if builtins.isList splitName then elemAt splitName 1 else null;
       semver = if splitVersion == null then version else {
         modifier = elemAt splitVersion 2;
         version  = elemAt splitVersion 3;
