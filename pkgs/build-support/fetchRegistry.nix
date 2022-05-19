@@ -1,8 +1,13 @@
+{ pkgs           ? import <nixpkgs> {}
+, lib            ? pkgs.lib
+, lib-pkginfo    ? import ../../lib/pkginfo.nix {}
+, runCommandNoCC ? pkgs.runCommandNoCC
+}:
 let
+  inherit (lib-pkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
   inherit (builtins) readFile fromJSON attrValues head filter
                      replaceStrings;
-  pkgs = import <nixpkgs> {};
-  inherit (pkgs) lib runCommandNoCC;
+
   sanitizeName = replaceStrings ["@"] ["%40"];
 
   fetchJSON = name:
@@ -27,10 +32,9 @@ let
 
   getTarInfo = x:
     let
-      fromDist = { integrity ? null, tarball, ... }: {
-        inherit integrity tarball;
-      };
-      dist = if x ? dist then x.dist
+      fromDist =
+        { integrity ? null, tarball, ... }: { inherit integrity tarball; };
+      dist = if      x ? dist    then x.dist
              else if x ? tarball then x
              else ( latestVersion x ).dist;
     in fromDist dist;
@@ -50,8 +54,10 @@ in {
 
   fetchNodeTarball = { name, version ? null }:
     let
+      sname = pkgNameSplit name;
       pkgInfo = fetch name;
-      version' = if version == null then latestVersion pkgInfo
-                                    else pkgInfo.versions.${version};
+      sv = if sname ? semver.version then sname.semver.version else version;
+      version' =
+        if sv == null then latestVersion pkgInfo else pkgInfo.versions.${sv};
     in pkgs.fetchurl ( getFetchurlTarballArgs version'.dist );
 }

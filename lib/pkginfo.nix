@@ -12,11 +12,21 @@ let
   #   "bar" ==> { name = "bar"; pname = "bar"; scope = null }
   pkgNameSplit = name:
     # "@foo/bar" ==> [ "@foo/" "foo" "bar" ]
-    let splitName = builtins.match "(@([^/]+)/)?(.*)" name;
+    let
+      inherit (builtins) match elemAt length;
+      splitName = match "(@([^/]+)/)?([^@]+)(@.*)?" name;
+      # FIXME: Handle spaces for ranges
+      version = elemAt splitName 3;
+      splitVersion = match ".*@(npm:)?(latest|\\*|([<>=~^])?([0-9.]+))"
+                           ( if version == null then "" else version );
     in {
       inherit name;
-      pname = builtins.elemAt splitName 2;
-      scope = builtins.elemAt splitName 1;
+      pname  = elemAt splitName 2;
+      scope  = elemAt splitName 1;
+      semver = if splitVersion == null then version else {
+        modifier = elemAt splitVersion 2;
+        version  = elemAt splitVersion 3;
+      };
     };
 
   # Replace special characters in a Node.js package name to create a name which
@@ -51,8 +61,19 @@ let
       canonicalName = canonicalizePkgName name;
     };
 
+  allDependencies =
+    { dependencies         ? {}
+    , devDependencies      ? {}
+    , peerDependencies     ? {}
+    , optionalDependencies ? {}
+    , ...
+    }: optionalDependencies //
+       peerDependencies     //
+       devDependencies      //
+       dependencies;
+
 in {
   inherit pkgNameSplit canonicalizePkgName unCanonicalizePkgName asTarballName
-          mkPkgInfo;
+          mkPkgInfo allDependencies;
   readPkgInfo = file: mkPkgInfo ( readJSON file );
 }

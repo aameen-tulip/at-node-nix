@@ -3,10 +3,14 @@
 , jq             ? pkgs.jq
 , runCommandNoCC ? pkgs.runCommandNoCC
 , nix-gitignore  ? pkgs.nix-gitignore
+, writeText      ? pkgs.writeText
+, lib-pkginfo    ? import ../../lib/pkginfo.nix {}
 }:
 let
+  inherit (builtins)  match attrNames attrValues filter concatStringsSep;
   inherit ( import ./yml-to-json.nix { inherit pkgs runCommandNoCC; } )
     readYML2JSON writeYML2JSON;
+  inherit (lib-pkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
 
   # FIXME
   mkEntry = {
@@ -19,8 +23,25 @@ let
     , linkType
     }: {};
 
-  readYarnLock = readYML2JSON;
+  readYarnLock = file: removeAttrs ( readYML2JSON file ) ["__metadata"];
 
+  resolvesWithNpm = entry: ( match ".*@npm:.*" ( entry.resolution ) ) != null;
+
+  asNpmSpecifier = yspec: concatStringsSep "" ( match "(.*@)npm:(.*)" yspec );
+
+  getNpmResolutions' = entries:
+    map ( e: e.resolution ) ( filter resolvesWithNpm ( attrValues entries ) );
+
+  getNpmResolutions = entries:
+    map asNpmSpecifier ( getNpmResolutions' entries );
+
+  toNameVersionList = entries:
+    map ( k: { inherit (entries.${k}) version;
+               name = let sname = pkgNameSplit k; in
+                      if sname.scope != null
+                      then "@${sname.scope}/${sname.pname}"
+                      else sname.pname;
+             } ) ( attrNames entries );
 
 /**
  * Example Entry:
@@ -38,4 +59,10 @@ let
  */
 
 in {
+  inherit readYarnLock resolvesWithNpm asNpmSpecifier getNpmResolutions'
+          getNpmResolutions toNameVersionList;
+
+  writeNpmResolutions = file:
+    let specs = getNpmResolutions ( readYarnLock file );
+    in writeText "npm-resolvers" ( concatStringsSep "\n" specs );
 }
