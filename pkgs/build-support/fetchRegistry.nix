@@ -42,12 +42,12 @@ let
 
   getFetchurlTarballArgs = x: let ti = ( getTarInfo x ); in {
     url = ti.tarball;
-    sha512 = ti.integrity;
+    hash = ti.integrity;
   };
 
 in {
   inherit fetchJSON hasIntegrity extractPkgJSON latestVersion getTarInfo
-          getFetchurlTarballArgs fetch;
+          getFetchurlTarballArgs fetch sanitizeName;
 
   filterWithIntegrity = lib.filterAttrs ( { key, value }: hasIntegrity value );
 
@@ -61,4 +61,6 @@ in {
       version' =
         if sv == null then latestVersion pkgInfo else pkgInfo.versions.${sv};
     in pkgs.fetchurl ( getFetchurlTarballArgs version'.dist );
+
+# lib.mapAttrs ( k: v: { url = "https://registry.npmjs.org/${( pkgNameSplit k ).name}" + ( asTarballName { name = k; inherit (v) version; } ); inherit (v) integrity; ) ( allDependencies pl )
 }
