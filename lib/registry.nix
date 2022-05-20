@@ -9,8 +9,8 @@ let
     let url = builtins.unsafeDiscardStringContext "${registryUrl}/${name}"; in
     builtins.readFile ( builtins.fetchurl url );
 
-  importFetchPackument = name:
-    builtins.fromJSON ( fetchPackument name );
+  importFetchPackument = registryUrl: name:
+    builtins.fromJSON ( fetchPackument registryUrl name );
 
 
 /* -------------------------------------------------------------------------- */

@@ -30,7 +30,7 @@ in {
   # This could probably skip fetching the packument altogether.
   fetchNodeTarball = { name, version ? null }:
     let
-      packument = fetchPackument name;
+      packument = fetchPackument registryUrl name;
       version'  = if version == null
                   then packumentPkgLatestVersion packument
                   else packument.versions.${version};
