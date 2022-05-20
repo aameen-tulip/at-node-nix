@@ -1,10 +1,10 @@
-{ lib ? ( import <nixpkgs> {} ).lib,
-  akJSONLib ? import ( builtins.fetchurl
-                        ( "https://raw.githubusercontent.com/" +
-                          "aakropotkin/ak-nix/main/lib/json.nix" ) )
+{ lib    ? ( import <nixpkgs> {} ).lib
+, libstr ? import ./strings.nix { inherit lib; }
 }:
 let
-  inherit (akJSONLib) readJSON;
+
+  readJSON = file: let inherit (builtins) fromJSON readFile; in
+    fromJSON ( libstr.removeSlashSlashComments ( readFile file ) );
 
 /* -------------------------------------------------------------------------- */
 

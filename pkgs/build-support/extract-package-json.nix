@@ -1,9 +1,8 @@
 { runCommandNoCC }:
 let
   extractPackageJSON = tarball:
-    runCommandNoCC ( ( baseNameOf tarball ) + "-package.json" ) {
-      inherit tarball;
-    } ''
-    tar -xz --strip 1 --to-stdout -f ${tarball} package/package.json > $out
-  '';
+    let outName = "${baseNameOf tarball}-package.json"; in
+    runCommandNoCC outName { inherit tarball; } ''
+      tar -xz --strip 1 --to-stdout -f ${tarball} package/package.json > $out
+    '';
 in extractPackageJSON
