@@ -1,4 +1,6 @@
-{ lib ? ( import <nixpkgs> ).lib }:
+{ lib      ? ( import <nixpkgs> ).lib
+, libattrs ? import ./attrsets.nix { inherit lib; }
+}:
 let
 
   # A filter function
@@ -28,4 +30,11 @@ in {
   deriveFetchersForResolvedLockEntries = fetchurl: plock:
     let applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
     in builtins.mapAttrs applyFetch ( collectResolved plock );
+
+  toposortDeps = plock:
+    let
+      inherit (builtins) elem attrValues;
+      depl = attrValues ( libattrs.pushDownNames ( plock.dependencies or {} ) );
+      bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
+    in lib.toposort bDependsOnA depl;
 }
