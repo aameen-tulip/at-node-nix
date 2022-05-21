@@ -13,11 +13,9 @@ let
   inherit (lib-registry) getFetchurlTarballArgs;
   inherit (builtins) readFile fromJSON attrValues head filter
                      replaceStrings unsafeDiscardStringContext;
-
   # Given an entry from the registry response's version, check if the entry has
   # an integrity value.
   hasIntegrity = { dist ? {}, ... }: dist ? integrity;
-
 
 in {
   inherit hasIntegrity extractPackageJSON;
