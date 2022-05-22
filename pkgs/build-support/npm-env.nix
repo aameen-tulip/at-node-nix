@@ -1,18 +1,10 @@
 { pkgs      ? import <nixpkgs> {}
 , lib       ? pkgs.lib
-, libplock  ? import ../../../../../at-node-nix/lib/pkg-lock.nix {
-                inherit lib;
-              }
 , stdenv    ? pkgs.stdenvNoCC
 , fetchurl  ? pkgs.fetchurl
 , nodejs    ? pkgs.nodejs-14_x
-, writeText ? pkgs.writeTextFile
 }:
 let
-  plock       = builtins.fromJSON ( builtins.readFile ./package-lock.json );
-  sortedDeps  = libplock.toposortDeps plock;
-  drvFetchers = libplock.deriveFetchersForResolvedLockEntries fetchurl plock;
-
   npmEnv = stdenv.mkDerivation {
     name = "npmEnv";
     phases = ["installPhase"];
@@ -60,7 +52,7 @@ let
     '';
   };
 
-  npmCache = stdenv.mkDerivation {
+  npmCache = tarballs: stdenv.mkDerivation {
     name = "npmCache";
     nativeBuildInputs = [nodejs];
     propagatedBuildInputs = [npmEnv];
@@ -80,17 +72,23 @@ let
         fi
         cp -pr --reflink=auto -- "@out@" "$targetDir"
         chmod -R +w "$targetDir"
+        export NPM_CONFIG_CACHE="$targetDir"
         setupNpmEnv
       }
-      if test "''${cloneNpmCache-0}" != 0; then
+
+      # You MUST clone the cache for any operation that may modify
+      # `node_modules/' directories.
+      # So basically "only disable the cache if for operating on the cache
+      # without NPM".
+      if test "''${dontCloneNpmCache-0}" != 0; then
         preUnpackHooks=( cloneNpmCache "''${preUnpackHooks[@]}" )
+      else
+        export NPM_CONFIG_CACHE="@out@/var/npm/cache"
       fi
     '';
     passAsFile = ["setupHookContents"];
     installPhase =
-      let
-        inherit (builtins) attrValues concatStringsSep;
-        npmCmds = map ( tb: "npm cache add ${tb}" ) ( attrValues drvFetchers );
+      let npmCmds = map ( tb: "npm cache add ${tb}" ) tarballs;
       in ''
         export npm_prefix="$out"
         initNpmCache
@@ -98,7 +96,7 @@ let
 
         echo "Adding Node.js tarballs to NPM cache."
 
-        ${concatStringsSep "\n" npmCmds}
+        ${builtins.concatStringsSep "\n" npmCmds}
 
         echo "Done adding Node.js tarballs to NPM cache."
 
@@ -110,26 +108,27 @@ let
       '';
   };
 
-  npmLinkedEnv = linkedInputs: stdenv.mkDerivation {
+  # This "works", but if you have `package-lock.json' files laying around
+  # you'll still crash because `npm CMD --offline' demands that you have cache
+  # entries for everything.
+  npmLinkedEnv = npmTarballCache: linkedInputs: stdenv.mkDerivation {
     name = "npmLinkedEnv";
-    nativeBuildInputs = [npmCache nodejs];
+    nativeBuildInputs = [npmTarballCache nodejs];
     propagatedNativeBuildInputs = [npmEnv];
     phases = ["installPhase"];
-    inherit (npmCache) setupHookContents;
+    inherit (npmTarballCache) setupHookContents;
     passAsFile = ["setupHookContents"];
     installPhase =
-      let
-        inherit (builtins) attrValues concatStringsSep;
-        npmCmds = map ( tb: "( cd ${tb} && npm link )" ) linkedInputs;
+      let npmCmds = map ( tb: "( cd ${tb} && npm link )" ) linkedInputs;
       in ''
         export npm_prefix="$out"
         cloneNpmCache
-        
+
         runHook preInstall
 
         echo "Linking local Node.js modules to global NPM prefix."
 
-        ${concatStringsSep "\n" npmCmds}
+        ${builtins.concatStringsSep "\n" npmCmds}
 
         echo "Done linking local Node.js modules to global NPM prefix."
 
@@ -141,6 +140,5 @@ let
       '';
   };
 in {
-  inherit npmCache;
-  linkTestUtil = npmLinkedEnv [../test-utils];
+  inherit npmEnv npmCache npmLinkedEnv;
 }
