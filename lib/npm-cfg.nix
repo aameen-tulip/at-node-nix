@@ -1,13 +1,25 @@
 { lib ? ( import <nixpkgs> {} ).lib
 }:
 /**
- * NPM Config files are INI, they are NOT TOML.
+ * NPM Config files are INI(ish), they are NOT TOML.
  * Where this is important is handling strings and file paths, which do not
  * need to be quoted in INI, but must be quoted in TOML.
  * You can use `builtins.toTOML' to create a config file, but you cannot safely
  * parse an existing config using `builtins.fromTOML'.
  * Notably any config files created with `npm config set KEY VALUE' will not
  * quote strings, so you really shouldn't try to parse them as TOML.
+ *
+ * I mention that the config files are "INI(ish)"; the reason for this is an
+ * extension by NPM which allows arrays to be expressed as space separated
+ * strings with a `KEY[] = "VALUE1 VALUE2..."' style assignment.
+ * I have yet to see anywhere that this is actually used, the default NPM
+ * config fields never take advantage of this, but I make not of if so that in
+ * the unlikely case that some plugin/extension to NPM depends on this feature,
+ * of that some random user out there assigns an array for a non-standard key
+ * that any parsers written here can be prepared.
+ * Additionally be aware that NPM config files never use section blocks such as
+ * "[global]", rather they separate global/user level configs into separate
+ * files which are processed in series.
  */
 let
   npmConfigKeys = [
