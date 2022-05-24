@@ -21,13 +21,13 @@ let
     preferLocalBuild = true;
     allowSubstitutes = false;
   } ''
-    mkdir -p $out/lib/node_modules/linky/node_modules
+    mkdir -p "$out/lib/node_modules/linky/node_modules/@hey"
     echo '\
     { "name": "linky",
       "version": "1.0.0"
     }' > $out/lib/node_modules/linky/package.json
-    ${lndir}/bin/lndir -silent -ignorelinks $m1/lib/node_modules $out/lib/node_modules/linky/node_modules
-    ${lndir}/bin/lndir -silent -ignorelinks $m2/lib/node_modules $out/lib/node_modules/linky/node_modules
+    ln -s -- $m1/lib/node_modules/@hey/there $out/lib/node_modules/linky/node_modules/@hey/there
+    ln -s -- $m2/lib/node_modules/@hey/dude $out/lib/node_modules/linky/node_modules/@hey/dude
   '';
 
   modules = [
