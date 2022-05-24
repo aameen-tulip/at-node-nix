@@ -1,5 +1,10 @@
-# Given a Node.js package tarball, install it to a prefix using global style.
+# Given a Node.js package tarball, link it to a prefix using global style.
+#
 # This form does NOT vendor dependencies, or attempt to "build".
+#
+# This is a naive form of `npm link' or `yarn link', which may be used later
+# with `linkFarm*' to create a `node_modules/' tree.
+
 { system, gnutar, coreutils, bash
 , lib
 , libstr     ? import ../../lib/strings.nix { inherit lib; }
@@ -45,15 +50,17 @@ let
 
   buildScript = builtins.toFile "builder.sh" ( symlinkPackage + linkBins );
 
-in assert pname             == pkgInfo.pname;
-   assert version           == pkgInfo.version;
-   assert unpacked.scope    == pkgInfo.scope;
-   assert unpacked.scopeDir == pkgInfo.scopeDir;
+  npmLinkTarball' =
+    assert pname             == pkgInfo.pname;
+    assert version           == pkgInfo.version;
+    assert unpacked.scope    == pkgInfo.scope;
+    assert unpacked.scopeDir == pkgInfo.scopeDir;
 
-   derivation {
-     name = "${spre}${pname}-${version}-global-no-vendor";
-     inherit (unpacked) scope scopeDir moduleSubdir pname version tarball;
-     inherit unpacked;
-     builder = "${bash}/bin/bash";
-     args = ["-e" buildScript];
-   }
+    derivation {
+      name = "${spre}${pname}-${version}-global-no-vendor";
+      inherit (unpacked) scope scopeDir moduleSubdir pname version tarball;
+      inherit unpacked;
+      builder = "${bash}/bin/bash";
+      args = ["-e" buildScript];
+    };
+in npmLinkTarball'
