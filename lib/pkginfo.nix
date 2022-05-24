@@ -2,8 +2,7 @@
 , libstr ? import ./strings.nix { inherit lib; }
 }:
 let
-
-  readJSON = file: let inherit (builtins) fromJSON readFile; in
+  importJSON' = file: let inherit (builtins) fromJSON readFile; in
     fromJSON ( libstr.removeSlashSlashComments ( readFile file ) );
 
 /* -------------------------------------------------------------------------- */
@@ -29,6 +28,31 @@ let
          pname = elemAt sname 1;
          inherit name;
        } else throw "Invalid package name: ${name}";
+
+
+/* -------------------------------------------------------------------------- */
+
+  # `str' may be either a scoped package name ( package.json name field )
+  # or just the "scope part" of a name.
+  # Ex:
+  #   "@foo/bar" ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   "foo/bar"  ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   "@foo/"    ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   "@foo"     ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   "foo/"     ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   "foo"      ==> { scope = "foo"; scopeDir = "@foo/"; }
+  #   ""         ==> { scope = null;  scopeDir = ""; }
+  #   null       ==> { scope = null;  scopeDir = ""; }
+  #   "@/"       ==> error: Invalid scope string: @/
+  normalizePkgScope = str:
+    let smatch = builtins.match "@?([^/@]+)(/[^/@]*)?" ( lib.toLower str );
+    in if ( ( str == null ) || ( str == "" ) )
+       then { scope = null; scopeDir = ""; }
+       else if ( smatch == null ) then ( throw "Invalid scope string: ${str}" )
+       else let scope = builtins.head smatch; in {
+                  inherit scope;
+                  scopeDir = "@${scope}/";
+                };
 
 
 /* -------------------------------------------------------------------------- */
@@ -93,10 +117,11 @@ let
 
 in {
   inherit parsePkgJsonNameField;
+  inherit normalizePkgScope;
   inherit canonicalizePkgName unCanonicalizePkgName;
   inherit asLocalTarballName asNpmRegistryTarballName;
   inherit mkPkgInfo;
   inherit allDependencies;
 
-  readPkgInfo = file: mkPkgInfo ( readJSON file );
+  readPkgInfo = file: mkPkgInfo ( importJSON' file );
 }
