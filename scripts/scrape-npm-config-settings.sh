@@ -30,7 +30,7 @@ yankConfigSettingsSection() {
     </dev/stdin;
 }
 
-# I know what you're thinking, "use an \(a\|b\)" group" - we can't because
+# I know what you're thinking, "use an \(a\|b\) group" - we can't because
 # "<" preceding a capture group has a special meaning, and for whatever reason
 # I can't seem to escape it even with "[<]\(...\)".
 stripProperties() {
@@ -51,7 +51,8 @@ runnit() {
     |scrapeUsedElements         \
     |yankConfigSettingsSection  \
     |stripProperties            \
-    |dropH3;
+    |dropH3                     \
+    ;
 }
 
 

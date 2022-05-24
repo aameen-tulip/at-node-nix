@@ -22,6 +22,8 @@ let
       registry         = null
       metrics-registry = null
       shell            = "${stdenv.shell}"
+      link             = true
+      @tulip:registry  = "https://tulip-855647127938.d.codeartifact.us-east-1.amazonaws.com/npm/tulip-npm/"
     '';
     setupHookContents = ''
       setupNpmEnv() {
