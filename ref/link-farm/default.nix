@@ -5,6 +5,7 @@
 let
   mkModule = scope: pname: runCommandNoCC "${scope}-${pname}" {
     inherit pname scope;
+    version = "1.0.0";
     preferLocalBuild = true;
     allowSubstitutes = false;
   } ''
@@ -16,6 +17,9 @@ let
   '';
 
   linkyModule = runCommandNoCC "linky-module" {
+    scope = null;
+    pname = "linky";
+    version = "1.0.0";
     m1 = mkModule "hey" "there";
     m2 = mkModule "hey" "dude";
     preferLocalBuild = true;
@@ -38,9 +42,10 @@ let
     linkyModule
   ];
 
-in runCommandNoCC "my-node_modules" {
-     inherit modules;
-     preferLocalBuild = true;
-     allowSubstitutes = false;
-} ( "mkdir -p $out\n" + (  builtins.concatStringsSep "\n" ( map ( m:
-      "${lndir}/bin/lndir -silent -ignorelinks ${m} $out" ) modules ) ) )
+  linkedModules = runCommandNoCC "my-node_modules" {
+      inherit modules;
+      preferLocalBuild = true;
+      allowSubstitutes = false;
+  } ( "mkdir -p $out\n" + (  builtins.concatStringsSep "\n" ( map ( m:
+    "${lndir}/bin/lndir -silent -ignorelinks ${m} $out" ) modules ) ) );
+in modules
