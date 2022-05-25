@@ -13,6 +13,69 @@
  */
 
 let
+
+  versionRE =
+    let
+      np        = "(0|[1-9][0-9]*)";
+      anum      = "[0-9a-zA-Z-]";
+      anp       = "(0|[1-9][0-9]*|[0-9]*[a-zA-Z-]${anum}*)";
+      corePatt  = ''${np}(\.${np}(\.${np})?)?'';
+      prePatt   = ''(-${anp}(\.${anp})?)?'';
+      buildPatt = ''(\+(${anum}+(\.[0-9a-zA-Z]+)*))?'';
+    in corePatt + prePatt + buildPatt;
+
+  parseVersionConstraint = str:
+    let
+      inherit (builtins) head elemAt match length;
+      ws      = "[ \t\n\r]";
+      mods    = "[~^]";
+      cmpPatt = "([<>]=?|=?[<>]|=)";
+      betPatt = "(${ws}-|-${ws})";
+
+      modPatt    = "(${mods})?(${versionRE})";
+      cmpVerPatt = "(${cmpPatt}${ws}*(${versionRE})|(${versionRE})${ws}*${cmpPatt})";
+      rangePatt  = "(${versionRE})${ws}*${betPatt}${ws}*(${versionRE})";
+      termPatt   = "${ws}*(${cmpVerPatt}(${ws}*${cmpVerPatt})?|${rangePatt}|${modPatt})${ws}*";
+      # We have to escape "|" using "[|]", NOT "\|".
+      stPatt     = "${termPatt}([|][|]${termPatt})*";
+
+      matched = match stPatt str;
+
+      # FIXME: This indexing is Nightmarish.
+      term = head matched;
+      restTerms = elemAt matched ( ( length matched ) / 2 );
+
+      matchRange  = match rangePatt term;
+      matchMod    = match modPatt term;
+      matchCmpVer = match "${cmpVerPatt}(${ws}*${cmpVerPatt})?" term;
+
+      fromRange =
+        let
+          left  = head matchRange;
+          right = elemAt matchRange ( ( ( length matchRange ) / 2 ) + 1 );
+          sorted = sortVersionsA [left right];
+        in { from = head sorted; to = elemAt sorted 1; };
+
+      fromMod = let m' = head matchMod; in {
+        mod = if ( m' == null ) then "=" else m';
+        version = elemAt matchMod 1;
+      };
+
+      fromCmp =
+        let
+          left     = head matchCmpVer;
+          right    = elemAt matchCmpVer ( ( ( length matchCmpVer ) / 2 ) + 1 );
+          getOp    = e: head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
+          getVer   = e: head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
+          parseCmp = e: { op = getOp e; version = getVer e; };
+        in { left = parseCmp left; right = parseCmp right; };
+
+    in if ( matchRange != null ) then fromRange else
+       if ( matchMod != null ) then fromMod else
+       if ( matchCmpVer != null ) then fromCmp else
+         throw "Could not parse version constraint: ${str}";
+
+
   sortVersions' = descending: versions:
     let
       inherit (builtins) compareVersions sort;
@@ -32,18 +95,10 @@ let
   latestRelease = vs: let inherit (builtins) filter head; in
     head ( sortVersionsD ( filter isRelease vs ) );
 
-
   # Split a version string into a list of 6 components following semver spec.
   semverSplit = v:
     let
-      np        = "(0|[1-9][0-9]*)";
-      anum      = "[0-9a-zA-Z-]";
-      anp       = "(0|[1-9][0-9]*|[0-9]*[a-zA-Z-]${anum}*)";
-      corePatt  = ''${np}(\.${np}(\.${np})?)?'';
-      prePatt   = ''(-${anp}(\.${anp})?)?'';
-      buildPatt = ''(\+(${anum}+(\.[0-9a-zA-Z]+)*))?'';
-      patt      = corePatt + prePatt + buildPatt;
-      matched   = builtins.match patt v;
+      matched = builtins.match versionRE v;
       # "1.0.0-beta+exp.sha.5114f85" ==>
       # [ "1" ".0.0-beta" "0" ".0-beta" "0" "-beta" "beta" null null "+exp.sha.5114f85" "exp.sha.5114f85" ".5114f85" ]
       # "1.2.3-X.4+5Y.6" ==>
@@ -86,4 +141,5 @@ in {
   sortVersions = sortVersionsA;
   inherit isRelease latestRelease;
   inherit semverSplit parseSemver normalizeVersion;
+  inherit parseVersionConstraint;
 }
