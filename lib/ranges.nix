@@ -24,7 +24,7 @@ let
       buildPatt = ''(\+(${anum}+(\.[0-9a-zA-Z]+)*))?'';
     in corePatt + prePatt + buildPatt;
 
-  parseVersionConstraint = str:
+  parseVersionConstraint' = str:
     let
       inherit (builtins) head elemAt match length;
       ws      = "[ \t\n\r]";
@@ -54,11 +54,12 @@ let
           left  = head matchRange;
           right = elemAt matchRange ( ( ( length matchRange ) / 2 ) + 1 );
           sorted = sortVersionsA [left right];
-        in { from = head sorted; to = elemAt sorted 1; };
+        in { from = head sorted; to = elemAt sorted 1; type = "range"; };
 
       fromMod = let m' = head matchMod; in {
         mod = if ( m' == null ) then "=" else m';
         version = elemAt matchMod 1;
+        type = "mod";
       };
 
       fromCmp =
@@ -68,12 +69,33 @@ let
           getOp    = e: head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
           getVer   = e: head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
           parseCmp = e: { op = getOp e; version = getVer e; };
-        in { left = parseCmp left; right = parseCmp right; };
+        in { left = parseCmp left; right = parseCmp right; type = "cmp"; };
 
-    in if ( matchRange != null ) then fromRange else
-       if ( matchMod != null ) then fromMod else
-       if ( matchCmpVer != null ) then fromCmp else
+      rest = if ( restTerms != null ) then ( parseVersionConstraint' restTerms )
+                                      else null;
+
+    in if ( matchRange != null )  then ( fromRange // { inherit rest; } ) else
+       if ( matchMod != null )    then ( fromMod   // { inherit rest; } ) else
+       if ( matchCmpVer != null ) then ( fromCmp   // { inherit rest; } ) else
          throw "Could not parse version constraint: ${str}";
+
+  _verCmp = o: a: b: o ( builtins.compareVersions a b ) 0;
+  vg  = _verCmp ( a: b: a > b );
+  vge = _verCmp ( a: b: a >= b );
+  vl  = _verCmp ( a: b: a < b );
+  vle = _verCmp ( a: b: a <= b );
+  ve  = _verCmp ( a: b: a == b );
+
+  parseVersionConstraint = str:
+    let
+      inherit (builtins) head compareVersions;
+      parsed = parseVersionConstraint str;
+      fromRange = { from, to }: v:
+        # FIXME: this needs to round up partials like "1.2.3 - 1.3" ==> "1.2.3 - 1.4.0"
+        ( vge from v ) && ( vle to v );
+      fromCmp = null;
+      fromMod = null;
+    in null;
 
 
   sortVersions' = descending: versions:
@@ -141,5 +163,5 @@ in {
   sortVersions = sortVersionsA;
   inherit isRelease latestRelease;
   inherit semverSplit parseSemver normalizeVersion;
-  inherit parseVersionConstraint;
+  inherit parseVersionConstraint';
 }
