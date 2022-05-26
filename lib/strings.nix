@@ -4,6 +4,16 @@ let
   lines = lib.splitString "\n";
   readLines = file: lines ( builtins.readFile file );
 
+  # charN 1 "hey"       ==> "h"
+  # charN ( -1 ) "hey"  ==> "y"
+  charN = n: str:
+    let
+      len = builtins.stringLength str;
+      charN' = n: builtins.substring n ( n + 1 );
+    in charN' ( lib.mod ( n + len ) len ) str;
+
+  test = patt: str: ( builtins.match patt str ) != null;
+
   applyToLines = f: x:
     let
       inherit (builtins) isString isPath isList concatStringsSep readFile;
@@ -31,7 +41,17 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  trim = str:
+    let
+      ws = "[ \t\n\r]";
+      pr = "[^ \t\n\r]";
+    in builtins.head ( builtins.match "${ws}*(${pr}+)${ws}*" str );
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit lines readLines applyToLines;
   inherit removeSlashSlashComments removePoundComments;
+  inherit test charN trim;
 }
