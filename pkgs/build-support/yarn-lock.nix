@@ -63,7 +63,7 @@ let
                         |xargs sha512sum -b        \
                         |cut -d' ' -f1
                      )
-      ) > $out
+      )|cut -d' ' -f1 > $out
   '';
 
 /**
