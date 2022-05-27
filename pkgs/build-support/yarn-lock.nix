@@ -1,6 +1,10 @@
 { pkgs           ? import <nixpkgs> {}
+, lib            ? pkgs.lib
 , yarn           ? pkgs.yarn
 , jq             ? pkgs.jq
+, coreutils      ? pkgs.coreutils
+, findutils      ? pkgs.findutils
+, gnutar         ? pkgs.gnutar
 , runCommandNoCC ? pkgs.runCommandNoCC
 , nix-gitignore  ? pkgs.nix-gitignore
 , writeText      ? pkgs.writeText
@@ -42,6 +46,25 @@ let
                       then "@${sname.scope}/${sname.pname}"
                       else sname.pname;
              } ) ( attrNames entries );
+
+  yarnChecksumFromTarball = tarball:
+    runCommandNoCC "yarn-checksum" {
+      inherit tarball;
+      PATH = lib.makeBinPath [coreutils findutils gnutar];
+    } ''
+      tar xz --warning=no-unknown-keyword  \
+             --delay-directory-restore     \
+             --no-same-owner               \
+             --no-same-permissions         \
+          -f $tarball
+      sha512sum <(
+        printf '%s' $( find package -type f -print  \
+                        |sort                      \
+                        |xargs sha512sum -b        \
+                        |cut -d' ' -f1
+                     )
+      ) > $out
+  '';
 
 /**
  * Example Entry:

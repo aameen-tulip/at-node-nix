@@ -118,9 +118,9 @@ let
     let collectTokenizers = acc: x: acc ++ ( directTokenizersForGrammar x );
     in unique ( foldl' collectTokenizers ( subgrammars g ) );
 
-  scanG = g: str:
+  scanG = g: str: null;
 
 
 in rec {
-
+ x = null;
 }

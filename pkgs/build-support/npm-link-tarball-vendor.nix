@@ -5,7 +5,7 @@
 # This is a naive form of `npm link' or `yarn link', which may be used later
 # with `linkFarm*' to create a `node_modules/' tree.
 
-{ system, gnutar, coreutils, bash
+{ system, gnutar, coreutils, bash, lndir
 , lib
 , libstr     ? import ../../lib/strings.nix { inherit lib; }
 , libpkginfo ? import ../../lib/pkginfo.nix { inherit lib libstr; }
@@ -21,30 +21,37 @@
     inherit system gnutar coreutils bash tarball lib libstr libpkginfo;
     inherit pname scope version;
   }
-, depLocals ? []
+, nodePackageLocalsVend ? {}
 }:
 assert pname   == global.pname;
 assert version == global.version;
 assert tarball == global.tarball;
 let
+  inherit (builtins) attrValues mapAttrs concatStringsSep toFile;
   inherit (global) pkgInfo;
   spre  = if global.scope == null then "" else global.scope + "-";
   moduleSubdir = "lib/node_modules/${global.scopeDir}${pname}";
 
-  depsByScope = lib.groupBy ( g: ( if g.scope == null then "" else g.scope ) )
-                            depLocals;
-  depsByScopedName = lib.mapAttrs ( _: s: lib.groupBy ( g: g.pname ) s )
-                                  depsByScope;
+  depDrvs =
+    let fetch = n: v:
+          let inherit ( libpkginfo.parsePkgJsonNameField n ) pname scope;
+          in if scope == null then nodePackageLocalsVend."_".${pname}
+                              else nodePackageLocalsVend.${scope}.${pname};
+    in attrValues ( mapAttrs fetch ( pkgInfo.dependencies or {} ) );
 
-  buildScript = builtins.toFile "builder.sh" ''
-  '';
+  buildScript = toFile "builder.sh" ''
+    ${coreutils}/bin/mkdir -p $out
+    ${lndir}/bin/lndir -silent -ignorelinks ${global} $out
+  '' + ( concatStringsSep "\n" ( map ( m:
+             "${lndir}/bin/lndir -silent -ignorelinks ${m} $out/${moduleSubdir}"
+           ) depDrvs ) );
 
   npmLinkTarballVendor' =
     derivation {
       name = "${spre}${pname}-${version}-global-vendor";
       inherit (global) scope scopeDir moduleSubdir pname version tarball;
       inherit (global) unpacked pkgInfo;
-      inherit global;
+      inherit global depDrvs;
       builder = "${bash}/bin/bash";
       args = ["-e" buildScript];
     };

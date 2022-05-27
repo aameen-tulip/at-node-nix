@@ -29,10 +29,11 @@ let
   spre  = if global.scope == null then "" else global.scope + "-";
 
   buildScript = builtins.toFile "builder.sh" ''
-    mkdir -p $out/node_modules/${global.scopeDir}
-    ln -s -- ${global}/bin $out/node_modules/.bin
-    ln -s -- ${global}/lib/modules/${global.scopeDir}${pname}  \
-             $out/node_modules/${global.scopeDir}${pname}
+    ${coreutils}/bin/mkdir -p $out/node_modules/${global.scopeDir}
+    ${coreutils}/bin/ln -s -- ${global}/bin $out/node_modules/.bin
+    ${coreutils}/bin/ln -s --                           \
+      ${global}/lib/modules/${global.scopeDir}${pname}  \
+      $out/node_modules/${global.scopeDir}${pname}
   '';
 
   npmLinkTarballLocal' =

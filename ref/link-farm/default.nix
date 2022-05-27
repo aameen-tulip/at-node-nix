@@ -48,4 +48,5 @@ let
       allowSubstitutes = false;
   } ( "mkdir -p $out\n" + (  builtins.concatStringsSep "\n" ( map ( m:
     "${lndir}/bin/lndir -silent -ignorelinks ${m} $out" ) modules ) ) );
-in modules
+in { inherit modules linkedModules; }
+

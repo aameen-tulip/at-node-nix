@@ -12,8 +12,6 @@ in {
         mapAttrs ( _: s: mapAttrs ( _: n: groupBy ( m: m.version ) n ) s );
       toAttrs = let inherit (builtins) head; in
         mapAttrs ( _: s: mapAttrs ( _: n: mapAttrs ( _: v: head v ) n ) s );
-
-
       scoped = gscope pkgs;
       named = gname scoped;
       versioned = gversion named;
