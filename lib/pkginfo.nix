@@ -73,6 +73,16 @@ let
                             ["@"      "/"         "-"       "."];
 
 
+  # FIXME: use the style `yarn2nix' has.
+  # It uses these for the tarball names as well, just adding `.tgz'
+  #   "@babel-code-frame/code-frame@7.8.3"
+  #     ==> "_babel_code_frame___code_frame_7.8.3"
+  # To create an offline cache ( yarn v1.x style ) they literally use:
+  #   linkfarm "offline" [ { name = "foo"; path = fetchurl {}; } ... ];
+  # This won't work with `yarn' v2, since they use a shorted identifier, but
+  # it's still a useful style for attribute names.
+  #
+
 /* -------------------------------------------------------------------------- */
 
   asLocalTarballName = { pname, scope ? null, version }:
