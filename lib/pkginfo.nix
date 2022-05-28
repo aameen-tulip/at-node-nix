@@ -212,6 +212,7 @@ in {
   inherit mkPkgInfo;
   inherit allDependencies;
   inherit workspacePackages readWorkspacePackages;
+  inherit importJSON';
 
   readPkgInfo = file: mkPkgInfo ( importJSON' file );
 }

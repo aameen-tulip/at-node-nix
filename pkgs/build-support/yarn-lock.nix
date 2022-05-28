@@ -15,6 +15,7 @@ let
   inherit ( import ./yml-to-json.nix { inherit pkgs runCommandNoCC; } )
     readYML2JSON writeYML2JSON;
   inherit (lib-pkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
+  inherit (lib-pkginfo) readWorkspacePackages importJSON';
 
 
 /* -------------------------------------------------------------------------- */
@@ -31,6 +32,18 @@ let
     }: {};
 
   readYarnLock = file: removeAttrs ( readYML2JSON file ) ["__metadata"];
+
+  readYarnDir = dir:
+    let
+      yarnLock = readYarnLock ( ( toString dir ) + "/yarn.lock" );
+      pkgJson = importJSON' ( ( toString dir ) + "/package.json" );
+      wsPackages = readWorkspacePackages p;
+      selfPackage =
+        if pkgJson ? name then ( ( toString dir ) + "/package.json" ) else [];
+    in {
+      inherit yarnLock;
+      packagePaths = wsPackages ++ selfPackage;
+    };
 
 
 /* -------------------------------------------------------------------------- *
@@ -156,16 +169,27 @@ let
  *
  * -------------------------------------------------------------------------- */
 
-  resolvesWithWorkspace = entry: null;
+  resolvesWithWorkspace = entry:
+    ( match ".*@workspace:.*" entry.resolution ) != null;
 
-  asWorkspaceSpecifier = yspec: null;
+  # This is literally just an relative or absolute path to project folder
+  # using the `file:' protocol.
+  #
+  # This tries to get the absolute path, but will fall back to a relative one.
+  # Not crazy about this behavior though.
+  asWorkspaceSpecifier = packagePaths: yspec:
+    let
+      subdir   = head ( match ".*@workspace:(.*)" );
+      matchPkg = lib.hasSuffix ( subdir + "/package.json" );
+      absPath  = lib.findFirst matchPkg packagePaths;
+    in "file:" + ( if ( absPath == null ) then subdir else absPath );
 
-  getWorkspaceResolutions' = entries:
-    let filt = filter resolvesWithWorkspace ( attrValues entries ); in
-    map ( e: e.resolution ) filt;
+  getWorkspaceResolutions' = packagePaths: entries:
+    let filt = filter resolvesWithWorkspace packagePaths ( attrValues entries );
+    in map ( e: e.resolution ) filt;
 
-  getWorkspaceResolutions = entries:
-    map asWorkspaceSpecifier ( getWorkspaceResolutions' entries );
+  getWorkspaceResolutions = packagePaths: entries:
+    map asWorkspaceSpecifier ( getWorkspaceResolutions' packagePaths entries );
 
 
 /* -------------------------------------------------------------------------- *
@@ -225,6 +249,7 @@ in {
   inherit getPatchResolutions;
 
   inherit readYarnLock toNameVersionList;
+  inherit readYarnDir;
 
   writeNpmResolutions = file:
     let specs = getNpmResolutions ( readYarnLock file );
