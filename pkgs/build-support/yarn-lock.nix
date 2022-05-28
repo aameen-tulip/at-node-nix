@@ -32,7 +32,24 @@ let
 
   readYarnLock = file: removeAttrs ( readYML2JSON file ) ["__metadata"];
 
-/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- *
+ *
+ * Example Entry:
+ *
+ *   "3d-view@npm:^2.0.0":
+ *     version: 2.0.0
+ *     resolution: "3d-view@npm:2.0.0"
+ *     dependencies:
+ *       matrix-camera-controller: ^2.1.1
+ *       orbit-camera-controller: ^4.0.0
+ *       turntable-camera-controller: ^3.0.0
+ *     checksum: f62bd12683a64817a60f2999ef940d953cc71a3ca88f424d7cd30f7a60f2b2c8a6dbf4e87d1301b4ddf25244a20928b840edb517bb6782736bb55c64d98a923b
+ *     languageName: node
+ *     linkType: hard
+ *
+ *
+ *--------------------------------------------------------------------------- */
 
   resolvesWithNpm = entry: ( match ".*@npm:.*" .resolution ) != null;
 
@@ -80,46 +97,11 @@ let
 
 /* --------------------------------------------------------------------------- *
  *
- * Example Entry:
- *
- *   "3d-view@npm:^2.0.0":
- *     version: 2.0.0
- *     resolution: "3d-view@npm:2.0.0"
- *     dependencies:
- *       matrix-camera-controller: ^2.1.1
- *       orbit-camera-controller: ^4.0.0
- *       turntable-camera-controller: ^3.0.0
- *     checksum: f62bd12683a64817a60f2999ef940d953cc71a3ca88f424d7cd30f7a60f2b2c8a6dbf4e87d1301b4ddf25244a20928b840edb517bb6782736bb55c64d98a923b
- *     languageName: node
- *     linkType: hard
- *
- * --------------------------------------------------------------------------- *
- *
  * GitHub Entry (resolution only):
  *
  *   "eslint-plugin-babel@https://github.com/tulip/eslint-plugin-babel.git#master":
  *     version: 3.3.0
  *     resolution: "eslint-plugin-babel@https://github.com/tulip/eslint-plugin-babel.git#commit=8c9530eda76357686e36ae389ed8c302486a3944"
- * # Strip `commit=', and remove everything before the `@'
- *
- *
- * --------------------------------------------------------------------------- *
- *
- * Workspace Entry:
- *
- *   "export-library-content@workspace:library/ci/export-library-content/tasks/export-library-content":
- *     version: 0.0.0-use.local
- *     resolution: "export-library-content@workspace:library/ci/export-library-content/tasks/export-library-content"
- *
- *
- * Patch Entries:
- *   "fsevents@patch:fsevents@^1.2.2#builtin<compat/fsevents>, fsevents@patch:fsevents@^1.2.7#builtin<compat/fsevents>":
- *      version: 1.2.11
- *      resolution: "fsevents@patch:fsevents@npm%3A1.2.11#builtin<compat/fsevents>::version=1.2.11&hash=11e9ea"
- *
- *   "win-ca@patch:win-ca@3.4.5#./patches/win-ca-max-buffer.patch::locator=tulip-player-desktop%40workspace%3Aelectron":
- *     version: 3.4.5
- *     resolution: "win-ca@patch:win-ca@npm%3A3.4.5#./patches/win-ca-max-buffer.patch::version=3.4.5&hash=647a0a&locator=tulip-player-desktop%40workspace%3Aelectron"
  *
  *
  * -------------------------------------------------------------------------- */
@@ -127,16 +109,16 @@ let
   resolvesWithGit = entry:
     ( match ".*https://github\.com.*\.git#.*" entry.resolution ) != null;
 
-  #asGitSpecifier = yspec:
-  #  let
-  #    matches =
-  #      match "(.+)@https://github.com/(.*)\.git#(commit=)?(.*)" yspec;
-  #    at          = builtins.elemAt matches;
-  #    name        = head matches;
-  #    repo        = at 1;
-  #    maybeCommit = at 2;
-  #    ref         = at 3;
-  #  in "${name}@https://github"
+  asGitFlakeUri = yspec:
+    let
+      matches =
+        match "(.+)@https://github.com/(.*)\.git#(commit=)?(.*)" yspec;
+      at          = builtins.elemAt matches;
+      name        = builtins.head matches;
+      repo        = at 1;
+      maybeCommit = at 2;
+      ref         = at 3;
+    in "git@github:${repo}?ref=${ref}";
 
   # Produces an NPM `pacote' style resolver from a Yarn resolver.
   asGitSpecifier = yspec:
@@ -163,13 +145,86 @@ let
     map asGitSpecifier ( getGitResolutions' entries );
 
 
+/* -------------------------------------------------------------------------- *
+ *
+ * Workspace Entry:
+ *
+ *   "export-library-content@workspace:library/ci/export-library-content/tasks/export-library-content":
+ *     version: 0.0.0-use.local
+ *     resolution: "export-library-content@workspace:library/ci/export-library-content/tasks/export-library-content"
+ *
+ *
+ * -------------------------------------------------------------------------- */
+
+  resolvesWithWorkspace = entry: null;
+
+  asWorkspaceSpecifier = yspec: null;
+
+  getWorkspaceResolutions' = entries:
+    let filt = filter resolvesWithWorkspace ( attrValues entries ); in
+    map ( e: e.resolution ) filt;
+
+  getWorkspaceResolutions = entries:
+    map asWorkspaceSpecifier ( getWorkspaceResolutions' entries );
+
+
+/* -------------------------------------------------------------------------- *
+ *
+ * Patch Entries:
+ *
+ * The "builtin" patches are only relevant to PnP, and they only effect 3
+ * packages: TypeScript, FSEvent, and Resolve.
+ * These patches can be found in the Yarn Berry repository:
+ *   `berry/packages/plugin-compat/sources/*.patch'
+ *
+ *   "fsevents@patch:fsevents@^1.2.2#builtin<compat/fsevents>, fsevents@patch:fsevents@^1.2.7#builtin<compat/fsevents>":
+ *      version: 1.2.11
+ *      resolution: "fsevents@patch:fsevents@npm%3A1.2.11#builtin<compat/fsevents>::version=1.2.11&hash=11e9ea"
+ *
+ *
+ * This example shows how the `::locator=' field is used to reference other
+ * packages in the lock file.
+ * Note the "locators" refer to either the top level attribute name, or the
+ * resolution field, I'm not actually sure which.
+ * These seem limited to only the Electron workspace in our case.
+ *
+ *   "win-ca@patch:win-ca@3.4.5#./patches/win-ca-max-buffer.patch::locator=tulip-player-desktop%40workspace%3Aelectron":
+ *     version: 3.4.5
+ *     resolution: "win-ca@patch:win-ca@npm%3A3.4.5#./patches/win-ca-max-buffer.patch::version=3.4.5&hash=647a0a&locator=tulip-player-desktop%40workspace%3Aelectron"
+ *
+ *   "tulip-player-desktop@workspace:electron":
+ *     version: 0.0.0-use.local
+ *     resolution: "tulip-player-desktop@workspace:electron"
+ *
+ *
+ * -------------------------------------------------------------------------- */
+
+  resolvesWithPatch = entry: null;
+
+  asPatchSpecifier = yspec: null;
+
+  getPatchResolutions' = entries:
+    map ( e: e.resolution ) ( filter resolvesWithPatch ( attrValues entries ) );
+
+  getPatchResolutions = entries:
+    map asPatchSpecifier ( getPatchResolutions' entries );
+
+
+
 /* -------------------------------------------------------------------------- */
 
-
 in {
-  inherit readYarnLock resolvesWithNpm asNpmSpecifier getNpmResolutions';
-  inherit getNpmResolutions toNameVersionList;
+  inherit resolvesWithNpm asNpmSpecifier getNpmResolutions' getNpmResolutions;
+
   inherit resolvesWithGit asGitSpecifier getGitResolutions' getGitResolutions;
+
+  inherit resolvesWithWorkspace asWorkspaceSpecifier getWorkspaceResolutions';
+  inherit getWorkspaceResolutions;
+
+  inherit resolvesWithPatch asPatchSpecifier getPatchResolutions';
+  inherit getPatchResolutions;
+
+  inherit readYarnLock toNameVersionList;
 
   writeNpmResolutions = file:
     let specs = getNpmResolutions ( readYarnLock file );

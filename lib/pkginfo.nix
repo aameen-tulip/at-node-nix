@@ -125,6 +125,85 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # Matches "/foo/*/bar", "/foo/*", "*".
+  # But NOT "/foo/\*/bar".
+  # NOTE: In `.nix' files, "\*" ==> "*", so the "escaped" glob in the example
+  #       above is written as : hasGlob "foo/\\*/bar" ==> false
+  #       When reading from a file however, the examples above are "accurate".
+  hasGlob = p: let g = "[^\\]\\*"; in
+            ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+
+  hasDoubleGlob = p: let g = "[^\\]\\*\\*"; in
+                  ( builtins.match "(.+${g}.*|.*${g}.+|\\*\\*)" p ) != null;
+
+  hasSingleGlob = p: let g = "[^\\\\*]\\*"; in
+                  ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+
+  explicitWorkspaces = workspaces:
+    builtins.filter ( p: ! ( hasGlob p ) ) workspaces;
+
+  singleGlobWorkspaces = workspaces:
+    builtins.filter hasSingleGlob workspaces;
+
+  doubleGlobWorkspaces = workspaces:
+    builtins.filter hasDoubleGlob  workspaces;
+
+  ignoreNodeModulesDir = name: type:
+    ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
+
+  # Non-Recursive
+  dirHasPackageJson = p:
+    let
+      nodes = builtins.readDir p;
+      isPkgJson = name: type:
+        ( name == "package.json" ) && ( type != "directory" );
+      tested = builtins.mapAttrs isPkgJson nodes;
+    in builtins.any ( x: x ) ( builtins.attrValues tested );
+
+  listDirsRecursive = dir: lib.flatten ( lib.mapAttrsToList ( name: type:
+    if ( ( type == "directory" ) && ( ignoreNodeModulesDir name type ) ) then
+      listDirsRecursive ( dir + "/${name}" )
+    else
+      dir + "/${name}" ) ( builtins.readDir dir ) );
+
+  listSubdirs = dir:
+    let
+      processDir = name: type:
+        if ( type == "directory" ) then dir + "/${name}" else null;
+      processed = lib.mapAttrsToList processDir ( builtins.readDir dir );
+    in builtins.filter ( x: x != null ) processed;
+
+  processWorkspacePath = p:
+    let
+      reportDir = d:
+        if ( dirHasPackageJson d ) then "${d}/package.json" else null;
+
+      dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
+             else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
+             else [p];
+
+      process = dirs: builtins.filter ( x: x != null ) ( map reportDir dirs );
+    in if ( hasGlob ( dirOf p ) )
+       then throw ( "processGlobEnd: Only globs at the end of paths are " +
+                    "handled! Cannot process: ${p}" )
+       else process dirs;
+
+  workspacePackages = dir: pkgInfo:
+    if ! ( pkgInfo ? workspaces.packages ) then [] else
+      let processPath = p: processWorkspacePath ( ( toString dir ) + "/${p}" );
+      in builtins.concatLists ( map processPath pkgInfo.workspaces.packages );
+
+  pkgJsonForPath = p:
+    if ( ( baseNameOf p ) == "package.json" )
+    then ( toString p )
+    else ( ( toString p ) + "/package.json" );
+
+  readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
+    workspacePackages ( dirOf pjp ) ( importJSON' pjp );
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit parsePkgJsonNameField;
   inherit normalizePkgScope;
@@ -132,6 +211,7 @@ in {
   inherit asLocalTarballName asNpmRegistryTarballName;
   inherit mkPkgInfo;
   inherit allDependencies;
+  inherit workspacePackages readWorkspacePackages;
 
   readPkgInfo = file: mkPkgInfo ( importJSON' file );
 }
