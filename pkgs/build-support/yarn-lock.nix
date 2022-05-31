@@ -1,5 +1,6 @@
 { pkgs           ? import <nixpkgs> {}
 , lib            ? pkgs.lib
+, fetchurl       ? pkgs.fetchurl
 , yarn           ? pkgs.yarn
 , jq             ? pkgs.jq
 , coreutils      ? pkgs.coreutils
@@ -8,15 +9,93 @@
 , runCommandNoCC ? pkgs.runCommandNoCC
 , nix-gitignore  ? pkgs.nix-gitignore
 , writeText      ? pkgs.writeText
-, lib-pkginfo    ? import ../../lib/pkginfo.nix {}
+, libpkginfo     ? import ../../lib/pkginfo.nix {}
+, libregistry    ? import ../../lib/registry.nix
+, ymlToJson      ? import ./yml-to-json.nix { inherit pkgs runCommandNoCC; }
 }:
 let
-  inherit (builtins)  match attrNames attrValues filter concatStringsSep;
-  inherit ( import ./yml-to-json.nix { inherit pkgs runCommandNoCC; } )
-    readYML2JSON writeYML2JSON;
-  inherit (lib-pkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
-  inherit (lib-pkginfo) readWorkspacePackages importJSON';
+  inherit (builtins)  match attrNames attrValues filter concatStringsSep toJSON;
+  inherit (ymlToJson) readYML2JSON writeYML2JSON;
+  inherit (libpkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
+  inherit (libpkginfo) readWorkspacePackages importJSON';
+  inherit (libregistry) fetchFetchurlTarballArgsNpm;
 
+/* --------------------------------------------------------------------------- *
+
+YO!!!!
+the fucking checksum field in the `yarn.lock' file matches the `.zip' files
+in `.yarn/cache/' - I SHIT YOU NOT THEY USED THE NAR ALGO!
+
+
+* ---------------------------------------------------------------------------- *
+
+# The second hash of the zipfile's name matches the first 10 characters of
+# the checksum.
+
+$ nix hash file --type sha512 --base16 ./.yarn/cache/3d-view-npm-2.0.1-308cc2de85-56e46dfdfc.zip
+56e46dfdfcf420bf6ed8b307792fb830285dc2be456e50c45056eeee52bec0547296bf0c42a56b7ab0529783cfce3dae632cb1637e344af985b7258eaadfaf6e
+
+# The process used to generate the first hash is found in Yarn's repo at
+# berry/packages/yarnpkg-core/sources/structUtils.ts:443,678.
+# It is based on the "locator", being the "@foo/bar@npm:3.0.0" string.
+# To get the first part:
+
+nix-repl> builtins.hashString "sha512" ( ( builtins.hashString "sha512" "3d-view" ) + "npm:2.0.1" )
+"308cc2de8555097d1b75cd35d70a5e36a9a97277a5903e20690a62f9b20e29ba5fe111f4cbea3c0a5ed23236cbdb4c1e0f3b7cb5263fd7a4642af5d22166ad7a"
+
+The process is:
+# REMEMBER: NO "@" characters!
+mkIdentHash = { scope ? null, pname }:
+  let s = if scope == null then pname else scope + pname; in
+  builtins.hashString "sha512" s;
+# "Reference" is "npm:<VERSION>", "workspace:<Escaped-Path>", etc
+mkLocatorHash = { identHash, reference ? "unknown" }:
+  builtins.hashString "sha512" ( identHash + reference )
+
+
+* ---------------------------------------------------------------------------- *
+
+# `yarn.lock' entry:
+"3d-view@npm:^2.0.0":
+  version: 2.0.1
+  resolution: "3d-view@npm:2.0.1"
+  dependencies:
+    matrix-camera-controller: ^2.1.1
+    orbit-camera-controller: ^4.0.0
+    turntable-camera-controller: ^3.0.0
+  checksum: 56e46dfdfcf420bf6ed8b307792fb830285dc2be456e50c45056eeee52bec0547296bf0c42a56b7ab0529783cfce3dae632cb1637e344af985b7258eaadfaf6e
+  languageName: node
+  linkType: hard
+
+* ---------------------------------------------------------------------------- *
+
+# The tarballs in the Yarn cache are local style tarballs without any `bin/'
+# handling performed.
+  $ zip -sf ./.yarn/cache/3d-view-npm-2.0.1-308cc2de85-56e46dfdfc.zip
+  Archive contains:
+    node_modules/
+    node_modules/3d-view/
+    node_modules/3d-view/LICENSE
+    node_modules/3d-view/example/
+    node_modules/3d-view/example/demo.js
+    node_modules/3d-view/example/minimal.js
+    node_modules/3d-view/test/
+    node_modules/3d-view/test/test.js
+    node_modules/3d-view/view.js
+    node_modules/3d-view/package.json
+    node_modules/3d-view/README.md
+  Total 11 entries (23663 bytes)
+
+
+* ---------------------------------------------------------------------------- *
+
+# Yarn generates the first portion of the hash from this information somehow.
+    {
+      "descriptor": "3d-view@npm:^2.0.0",
+      "locator": "3d-view@npm:2.0.1"
+    }
+
+* --------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
 
@@ -91,6 +170,7 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # This is identical to the checksum of the `.zip' file, see top comments.
   yarnChecksumFromTarball = tarball:
     runCommandNoCC "yarn-checksum" {
       inherit tarball;
@@ -109,6 +189,45 @@ let
                      )
       )|cut -d' ' -f1 > $out
   '';
+
+
+/* -------------------------------------------------------------------------- */
+
+  identHash = { scope ? "", pname }:
+    assert ( "@" != ( builtins.substring 0 1 scope ) );
+    builtins.hashString "sha512" ( scope + pname  );
+
+  locatorHash' = { scope ? "", pname, reference ? "unknown" }:
+    assert ( "@" != ( builtins.substring 0 1 scope ) );
+    assert ( "@" != ( builtins.substring 0 1 reference ) );
+    let ih = identHash scope pname; in
+    builtins.hashString "sha512" ( ih + reference  );
+
+  locatorHash = {
+    scope     ? ""
+  , pname     ? null
+  , idHash    ? identHash scope pname
+  , reference ? "unknown"
+  }:
+  assert ( "@" != ( builtins.substring 0 1 reference ) );
+  builtins.hashString "sha512" ( idHash + reference );
+
+  yarnCachedTarballName = {
+    scope     ? ""
+  , pname
+  , idHash    ? identHash scope pname
+  , reference ? "unknown"
+  , loHash    ? locatorHash idHash reference
+  , checksum  # SHA512 Hex
+  }:
+    let
+      ref = builtins.replaceString [":"] ["-"] reference;
+      scope' = if scope != "" then scope + "-" else "";
+      loTen = builtins.substring 0 10 loHash;
+      ckTen = builtins.substring 0 10 checksum;
+    in scope' + pname + "-" + ref + "-" + loTen + "-" + ckTen + ".zip";
+
+
 
 /* --------------------------------------------------------------------------- *
  *
@@ -239,6 +358,43 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  genFetchurlForNpmResolutions = specs:
+    let genFetcher = name:
+          let args = fetchFetchurlTarballArgsNpm { inherit name; }; in
+          { inherit name args; tarball = fetchurl args; };
+    in map genFetcher specs;
+
+  genStringFetchurlForNpmResolutions = specs:
+    let
+      header = ''
+        { pkgs             ? import <nixpkgs> {}
+        , fetchurl         ? pkgs.fetchurl
+        , linkFarmFromDrvs ? pkgs.linkFarmFromDrvs
+        }:
+        let fetchers = {
+      '';
+      genFetcher = name:
+        let args = fetchFetchurlTarballArgsNpm { inherit name; }; in ''
+          "${name}" = {
+            tarball = fetchurl {
+              url  = "${args.url}";
+              hash = "${args.hash}";
+              sha1 = "${args.sha1}";
+            };
+          };
+        '';
+      fetchers = builtins.concatStringsSep "" ( map genFetcher specs );
+      footer = ''
+        };
+        _tarballCache = linkFarmFromDrvs "npm-tarball-cache"
+          ( mapAttrs ( _: v: v.tarball ) fetchers );
+        in tarballs // { inherit _tarballCache; }
+      '';
+    in header + fetchers + footer;
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit resolvesWithNpm asNpmSpecifier getNpmResolutions' getNpmResolutions;
 
@@ -249,11 +405,77 @@ in {
 
   inherit resolvesWithPatch asPatchSpecifier getPatchResolutions';
   inherit getPatchResolutions;
+  inherit genFetchurlForNpmResolutions;
+  inherit genStringFetchurlForNpmResolutions;
 
   inherit readYarnLock toNameVersionList;
   inherit readYarnDir;
 
-  writeNpmResolutions = file:
-    let specs = getNpmResolutions ( readYarnLock file );
+  writeNpmResolutions = lockFile:
+    let specs = getNpmResolutions ( readYarnLock lockFile );
     in writeText "npm-resolvers" ( concatStringsSep "\n" specs );
+
+  writeNpmResolutionsJSON = lockFile:
+    let specs = getNpmResolutions ( readYarnLock lockFile );
+    in writeText "npm-resolvers.json" ( toJSON specs );
+
+  writeNpmFetchersJSON = lockFile:
+    let
+      specs = getNpmResolutions ( readYarnLock lockFile );
+      fetchers = genFetchurlForNpmResolutions specs;
+      asKvPairs = map ( f: { inherit (f) name; value = f.args; } ) fetchers;
+      asAttrs = builtins.listToAttrs asKvPairs;
+    in writeText "npm-fetchers.json" ( toJSON asAttrs );
+
+  writeNpmFetchersNix = lockFile:
+    let specs = getNpmResolutions ( readYarnLock lockFile );
+    in writeText "npm-fetchers.nix"
+                 ( genStringFetchurlForNpmResolutions specs );
 }
+
+/**
+ * Creates a package ident.
+ *
+ * @param scope The package scope without the `@` prefix (eg. `types`)
+ * @param name The name of the package
+ *
+export function makeIdent(scope: string | null, name: string): Ident {
+  if (scope?.startsWith(`@`))
+    throw new Error(`Invalid scope: don't prefix it with '@'`);
+
+  return {identHash: hashUtils.makeHash<IdentHash>(scope, name), scope, name};
+}
+
+ **
+ * Creates a package descriptor.
+ *
+ * @param ident The base ident (see `makeIdent`)
+ * @param range The range to attach (eg. `^1.0.0`)
+ *
+export function makeDescriptor(ident: Ident, range: string): Descriptor {
+  return {
+    identHash: ident.identHash,
+    scope: ident.scope,
+    name: ident.name,
+    descriptorHash: hashUtils.makeHash<DescriptorHash>(ident.identHash, range),
+    range
+  };
+}
+
+ **
+ * Creates a package locator.
+ *
+ * @param ident The base ident (see `makeIdent`)
+ * @param range The reference to attach (eg. `1.0.0`)
+ *
+export function makeLocator(ident: Ident, reference: string): Locator {
+  return {
+    identHash: ident.identHash,
+    scope: ident.scope,
+    name: ident.name,
+    locatorHash: hashUtils.makeHash<LocatorHash>(ident.identHash, reference),
+    reference
+  };
+}
+
+*/

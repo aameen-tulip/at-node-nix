@@ -139,6 +139,9 @@ let
   hasSingleGlob = p: let g = "[^\\\\*]\\*"; in
                   ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
 
+
+/* -------------------------------------------------------------------------- */
+
   explicitWorkspaces = workspaces:
     builtins.filter ( p: ! ( hasGlob p ) ) workspaces;
 
@@ -160,6 +163,9 @@ let
       tested = builtins.mapAttrs isPkgJson nodes;
     in builtins.any ( x: x ) ( builtins.attrValues tested );
 
+
+/* -------------------------------------------------------------------------- */
+
   listDirsRecursive = dir: lib.flatten ( lib.mapAttrsToList ( name: type:
     if ( ( type == "directory" ) && ( ignoreNodeModulesDir name type ) ) then
       listDirsRecursive ( dir + "/${name}" )
@@ -172,6 +178,9 @@ let
         if ( type == "directory" ) then dir + "/${name}" else null;
       processed = lib.mapAttrsToList processDir ( builtins.readDir dir );
     in builtins.filter ( x: x != null ) processed;
+
+
+/* -------------------------------------------------------------------------- */
 
   processWorkspacePath = p:
     let
@@ -193,10 +202,16 @@ let
       let processPath = p: processWorkspacePath ( ( toString dir ) + "/${p}" );
       in builtins.concatLists ( map processPath pkgInfo.workspaces.packages );
 
+
+/* -------------------------------------------------------------------------- */
+
   pkgJsonForPath = p:
     if ( ( baseNameOf p ) == "package.json" )
     then ( toString p )
     else ( ( toString p ) + "/package.json" );
+
+
+/* -------------------------------------------------------------------------- */
 
   readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
     workspacePackages ( dirOf pjp ) ( importJSON' pjp );

@@ -32,8 +32,39 @@ let
     let dist = x.dist or x.tarball or ( packumentPkgLatestVersion ).dist;
     in { inherit (dist) tarball; integrity = dist.integrity or null; };
 
+  # FIXME: You can likely convert `shasum' to a valid hash.
   getFetchurlTarballArgs = x:
     let ti = getTarInfo x; in { url = ti.tarball; hash = ti.integrity; };
+
+
+/* -------------------------------------------------------------------------- */
+
+  fetchTarInfo = registryUrl: pname: version:
+    let packument = importFetchPackument registryUrl pname;
+    in getTarInfo packument.versions.${version};
+
+  fetchFetchurlTarballArgs = registryUrl: pname: version:
+    let
+      packument = importFetchPackument registryUrl pname;
+      dist = packument.versions.${version}.dist;
+    in {
+      url  = dist.tarball;
+      hash = dist.integrity or "";
+      sha1 = dist.shasum or "";
+    };
+
+  fetchFetchurlTarballArgsNpm =
+    { name ? null, pname ? null, version ? "latest" }:
+      assert ( name != null ) || ( ( pname != null ) && ( version != null ) );
+      let
+        pns = builtins.split "@" name;
+        pnsl = builtins.length pns;
+        versionFromName = builtins.elemAt pns ( pnsl - 1 );
+        pnameFromName = if pnsl == 5 then "@" + ( builtins.elemAt pns 2 )
+                                    else ( builtins.head pns );
+        pname' = if name == null then pname else pnameFromName;
+        version' = if name == null then version else versionFromName;
+      in fetchFetchurlTarballArgs "https://registry.npmjs.org/" pname' version';
 
 
 /* -------------------------------------------------------------------------- */
@@ -41,4 +72,5 @@ in {
   inherit fetchPackument importFetchPackument;
   inherit packumentPkgLatestVersion;
   inherit getTarInfo getFetchurlTarballArgs;
+  inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
 }
