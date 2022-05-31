@@ -33,11 +33,12 @@ let
 
   readYarnLock = file: removeAttrs ( readYML2JSON file ) ["__metadata"];
 
+  # FIXME: finish up workspace pacakges
   readYarnDir = dir:
     let
       yarnLock = readYarnLock ( ( toString dir ) + "/yarn.lock" );
       pkgJson = importJSON' ( ( toString dir ) + "/package.json" );
-      wsPackages = readWorkspacePackages p;
+      wsPackages = readWorkspacePackages pkgJson;
       selfPackage =
         if pkgJson ? name then ( ( toString dir ) + "/package.json" ) else [];
     in {
@@ -64,7 +65,8 @@ let
  *
  *--------------------------------------------------------------------------- */
 
-  resolvesWithNpm = entry: ( match ".*@npm:.*" .resolution ) != null;
+  resolvesWithNpm = entry:
+    ( builtins.match ".*@npm:.*" entry.resolution ) != null;
 
   # Produces an NPM `pacote' style resolver from a Yarn resolver.
   asNpmSpecifier = yspec: concatStringsSep "" ( match "(.*@)npm:(.*)" yspec );
@@ -179,7 +181,7 @@ let
   # Not crazy about this behavior though.
   asWorkspaceSpecifier = packagePaths: yspec:
     let
-      subdir   = head ( match ".*@workspace:(.*)" );
+      subdir   = builtins.head ( match ".*@workspace:(.*)" );
       matchPkg = lib.hasSuffix ( subdir + "/package.json" );
       absPath  = lib.findFirst matchPkg packagePaths;
     in "file:" + ( if ( absPath == null ) then subdir else absPath );
