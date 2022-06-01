@@ -14,7 +14,7 @@ rec {
       # NOTE: The original patterns use `[^/]+?' ( non-greedy match ), which
       #       is currently broken in Nix or Darwin because LLVM is garbage.
       #       Cross your fingers that these patterns work without it.
-      m = builtins.match "(@([^/]+)/)?([^/]+)";
+      m = builtins.match "(@([^/]+)/)?([^/]+)" str;
       scope = builtins.elemAt m 1;
       pname = builtins.elemAt m 2;
     in if m == null then null else { inherit scope pname; };
@@ -72,6 +72,8 @@ rec {
    *        (`unknown` will be used as fallback)
    */
   tryParseLocator = strict: str:
+    assert ( builtins.isBool strict );
+    assert ( builtins.isString str );
     let
       # NOTE: The original patterns use `[^/]+?' ( non-greedy match ), which
       #       is currently broken in Nix or Darwin because LLVM is garbage.
@@ -79,9 +81,9 @@ rec {
       strictMatch = builtins.match "(@([^@/]+)/)?([^@/]+)(@(.+))" str;
       permMatch   = builtins.match "(@([^@/]+)/)?([^@/]+)(@(.+))?" str;
       m           = if strict then strictMatch else permMatch;
-      scope       = builtins.elem m 1;
-      pname       = builtins.elem m 2;
-      reference'  = builtins.elem m 4;
+      scope       = builtins.elemAt m 1;
+      pname       = builtins.elemAt m 2;
+      reference'  = builtins.elemAt m 4;
       reference   = if reference' == null then "unknown" else reference';
     in if m == null then null else { inherit scope reference pname; };
 

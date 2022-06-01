@@ -29,25 +29,49 @@ let
     in builtins.genList ( builtins.elemAt descriptors ) n;
 
 
+/* -------------------------------------------------------------------------- */
+
+  idents =
+    let
+      merge    = a: b: a // b.dependencies;
+      entries  = builtins.attrValues ylock;
+      entries' = builtins.filter ( x: x ? dependencies ) entries;
+      allDeps  = builtins.foldl' merge {} entries';
+    in builtins.attrNames allDeps;
+
+  isample = let ilen = builtins.length idents;
+                n = if ilen < sampleSize then ilen else sampleSize;
+            in builtins.genList ( builtins.elemAt idents ) n;
+
+
+/* -------------------------------------------------------------------------- */
+
+  locators = map ( x: x.resolution ) ( builtins.attrValues ylock );
+
+  lsample = let llen = builtins.length locators;
+                n = if llen < sampleSize then llen else sampleSize;
+            in builtins.genList ( builtins.elemAt locators ) n;
+
 in {
 
 /* -------------------------------------------------------------------------- */
 
-  parseDescSimple =
+  testParseDescSimple =
     let
-      d = "@smoke/midz@npm:4.2.0";
+      d = "@smoke/midz@npm:~4.2.0";
       rsl = yarnParse.parseDescriptor d;
-      expected = { descriptor = "npm:4.2.0"; pname = "midz"; scope = "smoke"; };
+      expected =
+        { descriptor = "npm:~4.2.0"; pname = "midz"; scope = "smoke"; };
       check = let pass = expected == rsl; in
               builtins.trace "parseDescriptor \"${d}\" ==> ${bts pass}" pass;
     in check;
 
-  parseDesc =
+  testParseDesc =
     let check = d: let rsl = yarnParse.parseDescriptor d;
                    in builtins.trace "trying: parseDescriptor \"${d}\"" rsl;
     in builtins.deepSeq ( map check dsample ) true;
 
-  parseDescStrict =
+  testParseDescStrict =
     let check = d:
           let rsl = yarnParse.parseDescriptorStrict d;
           in builtins.trace "trying: parseDescriptorStrict \"${d}\"" rsl;
@@ -55,5 +79,34 @@ in {
 
 
 /* -------------------------------------------------------------------------- */
+
+  testParseIdent =
+    let check = d: let rsl = yarnParse.parseIdent d;
+                   in builtins.trace "trying: parseIdent \"${d}\"" rsl;
+    in builtins.deepSeq ( map check isample ) true;
+
+
+/* -------------------------------------------------------------------------- */
+
+  testParseLocatorSimple =
+    let
+      d = "@smoke/midz@npm:4.2.0";
+      rsl = yarnParse.parseLocator d;
+      expected = { reference = "npm:4.2.0"; pname = "midz"; scope = "smoke"; };
+      check = let pass = expected == rsl; in
+              builtins.trace "parseLocator \"${d}\" ==> ${bts pass}" pass;
+    in check;
+
+  testParseLocator =
+    let check = d: let rsl = yarnParse.parseLocator d;
+                   in builtins.trace "trying: parseLocator \"${d}\"" rsl;
+    in builtins.deepSeq ( map check dsample ) true;
+
+  testParseLocatorStrict =
+    let check = d:
+          let rsl = yarnParse.parseLocatorStrict d;
+          in builtins.trace "trying: parseLocatorStrict \"${d}\"" rsl;
+    in builtins.deepSeq ( map check dsample ) true;
+
 
 }
