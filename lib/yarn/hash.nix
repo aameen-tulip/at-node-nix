@@ -1,10 +1,18 @@
 rec {
+
 /* -------------------------------------------------------------------------- */
 
+  /* Identifier Hash is created using the scope + package name. */
   identHash = { scope ? "", pname }:
     assert ( "@" != ( builtins.substring 0 1 scope ) );
     builtins.hashString "sha512" ( scope + pname  );
 
+  /* The locator adds additional details indicating the version of the package,
+   * and where it was "located" when the lock file was created.
+   * For example, the locator differentiates between local paths, registry
+   * downloads, local tarballs, symlinks, etc so that these don't conflict
+   * with one another in a global cache.
+   */
   locatorHash' = { scope ? "", pname, reference ? "unknown" }:
     assert ( "@" != ( builtins.substring 0 1 scope ) );
     assert ( "@" != ( builtins.substring 0 1 reference ) );
@@ -23,6 +31,21 @@ rec {
 
 /* -------------------------------------------------------------------------- */
 
+  /* The tarball name seen in `.yarn/cache/' files.
+   * These are different from the registry tarballs, but only slightly.
+   * The difference is that they have been unpacked into a `node_modules'
+   * folder so that they may be hard linked into build areas, and patches may
+   * have been applied if they were indicated.
+   * "Rebuilding" and "installing" will not be performed in the contents of the
+   * zip files - those stages are performed when `yarn install' is run,
+   * and those results live in a separate "unplugged" cache `.yarn/unplugged'.
+   * The zips should not contain any contents which may cause cache poisoning,
+   * so they can be safely shared between machines.
+   * The locator hash means that sharing cached zips is really not useful for
+   * many types of locators - for exmple you probably don't want to cache
+   * local paths, since those are most likely going to be invalidated quickly.
+   * You WOULD want to cache registry downloads and pre-patched zips.
+   */
   yarnCachedTarballName = {
     scope     ? ""
   , pname
@@ -52,6 +75,7 @@ rec {
 $ nix hash file --type sha512 --base16 ./.yarn/cache/3d-view-npm-2.0.1-308cc2de85-56e46dfdfc.zip
 56e46dfdfcf420bf6ed8b307792fb830285dc2be456e50c45056eeee52bec0547296bf0c42a56b7ab0529783cfce3dae632cb1637e344af985b7258eaadfaf6e
 
+
 # The process used to generate the first hash is found in Yarn's repo at
 # berry/packages/yarnpkg-core/sources/structUtils.ts:443,678.
 # It is based on the "locator", being the "@foo/bar@npm:3.0.0" string.
@@ -59,15 +83,6 @@ $ nix hash file --type sha512 --base16 ./.yarn/cache/3d-view-npm-2.0.1-308cc2de8
 
 nix-repl> builtins.hashString "sha512" ( ( builtins.hashString "sha512" "3d-view" ) + "npm:2.0.1" )
 "308cc2de8555097d1b75cd35d70a5e36a9a97277a5903e20690a62f9b20e29ba5fe111f4cbea3c0a5ed23236cbdb4c1e0f3b7cb5263fd7a4642af5d22166ad7a"
-
-The process is:
-# REMEMBER: NO "@" characters!
-mkIdentHash = { scope ? null, pname }:
-  let s = if scope == null then pname else scope + pname; in
-  builtins.hashString "sha512" s;
-# "Reference" is "npm:<VERSION>", "workspace:<Escaped-Path>", etc
-mkLocatorHash = { identHash, reference ? "unknown" }:
-  builtins.hashString "sha512" ( identHash + reference )
 
 
 * ---------------------------------------------------------------------------- *
@@ -83,6 +98,7 @@ mkLocatorHash = { identHash, reference ? "unknown" }:
   checksum: 56e46dfdfcf420bf6ed8b307792fb830285dc2be456e50c45056eeee52bec0547296bf0c42a56b7ab0529783cfce3dae632cb1637e344af985b7258eaadfaf6e
   languageName: node
   linkType: hard
+
 
 * ---------------------------------------------------------------------------- *
 
@@ -103,13 +119,5 @@ mkLocatorHash = { identHash, reference ? "unknown" }:
     node_modules/3d-view/README.md
   Total 11 entries (23663 bytes)
 
-
-* ---------------------------------------------------------------------------- *
-
-# Yarn generates the first portion of the hash from this information somehow.
-    {
-      "descriptor": "3d-view@npm:^2.0.0",
-      "locator": "3d-view@npm:2.0.1"
-    }
 
 * --------------------------------------------------------------------------- */
