@@ -27,7 +27,6 @@ rec {
 
 /* -------------------------------------------------------------------------- */
 
-  # FIXME: non-greedy is breaking it.
 /**
  * Parses a `string` into a descriptor
  *
@@ -72,8 +71,6 @@ rec {
    *        (`unknown` will be used as fallback)
    */
   tryParseLocator = strict: str:
-    assert ( builtins.isBool strict );
-    assert ( builtins.isString str );
     let
       # NOTE: The original patterns use `[^/]+?' ( non-greedy match ), which
       #       is currently broken in Nix or Darwin because LLVM is garbage.
