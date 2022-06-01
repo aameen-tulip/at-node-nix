@@ -1,5 +1,8 @@
 rec {
 
+  # NOTE: The Yarn Lock v4 checksums don't seem to align with the v6 ones.
+  #       There is a `__metadata: cacheKey:' field that may be relevant?
+
 /* -------------------------------------------------------------------------- */
 
   /* Identifier Hash is created using the scope + package name. */
@@ -16,13 +19,13 @@ rec {
   locatorHash' = { scope ? "", pname, reference ? "unknown" }:
     assert ( "@" != ( builtins.substring 0 1 scope ) );
     assert ( "@" != ( builtins.substring 0 1 reference ) );
-    let ih = identHash scope pname; in
+    let ih = identHash { inherit scope pname; }; in
     builtins.hashString "sha512" ( ih + reference  );
 
   locatorHash = {
     scope     ? ""
   , pname     ? null
-  , idHash    ? identHash scope pname
+  , idHash    ? identHash { inherit scope pname; }
   , reference ? "unknown"
   }:
   assert ( "@" != ( builtins.substring 0 1 reference ) );
@@ -45,18 +48,21 @@ rec {
    * many types of locators - for exmple you probably don't want to cache
    * local paths, since those are most likely going to be invalidated quickly.
    * You WOULD want to cache registry downloads and pre-patched zips.
+   *
+   * XXX: I'm getting mixed messages about "@" prefixes in the tarball names.
+   *      Sanity check if this changes between Yarn v2 and v3.
    */
   yarnCachedTarballName = {
     scope     ? ""
   , pname
-  , idHash    ? identHash scope pname
+  , idHash    ? identHash { inherit scope pname; }
   , reference ? "unknown"
-  , loHash    ? locatorHash idHash reference
+  , loHash    ? locatorHash { inherit idHash reference; }
   , checksum  # SHA512 Hex
   }:
     let
-      ref = builtins.replaceString [":"] ["-"] reference;
-      scope' = if scope != "" then scope + "-" else "";
+      ref = builtins.replaceStrings [":"] ["-"] reference;
+      scope' = if scope != "" then "@" + scope + "-" else "";
       loTen = builtins.substring 0 10 loHash;
       ckTen = builtins.substring 0 10 checksum;
     in scope' + pname + "-" + ref + "-" + loTen + "-" + ckTen + ".zip";
