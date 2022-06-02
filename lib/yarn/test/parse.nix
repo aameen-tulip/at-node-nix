@@ -61,7 +61,7 @@ in {
       d = "@smoke/midz@npm:~4.2.0";
       rsl = yarnParse.parseDescriptor d;
       expected =
-        { descriptor = "npm:~4.2.0"; pname = "midz"; scope = "smoke"; };
+        { range = "npm:~4.2.0"; pname = "midz"; scope = "smoke"; };
       check = let pass = expected == rsl; in
               builtins.trace "parseDescriptor \"${d}\" ==> ${bts pass}" pass;
     in check;

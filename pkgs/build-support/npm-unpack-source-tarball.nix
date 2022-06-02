@@ -37,7 +37,7 @@ let
   ];
   buildScript = builtins.toFile "builder.sh" ''
     ${gnutar}/bin/tar ${toString tarFlags} -xf ${tarball}
-    ${coreutils}/bin/mv ./package.out $out
+    ${coreutils}/bin/mv ./package $out
   '';
 
   unpackNodeSource' = derivation {

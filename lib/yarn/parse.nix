@@ -46,9 +46,9 @@ rec {
       m           = if strict then strictMatch else permMatch;
       scope       = builtins.elemAt m 1;
       pname       = builtins.elemAt m 2;
-      descriptor' = builtins.elemAt m 4;
-      descriptor  = if descriptor' == null then "unknown" else descriptor';
-    in if m == null then null else { inherit scope descriptor pname; };
+      range' = builtins.elemAt m 4;
+      range  = if range' == null then "unknown" else range';
+    in if m == null then null else { inherit scope range pname; };
 
   /* Not allowed to return `null'. */
   parseDescriptor' = strict: str:

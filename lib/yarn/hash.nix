@@ -1,14 +1,23 @@
 rec {
 
-  # NOTE: The Yarn Lock v4 checksums don't seem to align with the v6 ones.
-  #       There is a `__metadata: cacheKey:' field that may be relevant?
-
 /* -------------------------------------------------------------------------- */
 
   /* Identifier Hash is created using the scope + package name. */
-  identHash = { scope ? "", pname }:
+  identHash = { scope ? "", pname, ... }:
     assert ( "@" != ( builtins.substring 0 1 scope ) );
     builtins.hashString "sha512" ( scope + pname  );
+
+
+/* -------------------------------------------------------------------------- */
+
+  /* FIXME: Descriptor Hash.
+   * This is almost identical to the locator, except that certain characters
+   * like spaces are removed.
+   * Go reference the Yarn implemenation.
+   */
+
+
+/* -------------------------------------------------------------------------- */
 
   /* The locator adds additional details indicating the version of the package,
    * and where it was "located" when the lock file was created.
@@ -16,17 +25,18 @@ rec {
    * downloads, local tarballs, symlinks, etc so that these don't conflict
    * with one another in a global cache.
    */
-  locatorHash' = { scope ? "", pname, reference ? "unknown" }:
+  locatorHash' = { scope ? "", pname, reference ? "unknown", ... }:
     assert ( "@" != ( builtins.substring 0 1 scope ) );
     assert ( "@" != ( builtins.substring 0 1 reference ) );
     let ih = identHash { inherit scope pname; }; in
-    builtins.hashString "sha512" ( ih + reference  );
+    builtins.hashString "sha512" ( ih + reference );
 
   locatorHash = {
     scope     ? ""
   , pname     ? null
   , idHash    ? identHash { inherit scope pname; }
   , reference ? "unknown"
+  , ...
   }:
   assert ( "@" != ( builtins.substring 0 1 reference ) );
   builtins.hashString "sha512" ( idHash + reference );
@@ -52,13 +62,14 @@ rec {
    * XXX: I'm getting mixed messages about "@" prefixes in the tarball names.
    *      Sanity check if this changes between Yarn v2 and v3.
    */
-  yarnCachedTarballName = {
+  yarnCacheTarballName = {
     scope     ? ""
   , pname
   , idHash    ? identHash { inherit scope pname; }
   , reference ? "unknown"
   , loHash    ? locatorHash { inherit idHash reference; }
   , checksum  # SHA512 Hex
+  , ...
   }:
     let
       ref = builtins.replaceStrings [":"] ["-"] reference;
