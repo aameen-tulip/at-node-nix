@@ -105,7 +105,7 @@ let
   resolvesWithGit = entry:
     ( match ".*https://github\.com.*\.git#.*" entry.resolution ) != null;
 
-  asGitFlakeUri = yspec:
+  asGithubFlakeUri = yspec:
     let
       matches =
         match "(.+)@https://github.com/(.*)\.git#(commit=)?(.*)" yspec;
@@ -114,7 +114,7 @@ let
       repo        = at 1;
       maybeCommit = at 2;
       ref         = at 3;
-    in "git@github:${repo}?ref=${ref}";
+    in "github:${repo}?ref=${ref}";
 
   # Produces an NPM `pacote' style resolver from a Yarn resolver.
   asGitSpecifier = yspec:
@@ -261,6 +261,7 @@ in {
   inherit resolvesWithNpm asNpmSpecifier getNpmResolutions' getNpmResolutions;
 
   inherit resolvesWithGit asGitSpecifier getGitResolutions' getGitResolutions;
+  inherit asGithubFlakeUri;
 
   inherit resolvesWithWorkspace asWorkspaceSpecifier getWorkspaceResolutions';
   inherit getWorkspaceResolutions;

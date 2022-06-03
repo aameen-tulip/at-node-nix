@@ -39,13 +39,13 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  fetchTarInfo = registryUrl: pname: version:
-    let packument = importFetchPackument registryUrl pname;
+  fetchTarInfo = registryUrl: name: version:
+    let packument = importFetchPackument registryUrl name;
     in getTarInfo packument.versions.${version};
 
-  fetchFetchurlTarballArgs = registryUrl: pname: version:
+  fetchFetchurlTarballArgs = registryUrl: name: version:
     let
-      packument = importFetchPackument registryUrl pname;
+      packument = importFetchPackument registryUrl name;
       dist = packument.versions.${version}.dist;
     in {
       url  = dist.tarball;
