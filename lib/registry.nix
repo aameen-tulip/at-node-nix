@@ -1,5 +1,6 @@
 { libparse ? import ./parse.nix
 , lib      ? ( builtins.getFlake "github:NixOS/nixpkgs?dir=lib" ).lib
+, libpi    ? import ./pkginfo.nix { inherit lib; }
 }:  # FIXME
 let
 
@@ -18,6 +19,41 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  addPackumentExtras = packument:
+    let
+      nid' = libparse.parseIdent packument._id;
+      scopeDir = if ( nid'.scope != null ) then "@${nid'.scope}/" else "";
+      nid = nid' // { inherit scopeDir; };
+      addNiVers = vers: val: val // nid // { reference = vers; };
+      addTarInfoVers = val:
+        let
+          fetchTarballArgs = ( { tarball, integrity ? "", shasum ? "", ... }: {
+            url = tarball;
+            hash = integrity;
+            sha1 = shasum;
+          } ) val.dist;
+          fetchWith = {
+            fetchurl ? ( { url, ... }: builtins.fetchurl url )
+          }: fetchurl fetchTarballArgs;
+        in val // {
+          inherit fetchTarballArgs fetchWith;
+          inherit (val.dist) tarball;
+        };
+      addAllDeps = val: val // { allDependencies = libpi.allDependencies val; };
+      addPerVers = vers: val:
+        ( addAllDeps ( addTarInfoVers ( addNiVers vers val ) ) );
+      # FIXME:
+      versions = builtins.mapAttrs addPerVers ( packument.versions or {} );
+      packument' = packument // nid // { inherit versions; };
+      latest = packumentPkgLatestVersion packument';
+    in packument' // {
+      latest = if versions != {} then latest else null;
+      versions = packument'.versions // { inherit latest; };
+    };
+
+
+/* -------------------------------------------------------------------------- */
+
   # Determine the latest version of a package from its packument info.
   # First we check for `.dist-tags.latest' for a version number, otherwise we
   # use the last element of the list.
@@ -25,8 +61,11 @@ let
   packumentPkgLatestVersion = packument:
     if packument ? dist-tags.latest
     then packument.versions.${packument.dist-tags.latest}
-    else let len = builtins.length packument.versions;
-         in builtins.elemAt packument.versions ( len -1 );
+    else let vlist = builtins.attrValues packument.versions;
+             len = builtins.length vlist;
+             last = builtins.elemAt vlist ( len -1 );
+         in if ( 0 < len  ) then last else
+           throw "Package ${packument._id} lacks a version list";
 
 
 /* -------------------------------------------------------------------------- */
@@ -98,7 +137,9 @@ let
     lookup = str:
       let
         ni = libparse.nameInfo str;
-        fetchPack = prev: importFetchPackument prev.registry ni.name;
+        fetchPack = prev:
+          let raw = importFetchPackument prev.registry ni.name;
+          in addPackumentExtras raw;
         addPack = final: prev:
           if ( prev.packuments ? ${ni.name} ) then {} else {
             packuments =
@@ -108,6 +149,13 @@ let
     __functor = self: str: self.extend ( self.lookup str );
   } );
 
+  extendWithLatestDeps' = pr:
+    let
+      inherit (builtins) concatMap attrNames attrValues foldl';
+      allDeps = concatMap ( x: attrNames ( x.latest.allDependencies or {} ) )
+                          ( attrValues pr.packuments );
+    in foldl' ( acc: x: let t = builtins.tryEval ( let r = acc x; in builtins.deepSeq r r ); in if t.success then t.value else acc ) pr allDeps;
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -116,5 +164,10 @@ in {
   inherit packumentPkgLatestVersion;
   inherit getTarInfo getFetchurlTarballArgs;
   inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
-  inherit packumenter;
+  inherit packumenter extendWithLatestDeps';
+  test =
+    let
+      pr = builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"];
+      pr' = lib.converge extendWithLatestDeps' pr;
+    in builtins.length ( builtins.attrNames pr'.packuments );
 }
