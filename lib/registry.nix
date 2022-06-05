@@ -1,3 +1,6 @@
+{ libparse ? import ./parse.nix
+, lib      ? ( builtins.getFlake "github:NixOS/nixpkgs?dir=lib" ).lib
+}:  # FIXME
 let
 
   # Fetch a packument from the registry.
@@ -68,9 +71,50 @@ let
 
 
 /* -------------------------------------------------------------------------- */
+
+  /**
+   * A lazily evaluated extensible packument database.
+   * Packuments will not be fetched twice.
+   *   let
+   *     pr   = packumenter;
+   *     pr'  = pr.extend ( pr.lookup "lodash" );
+   *     pr'' = pr.extend ( pr.lookup "3d-view" );
+   *   in pr''.packuments
+   *
+   * Or use the packumenter itself as a function:
+   *   let
+   *     pr   = packumenter;
+   *     pr'  = pr "lodash";
+   *     pr'' = pr "lodash";
+   *   in pr''.packuments;
+   *
+   * This is particularly useful with `builtins.foldl'':
+   *   ( builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"] ).packuments
+   */
+  packumenter = lib.makeExtensible ( final: {
+    packuments = {};
+    registry = "https://registry.npmjs.org/";
+    # Create an override extending a packumenter with a packument
+    lookup = str:
+      let
+        ni = libparse.nameInfo str;
+        fetchPack = prev: importFetchPackument prev.registry ni.name;
+        addPack = final: prev:
+          if ( prev.packuments ? ${ni.name} ) then {} else {
+            packuments =
+              prev.packuments // { ${ni.name} = ( fetchPack prev ); };
+          };
+      in addPack;
+    __functor = self: str: self.extend ( self.lookup str );
+  } );
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit fetchPackument importFetchPackument;
   inherit packumentPkgLatestVersion;
   inherit getTarInfo getFetchurlTarballArgs;
   inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
+  inherit packumenter;
 }

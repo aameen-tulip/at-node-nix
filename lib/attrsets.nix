@@ -2,7 +2,9 @@
 let
   inherit (lib) mapAttrs groupBy;
 in {
+
   pushDownNames = lib.mapAttrs ( name: val: val // { inherit name; } );
+
   pkgsAsAttrsets = pkgs:
     let
       ms = m: if m.scope == null then "_" else m.scope;
@@ -16,4 +18,6 @@ in {
       named = gname scoped;
       versioned = gversion named;
     in toAttrs versioned;
+
+
 }

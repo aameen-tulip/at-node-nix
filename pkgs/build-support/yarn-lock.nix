@@ -174,6 +174,15 @@ let
   getWorkspaceResolutions = packagePaths: entries:
     map asWorkspaceSpecifier ( getWorkspaceResolutions' packagePaths entries );
 
+  getWorkspaceResolutionsAsFileUri = entries:
+    let
+      inherit (builtins) match head elemAt attrValues listToAttrs;
+      wsToFp = e: let m = match "(.+)@workspace:(.*)" e.resolution;
+                      name = head m;
+                      path = elemAt m 1;
+                  in { inherit name; value = "file:./" + path; };
+    in listToAttrs ( map wsToFp ( attrValues entries ) );
+
 
 /* -------------------------------------------------------------------------- *
  *
@@ -265,6 +274,7 @@ in {
 
   inherit resolvesWithWorkspace asWorkspaceSpecifier getWorkspaceResolutions';
   inherit getWorkspaceResolutions;
+  inherit getWorkspaceResolutionsAsFileUri;
 
   inherit resolvesWithPatch asPatchSpecifier getPatchResolutions';
   inherit getPatchResolutions;
