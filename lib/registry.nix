@@ -70,7 +70,7 @@ let
 /* -------------------------------------------------------------------------- */
 
   getTarInfo = x:
-    let dist = x.dist or x.tarball or ( packumentPkgLatestVersion ).dist;
+    let dist = x.dist or x.tarball or ( packumentPkgLatestVersion x ).dist;
     in { inherit (dist) tarball; integrity = dist.integrity or null; };
 
   # FIXME: You can likely convert `shasum' to a valid hash.
