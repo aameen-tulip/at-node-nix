@@ -149,12 +149,22 @@ let
     __functor = self: str: self.extend ( self.lookup str );
   } );
 
+  # FIXME: Filter out deps we've already fetched.
+  #        The packumenter will ignore them, but terminating early may help
+  #        speed things up.
   extendWithLatestDeps' = pr:
     let
-      inherit (builtins) concatMap attrNames attrValues foldl';
-      allDeps = concatMap ( x: attrNames ( x.latest.allDependencies or {} ) )
-                          ( attrValues pr.packuments );
-    in foldl' ( acc: x: let t = builtins.tryEval ( let r = acc x; in builtins.deepSeq r r ); in if t.success then t.value else acc ) pr allDeps;
+      inherit (builtins) mapAttrs attrNames attrValues foldl';
+      #allDepsFor = x: x.latest.allDependencies or {};
+      allDepsFor = x: x.latest.dependencies or {};
+      dropKnown = lib.filterAttrs ( k: _: ! ( pr.packuments ? ${k} ) );
+      merge = set: k: if set ? ${k} then set else set // { ${k} = null; };
+      collectDeps = xs:
+        let ad = x: attrNames ( dropKnown ( allDepsFor x ) );
+        in foldl' merge {} ( ad xs );
+      allDeps = map collectDeps ( attrValues pr.packuments );
+      deduped = attrNames ( foldl' ( a: b: a // b ) {} allDeps );
+    in foldl' ( acc: x: acc ( builtins.trace "lookin up ${x}" x ) ) pr deduped;
 
 
 /* -------------------------------------------------------------------------- */
@@ -167,7 +177,7 @@ in {
   inherit packumenter extendWithLatestDeps';
   test =
     let
-      pr = builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"];
+      pr = builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view" "@babel/core"];
       pr' = lib.converge extendWithLatestDeps' pr;
     in builtins.length ( builtins.attrNames pr'.packuments );
 }
