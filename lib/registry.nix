@@ -169,19 +169,27 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  packumentClosure = packages:
+  packumentClosure' = prev: packages:
     let
-      pr = builtins.foldl' ( x: x ) packumenter packages;
+      pr = builtins.foldl' ( x: x ) prev ( lib.toList packages );
       pr' = lib.converge extendWithLatestDeps' pr;
     in { size = builtins.length ( builtins.attrNames pr'.packuments );
          packumenter = pr';
        };
+
+  packumentClosure = packumentClosure' packumenter;
+
+  # Handle large lists in chunks.
+  # Folding chunks of 100 with `packumentClosure'' seems to work well.
+  # Use `builtins.genList' or `ak-core.lib.{drop,take}N' to cut things down
+  # to size.
 
 in {
   inherit fetchPackument importFetchPackument;
   inherit packumentPkgLatestVersion;
   inherit getTarInfo getFetchurlTarballArgs;
   inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
-  inherit packumenter extendWithLatestDeps' packumentClosure;
+  inherit packumenter extendWithLatestDeps';
+  inherit packumentClosure' packumentClosure;
   test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
 }
