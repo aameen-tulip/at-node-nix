@@ -7,18 +7,12 @@
 # The tarball should be a checkpoint that kills any past contexts, and roots a
 # new generation.
 
-{ system, gnutar, coreutils, bash
-, lib
-, libstr     ? import ../../lib/strings.nix { inherit lib; }
-, libpkginfo ? import ../../lib/pkginfo.nix { inherit lib libstr; }
-
+{ system, lib, gnutar, coreutils, bash
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because
 # the caller probably knows this info already.
-, pname
-, scope   ? null
-, version
+, pname, scope ? null, version
 }:
 let
   scrubStr = builtins.unsafeDiscarStringContext;
@@ -26,7 +20,7 @@ let
   pname   = scrubStr pname;
   version = scrubStr version;
 
-  sinfo = libpkginfo.normalizePkgScope ( scrubStr scope );
+  sinfo = lib.normalizePkgScope ( scrubStr scope );
   spre  = if sinfo.scope == null then "" else sinfo.scope + "-";
 
   tarFlags = [

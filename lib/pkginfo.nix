@@ -1,9 +1,8 @@
-{ lib    ? ( import <nixpkgs> {} ).lib
-, libstr ? import ./strings.nix { inherit lib; }
-}:
+{ lib }:
 let
+
   importJSON' = file: let inherit (builtins) fromJSON readFile; in
-    fromJSON ( libstr.removeSlashSlashComments ( readFile file ) );
+    fromJSON ( lib.removeSlashSlashComments ( readFile file ) );
 
 /* -------------------------------------------------------------------------- */
 
@@ -12,8 +11,7 @@ let
   # Ex:
   #   "@foo/bar" ==> { name = "@foo/bar"; pname = "bar"; scope = "foo" }
   #   "bar" ==> { name = "bar"; pname = "bar"; scope = null }
-  isPkgJsonName = name:
-    null != ( builtins.match "(@[^/@.]+/)?([^/@.]+)" name );
+  isPkgJsonName = name: null != ( builtins.match "(@[^/@.]+/)?([^/@.]+)" name );
 
   parsePkgJsonNameField = name:
     assert ( isPkgJsonName name );
@@ -131,13 +129,13 @@ let
   #       above is written as : hasGlob "foo/\\*/bar" ==> false
   #       When reading from a file however, the examples above are "accurate".
   hasGlob = p: let g = "[^\\]\\*"; in
-            ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+    ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
 
   hasDoubleGlob = p: let g = "[^\\]\\*\\*"; in
-                  ( builtins.match "(.+${g}.*|.*${g}.+|\\*\\*)" p ) != null;
+    ( builtins.match "(.+${g}.*|.*${g}.+|\\*\\*)" p ) != null;
 
   hasSingleGlob = p: let g = "[^\\\\*]\\*"; in
-                  ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+    ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
 
 
 /* -------------------------------------------------------------------------- */
@@ -155,13 +153,12 @@ let
     ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
 
   # Non-Recursive
-  dirHasPackageJson = p:
-    let
-      nodes = builtins.readDir p;
-      isPkgJson = name: type:
-        ( name == "package.json" ) && ( type != "directory" );
-      tested = builtins.mapAttrs isPkgJson nodes;
-    in builtins.any ( x: x ) ( builtins.attrValues tested );
+  dirHasPackageJson = p: let
+    nodes = builtins.readDir p;
+    isPkgJson = name: type:
+      ( name == "package.json" ) && ( type != "directory" );
+    tested = builtins.mapAttrs isPkgJson nodes;
+  in builtins.any ( x: x ) ( builtins.attrValues tested );
 
 
 /* -------------------------------------------------------------------------- */
@@ -172,30 +169,28 @@ let
     else
       dir + "/${name}" ) ( builtins.readDir dir ) );
 
-  listSubdirs = dir:
-    let
-      processDir = name: type:
-        if ( type == "directory" ) then dir + "/${name}" else null;
-      processed = lib.mapAttrsToList processDir ( builtins.readDir dir );
-    in builtins.filter ( x: x != null ) processed;
+  listSubdirs = dir: let
+    processDir = name: type:
+      if ( type == "directory" ) then dir + "/${name}" else null;
+    processed = lib.mapAttrsToList processDir ( builtins.readDir dir );
+  in builtins.filter ( x: x != null ) processed;
 
 
 /* -------------------------------------------------------------------------- */
 
-  processWorkspacePath = p:
-    let
-      reportDir = d:
-        if ( dirHasPackageJson d ) then "${d}/package.json" else null;
+  processWorkspacePath = p: let
+    reportDir = d:
+      if ( dirHasPackageJson d ) then "${d}/package.json" else null;
 
-      dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
-             else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
-             else [p];
+    dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
+           else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
+           else [p];
 
-      process = dirs: builtins.filter ( x: x != null ) ( map reportDir dirs );
-    in if ( hasGlob ( dirOf p ) )
-       then throw ( "processGlobEnd: Only globs at the end of paths are " +
-                    "handled! Cannot process: ${p}" )
-       else process dirs;
+    process = dirs: builtins.filter ( x: x != null ) ( map reportDir dirs );
+  in if ( hasGlob ( dirOf p ) )
+     then throw ( "processGlobEnd: Only globs at the end of paths are " +
+                  "handled! Cannot process: ${p}" )
+     else process dirs;
 
   workspacePackages = dir: pkgInfo:
     if ! ( pkgInfo ? workspaces.packages ) then [] else

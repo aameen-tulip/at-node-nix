@@ -7,3 +7,6 @@
 [submodule "ref/yarn-plugin-nixify"]
 	path = ref/yarn-plugin-nixify
 	url = git@github.com:aameen-tulip/yarn-plugin-nixify.git
+[submodule "ref/npmlock2nix"]
+	path = ref/npmlock2nix
+	url = https://github.com/nix-community/npmlock2nix.git

@@ -1,4 +1,4 @@
-{ lib ? ( import <nixpkgs> {} ).lib }:
+{ lib ? ( builtins.getFlake "nixpkgs" ).lib }:
 let
 
   lines = lib.splitString "\n";
@@ -6,23 +6,21 @@ let
 
   # charN 1 "hey"       ==> "h"
   # charN ( -1 ) "hey"  ==> "y"
-  charN = n: str:
-    let
-      len = builtins.stringLength str;
-      charN' = n: builtins.substring n ( n + 1 );
-    in charN' ( lib.mod ( n + len ) len ) str;
+  charN = n: str: let
+    len = builtins.stringLength str;
+    charN' = n: builtins.substring n ( n + 1 );
+  in charN' ( lib.mod ( n + len ) len ) str;
 
   test = patt: str: ( builtins.match patt str ) != null;
 
-  applyToLines = f: x:
-    let
-      inherit (builtins) isString isPath isList concatStringsSep readFile;
-      asList = if ( isList x ) then x
-        else if ( isString x ) then lines x
-        else if ( isPath x )   then readLines x
-        else throw ( "Cannot convert type ${builtins.typeOf x} to a list" +
-                     " of strings" );
-    in lib.concatMapStringsSep "\n" f asList;
+  applyToLines = f: x: let
+    inherit (builtins) isString isPath isList concatStringsSep readFile;
+    asList = if ( isList x ) then x
+      else if ( isString x ) then lines x
+      else if ( isPath x )   then readLines x
+      else throw ( "Cannot convert type ${builtins.typeOf x} to a list" +
+                    " of strings" );
+  in lib.concatMapStringsSep "\n" f asList;
 
 
 /* -------------------------------------------------------------------------- */
@@ -41,11 +39,10 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  trim = str:
-    let
-      ws = "[ \t\n\r]";
-      pr = "[^ \t\n\r]";
-    in builtins.head ( builtins.match "${ws}*(${pr}+)${ws}*" str );
+  trim = str: let
+    ws = "[ \t\n\r]";
+    pr = "[^ \t\n\r]";
+  in builtins.head ( builtins.match "${ws}*(${pr}+)${ws}*" str );
 
 
 /* -------------------------------------------------------------------------- */

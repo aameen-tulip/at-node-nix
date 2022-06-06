@@ -1,6 +1,4 @@
-{ lib      ? ( import <nixpkgs> ).lib
-, libattrs ? import ./attrsets.nix { inherit lib; }
-}:
+{ lib }:
 let
 
   # A filter function
@@ -11,8 +9,10 @@ let
   collectUnresolved = plock:
     lib.filterAttrs ( k: v: ! ( wasResolved k v ) ) plock.dependencies;
 
+  partitionResolved = builtins.partition wasResolved;
+
 in {
-  inherit collectResolved collectUnresolved;
+  inherit collectResolved collectUnresolved partitionResolved;
 
   /**
    * Proved with a JSON representation of a `package-lock.json' file, apply a
@@ -27,14 +27,13 @@ in {
    *                     ( builtins.attrValues resolvedFetchers )
    *
    */
-  deriveFetchersForResolvedLockEntries = fetchurl: plock:
+  resolvedFetchersFromLock = fetchurl: plock:
     let applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
     in builtins.mapAttrs applyFetch ( collectResolved plock );
 
-  toposortDeps = plock:
-    let
-      inherit (builtins) elem attrValues;
-      depl = attrValues ( libattrs.pushDownNames ( plock.dependencies or {} ) );
-      bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
-    in lib.toposort bDependsOnA depl;
+  toposortDeps = plock: let
+    inherit (builtins) elem attrValues;
+    depl = attrValues ( lib.pushDownNames ( plock.dependencies or {} ) );
+    bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
+  in lib.toposort bDependsOnA depl;
 }

@@ -1,6 +1,7 @@
-{ pkgs          ? import <nixpkgs> {}
-, nix-gitignore ? pkgs.nix-gitignore
-, lib           ? pkgs.lib
+{ nixpkgs       ? builtins.getFlake "nixpkgs"
+, system        ? builtins.currentSystem
+, nix-gitignore ? nixpkgs.legacyPackages.${system}.nix-gitignore
+, lib           ? nixpkgs.lib
 }:
 let
   inherit (lib.sources) cleanSource cleanSourceWith;

@@ -1,23 +1,17 @@
-{ lib ? ( import <nixpkgs> {} ).lib }:
-let
-  inherit (lib) mapAttrs groupBy;
-in {
+{ lib ? ( builtins.getFlake "nixpkgs" ).lib }:
+{
+  pushDownNames = builtins.mapAttrs ( name: val: val // { inherit name; } );
 
-  pushDownNames = lib.mapAttrs ( name: val: val // { inherit name; } );
-
-  pkgsAsAttrsets = pkgs:
-    let
-      ms = m: if m.scope == null then "_" else m.scope;
-      gscope = groupBy ms;
-      gname = mapAttrs ( _: s: groupBy ( m: m.pname ) s );
-      gversion =
-        mapAttrs ( _: s: mapAttrs ( _: n: groupBy ( m: m.version ) n ) s );
-      toAttrs = let inherit (builtins) head; in
-        mapAttrs ( _: s: mapAttrs ( _: n: mapAttrs ( _: v: head v ) n ) s );
-      scoped = gscope pkgs;
-      named = gname scoped;
-      versioned = gversion named;
-    in toAttrs versioned;
-
-
+  pkgsAsAttrsets = pkgs: let
+    inherit (builtins) mapAttrs head;
+    inherit (lib) groupBy;
+    ms        = m: if m.scope == null then "_" else m.scope;
+    gscope    = groupBy ms;
+    gname     = mapAttrs ( _: groupBy ( m: m.pname ) );
+    gversion  = mapAttrs ( _: mapAttrs ( _: groupBy ( m: m.version ) ) );
+    toAttrs   = mapAttrs ( _: mapAttrs ( _: mapAttrs ( _: head ) ) );
+    scoped    = gscope pkgs;
+    named     = gname scoped;
+    versioned = gversion named;
+  in toAttrs versioned;
 }

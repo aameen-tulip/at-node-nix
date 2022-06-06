@@ -1,37 +1,32 @@
-{ pkgs           ? import <nixpkgs> {}
-, lib            ? pkgs.lib
+{ nixpkgs        ? builtins.getFlake "nixpkgs"
+, system         ? builtins.currentSystem
+, pkgs           ? nixpkgs.legacyPackages.${system}
+, lib            ? import ../../lib { nixpkgs-lib = nixpkgs.lib; }
 , fetchurl       ? pkgs.fetchurl
 , yarn           ? pkgs.yarn
-, jq             ? pkgs.jq
-, coreutils      ? pkgs.coreutils
-, findutils      ? pkgs.findutils
-, gnutar         ? pkgs.gnutar
+, yq             ? pkgs.yq
 , runCommandNoCC ? pkgs.runCommandNoCC
-, nix-gitignore  ? pkgs.nix-gitignore
 , writeText      ? pkgs.writeText
-, libpkginfo     ? import ../../lib/pkginfo.nix {}
-, libregistry    ? import ../../lib/registry.nix
-, ymlToJson      ? import ./yml-to-json.nix { inherit pkgs runCommandNoCC; }
+, yml2json       ? import ./yml-to-json.nix { inherit yq runCommandNoCC; }
 }:
 let
-  inherit (builtins)  match attrNames attrValues filter concatStringsSep toJSON;
-  inherit (ymlToJson) readYML2JSON writeYML2JSON;
-  inherit (libpkginfo) pkgNameSplit mkPkgInfo readPkgInfo allDependencies;
-  inherit (libpkginfo) readWorkspacePackages importJSON';
-  inherit (libregistry) fetchFetchurlTarballArgsNpm;
+  inherit (builtins) match attrNames attrValues filter concatStringsSep toJSON;
+  inherit (yml2json) readYML2JSON writeYML2JSON;
+  inherit (lib) pkgNameSplit mkPkgInfo readPkgInfo allDependencies
+                readWorkspacePackages importJSON' fetchFetchurlTarballArgsNpm;
 
 /* -------------------------------------------------------------------------- */
 
   # FIXME
   mkEntry = {
-      lockFileKey
-    , version
-    , resolution
-    , dependencies ? []
-    , checksum
-    , languageName
-    , linkType
-    }: {};
+    lockFileKey
+  , version
+  , resolution
+  , dependencies ? []
+  , checksum
+  , languageName
+  , linkType
+  }: {};
 
   readYarnLock = file: removeAttrs ( readYML2JSON file ) ["__metadata"];
 
