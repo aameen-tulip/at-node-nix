@@ -33,7 +33,8 @@ in {
 
   toposortDeps = plock: let
     inherit (builtins) elem attrValues;
-    depl = attrValues ( lib.pushDownNames ( plock.dependencies or {} ) );
+    depl =
+      attrValues ( lib.libattrs.pushDownNames ( plock.dependencies or {} ) );
     bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
   in lib.toposort bDependsOnA depl;
 }

@@ -2,7 +2,7 @@
 let
 
   importJSON' = file: let inherit (builtins) fromJSON readFile; in
-    fromJSON ( lib.removeSlashSlashComments ( readFile file ) );
+    fromJSON ( lib.libstr.removeSlashSlashComments ( readFile file ) );
 
 /* -------------------------------------------------------------------------- */
 

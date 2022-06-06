@@ -11,7 +11,7 @@
     overlays.at-node-nix = final: prev: let
       pkgsFor = nixpkgs.legacyPackages.${final.system};
     in {
-      lib = import ./lib { nixpkgs-lib = prev.lib; };
+      lib = import ./lib { nixpkgs-lib = pkgsFor.lib; };
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;
       } ).npm-why;

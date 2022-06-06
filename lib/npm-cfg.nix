@@ -1,5 +1,4 @@
-{ lib ? ( import <nixpkgs> {} ).lib
-}:
+{ lib ? ( builtins.getFlake "nixpkgs" ).lib }:
 /**
  * NPM Config files are INI(ish), they are NOT TOML.
  * Where this is important is handling strings and file paths, which do not

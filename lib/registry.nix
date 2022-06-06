@@ -17,7 +17,7 @@ let
 /* -------------------------------------------------------------------------- */
 
   addPackumentExtras = packument: let
-    nid' = lib.parseIdent packument._id;
+    nid' = lib.libparse.parseIdent packument._id;
     scopeDir = if ( nid'.scope != null ) then "@${nid'.scope}/" else "";
     nid = nid' // { inherit scopeDir; };
     addNiVers = vers: val: val // nid // { reference = vers; };
@@ -34,7 +34,9 @@ let
       inherit fetchTarballArgs fetchWith;
       inherit (val.dist) tarball;
     };
-    addAllDeps = val: val // { allDependencies = lib.allDependencies val; };
+    addAllDeps = val: val // {
+      allDependencies = lib.libpkginfo.allDependencies val;
+    };
     addPerVers = vers: val:
       #( addAllDeps ( addTarInfoVers ( addNiVers vers val ) ) );
       addNiVers vers val;
@@ -131,7 +133,7 @@ let
     registry = "https://registry.npmjs.org/";
     # Create an override extending a packumenter with a packument
     lookup = str: let
-      ni = lib.nameInfo str;
+      ni = lib.libparse.nameInfo str;
       fetchPack = prev:
         let raw = importFetchPackument prev.registry ni.name;
         in addPackumentExtras raw;
@@ -190,7 +192,7 @@ let
 
   /* FOR TESTING FIXME: REMOVE */
   big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
-  biglist = lib.unique ( map ( x: ( lib.nameInfo x ).name )
+  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
                              ( builtins.attrNames big ) );
 
   getChunk = size: list: let

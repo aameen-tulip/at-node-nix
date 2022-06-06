@@ -6,7 +6,7 @@ let
       libparse   = callLibs ./parse.nix;
       librange   = callLibs ./ranges.nix;
       libpkginfo = callLibs ./pkginfo.nix;
-      libstring  = callLibs ./strings.nix;
+      libstr     = callLibs ./strings.nix;
       libattrs   = callLibs ./attrsets.nix;
       libplock   = callLibs ./pkg-lock.nix;
       libreg     = callLibs ./registry.nix;
@@ -17,7 +17,7 @@ let
 
       inherit (final.libpkginfo) importJSON';
 
-      inherit (final.libstring) lines readLines test charN trim;
+      inherit (final.libstr) lines readLines test charN trim;
 
       inherit (final.libattrs) pkgsAsAttrsets;
 
