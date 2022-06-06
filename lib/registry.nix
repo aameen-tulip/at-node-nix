@@ -164,20 +164,24 @@ let
         in foldl' merge {} ( ad xs );
       allDeps = map collectDeps ( attrValues pr.packuments );
       deduped = attrNames ( foldl' ( a: b: a // b ) {} allDeps );
-    in foldl' ( acc: x: acc ( builtins.trace "lookin up ${x}" x ) ) pr deduped;
+    in foldl' ( acc: x: acc ( builtins.trace "looking up ${x}" x ) ) pr deduped;
 
 
 /* -------------------------------------------------------------------------- */
+
+  packumentClosure = packages:
+    let
+      pr = builtins.foldl' ( x: x ) packumenter packages;
+      pr' = lib.converge extendWithLatestDeps' pr;
+    in { size = builtins.length ( builtins.attrNames pr'.packuments );
+         packumenter = pr';
+       };
 
 in {
   inherit fetchPackument importFetchPackument;
   inherit packumentPkgLatestVersion;
   inherit getTarInfo getFetchurlTarballArgs;
   inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
-  inherit packumenter extendWithLatestDeps';
-  test =
-    let
-      pr = builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view" "@babel/core"];
-      pr' = lib.converge extendWithLatestDeps' pr;
-    in builtins.length ( builtins.attrNames pr'.packuments );
+  inherit packumenter extendWithLatestDeps' packumentClosure;
+  test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
 }
