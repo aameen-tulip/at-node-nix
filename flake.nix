@@ -1,6 +1,6 @@
 {
   inputs.utils.url = "github:numtide/flake-utils/master";
-  inputs.utils.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.utils.inputs.nixpkgs.follows = "/nixpkgs";
 
   outputs = { self, nixpkgs, utils }: let
     inherit (utils.lib) eachDefaultSystemMap mkApp;
