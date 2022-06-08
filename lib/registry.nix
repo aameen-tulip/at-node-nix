@@ -229,16 +229,21 @@ let
   flakeRegistryFromPackuments = registryUrl: name:
     let
       p = importFetchPackument registryUrl name;
-      registerVersion = version: {
-        from = { id = name + "@" + version; type = "indirect"; };
+      registerVersion = version:
+        let v = builtins.replaceStrings ["@" "\\."] ["_" "_"] version; in {
+        from = { id = name + "_" + v; type = "indirect"; };
         to = {
           type = "tarball";
           url = p.versions.${version}.dist.tarball + "?flake=0";
         };
       };
-      latest = let v = ( packumentPkgLatestVersion p ).version; in {
+
+      latest = let
+        v = ( packumentPkgLatestVersion p ).version;
+        v' = builtins.replaceStrings ["@" "\\."] ["_" "_"] v;
+      in {
         from = { id = name; type = "indirect"; };
-        to = { id = name + "@" + v; type = "indirect"; };
+        to = { id = name + "_" + v'; type = "indirect"; };
       };
     in {
       version = 2;
