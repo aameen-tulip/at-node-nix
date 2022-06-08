@@ -1,6 +1,6 @@
-{ nixpkgs-lib ? ( builtins.getFlake "github:NixOS/nixpkgs?dir=lib" ).lib }:
+{ lib ? ( builtins.getFlake "github:NixOS/nixpkgs?dir=lib" ).lib }:
 let
-  lib = nixpkgs-lib.extend ( final: prev:
+  lib' = lib.extend ( final: prev:
     let callLibs = file: import file { lib = final; };
     in {
       libparse   = callLibs ./parse.nix;
@@ -28,4 +28,4 @@ let
         importFetchPackument getFetchurlTarballArgs packumenter
         packumentClosure;
     } );
-in lib
+in lib'

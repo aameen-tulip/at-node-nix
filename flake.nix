@@ -4,7 +4,7 @@
 
   outputs = { self, nixpkgs, utils }: let
     inherit (utils.lib) eachDefaultSystemMap mkApp;
-    lib = import ./lib { nixpkgs-lib = nixpkgs.lib; };
+    lib = import ./lib { lib = nixpkgs.lib; };
   in {
     inherit lib;
 

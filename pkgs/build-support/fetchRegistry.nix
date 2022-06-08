@@ -1,18 +1,19 @@
-{ pkgs               ? import <nixpkgs> {}
-, lib                ? pkgs.lib
-, libpkginfo         ? import ../../lib/pkginfo.nix { inherit lib; }
-, libregistry        ? import ../../lib/registry.nix
+{ pkgs               ? ( builtins.getFlake "nixpkgs" ).legacyPackages.${builtins.currentSystem}
+, lib                ? import ../../lib {}
 , registryUrl        ? "https://registry.npmjs.org"
 , extractPackageJSON ? import ./extract-package-json.nix {
                          inherit (pkgs) runCommandNoCC;
                        }
 }:
 let
-  inherit (libpkginfo) parsePkgJsonName mkPkgInfo readPkgInfo allDependencies;
-  inherit (libregistry) fetchPackument packumentPkgLatestVersion;
-  inherit (libregistry) getFetchurlTarballArgs;
-  inherit (builtins) readFile fromJSON attrValues head filter
-                     replaceStrings unsafeDiscardStringContext;
+  inherit (lib.libpkginfo)
+    parsePkgJsonName mkPkgInfo readPkgInfo allDependencies;
+  inherit (lib.libreg)
+    fetchPackument packumentPkgLatestVersion getFetchurlTarballArgs;
+  inherit (builtins)
+    readFile fromJSON attrValues head filter replaceStrings
+    unsafeDiscardStringContext;
+
   # Given an entry from the registry response's version, check if the entry has
   # an integrity value.
   hasIntegrity = { dist ? {}, ... }: dist ? integrity;

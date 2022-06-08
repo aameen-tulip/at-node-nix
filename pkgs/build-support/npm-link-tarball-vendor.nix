@@ -6,10 +6,7 @@
 # with `linkFarm*' to create a `node_modules/' tree.
 
 { system, gnutar, coreutils, bash, lndir
-, lib
-, libstr     ? import ../../lib/strings.nix { inherit lib; }
-, libpkginfo ? import ../../lib/pkginfo.nix { inherit lib libstr; }
-
+, lib ? import ../../lib {}
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because
@@ -18,8 +15,7 @@
 , scope      ? null
 , version
 , global     ? import ./npm-link-tarball.nix {
-    inherit system gnutar coreutils bash tarball lib libstr libpkginfo;
-    inherit pname scope version;
+    inherit system gnutar coreutils bash tarball lib pname scope version;
   }
 , nodePackageLocalsVend ? {}
 }:
@@ -34,7 +30,7 @@ let
 
   depDrvs =
     let fetch = n: v:
-          let inherit ( libpkginfo.parsePkgJsonNameField n ) pname scope;
+          let inherit ( lib.libpkginfo.parsePkgJsonNameField n ) pname scope;
           in if scope == null then nodePackageLocalsVend."_".${pname}
                               else nodePackageLocalsVend.${scope}.${pname};
     in attrValues ( mapAttrs fetch ( pkgInfo.dependencies or {} ) );

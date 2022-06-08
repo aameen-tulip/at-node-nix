@@ -7,27 +7,25 @@
 
 { system, gnutar, coreutils, bash
 , lib
-, libstr     ? import ../../lib/strings.nix { inherit lib; }
-, libpkginfo ? import ../../lib/pkginfo.nix { inherit lib libstr; }
-
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because
 # the caller probably knows this info already.
 , pname
-, scope      ? null
+, scope    ? null
 , version
-, unpacked   ? import ./npm-unpack-source-tarball.nix {
-    inherit system gnutar coreutils bash tarball lib libstr libpkginfo;
+, unpacked ? import ./npm-unpack-source-tarball.nix {
+    inherit system gnutar coreutils bash tarball lib;
     inherit pname scope version;
   }
+, bindir ? "bin"
 }:
 assert pname   == unpacked.pname;
 assert version == unpacked.version;
 assert tarball == unpacked.tarball;
 let
   spre  = if unpacked.scope == null then "" else unpacked.scope + "-";
-  pkgInfo = libpkginfo.readPkgInfo "${unpacked}/package.json";
+  pkgInfo = lib.libpkginfo.readPkgInfo "${unpacked}/package.json";
   moduleSubdir = "lib/node_modules/${unpacked.scopeDir}${pname}";
 
   symlinkPackage = ''

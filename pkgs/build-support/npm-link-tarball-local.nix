@@ -6,9 +6,7 @@
 # with `linkFarm*' to create a `node_modules/' tree.
 
 { system, gnutar, coreutils, bash
-, lib
-, libstr     ? import ../../lib/strings.nix { inherit lib; }
-, libpkginfo ? import ../../lib/pkginfo.nix { inherit lib libstr; }
+, lib ? import ../../lib {}
 
 , tarball
 # We can technically scrape this information from the `package.json', but
@@ -18,7 +16,7 @@
 , scope      ? null
 , version
 , global     ? import ./npm-link-tarball.nix {
-    inherit system gnutar coreutils bash tarball lib libstr libpkginfo;
+    inherit system gnutar coreutils bash tarball lib;
     inherit pname scope version;
   }
 }:
