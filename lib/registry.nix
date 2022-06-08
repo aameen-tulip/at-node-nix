@@ -242,7 +242,8 @@ let
       };
     in {
       version = 2;
-      flakes = [latest] ++ ( map registerVersion p.versions );
+      flakes =
+        [latest] ++ ( map registerVersion ( builtins.attrNames p.versions ) );
     };
 
   flakeRegistryFromNpm =
