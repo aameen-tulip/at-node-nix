@@ -20,6 +20,12 @@
           inherit tarball pname scope version;
           lib = final.lib;
         };
+      linkedModules = { modules ? [] }:
+        pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
+          inherit modules;
+          inherit (pkgsFor) runCommandNoCC;
+          lndir = pkgsFor.xorg.lndir;
+        };
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (pkgsFor) yq runCommandNoCC;
       };
@@ -28,6 +34,28 @@
         inherit (final) lib yml2json;
       };
     };
+
+    nodeutils = ( eachDefaultSystemMap ( system: {
+      linkedModules = { modules ? [] }:
+        import ./pkgs/build-support/link-node-modules-dir.nix {
+          inherit modules;
+          inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
+          lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
+        };
+      unpackNodeSource = { tarball, pname, scope ? null, version }:
+        import ./pkgs/build-support/npm-unpack-source-tarball.nix {
+          inherit tarball pname scope version lib system;
+          inherit (nixpkgs.legacyPackages.${system}) gnutar coreutils bash;
+        };
+      yml2json = import ./pkgs/build-support/yml-to-json.nix {
+        inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
+      };
+      yarnLock = import ./pkgs/build-support/yarn-lock.nix {
+        inherit (nixpkgs.legacyPackages.${system}) fetchurl yarn writeText;
+        inherit (self.nodeutils.${system}) yml2json;
+        inherit lib;
+      };
+    } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
 
     packages = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
