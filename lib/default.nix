@@ -26,6 +26,6 @@ let
 
       inherit (final.libreg)
         importFetchPackument getFetchurlTarballArgs packumenter
-        packumentClosure;
+        packumentClosure flakeRegistryFromNpm;
     } );
 in lib'

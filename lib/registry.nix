@@ -190,28 +190,63 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  /* FOR TESTING FIXME: REMOVE */
-  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
-  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
-                             ( builtins.attrNames big ) );
+#  /* FOR TESTING FIXME: REMOVE */
+#  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
+#  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
+#                             ( builtins.attrNames big ) );
+#
+#  getChunk = size: list: let
+#    len   = builtins.length list;
+#    n     = lib.min len size;
+#    rest  = if ( len <= size ) then [] else ( lib.drop n list );
+#    chunk = if ( list == [] ) then [] else ( lib.take n list );
+#  in { inherit chunk rest; };
+#
+#  extendChunk = pr: n: let
+#    bigChunk = ( getChunk 100 ( getChunk ( n * 100 ) biglist ).rest ).chunk;
+#    maxN = ( builtins.length biglist ) / 100 + 1;
+#    next = packumentClosure' pr bigChunk;
+#  in if ( n < maxN ) then next else pr;
+#
+#  #pcf = builtins.foldl' ( acc: x: extendChunk acc x ) packumenter
+#  #        ( builtins.genList ( x: x ) ( ( builtins.length biglist ) / 100 ) );
+#
+#  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
 
-  getChunk = size: list: let
-    len   = builtins.length list;
-    n     = lib.min len size;
-    rest  = if ( len <= size ) then [] else ( lib.drop n list );
-    chunk = if ( list == [] ) then [] else ( lib.take n list );
-  in { inherit chunk rest; };
 
-  extendChunk = pr: n: let
-    bigChunk = ( getChunk 100 ( getChunk ( n * 100 ) biglist ).rest ).chunk;
-    maxN = ( builtins.length biglist ) / 100 + 1;
-    next = packumentClosure' pr bigChunk;
-  in if ( n < maxN ) then next else pr;
+/* -------------------------------------------------------------------------- */
 
-  #pcf = builtins.foldl' ( acc: x: extendChunk acc x ) packumenter
-  #        ( builtins.genList ( x: x ) ( ( builtins.length biglist ) / 100 ) );
+  # {
+  #   "from": {
+  #     "id": "lodash",
+  #     "type": "indirect"
+  #   },
+  #   "to": {
+  #     "type": "tarball",
+  #     "url": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz?flake=0"
+  #   }
+  # }
+  flakeRegistryFromPackuments = registryUrl: name:
+    let
+      p = importFetchPackument registryUrl name;
+      registerVersion = version: {
+        from = { id = name + "@" + version; type = "indirect"; };
+        to = {
+          type = "tarball";
+          url = p.versions.${version}.dist.tarball + "?flake=0";
+        };
+      };
+      latest = let v = ( packumentPkgLatestVersion p ).version; in {
+        from = { id = name; type = "indirect"; };
+        to = { id = name + "@" + v; type = "indirect"; };
+      };
+    in {
+      version = 2;
+      flakes = [latest] ++ ( map registerVersion p.versions );
+    };
 
-  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
+  flakeRegistryFromNpm =
+    flakeRegistryFromPackuments "https://registry.npmjs.org";
 
 
 /* -------------------------------------------------------------------------- */
@@ -223,7 +258,8 @@ in {
   inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
   inherit packumenter extendWithLatestDeps';
   inherit packumentClosure' packumentClosure;
+  inherit flakeRegistryFromPackuments flakeRegistryFromNpm;
 
   test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
-  inherit big biglist getChunk extendChunk pcf;
+  #inherit big biglist getChunk extendChunk pcf;
 }
