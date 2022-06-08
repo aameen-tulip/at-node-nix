@@ -230,7 +230,7 @@ let
     let
       p = importFetchPackument registryUrl name;
       registerVersion = version:
-        let v = builtins.replaceStrings ["@" "\\."] ["_" "_"] version; in {
+        let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
         from = { id = name + "_" + v; type = "indirect"; };
         to = {
           type = "tarball";
@@ -240,7 +240,7 @@ let
 
       latest = let
         v = ( packumentPkgLatestVersion p ).version;
-        v' = builtins.replaceStrings ["@" "\\."] ["_" "_"] v;
+        v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
       in {
         from = { id = name; type = "indirect"; };
         to = { id = name + "_" + v'; type = "indirect"; };
