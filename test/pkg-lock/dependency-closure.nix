@@ -1,13 +1,24 @@
-{ lib  ? ( builtins.getFlake ( toString ../../. ) ).lib
-, pkgs ? ( builtins.getFlake "nixpkgs" ).legacyPackages.${builtins.currentSystem}
-, fetchurl ? pkgs.fetchurl
+
+/**
+ * `libplock' tests related to dependency closures.
+ * Run from the CLI with `nix build -f ./dependency-closure.nix', or
+ * in the REPL with `run' and `check' commands.
+ * In the REPL you also have access to the `env' attrset which stashes various
+ * test inputs for easy access.
+ */
+
+{ lib       ? ( builtins.getFlake ( toString ../../. ) ).lib
+, pkgs      ? ( builtins.getFlake "nixpkgs" ).legacyPackages.${builtins.currentSystem}
+, fetchurl  ? pkgs.fetchurl
+, writeText ? pkgs.writeText
 }:
+
 let
 
   inherit (lib) libplock;
 
-  biglock = lib.importJSON ./big-package-lock.json;
-  smlock  = lib.importJSON ./small-package-lock.json;
+  biglock = lib.importJSON ./data/big-package-lock.json;
+  smlock  = lib.importJSON ./data/small-package-lock.json;
 
   resolvedDep = {
     name = "@jest/schemas";
@@ -49,13 +60,12 @@ in rec {
 
     testPartitionResolvedSmall = {
       expr = libplock.partitionResolved smlock;
-      expected = import ./expected-partition-res-small.nix;
+      expected = import ./data/expected-partition-res-small.nix;
     };
 
     testGenFetchersSmall = {
-      expr = let
-        fetchers = libplock.resolvedFetchersFromLock fetchurl smlock;
-      in builtins.all lib.isDerivation ( builtins.attrValues fetchers );
+      expr = let fetchers = libplock.resolvedFetchersFromLock fetchurl smlock;
+        in builtins.all lib.isDerivation ( builtins.attrValues fetchers );
       expected = true;
     };
 
@@ -70,7 +80,6 @@ in rec {
   check = let
 
     report = { name, expected, result }: let
-
       coerceString = x: let
         inherit (builtins) toJSON mapAttrs isFunction isAttrs trace typeOf;
         coerceAs = as:
@@ -92,4 +101,6 @@ in rec {
   in assert ( builtins.deepSeq ck ck ) == [];
     builtins.trace "PASS" ( ck == [] );
 
-} // { __functor = self: self.check; }
+  checkDrv = writeText "test.log" ( builtins.deepSeq check "PASS" );
+
+} // { __functor = self: self.checkDrv; }
