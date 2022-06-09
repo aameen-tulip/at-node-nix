@@ -70,10 +70,20 @@ in rec {
   check = let
 
     report = { name, expected, result }: let
+
+      coerceString = x: let
+        inherit (builtins) toJSON mapAttrs isFunction isAttrs trace typeOf;
+        coerceAs = as:
+          toJSON ( mapAttrs ( _: v: coerceString v ) as );
+      in if ( lib.strings.isCoercibleToString x ) then ( toString x ) else
+         if ( isFunction x ) then "<LAMBDA>" else
+         if ( isAttrs x ) then ( coerceAs x ) else
+             ( trace "Unable to stringify type ${typeOf x}" "<?>" );
+
       msg = ''
         Test ${name} Failure: Expectation did not match result.
-          expected: ${builtins.toJSON expected}
-          result:   ${builtins.toJSON result}
+          expected: ${coerceString expected}
+          result:   ${coerceString result}
       '';
     in builtins.trace msg false;
 
