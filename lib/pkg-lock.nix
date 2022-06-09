@@ -4,15 +4,58 @@ let
   # A filter function
   wasResolved = _: v: builtins.isString ( v.resolved or null );
 
-  collectResolved = plock: lib.filterAttrs wasResolved plock.dependencies;
+  collectDirectResolved = plock:
+    lib.filterAttrs wasResolved plock.dependencies;
 
-  collectUnresolved = plock:
+  collectDirectUnresolved = plock:
     lib.filterAttrs ( k: v: ! ( wasResolved k v ) ) plock.dependencies;
 
-  partitionResolved = builtins.partition wasResolved;
+  partitionDirectResolved' = builtins.partition wasResolved;
+  partitionDirectResolved = plock:
+    builtins.mapAttrs ( _: v: builtins.listToAttrs v )
+      ( partitionDirectResolved' plock );
+
+
+/* -------------------------------------------------------------------------- */
+
+  partitionResolved' = plock: let
+    dc = map depUnkey ( dependencyClosure' plock );
+  in builtins.partition ( wasResolved null ) dc;
+
+  partitionResolved = plock:
+    builtins.mapAttrs ( _: v: builtins.listToAttrs v )
+                      ( partitionResolved' plock );
+
+  collectResolved = plock: ( partitionResolved plock ).right;
+  collectUnresolved = plock: ( partitionResolved plock ).wrong;
+
+
+/* -------------------------------------------------------------------------- */
+
+  depList = pl: lib.mapAttrsToList lib.nameValuePair ( pl.dependencies or {} );
+
+  depKeys = pl:
+    lib.mapAttrsToList ( name: { version, ... }@value: value // {
+      key = "${name}@${version}";
+      inherit name;
+    } ) ( pl.dependencies or {} );
+
+  depUnkey = { key, ... }@value: { name = key; inherit value; };
+  depUnkeys = lst: builtins.listToAttrs ( map depUnkey lst );
+
+  dependencyClosure' = plock: builtins.genericClosure {
+    startSet = depKeys plock;
+    operator = depKeys;
+  };
+
+  dependencyClosure = plock: depUnkeys ( dependencyClosure' plock );
+
+
+/* -------------------------------------------------------------------------- */
 
 in {
   inherit collectResolved collectUnresolved partitionResolved;
+  inherit dependencyClosure' dependencyClosure;
 
   /**
    * Proved with a JSON representation of a `package-lock.json' file, apply a

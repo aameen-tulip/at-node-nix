@@ -3,7 +3,7 @@
 , runCommandNoCC ? pkgs.runCommandNoCC
 }:
 let
-  linkedModules = { modules ? [] }: runCommandNoCC "my-node_modules" {
+  linkedModules = { modules ? [] }: runCommandNoCC "node_modules" {
       inherit modules;
       preferLocalBuild = true;
       allowSubstitutes = false;

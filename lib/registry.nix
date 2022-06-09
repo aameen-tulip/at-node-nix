@@ -216,25 +216,16 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  # {
-  #   "from": {
-  #     "id": "lodash",
-  #     "type": "indirect"
-  #   },
-  #   "to": {
-  #     "type": "tarball",
-  #     "url": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz?flake=0"
-  #   }
-  # }
+  # XXX: YOU STILL NEED TO SET `inputs.<ID>.flake = false' in your `flake.nix'!
   flakeRegistryFromPackuments = registryUrl: name:
     let
       p = importFetchPackument registryUrl name;
       registerVersion = version:
         let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
-        from = { id = name + "_" + v; type = "indirect"; };
+        from = { id = name + "-" + v; type = "indirect"; };
         to = {
           type = "tarball";
-          url = p.versions.${version}.dist.tarball + "?flake=0";
+          url = p.versions.${version}.dist.tarball;
         };
       };
 
@@ -243,7 +234,7 @@ let
         v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
       in {
         from = { id = name; type = "indirect"; };
-        to = { id = name + "_" + v'; type = "indirect"; };
+        to = { id = name + "-" + v'; type = "indirect"; };
       };
     in {
       version = 2;

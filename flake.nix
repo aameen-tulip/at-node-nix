@@ -1,36 +1,48 @@
 {
   inputs.utils.url = "github:numtide/flake-utils/master";
   inputs.utils.inputs.nixpkgs.follows = "/nixpkgs";
+  inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
+  inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
+  inputs.ak-nix.inputs.utils.follows = "/utils";
 
-  outputs = { self, nixpkgs, utils }: let
+
+  outputs = { self, nixpkgs, utils, ak-nix }: let
     inherit (utils.lib) eachDefaultSystemMap mkApp;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib { lib = nixpkgs.lib; };
+    lib = import ./lib { inherit (ak-nix) lib; };
   in {
 
     inherit lib;
 
     overlays.at-node-nix = final: prev: let
-      pkgsFor = pkgsForSys final.system;
+      pkgsFor = import nixpkgs { inherit (final) system; overlays = [
+        ak-nix.overlays.default
+      ]; };
     in {
-      lib = import ./lib { nixpkgs-lib = pkgsFor.lib; };
+
+      lib = import ./lib { lib = pkgsFor.lib; };
+
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;
       } ).npm-why;
+
       unpackNodeSource = { tarball, pname, scope ? null, version }:
         pkgsFor.callPackage ./pkgs/build-support/npm-unpack-source-tarball.nix {
           inherit tarball pname scope version;
           lib = final.lib;
         };
+
       linkedModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
           inherit modules;
           inherit (pkgsFor) runCommandNoCC;
           lndir = pkgsFor.xorg.lndir;
         };
+
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (pkgsFor) yq runCommandNoCC;
       };
+
       yarnLock = import ./pkgs/build-support/yarn-lock.nix {
         inherit (pkgsFor) fetchurl yarn writeText;
         inherit (final) lib yml2json;
