@@ -53,14 +53,6 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-in {
-  inherit collectResolved collectUnresolved;
-  inherit partitionResolved partitionResolved';
-  inherit dependencyClosure' dependencyClosure;
-
-  inherit partitionDirectResolved partitionDirectResolved';
-  inherit collectDirectResolved collectDirectUnresolved;
-
   /**
    * Proved with a JSON representation of a `package-lock.json' file, apply a
    * fetchurl routine to all resolvable dependencies in the lock-file.
@@ -78,12 +70,44 @@ in {
     let applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
     in builtins.mapAttrs applyFetch ( collectResolved plock );
 
+
+/* -------------------------------------------------------------------------- */
+
+  resolvedFetcherTree = fetchurl: plock:
+    let
+      inherit (builtins) mapAttrs;
+      applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
+      resolved = collectResolved plock;
+      fetchers = mapAttrs applyFetch  resolved;
+    in null;
+
+
+/* -------------------------------------------------------------------------- */
+
   toposortDeps = plock: let
     inherit (builtins) elem attrValues;
     depl =
       attrValues ( lib.libattrs.pushDownNames ( plock.dependencies or {} ) );
     bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
   in lib.toposort bDependsOnA depl;
+
+
+/* -------------------------------------------------------------------------- */
+
+in {
+
+  # Really just exported for testing.
+  inherit wasResolved depList depKeys depUnkey depUnkeys;
+
+
+  # The real lib members.
+  inherit collectResolved collectUnresolved;
+  inherit partitionResolved partitionResolved';
+  inherit dependencyClosure' dependencyClosure;
+  inherit partitionDirectResolved partitionDirectResolved';
+  inherit collectDirectResolved collectDirectUnresolved;
+  inherit resolvedFetchersFromLock resolvedFetcherTree;
+  inherit toposortDeps;
 }
 
   /*
