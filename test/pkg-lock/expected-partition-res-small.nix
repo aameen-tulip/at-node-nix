@@ -1,6 +1,5 @@
 {
-  right = { };
-  wrong = {
+  right = {
     "@jest/schemas@28.0.2" = {
       dev = true;
       integrity =
@@ -736,4 +735,5 @@
       version = "5.2.8";
     };
   };
+  wrong = { };
 }

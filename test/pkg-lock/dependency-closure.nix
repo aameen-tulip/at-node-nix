@@ -1,4 +1,7 @@
-{ lib ? ( builtins.getFlake ( toString ../../. ) ).lib }:
+{ lib  ? ( builtins.getFlake ( toString ../../. ) ).lib
+, pkgs ? ( builtins.getFlake "nixpkgs" ).legacyPackages.${builtins.currentSystem}
+, fetchurl ? pkgs.fetchurl
+}:
 let
 
   inherit (lib) libplock;
@@ -7,15 +10,37 @@ let
 
 in rec {
 
-  testPartitionResolvedSmall = {
-    expr = libplock.partitionResolved smlock;
-    expected = import ./expected-partition-res-small.nix;
-  };
+  env = { inherit lib pkgs fetchurl libplock biglock smlock; };
 
   run = lib.runTests {
-    inherit testPartitionResolvedSmall;
+
+    testPartitionResolvedSmall = {
+      expr = libplock.partitionResolved smlock;
+      expected = import ./expected-partition-res-small.nix;
+    };
+
+    testGenFetchersSmall = {
+      expr = let
+        fetchers = libplock.resolvedFetchersFromLock fetchurl smlock;
+      in builtins.all lib.isDerivation ( builtins.attrValues fetchers );
+      expected = true;
+    };
+
   };
 
-  check = map ( t: t.result == t.expected ) run;
+  check = let
 
-}
+    report = { name, expected, result }: let
+      msg = ''
+        Test ${name} Failure: Expectation did not match result.
+          expected: ${builtins.toJSON expected}
+          result:   ${builtins.toJSON result}
+      '';
+    in builtins.trace msg false;
+
+    ck = map ( t: ( t.result == t.expected ) || ( report t ) ) run;
+
+  in assert ( builtins.deepSeq ck ck ) == [];
+    builtins.trace "PASS" ( ck == [] );
+
+} // { __functor = self: self.check; }

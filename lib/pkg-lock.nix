@@ -20,7 +20,7 @@ let
 
   partitionResolved' = plock: let
     dc = map depUnkey ( dependencyClosure' plock );
-  in builtins.partition ( wasResolved null ) dc;
+  in builtins.partition ( { name, value }: wasResolved name value ) dc;
 
   partitionResolved = plock:
     builtins.mapAttrs ( _: v: builtins.listToAttrs v )
@@ -54,8 +54,12 @@ let
 /* -------------------------------------------------------------------------- */
 
 in {
-  inherit collectResolved collectUnresolved partitionResolved;
+  inherit collectResolved collectUnresolved;
+  inherit partitionResolved partitionResolved';
   inherit dependencyClosure' dependencyClosure;
+
+  inherit partitionDirectResolved partitionDirectResolved';
+  inherit collectDirectResolved collectDirectUnresolved;
 
   /**
    * Proved with a JSON representation of a `package-lock.json' file, apply a
