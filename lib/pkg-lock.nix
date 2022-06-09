@@ -1,19 +1,33 @@
 { lib }:
 let
 
-  # A filter function
+  # A filter function that return true if an entry is resolved by NPM.
+  # NOTE: This returns `false' for any non-NPM resolution.
   wasResolved = _: v: builtins.isString ( v.resolved or null );
 
-  collectDirectResolved = plock:
-    lib.filterAttrs wasResolved plock.dependencies;
-
-  collectDirectUnresolved = plock:
-    lib.filterAttrs ( k: v: ! ( wasResolved k v ) ) plock.dependencies;
-
+  # Given a list of `{ name = "@scope/name"; value = { ... }; }' pairs,
+  # split them into groups "right" and "wrong" ( attributes ) such that
+  # `{ right = [<Resolved>]; wrong = [<Unresolved>]; }'
   partitionDirectResolved' = builtins.partition wasResolved;
+
+  # Like `partitionDirectResolved'', except contents of `right' and `wrong' are
+  # converted into attribute sets.
+  # NOTE:
+  # By converting from a list to a set, any repeated keys will be dedupolicated.
+  # If you want to preserve duplicates, you probably want `partitionResolved'
+  # instead, which handles dependencies of dependencies - since that is the
+  # only case where duplicate keys are valid.
   partitionDirectResolved = plock:
     builtins.mapAttrs ( _: v: builtins.listToAttrs v )
       ( partitionDirectResolved' plock );
+
+  # Given a lock, return a set of dependencies which are resolved by NPM.
+  collectDirectResolved = plock:
+    lib.filterAttrs wasResolved plock.dependencies;
+
+  # Given a lock, return a set of dependencies which are not resolved by NPM.
+  collectDirectUnresolved = plock:
+    lib.filterAttrs ( k: v: ! ( wasResolved k v ) ) plock.dependencies;
 
 
 /* -------------------------------------------------------------------------- */
