@@ -66,7 +66,7 @@ in rec {
 
   # Runs tests with tracing, ends in an assertion.
   # This is set to this file's `__functor', so it /should/ get run by default
-  # if evaluated from the CLI.
+  # if evaluated from the CLI:  `nix build -f ./dependency-closure.nix'
   check = let
 
     report = { name, expected, result }: let
