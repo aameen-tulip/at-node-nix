@@ -62,13 +62,13 @@ let
   # Ex:
   #   "@foo/bar-baz"          ==> "__at__foo__slash__bar__bar__baz"
   #   "foo-bar-baz-1.0.0.tgz" ==> "foo__bar__bar__baz__bar__1__dot__0__dot__0__dot__tgz"
-  canonicalizePkgName =
-    builtins.replaceStrings ["@"      "/"         "-"       "."]
-                            ["__at__" "__slash__" "__bar__" "__dot__"];
+  #canonicalizePkgName =
+  #  builtins.replaceStrings ["@"      "/"         "-"       "."]
+  #                          ["__at__" "__slash__" "__bar__" "__dot__"];
 
-  unCanonicalizePkgName =
-    builtins.replaceStrings ["__at__" "__slash__" "__bar__" "__dot__"]
-                            ["@"      "/"         "-"       "."];
+  #unCanonicalizePkgName =
+  #  builtins.replaceStrings ["__at__" "__slash__" "__bar__" "__dot__"]
+  #                          ["@"      "/"         "-"       "."];
 
 
   # FIXME: use the style `yarn2nix' has.
@@ -103,7 +103,7 @@ let
         asNpmRegistryTarballName { inherit name pname version; };
 
       scopeDir = if scope != null then "@${scope}/" else "";
-      canonicalName = canonicalizePkgName name;
+      #canonicalName = canonicalizePkgName name;
     };
 
 
@@ -217,7 +217,7 @@ let
 in {
   inherit parsePkgJsonNameField;
   inherit normalizePkgScope;
-  inherit canonicalizePkgName unCanonicalizePkgName;
+  #inherit canonicalizePkgName unCanonicalizePkgName;
   inherit asLocalTarballName asNpmRegistryTarballName;
   inherit mkPkgInfo;
   inherit allDependencies;

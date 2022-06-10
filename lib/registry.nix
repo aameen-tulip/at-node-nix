@@ -145,9 +145,6 @@ let
     __functor = self: str: self.extend ( self.lookup str );
   } );
 
-  # FIXME: Filter out deps we've already fetched.
-  #        The packumenter will ignore them, but terminating early may help
-  #        speed things up.
   extendWithLatestDeps' = pr: let
     inherit (builtins) mapAttrs attrNames attrValues foldl' filter;
     depsFor = x: x.latest.dependencies or {};
@@ -160,7 +157,7 @@ let
     in foldl' merge {} ( ad xs );
     allDeps = map collectDeps ( attrValues pr.packuments );
     deduped = attrNames ( foldl' ( a: b: a // b ) {} allDeps );
-    pr' = foldl' ( x: builtins.trace "looking up ${x}" x ) pr deduped;
+    pr' = foldl' ( acc: x: builtins.trace "looking up ${x}" ( acc x ) ) pr deduped;
     mark = k: v: v // { _finished = true; };
     marked = let
       updatep = k: v: ( ! ( v ? _finished ) ) || ( ! v._finished );
@@ -191,27 +188,27 @@ let
 /* -------------------------------------------------------------------------- */
 
 #  /* FOR TESTING FIXME: REMOVE */
-#  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
-#  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
-#                             ( builtins.attrNames big ) );
-#
-#  getChunk = size: list: let
-#    len   = builtins.length list;
-#    n     = lib.min len size;
-#    rest  = if ( len <= size ) then [] else ( lib.drop n list );
-#    chunk = if ( list == [] ) then [] else ( lib.take n list );
-#  in { inherit chunk rest; };
-#
-#  extendChunk = pr: n: let
-#    bigChunk = ( getChunk 100 ( getChunk ( n * 100 ) biglist ).rest ).chunk;
-#    maxN = ( builtins.length biglist ) / 100 + 1;
-#    next = packumentClosure' pr bigChunk;
-#  in if ( n < maxN ) then next else pr;
-#
-#  #pcf = builtins.foldl' ( acc: x: extendChunk acc x ) packumenter
-#  #        ( builtins.genList ( x: x ) ( ( builtins.length biglist ) / 100 ) );
-#
-#  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
+##  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
+##  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
+##                             ( builtins.attrNames big ) );
+##
+##  getChunk = size: list: let
+##    len   = builtins.length list;
+##    n     = lib.min len size;
+##    rest  = if ( len <= size ) then [] else ( lib.drop n list );
+##    chunk = if ( list == [] ) then [] else ( lib.take n list );
+##  in { inherit chunk rest; };
+##
+##  extendChunk = pr: n: let
+##    bigChunk = ( getChunk 100 ( getChunk ( n * 100 ) biglist ).rest ).chunk;
+##    maxN = ( builtins.length biglist ) / 100 + 1;
+##    next = packumentClosure' pr bigChunk;
+##  in if ( n < maxN ) then next else pr;
+##
+##  #pcf = builtins.foldl' ( acc: x: extendChunk acc x ) packumenter
+##  #        ( builtins.genList ( x: x ) ( ( builtins.length biglist ) / 100 ) );
+##
+##  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
 
 
 /* -------------------------------------------------------------------------- */
@@ -257,6 +254,6 @@ in {
   inherit packumentClosure' packumentClosure;
   inherit flakeRegistryFromPackuments flakeRegistryFromNpm;
 
-  test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
-  #inherit big biglist getChunk extendChunk pcf;
+##  test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
+##  inherit big biglist getChunk extendChunk pcf;
 }
