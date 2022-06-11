@@ -1,10 +1,15 @@
-{ pkgs      ? import <nixpkgs> {}
+{ nixpkgs   ? builtins.getFlake "nixpkgs"
+, system    ? builtins.currentSystem
+, pkgs      ? nixpkgs.legacyPackages.${system}
 , lib       ? pkgs.lib
 , stdenv    ? pkgs.stdenvNoCC
 , fetchurl  ? pkgs.fetchurl
 , nodejs    ? pkgs.nodejs-14_x
 }:
 let
+
+/* -------------------------------------------------------------------------- */
+
   npmEnv = stdenv.mkDerivation {
     name = "npmEnv";
     phases = ["installPhase"];
@@ -53,6 +58,9 @@ let
       runHook postInstall
     '';
   };
+
+
+/* -------------------------------------------------------------------------- */
 
   npmCache = tarballs: stdenv.mkDerivation {
     name = "npmCache";
@@ -110,6 +118,9 @@ let
       '';
   };
 
+
+/* -------------------------------------------------------------------------- */
+
   # This "works", but if you have `package-lock.json' files laying around
   # you'll still crash because `npm CMD --offline' demands that you have cache
   # entries for everything.
@@ -141,6 +152,10 @@ let
         runHook postInstall
       '';
   };
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit npmEnv npmCache npmLinkedEnv;
 }
