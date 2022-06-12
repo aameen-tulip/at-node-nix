@@ -101,35 +101,6 @@
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
       npm-why = mkApp { drv = self.packages.${system}.npm-why; };
-
-      # Run `nix "$@" "$flakeDir";' for all subflakes in this project.
-      # This must be run from the project root.
-      forallFlakes = {
-        type = "app";
-        program = ( pkgsFor.writeShellScript "forallFlakes.sh" ''
-          set -eu
-          case "$PWD" in
-            /nix/store/*)
-              echo "This script is meant to be run in a local checkout" >&2;
-              exit 1;
-            ;;
-          esac
-          if test "$1" = '-q'||test "$1" = '--quiet'; then
-            eval "echo() { :; }"
-            eval 'nix() { ${pkgsFor.nix}/bin/nix "$@" 2>/dev/null; }'
-            shift;
-          else
-            alias nix='${pkgsFor.nix}/bin/nix';
-            ${pkgsFor.nix}/bin/nix --version;
-          fi
-          for f in ${builtins.concatStringsSep " " subFlakes}; do
-            echo -e "\nnix $@ $f";
-            nix "$@" "$f";
-          done
-          echo -e "\nnix $@ .";
-          nix "$@" .;
-        '' ).outPath;
-      };      
     } );
 
 
