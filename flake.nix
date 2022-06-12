@@ -10,6 +10,10 @@
     inherit (utils.lib) eachDefaultSystemMap mkApp;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
     lib = import ./lib { inherit (ak-nix) lib; };
+    subFlakes = map dirOf [
+      "./test/pkg-lock/flake.nix"
+      "./pkgs/development/node-packages/npm-why/flake.nix"
+    ];
   in {
 
     inherit lib;
@@ -93,8 +97,23 @@
 
 /* -------------------------------------------------------------------------- */
 
-    apps = eachDefaultSystemMap ( system: {
+    apps = eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system};
+    in {
       npm-why = mkApp { drv = self.packages.${system}.npm-why; };
+      forallFlakes = {
+        type = "app";
+        program = ( pkgsFor.writeShellScript "forallFlakes.sh" ''
+          set -eu
+          ${pkgsFor.nix}/bin/nix --version;
+          for f in ${builtins.concatStringsSep " " subFlakes}; do
+            echo -e "\nnix $@ $f";
+            ${pkgsFor.nix}/bin/nix "$@" "$f";
+          done
+          echo -e "\nnix $@ .";
+          ${pkgsFor.nix}/bin/nix "$@" .;
+        '' ).outPath;
+      };      
     } );
 
   };  /* End outputs */
