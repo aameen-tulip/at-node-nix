@@ -83,6 +83,9 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # NPM's registry does not include `scope' in its tarball names.
+  # However, running `npm pack' DOES produce tarballs with the scope as a
+  # a prefix to the name as: "${scope}-${pname}-${version}.tgz".
   asLocalTarballName = { pname, scope ? null, version }:
     if scope != null then "${scope}-${pname}-${version}.tgz"
                      else "${pname}-${version}.tgz";
@@ -228,6 +231,7 @@ in {
   inherit allDependencies;
   inherit workspacePackages readWorkspacePackages;
   inherit importJSON';
+  inherit pkgJsonForPath;
 
-  readPkgInfo = file: mkPkgInfo ( importJSON' file );
+  readPkgInfo = path: mkPkgInfo ( importJSON' ( pkgJsonForPath path ) );
 }

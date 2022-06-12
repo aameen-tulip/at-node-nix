@@ -5,8 +5,7 @@
 # This is a naive form of `npm link' or `yarn link', which may be used later
 # with `linkFarm*' to create a `node_modules/' tree.
 
-{ system, gnutar, coreutils, bash, lndir
-, lib ? import ../../lib {}
+{ system, gnutar, coreutils, bash, lndir, lib
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because

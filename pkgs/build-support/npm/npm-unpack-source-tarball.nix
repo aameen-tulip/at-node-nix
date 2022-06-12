@@ -7,7 +7,7 @@
 # The tarball should be a checkpoint that kills any past contexts, and roots a
 # new generation.
 
-{ system, lib, gnutar, coreutils, bash
+{ system, gnutar, coreutils, bash, lib
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because

@@ -105,9 +105,21 @@ rec {
           ( if ( pd' != null ) then pd' // { type = "descriptor";} else {} ) //
           ( if ( pl' != null ) then pl' // { type = "locator";} else {} );
     scopeDir = if ( ( ids ? scope ) && ( ids.scope != null ) )
-                then "@" + ids.scope + "/" else "";
+               then "@" + ids.scope + "/" else "";
     name = scopeDir + ids.pname;
   in { inherit name scopeDir; } // ids;
+
+
+/* -------------------------------------------------------------------------- */
+
+  isCoercibleToName = x: let
+    inherit (builtins) typeOf elem;
+    ckType  = elem ( typeOf x ) ["string" "set" "path"];
+    ckNameInfoAttrs =
+      ( x ? name ) && ( x ? scopeDir ) && ( x ? pname ) && ( x ? scope );
+    ckNameInfoType =
+      ( x ? type ) && ( elem x.type ["identifier" "descriptor" "locator"] );
+  in {};
 
 
 /* -------------------------------------------------------------------------- */

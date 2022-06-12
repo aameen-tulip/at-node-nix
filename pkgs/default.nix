@@ -34,6 +34,10 @@
   # This inherit block is largely for the benefit of the reader.
   inherit (trivial) runLn linkOut linkToPath runTar untar tar;
 
+  mkNodeTarball = import ./build-support/mkNodeTarball.nix {
+    inherit lib linkToPath untar tar snapDerivation;
+  };
+
 in {
 
 }

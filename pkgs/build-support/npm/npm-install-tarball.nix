@@ -2,8 +2,7 @@
 
 # Given a Node.js package tarball, install it to a prefix using global style.
 
-{ system, gnutar, coreutils, bash
-, lib ? import ../../lib {}
+{ system, gnutar, coreutils, bash, lib
 , tarball
 # We can technically scrape this information from the `package.json', but
 # it creates an intermediate derivation which likely isn't necessary because

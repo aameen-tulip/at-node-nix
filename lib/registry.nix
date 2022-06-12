@@ -214,17 +214,16 @@ let
 /* -------------------------------------------------------------------------- */
 
   # XXX: YOU STILL NEED TO SET `inputs.<ID>.flake = false' in your `flake.nix'!
-  flakeRegistryFromPackuments = registryUrl: name:
-    let
-      p = importFetchPackument registryUrl name;
-      registerVersion = version:
-        let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
-        from = { id = name + "-" + v; type = "indirect"; };
-        to = {
-          type = "tarball";
-          url = p.versions.${version}.dist.tarball;
-        };
+  flakeRegistryFromPackuments = registryUrl: name: let
+    p = importFetchPackument registryUrl name;
+    registerVersion = version:
+      let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
+      from = { id = name + "-" + v; type = "indirect"; };
+      to = {
+        type = "tarball";
+        url = p.versions.${version}.dist.tarball;
       };
+    };
 
       latest = let
         v = ( packumentPkgLatestVersion p ).version;
