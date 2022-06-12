@@ -1,4 +1,4 @@
-{ lib ? ( builtins.getFlake "github:NixOS/nixpkgs?dir=lib" ).lib }:
+{ lib ? ( builtins.getFlake "github:aakropotkin/ak-nix?dir=lib" ).lib }:
 let
   lib' = lib.extend ( final: prev:
     let callLibs = file: import file { lib = final; };
