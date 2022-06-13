@@ -1,5 +1,5 @@
-{ lib ? ( builtins.getFlake "nixpkgs" ).lib }:
-{
+{ lib }: let
+
   pushDownNames = builtins.mapAttrs ( name: val: val // { inherit name; } );
 
   pkgsAsAttrsets = pkgs: let
@@ -14,4 +14,7 @@
     named     = gname scoped;
     versioned = gversion named;
   in toAttrs versioned;
+
+in {
+  inherit pushDownNames pkgsAsAttrsets;
 }

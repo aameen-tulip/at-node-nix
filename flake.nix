@@ -117,6 +117,7 @@
         # XXX: When the APIs in this `flake' stabilize this should be corrected.
         inherit nixpkgs system lib ak-nix;
         pkgs = pkgsFor;
+        enableTraces = true;
         inherit (pkgsFor) writeText;
       };
     } );

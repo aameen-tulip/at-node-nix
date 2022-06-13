@@ -14,6 +14,7 @@
   # Tarball will be named using the NPM registry style, being
   # "${pname}-${version}.tgz" without a scope prefix.
   # FIXME: This is an ideal place to add `pkgInfo' as `meta'.
+  # FIXME: Read `files' and ignores hints from `package.json'.
   packNodeTarballAsIs = {
     src
   , pkgInfo ? readPkgInfo src
@@ -44,6 +45,14 @@
     inherit src;
     to = name;
   };
+
+
+/* -------------------------------------------------------------------------- */
+
+  linkBinsOut = { src, pkgInfo ? readPkgInfo src }: assert pkgInfo ? bin; let
+    bindir = if hidden then ".bin" else "bin";
+  in
+
 
 
 /* -------------------------------------------------------------------------- */

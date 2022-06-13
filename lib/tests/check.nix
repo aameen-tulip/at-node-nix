@@ -6,4 +6,5 @@
 args @ { lib, checker ? lib.libdbg.checker, name ? "tests", ... }: let
   inputs = args // { inherit lib checker name; };
   run    = import ./run.nix inputs;
-in checker name run
+  check = checker name run;
+in check

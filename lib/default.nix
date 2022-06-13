@@ -3,11 +3,12 @@ let
   lib' = lib.extend ( final: prev:
     let callLibs = file: import file { lib = final; };
     in {
+      # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
       libparse   = callLibs ./parse.nix;
       librange   = callLibs ./ranges.nix;
       libpkginfo = callLibs ./pkginfo.nix;
-      libstr     = callLibs ./strings.nix;
-      libattrs   = callLibs ./attrsets.nix;
+      libstr     = prev.libstr // ( callLibs ./strings.nix );
+      libattrs   = prev.libattrs // ( callLibs ./attrsets.nix );
       libplock   = callLibs ./pkg-lock.nix;
       libreg     = callLibs ./registry.nix;
 

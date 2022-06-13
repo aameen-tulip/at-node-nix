@@ -19,7 +19,8 @@
 } @ args: let
   inputs = args // { inherit lib; };
   check  = import ./check.nix inputs;
-in writeText "test.log" check
+  checkerDrv = writeText "test.log" check;
+in checkerDrv
 
 # NOTE: this file's output/behavior is identical to `lib.libdbg.checkerDrv'.
 # The definition has been inlined for the benefit of readers.

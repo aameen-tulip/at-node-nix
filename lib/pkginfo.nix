@@ -1,8 +1,20 @@
 { lib }:
 let
 
+  inherit (lib) isType setType;
+  inherit (lib.libfs) coercePath listSubdirs listDirsRecursive;
+  inherit (lib.libstr) test;
+
+/* -------------------------------------------------------------------------- */
+
+  # This wipes out any C style comments in JSON files that were written by
+  # sub-humans that cannot abide by simple file format specifications.
+  # Later this function will be revised to schedule chron jobs which send
+  # daily emails to offending projects' authors - recommending various
+  # re-education programs they may enroll in.
   importJSON' = file: let inherit (builtins) fromJSON readFile; in
     fromJSON ( lib.libstr.removeSlashSlashComments ( readFile file ) );
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -11,21 +23,20 @@ let
   # Ex:
   #   "@foo/bar" ==> { name = "@foo/bar"; pname = "bar"; scope = "foo" }
   #   "bar" ==> { name = "bar"; pname = "bar"; scope = null }
-  isPkgJsonName = name: null != ( builtins.match "(@[^/@.]+/)?([^/@.]+)" name );
+  isPkgJsonName = test "(@[^/@.]+/)?([^/@.]+)";
 
-  parsePkgJsonNameField = name:
-    assert ( isPkgJsonName name );
-    let
-      inherit (builtins) substring length stringLength elemAt head;
-      sname  = lib.splitString "/" name;
-      len    = length sname;
-      dropStr1  = str: substring 1 ( stringLength str ) str;
-    in if ( len == 1 ) then { scope = null; pname = name; inherit name; }
-       else if ( len == 2 ) then {
-         scope = dropStr1 ( head sname );
-         pname = elemAt sname 1;
-         inherit name;
-       } else throw "Invalid package name: ${name}";
+  parsePkgJsonNameField = name: assert ( isPkgJsonName name ); let
+    inherit (builtins) substring length stringLength elemAt head;
+    sname    = lib.splitString "/" name;
+    len      = length sname;
+    dropStr1 = str: substring 1 ( stringLength str ) str;
+  in if ( len == 1 ) then { scope = null; pname = name; inherit name; } else
+     if ( len == 2 ) then {
+       inherit name;
+       scope = dropStr1 ( head sname );
+       pname = elemAt sname 1;
+       _type = "";
+     } else throw "Invalid package name: ${name}";
 
 
 /* -------------------------------------------------------------------------- */
@@ -99,6 +110,7 @@ let
     let inherit ( parsePkgJsonNameField name ) pname scope;
     in args // {
       inherit pname scope;
+      _type = "pkginfo";
 
       localTarballName =
         asLocalTarballName { inherit name pname scope version; };
@@ -112,16 +124,9 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  allDependencies =
-    { dependencies         ? {}
-    , devDependencies      ? {}
-    , peerDependencies     ? {}
-    , optionalDependencies ? {}
-    , ...
-    }: optionalDependencies //
-       peerDependencies     //
-       devDependencies      //
-       dependencies;
+  allDependencies = x:
+    ( x.optionalDependencies or {} ) // ( x.peerDependencies or {} ) //
+    ( x.devDependencies      or {} ) // ( x.dependencies     or {} );
 
 
 /* -------------------------------------------------------------------------- */
@@ -156,27 +161,7 @@ let
     ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
 
   # Non-Recursive
-  dirHasPackageJson = p: let
-    nodes = builtins.readDir p;
-    isPkgJson = name: type:
-      ( name == "package.json" ) && ( type != "directory" );
-    tested = builtins.mapAttrs isPkgJson nodes;
-  in builtins.any ( x: x ) ( builtins.attrValues tested );
-
-
-/* -------------------------------------------------------------------------- */
-
-  listDirsRecursive = dir: lib.flatten ( lib.mapAttrsToList ( name: type:
-    if ( ( type == "directory" ) && ( ignoreNodeModulesDir name type ) ) then
-      listDirsRecursive ( dir + "/${name}" )
-    else
-      dir + "/${name}" ) ( builtins.readDir dir ) );
-
-  listSubdirs = dir: let
-    processDir = name: type:
-      if ( type == "directory" ) then dir + "/${name}" else null;
-    processed = lib.mapAttrsToList processDir ( builtins.readDir dir );
-  in builtins.filter ( x: x != null ) processed;
+  dirHasPackageJson = p: builtins.pathExists "${coercePath p}/package.json";
 
 
 /* -------------------------------------------------------------------------- */
@@ -184,32 +169,18 @@ let
   processWorkspacePath = p: let
     reportDir = d:
       if ( dirHasPackageJson d ) then "${d}/package.json" else null;
-
     dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
            else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
            else [p];
-
     process = dirs: builtins.filter ( x: x != null ) ( map reportDir dirs );
-  in if ( hasGlob ( dirOf p ) )
-     then throw ( "processGlobEnd: Only globs at the end of paths are " +
-                  "handled! Cannot process: ${p}" )
-     else process dirs;
+  in if ( ! ( hasGlob ( dirOf p ) ) ) then ( process dirs ) else
+    ( throw ( "processGlobEnd: Only globs at the end of paths are " +
+              "handled! Cannot process: ${p}" ) );
 
   workspacePackages = dir: pkgInfo:
     if ! ( pkgInfo ? workspaces.packages ) then [] else
       let processPath = p: processWorkspacePath ( ( toString dir ) + "/${p}" );
       in builtins.concatLists ( map processPath pkgInfo.workspaces.packages );
-
-
-/* -------------------------------------------------------------------------- */
-
-  pkgJsonForPath = p:
-    if ( ( baseNameOf p ) == "package.json" )
-    then ( toString p )
-    else ( ( toString p ) + "/package.json" );
-
-
-/* -------------------------------------------------------------------------- */
 
   readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
     workspacePackages ( dirOf pjp ) ( importJSON' pjp );
@@ -217,7 +188,77 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # Given a path-like `p', add `${p}/package.json' if `p' if `p' isn't a path
+  # to a `package.json' file already.
+  # This is implemented naively, but allows use to directory names and filepaths
+  # interchangeably to refer to projects.
+  # This is analogous to Nix's `path/to/ --> path/to/default.nix' behavior.
+  pkgJsonForPath = p: let
+    p' = builtins.unsafeDiscardStringContext ( toString p );
+    m = builtins.match "(.*)/" p';
+    s = if ( m == null ) then p' else ( builtins.head m );
+  in if ( p' == "" ) then "package.json" else
+    if ( ( baseNameOf p ) == "package.json" ) then s else "${s}/package.json";
 
+
+/* -------------------------------------------------------------------------- */
+
+  pkgJsonFromPath = p: let
+    pjs = pkgJsonForPath p;
+  in assert builtins.pathExists pjs;
+    importJSON' pjs;
+
+
+/* -------------------------------------------------------------------------- */
+
+  # Like `pkgJsonFromPath', except that if we don't find `package.json'
+  # initially, we will check two layers of subdirectories.
+  # This is intended to locate a `package.json' symlink which may exist in a
+  # `linkToPath' Drv such as:
+  #   /nix/store/XXXXXXXX...-source/@foo/bar/package.json
+  #
+  # With that use case in mind we sanity check that if we do search subdirs that
+  # we find EXACTLY ONE `package.json' file.
+  # This is to avoid "randomly" returning a `node_modules/baz/package.json' in
+  # a project directory.
+  #
+  # Additionally, if `x' already appears to be the result of `importJSON' then
+  # we just return `x'.
+  #
+  # NOTE: This does NOT handle paths to tarballs.
+  # Because this is a `lib' function, we don't use any system dependent
+  # derivations, because this would cause us to output a different instance of
+  # `lib' for each supported system.
+  # In the field, extending this function to add support for Tarballs is
+  # likely a good idea.
+  # XXX: You can actually do this using `builtins.fetch*' but adding additional
+  # conditionals to handle "is impure allowed?" or "can we find a SHA?" is a
+  # pain in the ass.
+  # This function already does a ton of heavy lifting.
+  getPkgJson = x: let
+    inherit (builtins) isAttrs filter concatLists length head typeOf;
+    inherit (lib.libfs) mapSubdirs;
+    fromDrvRoot = pkgJsonFromPath x.outPath;
+    pjsInSubdirs = let
+      dirs1 = listSubdirs x.outPath;
+      dirs2 = concatLists ( mapSubdirs listSubdirs x.outPath );
+      finds = filter dirHasPackageJson ( dirs1 ++ dirs2 );
+      found = pkgJsonFromPath ( head finds );
+      ns    = length finds;
+    in if ns == 1 then found else
+       if 1 < ns  then throw "Found multiple package.json files in subdirs" else
+       throw "Could not find package.json in subdirs";
+    fromPath = let
+      pjp = "${lib.coercePath x}/package.json";
+    in if ( builtins.pathExists pjp ) then ( importJSON' pjp )
+                                      else pjsInSubdirs;
+  in if lib.isCoercibleToPath x then fromPath else if isAttrs x then x else
+     throw "Cannot get package.json from type: ${typeOf x}";
+
+
+/* -------------------------------------------------------------------------- */
+
+  pkgJsonHasBin = x: ( getPkgJson x ) ? bin;
 
 
 /* -------------------------------------------------------------------------- */
@@ -231,7 +272,8 @@ in {
   inherit allDependencies;
   inherit workspacePackages readWorkspacePackages;
   inherit importJSON';
-  inherit pkgJsonForPath;
+  inherit pkgJsonForPath pkgJsonFromPath getPkgJson;
+  inherit pkgJsonHasBin;
 
-  readPkgInfo = path: mkPkgInfo ( importJSON' ( pkgJsonForPath path ) );
+  readPkgInfo = path: mkPkgInfo pkgJsonFromPath path;
 }

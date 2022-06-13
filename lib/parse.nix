@@ -112,21 +112,43 @@ rec {
 
 /* -------------------------------------------------------------------------- */
 
-  isCoercibleToName = x: let
-    inherit (builtins) typeOf elem;
-    ckType  = elem ( typeOf x ) ["string" "set" "path"];
-    ckNameInfoAttrs =
-      ( x ? name ) && ( x ? scopeDir ) && ( x ? pname ) && ( x ? scope );
-    ckNameInfoType =
-      ( x ? type ) && ( elem x.type ["identifier" "descriptor" "locator"] );
-  in {};
+  isGitRev = str:
+    ( builtins.match "[0-9a-f]{40}" str ) != null;
 
 
 /* -------------------------------------------------------------------------- */
 
-  isGitRev = str:
-    ( builtins.match "[0-9a-f]{40}" str ) != null;
-  
+  getPjScopeDir = x: let
+    inherit (builtins) isPath isString isAttrs match head pathExists tryEval;
+    fromScope = scope: if scope == null then "" else "@${scope}/";
+    fromName  = name: fromScope ( parseIdent name ).scope;
+    fromAttrs = x.scopeDir or
+      ( if ( x ? scope ) then ( fromScope x.scope ) else
+        if ( x ? name )  then ( fromName x.name )   else
+        throw "Cannot get scopeDir from available attrs." );
+    m = match "(@([^/]+)/)?([^/]+)(@.+)?" x;
+    ms = let s = head m; in if s == null then "" else s;
+    fromMatch = if m != null then ms else
+      throw "Cannot parse scopeDir from string: ${x}";
+    fromRead = let
+      pjs = lib.libpkginfo.pkgJsonForPath x;
+      fromPi = fromName ( lib.libpkginfo.importJSON' pjs ).name;
+    in if pathExists pjs then fromPi else  # XXX: We can't unzip tarballs here.
+      throw "Cannot read scopeDir from path ${pjs}.";
+    fromString = let tm = tryEval fromMatch;
+                 in if tm.success then tm.value else fromRead;
+  in if isAttrs  x then fromAttrs  else
+     if isPath   x then fromRead   else # XXX: You could guess from subdir name?
+     if isString x then fromString else
+        throw "Cannot get scopeDir from type: ${builtins.typeOf x}";
+
+
+/* -------------------------------------------------------------------------- */
+
+  #getPjName = x: let
+  #  inherit (builtins) isString isAttrs;
+  #in if
+
 
 /* -------------------------------------------------------------------------- */
 
