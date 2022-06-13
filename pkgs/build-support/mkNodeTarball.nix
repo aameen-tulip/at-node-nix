@@ -49,10 +49,17 @@
 
 /* -------------------------------------------------------------------------- */
 
-  linkBinsOut = { src, pkgInfo ? readPkgInfo src }: assert pkgInfo ? bin; let
-    bindir = if hidden then ".bin" else "bin";
-  in
-
+  linkBinsOut = { src, pkgJson ? getPkgJson src } @ args: let
+    # Force reading incase the user gave use a path.
+    pjs = if args ? pkgJson then getPkgJson pkgJson else pkgJson;
+  in assert lib.pkgJsonHasBin pjs;
+    linkToPath {
+      # FIXME: make this relative to `package.json' in case we're in a subdir.
+      # Maybe `getContext'?
+      src = assert builtins.pathExists "${src}/package.json";
+        map ( b: "${src}/${b}" ) pjs.bin;
+      to  = ".bin";
+    };
 
 
 /* -------------------------------------------------------------------------- */
