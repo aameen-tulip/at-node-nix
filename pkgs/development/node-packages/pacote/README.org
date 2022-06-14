@@ -1,0 +1,54 @@
+#+TITLE: Pacote CLI with Nix
+#+AUTHOR: Alex Ameen
+
+* Packaging NPM tools in Nix.
+This derivation was largely generated using a tool called =node2nix=, which
+scrapes a =package.json= file and wraps =npm= to fetch checksums for
+various packages.
+
+This process took some trial and error, but in the end the process was pretty
+straightforward.
+At a high level the steps were:
+- Fetch upstream =pacote= repository at their latest release ( Not =master=! )
+- Pop up a Nix shell with =node2nix=, and =nodejs-14_x=.
+  + Node.js 14 was chosen based on requirements listed in =pacote='s
+    =package.json=, which accepts ~12.13.0 || 14.15.0 || >=16.x~.
+  + Initially I tried Node.js 12.x, but this version hit EOL literally in the
+    hours that I was working on this, so I wanted to bump.
+  + Next I tried Node.js 18.x and 16.x, but I ran into painful issues with NPM
+    v7's handling of =package-lock.json= files.
+    Last month ( May 2022 ) changes were made to NPM v7 ( effecting 16 and 18 )
+    that strictly require a =package-lock.json= to exist and exactly match the
+    pulled packages.
+    Unfortunately these changes overlooked the fact that using registries other
+    than =registry.npmjs.org=, or an offline cache, will produce different
+    hashes because they lack the GPG signature which =registry.npmjs.org=
+    silently adds to all tarballs.
+    This is an issue that has blown up on their repo, and will likely be
+    corrected soon; but this is what finally led me to Node.js v14.x.
+- Run ~node2nix -14 --include-peer-dependencies -d~ to generate Nix files.
+  + =--include-peer-dependencies= is required, without it you'll be missing
+    =eslint= and other scripts that are required to build.
+  + I'm unsure if this was critical to the final derivation working, I don't
+    really think it is, but I manually added several peer dependencies
+    explicitly using ~npm add PKG~, and regenerated using =node2nix= to resolve
+    complaints about them being unavailable in the build.
+    I think the real problem here was how I was fetching sources; so you might
+    not really need to do this, but I wanted to document it in case it
+    had an effect.
+- Move Nix files to separate tree, modify to fetch =pacote= sources from =git=.
+  + This required modifying =node-packages.nix= to accept =src= as an argument.
+  + This didn't end up being relevant for this project; but please remember
+    that the derivation for =nodeDependencies= deletes hidden files such as
+    =.npmrc= which may be required for the later ~npm install~ to succeed.
+
+* Other tips
+- Do NOT use =builtins.fetch{git,url}=, use =pkgsFor.fetch{git,url}=.
+  + The builtins are not intended for usage in derivations, and are not cached
+    in the Nix Store.
+  + The untarred files are stored; but not the actual tarballs AFAIK and you
+    will trigger partial redundant rebuilds every ~30 minutes when the builtin
+    cache dies.
+- Messing with overrides to that effect the lockfile, cache skipping, etc were
+  a time sink.
+  NPM consistently blew up complaining about missing dependencies.
