@@ -2,7 +2,8 @@
 let
 
   inherit (lib) isType setType;
-  inherit (lib.libfs) coercePath listSubdirs listDirsRecursive;
+  inherit (lib.libfs) listSubdirs listDirsRecursive;
+  inherit (lib.libpath) coercePath;
   inherit (lib.libstr) test;
 
 /* -------------------------------------------------------------------------- */
