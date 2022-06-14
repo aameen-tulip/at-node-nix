@@ -1,4 +1,6 @@
 {
+  inputs.nix.url = "github:NixOS/nix/master";
+  inputs.nix.inputs.nixpkgs = "/nixpkgs";
   inputs.utils.url = "github:numtide/flake-utils/master";
   inputs.utils.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
@@ -6,7 +8,8 @@
   inputs.ak-nix.inputs.utils.follows = "/utils";
 
 
-  outputs = { self, nixpkgs, utils, ak-nix }: let
+  outputs = { self, nixpkgs, nix, utils, ak-nix }: let
+    inherit (builtins) getFlake;
     inherit (utils.lib) eachDefaultSystemMap mkApp;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
     lib = import ./lib { inherit (ak-nix) lib; };
@@ -14,6 +17,8 @@
       "./test/pkg-lock/flake.nix"
       "./pkgs/development/node-packages/npm-why/flake.nix"
     ];
+    pacoteFlake = getFlake ( toString ./pkgs/development/node-packages/pacote );
+
   in {
 
     inherit lib;
