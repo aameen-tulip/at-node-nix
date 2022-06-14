@@ -17,19 +17,25 @@
   # FIXME: Read `files' and ignores hints from `package.json'.
   packNodeTarballAsIs = {
     src
-  , pkgInfo ? readPkgInfo src
+  , pkgJson ? readPkgInfo src
   , name    ? pkgInfo.registryTarballName
   }: let
-    tarball = tar { inherit src name; };
-  in tarball;
+    tarball = tar {
+      inherit src name;
+      extraAttrs.meta = { inherit pkgJson; };
+    };
+  in tarball // { meta = tarball.meta // { inherit tarball; }; };
 
 
 /* -------------------------------------------------------------------------- */
 
   # FIXME: Add `package.json' info as `meta' field.
   unpackNodeTarball = { tarball }: let
-    unpacked = untar { inherit tarball; };
-  in unpacked;
+    unpacked = untar {
+      inherit tarball;
+      extraAttrs.meta = { inherit pkgJson; };
+    };
+  in unpacked // { meta = tarball.meta // { inherit tarball; }; };
 
 
 /* -------------------------------------------------------------------------- */
