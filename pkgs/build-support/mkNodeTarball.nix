@@ -49,7 +49,11 @@
 
 /* -------------------------------------------------------------------------- */
 
-  linkBinsOut = { src, pkgJson ? getPkgJson src } @ args: let
+  linkBinsOut = {
+    src
+  , pkgJson ? getPkgJson src
+  , to      ? ".bin"
+  } @ args: let
     # Force reading incase the user gave use a path.
     pjs = if args ? pkgJson then getPkgJson pkgJson else pkgJson;
   in assert lib.pkgJsonHasBin pjs;
@@ -58,7 +62,7 @@
       # Maybe `getContext'?
       src = assert builtins.pathExists "${src}/package.json";
         map ( b: "${src}/${b}" ) pjs.bin;
-      to  = ".bin";
+      inherit to;
     };
 
 
