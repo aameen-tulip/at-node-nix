@@ -250,19 +250,45 @@ let
   , dist       ? {}
   , _resolved
   , _from      ? null  # The original descriptor
-  , _integrity         # sri+SHA512
+  , _integrity ? null  # sri+SHA512 ( which we can't use sadly... )
   , _id                # "@${scope}/${pname}@${version}"
+    # NOTE: You can't really include `id' in any flake input except `indirect'.
+    # We include this option to include the `id' in case the user plans to
+    # combine this in a `map' invocation, or will post process to extract the
+    # ident to write it to a file.
+  , withId ? false
+    # We can embed a `__toString' function for cases where the caller plans to
+    # write a generated flake, which is honestly how I expect this is going
+    # to be used in most cases.
+    # Just remember that you can't actually pass it to `getTree' with that
+    # attribute preset ( use `removeAttrs' if you need both ).
+  , withToString ? false
+    # We can use `fetchTree' to convert the URI to a SHA256 in impure mode,
+    # but I've left it optional in case someone needs it.
+  , lookupNar ? true
   }: let
-    id = builtins.replaceStrings ["@" "."] ["_" "_"] _id;
+    dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
+    id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] ( _id );
+    maybeId = if withId then { inherit id; } else {};
+    ft = builtins.fetchTree { url = _resolved; type = "tarball"; };
+    maybeNarHash = if lookupNar then { inherit (ft) narHash; } else {};
+    maybeToString =
+      if withToString then {
+        __toString = self: ''
+          inputs.${id} = {
+            type = "${self.type}";
+            url  = "${self.url}";
+            flake = false;
+        '' + ( if self ? narHash
+               then "  narHash = \"${self.narHash}\";\n" else "" ) + ''
+          };
+        '';
+      } else {};
   in {
-    inherit id;
-    url  = _resolved;
     type = "tarball";
-    # Not sure if this will really work.
-    unpack = false;
+    url  = _resolved;
     flake = false;
-    narHash = _integrity;
-  };
+  } // maybeId // maybeNarHash // maybeToString;
 
 
 /* -------------------------------------------------------------------------- */
