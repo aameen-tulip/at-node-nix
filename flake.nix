@@ -165,8 +165,6 @@
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
 
-      npm-why = mkApp { drv = self.packages.${system}.npm-why; };
-
       # Yeah, we're recursively calling Nix.
       genFlakeInputs = {
         type = "app";
