@@ -29,7 +29,7 @@
       spec
     ] ++ ( if elem cmd ["tarball" "extract"] then ["$out"] else [] );
 
-    stdoutTo = if elem cmd ["tarball" "extract"] then "$meta" else "$out";
+    stdoutTo = if elem cmd ["tarball" "extract"] then "$manifest" else "$out";
 
   in ( pkgs.runCommandNoCC name {
     # `tarball' and `extract' dump `{ integrity, resolved, from }' to `stdout'.
@@ -45,10 +45,9 @@
     # Ex: The hashes in the `meta' output for both "extract" calls align here.
     #   extract lodash --> tarball "file:./result" --> extract "file:./result"
     outputs = ["out"] ++
-              ( if elem cmd ["tarball" "extract"] then ["meta"] else [] );
+              ( if elem cmd ["tarball" "extract"] then ["manifest"] else [] );
 
-    #__impure = true;
-    outputHashMode = "flat";
+    outputHashMode = if cmd == "extract" then "recursive" else "flat";
     outputHashAlgo = "sha256";
 
 
