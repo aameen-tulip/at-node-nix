@@ -36,6 +36,14 @@
     # Capturing these in `$meta' is useful for now, but once we can reliably
     # predict the `resolved' and `from' fields it would write for a URI, we
     # can eliminate that output.
+    # NOTE: The hashes produced by Pacote do not match ours coming from
+    #       `nix hash path ...' because the file permissions are modified.
+    #       You can probably match the original in an `unpack' phase by
+    #       recording the perms.
+    #       The hashes "round trip" DO align as expected however in Pacote's
+    #       output, which might be all that really matters.
+    # Ex: The hashes in the `meta' output for both "extract" calls align here.
+    #   extract lodash --> tarball "file:./result" --> extract "file:./result"
     outputs = ["out"] ++
               ( if elem cmd ["tarball" "extract"] then ["meta"] else [] );
 
