@@ -244,6 +244,29 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  flakeInputFromManifestTarball = manifest @ {
+    name       ? null  # We don't use these, but I'm listing them for reference.
+  , version    ? null
+  , dist       ? {}
+  , _resolved
+  , _from      ? null  # The original descriptor
+  , _integrity         # sri+SHA512
+  , _id                # "@${scope}/${pname}@${version}"
+  }: let
+    id = builtins.replaceStrings ["@" "."] ["_" "_"] _id;
+  in {
+    inherit id;
+    url  = _resolved;
+    type = "tarball";
+    # Not sure if this will really work.
+    unpack = false;
+    flake = false;
+    narHash = _integrity;
+  };
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit fetchPackument importFetchPackument;
   inherit packumentPkgLatestVersion;
@@ -252,6 +275,8 @@ in {
   inherit packumenter extendWithLatestDeps';
   inherit packumentClosure' packumentClosure;
   inherit flakeRegistryFromPackuments flakeRegistryFromNpm;
+
+  inherit flakeInputFromManifestTarball;
 
 ##  test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
 ##  inherit big biglist getChunk extendChunk pcf;
