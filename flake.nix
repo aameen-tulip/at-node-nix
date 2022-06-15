@@ -17,7 +17,20 @@
       "./test/pkg-lock/flake.nix"
       "./pkgs/development/node-packages/npm-why/flake.nix"
     ];
-    pacoteFlake = getFlake ( toString ./pkgs/development/node-packages/pacote );
+    pacoteFlake = let
+      raw = import ./pkgs/development/node-packages/pacote/flake.nix;
+      lock = lib.importJSON ./pkgs/development/node-packages/pacote/flake.lock;
+      final = raw // ( raw.outputs {
+        inherit nixpkgs utils;
+        self = final;
+        pacote-src = builtins.fetchTree lock.nodes.pacote-src.locked;
+      } );
+    in final;
+
+    pacotecli = system: ( import ./pkgs/tools/floco/pacote.nix {
+      inherit nixpkgs system;
+      inherit (pacoteFlake.packages.${system}) pacote;
+    } ).pacotecli;
 
   in {
 
@@ -30,6 +43,8 @@
     in {
 
       lib = import ./lib { lib = pkgsFor.lib; };
+
+      pacotecli = pacotecli final.system;
 
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;
@@ -62,6 +77,7 @@
         inherit (final) lib;
         enableTraces = false;
       };
+
     };
 
 
@@ -98,6 +114,8 @@
         enableTraces = true;
       };
 
+      pacotecli = pacotecli system;
+
     } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
 
 
@@ -106,6 +124,8 @@
     packages = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
+
+      inherit (pacoteFlake.packages.${system}) pacote;
 
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;

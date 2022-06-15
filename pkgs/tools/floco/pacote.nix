@@ -44,7 +44,7 @@
     #       output, which might be all that really matters.
     # Ex: The hashes in the `meta' output for both "extract" calls align here.
     #   extract lodash --> tarball "file:./result" --> extract "file:./result"
-    outputs = ["out"] ++
+    outputs = ["out" "cache"] ++
               ( if elem cmd ["tarball" "extract"] then ["manifest"] else [] );
 
     outputHashMode = if cmd == "extract" then "recursive" else "flat";
