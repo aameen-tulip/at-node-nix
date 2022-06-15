@@ -266,6 +266,7 @@ let
     # We can use `fetchTree' to convert the URI to a SHA256 in impure mode,
     # but I've left it optional in case someone needs it.
   , lookupNar ? true
+  , ...  # `engines' and a few other obnoxious fields should get tossed.
   }: let
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
     id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] ( _id );
