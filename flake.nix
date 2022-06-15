@@ -56,6 +56,12 @@
         inherit (pkgsFor) fetchurl yarn writeText;
         inherit (final) lib yml2json;
       };
+
+      genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
+        inherit (pkgsFor) writeText;
+        inherit (final) lib;
+        enableTraces = false;
+      };
     };
 
 
@@ -86,6 +92,12 @@
         inherit lib;
       };
 
+      genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
+        inherit (nixpkgs.legacyPackages.${system}) writeText;
+        inherit lib;
+        enableTraces = true;
+      };
+
     } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
 
 
@@ -94,9 +106,36 @@
     packages = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
+
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;
       } ).npm-why;
+
+      # I am aware of how goofy this is.
+      # I am aware that I could use `prefetch' - this is more convenient
+      # considering this isn't a permament fixture.
+      genFlakeInputs = pkgsFor.writeScript "genFlakeInputs" ''
+        _runnit() {
+          ${pkgsFor.nix}/bin/nix                                \
+            --extra-experimental-features 'flakes nix-command'  \
+            eval --impure --raw --expr "
+              import ${toString ./pkgs/tools/floco/generate-flake-inputs.nix} {
+                writeText = _: d: d;
+                enableTraces = false;
+                dir = \"$1\";
+              }";
+        }
+        _abspath() {
+          ${pkgsFor.coreutils}/bin/realpath "$1";
+        }
+        if test "$1" = "-o" || test "$1" = "--out"; then
+          _runnit "$( _abspath "$2"; )" > "$2";
+        else
+          _abspath "$1";
+          _runnit "$( _abspath "$1"; )";
+        fi
+      '';
+
     } );
 
 
@@ -105,7 +144,15 @@
     apps = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
+
       npm-why = mkApp { drv = self.packages.${system}.npm-why; };
+
+      # Yeah, we're recursively calling Nix.
+      genFlakeInputs = {
+        type = "app";
+        program = self.packages.${system}.genFlakeInputs.outPath;
+      };
+
     } );
 
 
