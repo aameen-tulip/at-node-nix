@@ -36,7 +36,7 @@
     #};
     tarball = pacotecli "tarball" {
       dest = name;
-      spec = src.outPath;
+      spec = toString src;
     };
     meta = ( src.meta or {} ) // {
       inherit (pjs) version;
