@@ -29,7 +29,6 @@
   treeBins      = linkBins { src = treeUnpacked; };
 
   tbTarball   = pacote-tarball;
-  tbUnpackDi  = untar { tarball = pacote-tarball; };
   tbUnpacked  = unpackNodeTarball { tarball = pacote-tarball; };
   tbModStrict = linkAsNodeModule' { package = tbUnpacked; };
   tbMod       = linkAsNodeModule { package = tbUnpacked; };
@@ -43,7 +42,6 @@ in {
     treeMod
     treeBins
     tbTarball
-    tbUnpackDi
     tbUnpacked
     tbModStrict
     tbMod
