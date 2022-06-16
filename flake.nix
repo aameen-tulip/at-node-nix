@@ -56,7 +56,7 @@
             lib = final.lib;
           };
 
-      linkedModules = { modules ? [] }:
+      linkModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
           inherit modules;
           inherit (pkgsFor) runCommandNoCC;
@@ -90,7 +90,7 @@
 
     nodeutils = ( eachDefaultSystemMap ( system: {
 
-      linkedModules = { modules ? [] }:
+      linkModules = { modules ? [] }:
         import ./pkgs/build-support/link-node-modules-dir.nix {
           inherit modules;
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
