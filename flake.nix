@@ -54,6 +54,7 @@
           ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
             inherit tarball pname scope version;
             lib = final.lib;
+            pacotecli = final.pacotecli;
           };
 
       linkModules = { modules ? [] }:
@@ -97,10 +98,12 @@
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         };
 
+      pacotecli = pacotecli system;
+
       mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
         inherit lib;
         inherit (nixpkgs.legacyPackages.${system}) linkFarm;
-        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
+        inherit (ak-nix.trivial.${system}) linkToPath untar tar pacotecli;
       };
 
       unpackNodeSource = { tarball, pname, scope ? null, version }:
@@ -124,8 +127,6 @@
         inherit lib;
         enableTraces = true;
       };
-
-      pacotecli = pacotecli system;
 
     } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
 
