@@ -103,7 +103,8 @@
       mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
         inherit lib;
         inherit (nixpkgs.legacyPackages.${system}) linkFarm;
-        inherit (ak-nix.trivial.${system}) linkToPath untar tar pacotecli;
+        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
+        inherit (self.nodeutils.${system}) pacotecli;
       };
 
       unpackNodeSource = { tarball, pname, scope ? null, version }:
