@@ -45,6 +45,12 @@
     inherit (pkgs) linkFarm;
   };
 
+  # FIXME: pass `lib' as an arg and improve fixup routines.
+  linkModules = import ./build-support/link-node-modules-dir.nix {
+    inherit (pkgs.xorg) lndir;
+    inherit (pkgs) runCommandNoCC;
+  };
+
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
     snapDerivation
@@ -53,6 +59,7 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     lib
     pacote
     pacotecli
+    linkModules
   ;
   inherit (trivial)
     runLn
@@ -60,7 +67,8 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     linkToPath
     runTar
     untar
-    tar;
+    tar
+  ;
   inherit (mkNodeTarball)
     packNodeTarballAsIs
     unpackNodeTarball

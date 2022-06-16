@@ -16,11 +16,6 @@
 
     lib = import ./lib { inherit (ak-nix) lib; };
 
-    subFlakes = map dirOf [
-      "./test/pkg-lock/flake.nix"
-      "./pkgs/development/node-packages/npm-why/flake.nix"
-    ];
-
     pacoteFlake = let
       raw = import ./pkgs/development/node-packages/pacote/flake.nix;
       lock = lib.importJSON ./pkgs/development/node-packages/pacote/flake.lock;
