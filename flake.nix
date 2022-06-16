@@ -164,7 +164,6 @@
         if test "$1" = "-o" || test "$1" = "--out"; then
           _runnit "$( _abspath "$2"; )" > "$2";
         else
-          _abspath "$1";
           _runnit "$( _abspath "$1"; )";
         fi
       '';
