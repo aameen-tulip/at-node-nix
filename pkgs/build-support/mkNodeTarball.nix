@@ -58,9 +58,7 @@
   unpackNodeTarball = { tarball }: let
     unpacked = untar {
       inherit tarball;
-      tarFlagsLate = [
-        "--strip-components=1"
-      ];
+      tarFlagsLate = ["--strip-components=1"];
     };
     importedPjs = readPkgInfo "${unpacked}/package.json";
     pjs         = tarball.meta.pjs or importedPjs;
@@ -89,6 +87,9 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # XXX: These are not patched.
+  # AGAIN: These have not bee processed by `patchShebangs'
+  #
   # By default we link to regular `bin/' for the convenience of making tools.
   # Setting `to = "";' will give put them in the root of the output.
   linkBins = { src, name ? src.name + "-bindir", to ? "bin" }: let
