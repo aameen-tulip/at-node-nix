@@ -34,10 +34,38 @@
   # This inherit block is largely for the benefit of the reader.
   inherit (trivial) runLn linkOut linkToPath runTar untar tar;
 
+  pacote =
+    ( import ./development/node-packages/pacote { inherit pkgs; } ).package;
+
+  inherit ( import ./tools/floco/pacote.nix { inherit pkgs pacote; } )
+    pacotecli;
+
   mkNodeTarball = import ./build-support/mkNodeTarball.nix {
-    inherit lib linkToPath untar tar snapDerivation;
+    inherit lib linkToPath untar tar pacotecli;
+    inherit (pkgs) linkFarm;
   };
 
-in {
-
-}
+in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
+  inherit
+    snapDerivation
+    trivial
+    mkNodeTarball
+    lib
+    pacote
+    pacotecli
+  ;
+  inherit (trivial)
+    runLn
+    linkOut
+    linkToPath
+    runTar
+    untar
+    tar;
+  inherit (mkNodeTarball)
+    packNodeTarballAsIs
+    unpackNodeTarball
+    linkAsNodeModule'
+    linkAsNodeModule
+    linkBins
+  ;
+} )

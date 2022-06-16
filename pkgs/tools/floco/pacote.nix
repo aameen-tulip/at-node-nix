@@ -1,7 +1,6 @@
 { nixpkgs ? builtins.getFlake "nixpkgs"
 , system  ? builtins.currentSystem
 , pacote  ? ( builtins.getFlake  ( toString ../../../pkgs/development/node-packages/pacote ) ).packages.${system}.pacote
-#, pkgs    ? nixpkgs.legacyPackages.${system}
 , pkgs    ? nixpkgs.legacyPackages.${system}
 }: let
   inherit (builtins) elem concatStringsSep;
@@ -13,17 +12,17 @@
            ( if flags ? dest then baseNameOf flags.dest else "source" );
 
     setupCache = if flags ? cache then ''
-        cp -r --reflink=auto -- ${builtins.storePath flags.cache} ./cache
-        chmod -R u+w ./cache
+        cp -r --reflink=auto -- ${builtins.storePath flags.cache} $cache
+        chmod -R u+w $cache
       '' else ''
-        mkdir -p ./cache
+        mkdir -p $cache
       '';
 
     # Don't forget `dest' for `tarball' and `extract' ( dir ) commands.
     # Also remember that `tarball' can take `-' to be `stdout', which we'll
     # probably use.
     pacoteFlags = [
-      "--cache=./cache"
+      "--cache=$cache"
       "--json"
       cmd
       spec

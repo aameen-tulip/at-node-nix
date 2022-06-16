@@ -11,12 +11,16 @@
   outputs = { self, nixpkgs, nix, utils, ak-nix }: let
     inherit (builtins) getFlake;
     inherit (utils.lib) eachDefaultSystemMap mkApp;
+
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
+
     lib = import ./lib { inherit (ak-nix) lib; };
+
     subFlakes = map dirOf [
       "./test/pkg-lock/flake.nix"
       "./pkgs/development/node-packages/npm-why/flake.nix"
     ];
+
     pacoteFlake = let
       raw = import ./pkgs/development/node-packages/pacote/flake.nix;
       lock = lib.importJSON ./pkgs/development/node-packages/pacote/flake.lock;
@@ -51,10 +55,11 @@
       } ).npm-why;
 
       unpackNodeSource = { tarball, pname, scope ? null, version }:
-        pkgsFor.callPackage ./pkgs/build-support/npm-unpack-source-tarball.nix {
-          inherit tarball pname scope version;
-          lib = final.lib;
-        };
+        pkgsFor.callPackage
+          ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
+            inherit tarball pname scope version;
+            lib = final.lib;
+          };
 
       linkedModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
@@ -62,6 +67,11 @@
           inherit (pkgsFor) runCommandNoCC;
           lndir = pkgsFor.xorg.lndir;
         };
+
+      mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
+        inherit (pkgsFor) linkFarm linkToPath untar tar;
+        lib = final.lib;
+      };  # packNodeTarballAsIs unpackNodeTarball linkAsNodeModule['] linkBins
 
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (pkgsFor) yq runCommandNoCC;
@@ -92,8 +102,14 @@
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         };
 
+      mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
+        inherit lib;
+        inherit (nixpkgs.legacyPackages.${system}) linkFarm;
+        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
+      };
+
       unpackNodeSource = { tarball, pname, scope ? null, version }:
-        import ./pkgs/build-support/npm-unpack-source-tarball.nix {
+        import ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
           inherit tarball pname scope version lib system;
           inherit (nixpkgs.legacyPackages.${system}) gnutar coreutils bash;
         };

@@ -114,9 +114,9 @@ let
       _type = "pkginfo";
 
       localTarballName =
-        asLocalTarballName { inherit name pname scope version; };
+        asLocalTarballName { inherit pname scope version; };
       registryTarballName =
-        asNpmRegistryTarballName { inherit name pname version; };
+        asNpmRegistryTarballName { inherit pname version; };
 
       scopeDir = if scope != null then "@${scope}/" else "";
       #canonicalName = canonicalizePkgName name;
@@ -276,5 +276,5 @@ in {
   inherit pkgJsonForPath pkgJsonFromPath getPkgJson;
   inherit pkgJsonHasBin;
 
-  readPkgInfo = path: mkPkgInfo pkgJsonFromPath path;
+  readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
 }
