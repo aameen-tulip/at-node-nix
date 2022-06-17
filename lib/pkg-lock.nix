@@ -46,6 +46,31 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  depList' = depFields: pl: let
+    deps = builtins.foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
+  in lib.mapAttrsToList lib.nameValuePair deps;
+
+  depKeys' = depFields: pl: let
+    deps = builtins.foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
+  in lib.mapAttrsToList ( name: { version, ... }@value: value // {
+    key = "${name}@${version}";
+    inherit name;
+  } ) deps;
+
+  depUnkey = { key, ... }@value: { name = key; inherit value; };
+  depUnkeys = lst: builtins.listToAttrs ( map depUnkey lst );
+
+  dependencyClosureKeyed' = depFields: plock: builtins.genericClosure {
+    startSet = depKeys' depFields plock;
+    operator = depKeys' depFields;
+  };
+
+  dependencyClosure' = depFields: plock:
+    depUnkeys ( dependencyClosureKeyed' depFields plock );
+
+
+/* -------------------------------------------------------------------------- */
+
   depList = pl: lib.mapAttrsToList lib.nameValuePair ( pl.dependencies or {} );
 
   depKeys = pl:
@@ -54,15 +79,12 @@ let
       inherit name;
     } ) ( pl.dependencies or {} );
 
-  depUnkey = { key, ... }@value: { name = key; inherit value; };
-  depUnkeys = lst: builtins.listToAttrs ( map depUnkey lst );
-
-  dependencyClosure' = plock: builtins.genericClosure {
+  dependencyClosureKeyed = plock: builtins.genericClosure {
     startSet = depKeys plock;
     operator = depKeys;
   };
 
-  dependencyClosure = plock: depUnkeys ( dependencyClosure' plock );
+  dependencyClosure = plock: depUnkeys ( dependencyClosureKeyed plock );
 
 
 /* -------------------------------------------------------------------------- */
@@ -87,13 +109,13 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  resolvedFetcherTree = fetchurl: plock:
-    let
-      inherit (builtins) mapAttrs;
-      applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
-      resolved = collectResolved plock;
-      fetchers = mapAttrs applyFetch  resolved;
-    in null;
+  # FIXME:
+  resolvedFetcherTree = fetchurl: plock: let
+    inherit (builtins) mapAttrs;
+    applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
+    resolved = collectResolved plock;
+    fetchers = mapAttrs applyFetch  resolved;
+  in null;
 
 
 /* -------------------------------------------------------------------------- */
@@ -112,12 +134,14 @@ in {
 
   # Really just exported for testing.
   inherit wasResolved depList depKeys depUnkey depUnkeys;
+  inherit depList' depKeys';
 
 
   # The real lib members.
   inherit collectResolved collectUnresolved;
   inherit partitionResolved partitionResolved';
-  inherit dependencyClosure' dependencyClosure;
+  inherit dependencyClosureKeyed dependencyClosure;
+  inherit dependencyClosureKeyed' dependencyClosure';
   inherit partitionDirectResolved partitionDirectResolved';
   inherit collectDirectResolved collectDirectUnresolved;
   inherit resolvedFetchersFromLock resolvedFetcherTree;
