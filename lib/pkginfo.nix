@@ -281,8 +281,7 @@ let
     ];
     verifyField = f: if ( elem f allowedFields ) then true else
       throw "Unrecognized dependency field name: ${f}";
-    verifyFields = true;
-    #verifyFields = all verifyField depFields;
+    verifyFields = all verifyField depFields;
     # FIXME: this should be done lazily.
     #verifyResolves =
     #  all ( x: isFunction x || isString x ) ( attrValues resolves );
@@ -294,10 +293,11 @@ let
       applied = mapAttrs ( k: fn: fn deps.${k} ) parted'.right;
       merged = deps // parted'.wrong // applied;
     in merged;
-    rewritten =
-      listToAttrs ( map ( d: { name = d;  value = rewriteDeps pjs.${d}; } )
-                        depFields );
-  in assert verifyFields; assert verifyResolves; ( pjs // rewritten );
+    rewriteField = acc: f:
+      if ( ! ( acc ? ${f} ) ) then acc else
+      ( acc // { ${f} = rewriteDeps acc.${f}; } );
+    rewritten = builtins.foldl' rewriteField pjs depFields;
+  in assert verifyFields; assert verifyResolves; rewritten;
 
 
 
