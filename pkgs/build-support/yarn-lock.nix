@@ -12,8 +12,15 @@
 let
   inherit (builtins) match attrNames attrValues filter concatStringsSep toJSON;
   inherit (yml2json) readYML2JSON writeYML2JSON;
-  inherit (lib) pkgNameSplit mkPkgInfo readPkgInfo allDependencies
-                readWorkspacePackages importJSON' fetchFetchurlTarballArgsNpm;
+  inherit (lib)
+    pkgNameSplit
+    mkPkgInfo
+    readPkgInfo
+    allDependencies
+    readWorkspacePackages
+    importJSON'
+  ;
+  inherit (lib.libreg) fetchFetchurlTarballArgsNpm;
 
 /* -------------------------------------------------------------------------- */
 
@@ -233,30 +240,39 @@ let
   genStringFetchurlForNpmResolutions = specs:
     let
       header = ''
-        { pkgs             ? import <nixpkgs> {}
+        let inherit (builtins) getFlake currentSystem; in
+        { nixpkgs          ? getFlake "github:NixOS/nixpkgs/${nixpkgs.rev}
+        , system           ? currentSystem
+        , pkgs             ? nixpkgs.legacyPackages.''${system}
         , fetchurl         ? pkgs.fetchurl
         , linkFarmFromDrvs ? pkgs.linkFarmFromDrvs
-        }:
-        let fetchers = {
+        }: let
+          fetchers = {
       '';
-      genFetcher = name:
-        let args = fetchFetchurlTarballArgsNpm { inherit name; }; in ''
-          "${name}" = {
+      genFetcher = name: let
+        args = fetchFetchurlTarballArgsNpm { inherit name; };
+        block = ''
+              "${name}" = {
             tarball = fetchurl {
-              url  = "${args.url}";
-              hash = "${args.hash}";
+              url  = "${args.url or args.resolved or args._resolved}";
+              hash = "${args.hash or args.integrity or args._integrity}";
               sha1 = "${args.sha1}";
             };
           };
         '';
+      in builtins.replaceStrings ["\n"] ["\n    "] block;
       fetchers = builtins.concatStringsSep "" ( map genFetcher specs );
       footer = ''
-        };
-        _tarballCache = linkFarmFromDrvs "npm-tarball-cache"
-          ( mapAttrs ( _: v: v.tarball ) fetchers );
+          };
+          _tarballCache = linkFarmFromDrvs "npm-tarball-cache"
+            ( mapAttrs ( _: v: v.tarball ) fetchers );
         in tarballs // { inherit _tarballCache; }
       '';
-    in header + fetchers + footer;
+    in ''
+      ${header}
+      ${fetchers}
+      ${footer}
+    ''; #header + fetchers + footer;
 
 
 /* -------------------------------------------------------------------------- */

@@ -124,12 +124,33 @@ in {
   inherit toposortDeps;
 }
 
-  /*
-
-# Cannot be read back because it contains store paths.
-fetcherSerial = drv: { name = drv.name; value = { drv = { inherit (drv) outPath drvAttrs drvPath; }; tarball = { inherit (drv) url; hash = drv.outputHash; }; unpacked = builtins.fetchTree ( builtins.storePath drv.outPath ); }; }
-
-# THIS works
-fetcherSerial = drv: { name = drv.name; fetchTarballArgs = { inherit (drv) url; hash = drv.outputHash; }; unpacked = { inherit ( builtins.fetchTree drv.outPath ) narHash; name = "source"; }; }
-
-  */
+/**
+ * Cannot be read back because it contains store paths.
+ *
+ * fetcherSerial = drv: {
+ *   inherit (drv) name;
+ *   value = {
+ *     drv = { inherit (drv) outPath drvAttrs drvPath; };
+ *     tarball = {
+ *       inherit (drv) url;
+ *       hash = drv.outputHash;
+ *     };
+ *     unpacked = builtins.fetchTree ( builtins.storePath drv.outPath );
+ *   };
+ * }
+ *
+ *
+ * THIS works
+ *
+ * fetcherSerial = drv: {
+ *   inherit (drv) name;
+ *   fetchTarballArgs = {
+ *     inherit (drv) url;
+ *     hash = drv.outputHash;
+ *   };
+ *   unpacked = {
+ *     name = "source";
+ *     inherit ( builtins.fetchTree drv.outPath ) narHash;
+ *   };
+ * }
+ */

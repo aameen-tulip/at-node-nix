@@ -38,6 +38,17 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # FIXME: move to pkginfo or parse?
+  renamePkgAtVersion = n: let
+    m = builtins.match "@([^/]+)/([^@]+)@(.*)" n;
+    y = builtins.elemAt m;
+  in if ( builtins.substring 0 1 n ) == "@"
+     then "${y 0}--${y 1}--${y 2}"
+     else ( builtins.replaceStrings ["@"] ["--"] n );
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit lines applyToLines trim;
   inherit removeSlashSlashComments removePoundComments;

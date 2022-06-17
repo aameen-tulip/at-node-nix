@@ -264,17 +264,63 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # Replace `package.json' dependency descriptors ( "^1.0.0" ) with new values;
+  # presumably paths to the Nix Store or exact versions.
+  # `resolves' is an attrset of
+  #   `{ foo = "new value"; }' or `{ foo = prev: "new value"; }'
+  # mappings, which will be used to replace or transform fields.
+  # `depFields' may be set to indicate that additional dependency lists should
+  # be modified:
+  #   depFields = ["devDependencies" "peerDependencies" ...];
+  rewriteDescriptors = { pjs, resolves, depFields ? ["dependencies"] }: let
+    inherit (builtins)
+      all elem partition isFunction isString
+      mapAttrs attrValues intersectAttrs listToAttrs;
+    allowedFields = [
+      "dependencies" "devDependencies" "optionalDependencies" "peerDependencies"
+    ];
+    verifyField = f: if ( elem f allowedFields ) then true else
+      throw "Unrecognized dependency field name: ${f}";
+    verifyFields = true;
+    #verifyFields = all verifyField depFields;
+    # FIXME: this should be done lazily.
+    #verifyResolves =
+    #  all ( x: isFunction x || isString x ) ( attrValues resolves );
+    verifyResolves = true;
+    rewriteDeps = deps: let
+      alist  = lib.attrsToList ( intersectAttrs deps resolves );
+      parted = ( partition ( x: isFunction x.value ) alist );
+      parted' = mapAttrs ( _: listToAttrs ) parted;
+      applied = mapAttrs ( k: fn: fn deps.${k} ) parted'.right;
+      merged = deps // parted'.wrong // applied;
+    in merged;
+    rewritten =
+      listToAttrs ( map ( d: { name = d;  value = rewriteDeps pjs.${d}; } )
+                        depFields );
+  in assert verifyFields; assert verifyResolves; ( pjs // rewritten );
+
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
-  inherit parsePkgJsonNameField;
-  inherit normalizePkgScope;
   #inherit canonicalizePkgName unCanonicalizePkgName;
-  inherit asLocalTarballName asNpmRegistryTarballName;
-  inherit mkPkgInfo;
-  inherit allDependencies;
-  inherit workspacePackages readWorkspacePackages;
-  inherit importJSON';
-  inherit pkgJsonForPath pkgJsonFromPath getPkgJson;
-  inherit pkgJsonHasBin;
+  inherit
+    parsePkgJsonNameField
+    normalizePkgScope
+    asLocalTarballName
+    asNpmRegistryTarballName
+    mkPkgInfo
+    allDependencies
+    workspacePackages
+    readWorkspacePackages
+    importJSON'
+    pkgJsonForPath
+    pkgJsonFromPath
+    getPkgJson
+    pkgJsonHasBin
+    rewriteDescriptors
+  ;
 
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
 }

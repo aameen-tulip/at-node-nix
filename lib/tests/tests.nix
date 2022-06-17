@@ -64,4 +64,32 @@ in {
     ];
   };
 
+  testRewriteDescriptors = let
+    data = {
+      name = "test-pkg";
+      version = "0.0.1";
+      dependencies.foo = "^1.0.0";
+      dependencies.bar = "~1.0.0";
+      dependencies.baz = "github:fake/repo";
+      devDependencies.foo = "^1.0.0";
+    };
+    xform = {
+      foo = "2.0.0";
+      bar = d: let m = builtins.match "[~=^]([0-9.]+)" d; in
+               if m == null then d else builtins.head m;
+      baz = "/nix/store/XXXXXXX-repo.tgz";
+      quux = "4.0.0";
+    };
+  in {
+    expr = libpkginfo.rewriteDescriptors { pjs = data; resolves = xform; };
+    expected = {
+      name = "test-pkg";
+      version = "0.0.1";
+      dependencies.foo = "2.0.0";
+      dependencies.bar = "1.0.0";
+      dependencies.baz = "/nix/store/XXXXXXX-repo.tgz";
+      devDependencies.foo = "^1.0.0";
+    };
+  };
+
 }  # End tests
