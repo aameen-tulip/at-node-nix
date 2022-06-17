@@ -59,10 +59,9 @@
 
       linkModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit modules;
           inherit (pkgsFor) runCommandNoCC;
           lndir = pkgsFor.xorg.lndir;
-        };
+        } { inherit modules; };
 
       mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
         inherit (pkgsFor) linkFarm linkToPath untar tar;
@@ -93,10 +92,9 @@
 
       linkModules = { modules ? [] }:
         import ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit modules;
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
-        };
+        } { inherit modules; };
 
       pacotecli = pacotecli system;
 

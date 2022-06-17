@@ -302,9 +302,6 @@ in {
   inherit packumenter extendWithLatestDeps';
   inherit packumentClosure' packumentClosure;
   inherit flakeRegistryFromPackuments flakeRegistryFromNpm;
-
   inherit flakeInputFromManifestTarball;
 
-##  test = ( packumentClosure ["lodash" "3d-view" "@bable/core"] ).size;
-##  inherit big biglist getChunk extendChunk pcf;
 }
