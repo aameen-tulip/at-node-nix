@@ -278,7 +278,7 @@ let
         __toString = self: ''
           inputs.${id} = {
             type = "${self.type}";
-            url  = "${self.url}";
+            url = "${self.url}";
             flake = false;
         '' + ( if self ? narHash
                then "  narHash = \"${self.narHash}\";\n" else "" ) + ''
@@ -290,6 +290,31 @@ let
     url  = _resolved;
     flake = false;
   } // maybeId // maybeNarHash // maybeToString;
+
+
+/* -------------------------------------------------------------------------- */
+
+  # Given an input `id' created by `flakeInputFromManifestTarball', return an
+  # attrset with all the delicious nuggets of info therein.
+  # Notably this makes it easy to convert to the `node2nix' names, which is
+  # useful for replacing those `fetchurl' invocations with `fetchTree' calls.
+  parseInputName = str: let
+    ms = builtins.match "(.*)--(.*)--([0-9_]+)" str;
+    mn = builtins.match "(.*)--([0-9_]+)" str;
+    hasScope = ms != null;
+    scope = if hasScope then builtins.head ms else null;
+    scopeDir = if hasScope then "@${scope}/" else "";
+    pname = if hasScope then builtins.elemAt ms 1 else builtins.head mn;
+    version' = if hasScope then builtins.elemAt ms 2 else builtins.elemAt mn 1;
+    version = builtins.replaceStrings ["_"] ["."] version';
+    name = "${scopeDir}${pname}-${version}";
+    packageName = scopeDir + pname;
+    node2nixName =
+      builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] packageName;
+  in {
+    inherit name version scopeDir pname packageName node2nixName;
+    flakeInputName = str;
+  } // ( if scope == null then {} else { inherit scope; } );
 
 
 /* -------------------------------------------------------------------------- */

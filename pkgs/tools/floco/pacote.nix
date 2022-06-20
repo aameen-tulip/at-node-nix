@@ -1,8 +1,11 @@
 { nixpkgs ? builtins.getFlake "nixpkgs"
-, system  ? builtins.currentSystem
-, pacote  ? ( builtins.getFlake  ( toString ../../../pkgs/development/node-packages/pacote ) ).packages.${system}.pacote
-, pkgs    ? nixpkgs.legacyPackages.${system}
+, system ? builtins.currentSystem
+, pacote ? ( builtins.getFlake  (
+               toString ../../../pkgs/development/node-packages/pacote
+           ) ).packages.${system}.pacote
+, pkgs   ? nixpkgs.legacyPackages.${system}
 }: let
+
   inherit (builtins) elem concatStringsSep;
 
   # cmd ::= resolve | manifest | packument | tarball | extract
