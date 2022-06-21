@@ -63,10 +63,16 @@
           lndir = pkgsFor.xorg.lndir;
         } { inherit modules; };
 
-      mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
+      inherit ( import ./pkgs/build-support/mkNodeTarball.nix {
         inherit (pkgsFor) linkFarm linkToPath untar tar;
-        lib = final.lib;
-      };  # packNodeTarballAsIs unpackNodeTarball linkAsNodeModule['] linkBins
+        inherit (final) lib pacotecli;
+      } )
+        mkNodeTarball
+        packNodeTarballAsIs
+        unpackNodeTarball
+        linkAsNodeModule
+        linkAsGlobal
+      ;
 
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (pkgsFor) yq runCommandNoCC;
@@ -88,45 +94,51 @@
 
 /* -------------------------------------------------------------------------- */
 
-    nodeutils = ( eachDefaultSystemMap ( system: {
-
+    nodeutils = ( eachDefaultSystemMap ( system: let
+      pacotecli = pacotecli system;
+      _mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
+        inherit lib pacotecli;
+        inherit (nixpkgs.legacyPackages.${system}) linkFarm;
+        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
+      };
+    in {
       linkModules = { modules ? [] }:
         import ./pkgs/build-support/link-node-modules-dir.nix {
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
-
-      pacotecli = pacotecli system;
-
-      mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
-        inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) linkFarm;
-        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
-        inherit (self.nodeutils.${system}) pacotecli;
-      };
-
+  
       unpackNodeSource = { tarball, pname, scope ? null, version }:
         import ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
           inherit tarball pname scope version lib system;
           inherit (nixpkgs.legacyPackages.${system}) gnutar coreutils bash;
         };
-
+  
+      inherit pacotecli;
+      inherit (_mkNodeTarball)
+        packNodeTarballAsIs
+        unpackNodeTarball
+        linkAsNodeModule
+        linkAsGlobal
+      ;
+      mkNodeTarball = _mkNodeTarball.mkNodeTarball;
+  
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
       };
-
+  
       yarnLock = import ./pkgs/build-support/yarn-lock.nix {
         inherit (nixpkgs.legacyPackages.${system}) fetchurl yarn writeText;
         inherit (self.nodeutils.${system}) yml2json;
         inherit lib;
       };
-
+  
       genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
         inherit (nixpkgs.legacyPackages.${system}) writeText;
         inherit lib;
         enableTraces = true;
       };
-
+  
     } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
 
 

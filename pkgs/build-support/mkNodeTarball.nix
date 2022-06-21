@@ -131,6 +131,41 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # This links `.bin/' "hidden" in the `node_modules' folder.
+  linkAsGlobal = { unpacked, name ? unpacked.name + "-global" }: let
+    linked = linkFarm name ( ( binEntries "bin" unpacked ) ++ [
+      {
+        name = "lib/node_modules/" + unpacked.meta.pjs.name;
+        path = unpacked.outPath;
+      }
+    ] );
+    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs then
+      builtins.storePath "${linked}/bin" else null;
+    global = if bindir == null then linkAsNodeModule' { inherit unpacked; } else
+             linked;
+    passthru = {
+      inherit unpacked global;
+    } // ( unpacked.passthru or {} ) // ( if bindir == null then {} else {
+      inherit bindir;
+    } );
+  in global // { inherit passthru; };
+
+
+/* -------------------------------------------------------------------------- */
+
+  mkNodeTarball = src: let
+    # FIXME: You really need to build
+    tarball  = packNodeTarballAsIs { inherit src; };
+    unpacked = unpackNodeTarball { inherit tarball; };
+  in {
+    inherit tarball unpacked;
+    module = linkAsNodeModule { inherit unpacked; };
+    global = linkAsGlobal { inherit unpacked; };
+  };
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit
     packNodeTarballAsIs  # FIXME: see note at top
@@ -138,5 +173,7 @@ in {
     linkAsNodeModule'
     linkAsNodeModule
     linkBins
+    linkAsGlobal
+    mkNodeTarball
   ;
 }
