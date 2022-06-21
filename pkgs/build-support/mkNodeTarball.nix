@@ -11,6 +11,16 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # derivation types and passthru attrs
+  #   tarball     registry style tarball.
+  #   unpacked    *built* tree ready for consumption.
+  #   bindir      linked bindir ( only when `package.json' has `bins' field ).
+  #   module      `node_modules/' style tree, including `.bin/' if any.
+  #   package     global style tree, including `bin/' if any'. TODO
+
+
+/* -------------------------------------------------------------------------- */
+
   # FIXME: This doesn't match `pacote'.
   # For the time being - use `pacote tarball <path>' to create tarballs.
   #
@@ -70,8 +80,8 @@
 /* -------------------------------------------------------------------------- */
 
   # This form does not link `.bin/'
-  linkAsNodeModule' = { package, name ? package.name + "-module-strict" }:
-    linkToPath { inherit name; src = package; to = package.meta.pjs.name; };
+  linkAsNodeModule' = { unpacked, name ? unpacked.name + "-module-strict" }:
+    linkToPath { inherit name; src = unpacked; to = unpacked.meta.pjs.name; };
 
 
 /* -------------------------------------------------------------------------- */
@@ -94,25 +104,29 @@
   # Setting `to = "";' will give put them in the root of the output.
   linkBins = { src, name ? src.name + "-bindir", to ? "bin" }: let
     inherit (src.meta) pjs;
-    package = src.passthru.package or src;
+    unpacked = src.passthru.unpacked or src;
     bindir = linkFarm name ( binEntries to package );
-    passthru = { inherit package bindir; } // ( src.passthru or {} );
+    passthru = { inherit unpacked bindir; } // ( src.passthru or {} );
   in bindir // { inherit passthru; };
 
 
 /* -------------------------------------------------------------------------- */
 
   # This links `.bin/' "hidden" in the `node_modules' folder.
-  linkAsNodeModule = { package, name ? package.name + "-module" }: let
-    linked = linkFarm name ( ( binEntries ".bin" package ) ++ [
-      { name = package.meta.pjs.name; path = package.outPath; }
+  linkAsNodeModule = { unpacked, name ? unpacked.name + "-module" }: let
+    linked = linkFarm name ( ( binEntries ".bin" unpacked ) ++ [
+      { name = unpacked.meta.pjs.name; path = unpacked.outPath; }
     ] );
-    bindir = builtins.storePath "${linked}/.bin";
+    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs then
+      builtins.storePath "${linked}/.bin" else null;
+    module = if bindir == null then linkAsNodeModule' { inherit unpacked; } else
+             linked;
     passthru = {
-      inherit package bindir;
-      module = linked;
-    } // ( package.passthru or {} );
-  in linked // { inherit passthru; };
+      inherit unpacked module;
+    } // ( unpacked.passthru or {} ) // ( if bindir == null then {} else {
+      inherit bindir;
+    } );
+  in module // { inherit passthru; };
 
 
 /* -------------------------------------------------------------------------- */
