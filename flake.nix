@@ -95,11 +95,11 @@
 /* -------------------------------------------------------------------------- */
 
     nodeutils = ( eachDefaultSystemMap ( system: let
-      pacotecli = pacotecli system;
       _mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
-        inherit lib pacotecli;
+        inherit lib;
         inherit (nixpkgs.legacyPackages.${system}) linkFarm;
         inherit (ak-nix.trivial.${system}) linkToPath untar tar;
+        pacotecli = pacotecli system;
       };
     in {
       linkModules = { modules ? [] }:
@@ -114,7 +114,8 @@
           inherit (nixpkgs.legacyPackages.${system}) gnutar coreutils bash;
         };
   
-      inherit pacotecli;
+      pacotecli = pacotecli system;
+
       inherit (_mkNodeTarball)
         packNodeTarballAsIs
         unpackNodeTarball
