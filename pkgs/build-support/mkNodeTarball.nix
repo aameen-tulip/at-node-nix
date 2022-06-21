@@ -86,12 +86,12 @@
 
 /* -------------------------------------------------------------------------- */
 
-  binEntries = to: package:
-    assert lib.libpkginfo.pkgJsonHasBin package.meta.pjs;
-    assert builtins.pathExists "${package}/package.json"; let
+  binEntries = to: unpacked:
+    assert lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs;
+    assert builtins.pathExists "${unpacked}/package.json"; let
       entries = lib.mapAttrsToList ( n: p: {
-        name = "${to}/${n}"; path = "${package}/${p}";
-      } ) package.meta.pjs.bin;
+        name = "${to}/${n}"; path = "${unpacked}/${p}";
+      } ) unpacked.meta.pjs.bin;
     in entries;
 
 
@@ -105,7 +105,7 @@
   linkBins = { src, name ? src.name + "-bindir", to ? "bin" }: let
     inherit (src.meta) pjs;
     unpacked = src.passthru.unpacked or src;
-    bindir = linkFarm name ( binEntries to package );
+    bindir = linkFarm name ( binEntries to unpacked );
     passthru = { inherit unpacked bindir; } // ( src.passthru or {} );
   in bindir // { inherit passthru; };
 
