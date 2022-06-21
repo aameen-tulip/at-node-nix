@@ -1,6 +1,18 @@
 { lib }:
 let
 
+/* -------------------------------------------------------------------------- */
+
+  # FIXME:
+  #   Most of these were written referencing a lockfile created by NPM v6.
+  #   NPM v8 made notable changes to the "top level" keys of their lockfile
+  #   to support workspaces.
+  #   Luckily these changes largely just effect treatment of the top-level; but
+  #   these functions should be updated accordingly.
+
+
+/* -------------------------------------------------------------------------- */
+
   # A filter function that return true if an entry is resolved by NPM.
   # NOTE: This returns `false' for any non-NPM resolution.
   wasResolved = _: v: builtins.isString ( v.resolved or null );
@@ -126,6 +138,65 @@ let
       attrValues ( lib.libattrs.pushDownNames ( plock.dependencies or {} ) );
     bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
   in lib.toposort bDependsOnA depl;
+
+
+/* -------------------------------------------------------------------------- */
+
+  # "pkg" must match a key in `<TOP>.packages'.
+  #
+  # We assume that the top level is a fake package, and we ignore all of those
+  # fields - the dependency declarations at the top level will already have
+  # been propagated into `packages.<PATH>' members, and we don't implement a
+  # semver parser at time of writing - so the top level info is useless to us.
+  #
+  # NOTE: Packages in `node_modules/' subdirs don't have "name" fields.
+  # This is actually fine because the you can yank that from the field,
+  #   "path/to/foo/node_modules/@bar/quux": { version: "1.0.0", ... }
+  # The closure is going to be found by looking for other keys with the same
+  # prefix as `pkg' + "/node_modules/", and you may also get a few stragglers
+  # at the top level.
+  #
+  # Strategy:
+  #   1. Construct a list of package IDs + versions from `dependencies' lists.
+  #   2. Collect any subdir `node_modules/' matches, and remove those from the
+  #      working list.
+  #   3. Locate remaining packages at top level.
+  #
+  # When packages are "located", keys must include both the package name
+  # and version.
+  # Remember that package resolution is only performed up/down RELATIVE to the
+  # dependant - you cannot "locate" a package that is a subdir of sibling.
+  # In theory you should never need to, assuming NPM's lock did in fact
+  # calculate the ideal tree properly.
+  #
+  # Keep in mind that the goal of this function is ultimately to "remove"
+  # packages unrelated to the closure from the lock-file.
+  # With that in mind, perform operations in an additive manner to a "new" tree;
+  # but when doing so take subtrees "as is" - this simplifies the effort,
+  # because we won't "form a top level closure, and reduce to scoped trees" -
+  # we're already started with ( in theory ) properly scoped trees.
+  #
+  #
+  # An example of this process after executing `npm i --legacy-peer-deps --ignore-scripts'
+  # Jump to a package's subdir to inspect their local `node_modules/' packages.
+  #   comm -23 <( jq -r '.dependencies + .devDependencies|keys[]' ./package.json|sort; ) <( find ./node_modules -type f -name package.json -exec jq -r '.name' {} \; |sort; )
+  # This produce a list of packages that need to be found at the top level.
+  # The top level keys are paths, not names, so you'll need to check the names
+  # of top level members, or traverse into the top level `node_modules/' path
+  # and do the obnoxious trimming on names.
+  # You can honestly probably just do:
+  #   if <TOP>.packages ? node_modules/${dep.name} then ... else
+  #   filterAttrs ( _: v: v.name == dep.name ) <TOP>.packages
+  #
+  # # XXX: we can probably get away with assuming that there's no repeated
+  #        names with conflicting versions at the top level - but this isn't
+  #        safe for a "general purpose" solution.
+  #
+  # NEVERMIND: The lockfile makes the links for us! we can just follow the
+  #   { link = true; resolved = <REL-PATH>; }
+  #
+  workspaceClosureFor = plock: pkg:
+    {};
 
 
 /* -------------------------------------------------------------------------- */
