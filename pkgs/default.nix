@@ -40,7 +40,7 @@
   inherit ( import ./tools/floco/pacote.nix { inherit pkgs pacote; } )
     pacotecli;
 
-  mkNodeTarball = import ./build-support/mkNodeTarball.nix {
+  _mkNodeTarball = import ./build-support/mkNodeTarball.nix {
     inherit lib linkToPath untar tar pacotecli;
     inherit (pkgs) linkFarm;
   };
@@ -55,7 +55,6 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
     snapDerivation
     trivial
-    mkNodeTarball
     lib
     pacote
     pacotecli
@@ -69,11 +68,13 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     untar
     tar
   ;
-  inherit (mkNodeTarball)
+  inherit (_mkNodeTarball)
     packNodeTarballAsIs
     unpackNodeTarball
     linkAsNodeModule'
     linkAsNodeModule
     linkBins
+    linkAsGlobal
+    mkNodeTarball
   ;
 } )

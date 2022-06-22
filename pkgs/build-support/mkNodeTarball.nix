@@ -104,7 +104,13 @@
   # Setting `to = "";' will give put them in the root of the output.
   linkBins = { src, name ? src.name + "-bindir", to ? "bin" }: let
     inherit (src.meta) pjs;
-    unpacked = src.passthru.unpacked or src;
+    unpacked' = src.passthru.unpacked or src;
+    withMetaPass = let
+      meta = { pjs = readPkgInfo "${unpacked'}/package.json"; } //
+             ( unpacked'.meta or {} );
+      passthru = { unpacked = unpacked'; } // ( unpacked.passthru or {} );
+    in unpacked' // { inherit meta passthru; };
+    unpacked = if unpacked' ? meta.pjs then unpacked' else withMetaPass;
     bindir = linkFarm name ( binEntries to unpacked );
     passthru = { inherit unpacked bindir; } // ( src.passthru or {} );
   in bindir // { inherit passthru; };
@@ -114,16 +120,24 @@
 
   # This links `.bin/' "hidden" in the `node_modules' folder.
   linkAsNodeModule = { unpacked, name ? unpacked.name + "-module" }: let
-    linked = linkFarm name ( ( binEntries ".bin" unpacked ) ++ [
-      { name = unpacked.meta.pjs.name; path = unpacked.outPath; }
+    withMetaPass = let
+      meta = { pjs = readPkgInfo "${unpacked}/package.json"; } //
+             ( unpacked.meta or {} );
+      passthru = { unpacked = unpacked'; } // ( unpacked.passthru or {} );
+    in unpacked // { inherit meta passthru; };
+    unpacked' = if unpacked ? meta.pjs then unpacked else withMetaPass;
+    linked = linkFarm name ( ( binEntries ".bin" unpacked' ) ++ [
+      { name = unpacked'.meta.pjs.name; path = unpacked'.outPath; }
     ] );
-    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs then
+    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked'.meta.pjs then
       builtins.storePath "${linked}/.bin" else null;
-    module = if bindir == null then linkAsNodeModule' { inherit unpacked; } else
-             linked;
+    module = if bindir != null then linked else linkAsNodeModule' {
+      unpacked = unpacked';
+    };
     passthru = {
-      inherit unpacked module;
-    } // ( unpacked.passthru or {} ) // ( if bindir == null then {} else {
+      inherit module;
+      unpacked = unpacked';
+    } // ( unpacked'.passthru or {} ) // ( if bindir == null then {} else {
       inherit bindir;
     } );
   in module // { inherit passthru; };
@@ -133,19 +147,27 @@
 
   # This links `.bin/' "hidden" in the `node_modules' folder.
   linkAsGlobal = { unpacked, name ? unpacked.name + "-global" }: let
-    linked = linkFarm name ( ( binEntries "bin" unpacked ) ++ [
+    withMetaPass = let
+      meta = { pjs = readPkgInfo "${unpacked}/package.json"; } //
+             ( unpacked.meta or {} );
+      passthru = { unpacked = unpacked'; } // ( unpacked.passthru or {} );
+    in unpacked // { inherit meta passthru; };
+    unpacked' = if unpacked ? meta.pjs then unpacked else withMetaPass;
+    linked = linkFarm name ( ( binEntries "bin" unpacked' ) ++ [
       {
-        name = "lib/node_modules/" + unpacked.meta.pjs.name;
-        path = unpacked.outPath;
+        name = "lib/node_modules/" + unpacked'.meta.pjs.name;
+        path = unpacked'.outPath;
       }
     ] );
-    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs then
+    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked'.meta.pjs then
       builtins.storePath "${linked}/bin" else null;
-    global = if bindir == null then linkAsNodeModule' { inherit unpacked; } else
-             linked;
+    global = if bindir != null then linked else linkAsNodeModule' {
+      unpacked = unpacked';
+    };
     passthru = {
-      inherit unpacked global;
-    } // ( unpacked.passthru or {} ) // ( if bindir == null then {} else {
+      inherit global;
+      unpacked = unpacked';
+    } // ( unpacked'.passthru or {} ) // ( if bindir == null then {} else {
       inherit bindir;
     } );
   in global // { inherit passthru; };

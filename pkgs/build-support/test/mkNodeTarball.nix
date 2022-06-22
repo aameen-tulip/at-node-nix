@@ -1,15 +1,16 @@
 { pkgs           ? import ../.. {}
-, mkNodeTarball  ? pkgs.mkNodeTarball
 , runCommandNoCC ? pkgs.runCommandNoCC
 , untar          ? pkgs.untar
 }: let
 
-  inherit (mkNodeTarball)
+  inherit (pkgs)
     packNodeTarballAsIs
     unpackNodeTarball
     linkAsNodeModule'
     linkAsNodeModule
     linkBins
+    linkAsGlobal
+    mkNodeTarball
   ;
 
   pacote-tree = builtins.fetchTree {
@@ -24,14 +25,14 @@
 
   treeTarball   = packNodeTarballAsIs { src = pacote-tree; };
   treeUnpacked  = unpackNodeTarball { tarball = treeTarball; };
-  treeModStrict = linkAsNodeModule' { package = treeUnpacked; };
-  treeMod       = linkAsNodeModule { package = treeUnpacked; };
+  treeModStrict = linkAsNodeModule' { unpacked = treeUnpacked; };
+  treeMod       = linkAsNodeModule { unpacked = treeUnpacked; };
   treeBins      = linkBins { src = treeUnpacked; };
 
   tbTarball   = pacote-tarball;
   tbUnpacked  = unpackNodeTarball { tarball = pacote-tarball; };
-  tbModStrict = linkAsNodeModule' { package = tbUnpacked; };
-  tbMod       = linkAsNodeModule { package = tbUnpacked; };
+  tbModStrict = linkAsNodeModule' { unpacked = tbUnpacked; };
+  tbMod       = linkAsNodeModule { unpacked = tbUnpacked; };
   tbBins      = linkBins { src = tbUnpacked; };
 
 in {
