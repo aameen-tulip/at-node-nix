@@ -207,7 +207,8 @@
   tarballFix = src: let
     meta' = src.meta or {};
     passthru' = src.passthru or {};
-    pjs' = meta'.pjs or ( readPkgInfo "${toString unpacked'}/package.json" );
+    #pjs' = meta'.pjs or ( readPkgInfo "${toString unpacked'}/package.json" );
+    pjs' = meta'.pjs or ( lib.libpkginfo.pkgJsonFromPath unpacked' );
 
     # builtins.fetchTree    --> { narHash, outPath }                :: attrs
     # builtins.fetchurl     --> "/nix/store/XXXX-name-version.tgz"  :: swc
@@ -230,34 +231,43 @@
       } );
 
     unpacked' = passthru'.unpacked or
-      ( if srcIsDir then src else untar {
+      ( if srcIsDir then src else ( untar {
           tarball = tarball';
           tarFlagsLate = ["--strip-components=1"];
-      } );
+      } ) );
+
+    toPath = x: if builtins.isAttrs x then toString x else lib.coercePath x;
 
     mkBin = to: let
-      ftPair = n: p: { name = "${to}/${n}"; path = "${unpacked'}/${p}"; };
+      ftPair = n: p: {
+        name = "${to}/${n}";
+        path = "${toPath unpacked'}/${p}";
+      };
     in lib.mapAttrsToList ftPair pjs'.bin;
 
     bindir' = linkFarm "${baseNameOf pjs'.name}-bindir" ( mkBin "bin" );
 
     # FIXME: This needs to get "built"
     module' = let
-      nmdir = [{ inherit (pjs') name; path = toString unpacked'; }];
+      nmdir = [{ inherit (pjs') name; path = toPath unpacked'; }];
     in linkFarm "${baseNameOf pjs'.name}-module" ( ( mkBin ".bin" ) ++ nmdir );
 
     # FIXME: This needs to get "built"
     global' = linkFarm "${baseNameOf pjs'.name}" ( ( mkBin "bin" ) ++ [
-      { name = "lib/node_modules/${pjs'.name}"; path = toString unpacked'; }
+      {
+        name = "lib/node_modules/${pjs'.name}";
+        path = toPath unpacked';
+      }
     ] );
 
     # FIXME: once you've got build phases being processed, drop `pjs' scripts
     # where appropriate.
     # For now, use the same `meta' for everything.
     metaFor = drv: { pjs = pjs'; } // meta' // ( drv.meta or {} );
+    asSet = x: if builtins.isAttrs x then x else { path = x; };
 
-    tarball_  = tarball'  // { meta = metaFor tarball'; };
-    unpacked_ = unpacked' // { meta = metaFor unpacked'; };
+    tarball_  = ( asSet tarball' )  // { meta = metaFor tarball'; };
+    unpacked_ = ( asSet unpacked' ) // { meta = metaFor unpacked'; };
     bindir_   = bindir'   // { meta = metaFor bindir'; };
     module_   = module'   // { meta = metaFor module'; };
     global_   = global'   // { meta = metaFor global'; };
