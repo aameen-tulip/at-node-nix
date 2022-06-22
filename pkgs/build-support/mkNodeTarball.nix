@@ -240,7 +240,15 @@
         name = "${to}/${n}";
         path = "${toPathStr unpacked'}/${p}";
       };
-    in lib.mapAttrsToList ftPair ( pjs'.bin or {} );
+      binAttr = pjs'.bin or {};
+      bins =
+        if builtins.isAttrs binAttr then lib.mapAttrsToList ftPair binAttr else
+        if builtins.isString binAttr then [{  # Single bin, adopt package name.
+          name = "${to}/${baseNameOf ( pjs'.name )}";
+          path = "${toPathStr unpacked'}/${binAttr}";
+        }] else builtins.trace
+          "Unrecognized bin attr type: ${builtins.typeOf binAttr}" [];
+    in bins;
 
     bindir' = linkFarm "${baseNameOf pjs'.name}-bindir" ( mkBin "bin" );
 
