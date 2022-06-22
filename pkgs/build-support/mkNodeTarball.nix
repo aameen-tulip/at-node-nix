@@ -175,23 +175,21 @@
 
 /* -------------------------------------------------------------------------- */
 
-  # FIXME: Make this a `fix' like a boss.
-
-  mkNodeTarball = src: let
-    # FIXME: You really need to build
-    tarball  = packNodeTarballAsIs { inherit src; };
-    unpacked = unpackNodeTarball { inherit tarball; };
-  in {
-    inherit tarball unpacked;
-    module = linkAsNodeModule { inherit unpacked; };
-    global = linkAsGlobal { inherit unpacked; };
-  };
+  # NOTE: Replaced with function below which consolidates the functions above
+  #       to share several intermediate values, and sync passthru fields.
+  #mkNodeTarball = src: let
+  #  # FIXME: You really need to build
+  #  tarball  = packNodeTarballAsIs { inherit src; };
+  #  unpacked = unpackNodeTarball { inherit tarball; };
+  #in {
+  #  inherit tarball unpacked;
+  #  module = linkAsNodeModule { inherit unpacked; };
+  #  global = linkAsGlobal { inherit unpacked; };
+  #};
 
 
 /* -------------------------------------------------------------------------- */
 
-  # FIXME: this explodes if you pass in `builtins.fetchurl' tarballs.
-  #
   # `src' may be an unpacked tree with meta/passthru, a "raw" source tree from
   # a builtin fetcher, or a derivation of `nixpkgs.fetchurl' which needs to
   # be unpacked here.
@@ -204,7 +202,7 @@
   #
   # The `_src' field is the original input; this is equivalent to `__unfix__'
   # but renamed because nobody is going to know what the fuck `__unfix__' means.
-  tarballFix = src: let
+  mkNodeTarball = src: let
     meta' = src.meta or {};
     passthru' = src.passthru or {};
     #pjs' = meta'.pjs or ( readPkgInfo "${toString unpacked'}/package.json" );
@@ -304,6 +302,5 @@ in {
     linkBins
     linkAsGlobal
     mkNodeTarball
-    tarballFix
   ;
 }

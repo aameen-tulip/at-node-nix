@@ -49,14 +49,6 @@
         pkgs = pkgsFor;
       } ).npm-why;
 
-      unpackNodeSource = { tarball, pname, scope ? null, version }:
-        pkgsFor.callPackage
-          ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
-            inherit tarball pname scope version;
-            lib = final.lib;
-            pacotecli = final.pacotecli;
-          };
-
       linkModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
           inherit (pkgsFor) runCommandNoCC;
@@ -107,23 +99,17 @@
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
-  
-      unpackNodeSource = { tarball, pname, scope ? null, version }:
-        import ./pkgs/build-support/npm/npm-unpack-source-tarball.nix {
-          inherit tarball pname scope version lib system;
-          inherit (nixpkgs.legacyPackages.${system}) gnutar coreutils bash;
-        };
-  
+
       pacotecli = pacotecli system;
 
       inherit (_mkNodeTarball)
+        mkNodeTarball
         packNodeTarballAsIs
         unpackNodeTarball
         linkAsNodeModule
         linkAsGlobal
       ;
-      mkNodeTarball = _mkNodeTarball.mkNodeTarball;
-  
+
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
       };
