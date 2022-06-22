@@ -224,23 +224,18 @@
     # For our purposes, we care about "${source}/package.json" working
     srcIsDir = builtins.pathExists "${src}/package.json";
 
-    tarball' = passthru'.tarball or
-      ( if ( ! srcIsDir ) then src else {
-        type = "path";
-        # FIXME: built and zip
-        outPath = throw ''"Filth is my politics! Filth is my life!" - B.J.'';
-      } );
+    tarball' = passthru'.tarball or ( if ( ! srcIsDir ) then src else {
+      type = "path";
+      # FIXME: built and zip
+      outPath = throw ''"Filth is my politics! Filth is my life!" - B.J.'';
+    } );
 
-    unpacked' = passthru'.unpacked or
-      ( if srcIsDir then src else ( untar {
-          tarball = tarball';
-          tarFlagsLate = ["--strip-components=1"];
-      } ) );
+    unpacked' = passthru'.unpacked or ( if srcIsDir then src else ( untar {
+      tarball = tarball';
+      tarFlagsLate = ["--strip-components=1"];
+    } ) );
 
-    toPathStr = x:
-      if builtins.isAttrs x
-      then toString x
-      else lib.coercePath x;
+    toPathStr = x: if builtins.isAttrs x then toString x else lib.coercePath x;
 
     mkBin = to: let
       ftPair = n: p: {
@@ -257,12 +252,10 @@
     in linkFarm "${baseNameOf pjs'.name}-module" ( ( mkBin ".bin" ) ++ nmdir );
 
     # FIXME: This needs to get "built"
-    global' = linkFarm "${baseNameOf pjs'.name}" ( ( mkBin "bin" ) ++ [
-      {
-        name = "lib/node_modules/${pjs'.name}";
-        path = toPathStr unpacked';
-      }
-    ] );
+    global' = linkFarm "${baseNameOf pjs'.name}" ( ( mkBin "bin" ) ++ [{
+      name = "lib/node_modules/${pjs'.name}";
+      path = toPathStr unpacked';
+    }] );
 
     # FIXME: once you've got build phases being processed, drop `pjs' scripts
     # where appropriate.
@@ -287,7 +280,7 @@
         inherit (self) tarball bindir module global;
       }; } );
       bindir = bindir_ // ( passthru' // { passthru = {
-          inherit (self) tarball unpacked module global;
+        inherit (self) tarball unpacked module global;
       }; } );
       module = module_ // ( passthru' // { passthru = {
         inherit (self) tarball unpacked bindir global;
