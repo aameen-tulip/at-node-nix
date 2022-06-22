@@ -279,27 +279,22 @@
     module_   = module'   // { meta = metaFor module'; };
     global_   = global'   // { meta = metaFor global'; };
 
-    fPassthru = self: passthru' // {
-      tarball = tarball_ // { passthru = {
-          inherit (self) unpacked bindir module global;
-        };
-      };
-      unpacked = unpacked_ // { passthru = {
-          inherit (self) tarball bindir module global;
-        };
-      };
-      bindir = bindir_ // { passthru = {
+    fPassthru = self: {
+      tarball = tarball_ // ( passthru' // { passthru = {
+        inherit (self) unpacked bindir module global;
+      }; } );
+      unpacked = unpacked_ // ( passthru' // { passthru = {
+        inherit (self) tarball bindir module global;
+      }; } );
+      bindir = bindir_ // ( passthru' // { passthru = {
           inherit (self) tarball unpacked module global;
-        };
-      };
-      module = module_ // { passthru = {
-          inherit (self) tarball unpacked bindir global;
-        };
-      };
-      global = global_ // { passthru = {
-          inherit (self) tarball unpacked bindir module;
-        };
-      };
+      }; } );
+      module = module_ // ( passthru' // { passthru = {
+        inherit (self) tarball unpacked bindir global;
+      }; } );
+      global = global_ // ( passthru' // { passthru = {
+        inherit (self) tarball unpacked bindir module;
+      }; } );
     };
   in lib.fix fPassthru;
 
