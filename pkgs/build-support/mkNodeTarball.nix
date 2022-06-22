@@ -16,7 +16,7 @@
   #   unpacked    *built* tree ready for consumption.
   #   bindir      linked bindir ( only when `package.json' has `bins' field ).
   #   module      `node_modules/' style tree, including `.bin/' if any.
-  #   package     global style tree, including `bin/' if any'. TODO
+  #   global      global style tree, including `bin/' if any'.
 
 
 /* -------------------------------------------------------------------------- */
@@ -175,6 +175,8 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # FIXME: Make this a `fix' like a boss.
+
   mkNodeTarball = src: let
     # FIXME: You really need to build
     tarball  = packNodeTarballAsIs { inherit src; };
@@ -188,6 +190,105 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # FIXME: this explodes if you pass in `builtins.fetchurl' tarballs.
+  #
+  # `src' may be an unpacked tree with meta/passthru, a "raw" source tree from
+  # a builtin fetcher, or a derivation of `nixpkgs.fetchurl' which needs to
+  # be unpacked here.
+  #
+  # Outputs: `tarball', `unpacked', `bindir', `module', `global', and `_src'.
+  #
+  # The `passthru' will be synchronized forall outputs; and the `meta.pjs' will
+  # /mostly/ align - but certain `scripts' may be removed intentionally to
+  # prevent `npm' from attempting to rerun things like `prepare' or `rebuild'.
+  #
+  # The `_src' field is the original input; this is equivalent to `__unfix__'
+  # but renamed because nobody is going to know what the fuck `__unfix__' means.
+  tarballFix = src: let
+    meta' = src.meta or {};
+    passthru' = src.passthru or {};
+    pjs' = meta'.pjs or ( readPkgInfo "${toString unpacked'}/package.json" );
+
+    # builtins.fetchTree    --> { narHash, outPath }                :: attrs
+    # builtins.fetchurl     --> "/nix/store/XXXX-name-version.tgz"  :: swc
+    # builtins.fetchTarball --> "/nix/store/XXXX-source"            :: swc
+    # builtins.path         --> "/nix/store/XXXX-dir-name"          :: swc
+    # pkgs.fetchurl         --> <derivation /nix/store/XXXX-*.tgz>  :: drv
+    # pkgs.fetchTarball     --> <derivation /nix/store/XXXX-source> :: drv
+    #
+    # In the case of "string with context ( swc )" or derivations, use
+    # `toString' and check the name for a `.tgz' suffix,
+    # or use `builtins.pathExists "${src}/package.json"'
+    #
+    # For our purposes, we care about "${source}/package.json" working
+    srcIsDir = builtins.pathExists "${src}/package.json";
+
+    tarball' = passthru'.tarball or
+      ( if ( ! srcIsDir ) then src else {
+        # FIXME: built and zip
+        outPath = throw ''"Filth is my politics! Filth is my life!" - B.J.'';
+      } );
+
+    unpacked' = passthru'.unpacked or
+      ( if srcIsDir then src else untar {
+          tarball = tarball';
+          tarFlagsLate = ["--strip-components=1"];
+      } );
+
+    mkBin = to: let
+      ftPair = n: p: { name = "${to}/${n}"; path = "${unpacked'}/${p}"; };
+    in lib.mapAttrsToList ftPair pjs'.bin;
+
+    bindir' = linkFarm "${baseNameOf pjs'.name}-bindir" ( mkBin "bin" );
+
+    # FIXME: This needs to get "built"
+    module' = let
+      nmdir = [{ inherit (pjs') name; path = toString unpacked'; }];
+    in linkFarm "${baseNameOf pjs'.name}-module" ( ( mkBin ".bin" ) ++ nmdir );
+
+    # FIXME: This needs to get "built"
+    global' = linkFarm "${baseNameOf pjs'.name}" ( ( mkBin "bin" ) ++ [
+      { name = "lib/node_modules/${pjs'.name}"; path = toString unpacked'; }
+    ] );
+
+    # FIXME: once you've got build phases being processed, drop `pjs' scripts
+    # where appropriate.
+    # For now, use the same `meta' for everything.
+    metaFor = drv: { pjs = pjs'; } // meta' // ( drv.meta or {} );
+
+    tarball_  = tarball'  // { meta = metaFor tarball'; };
+    unpacked_ = unpacked' // { meta = metaFor unpacked'; };
+    bindir_   = bindir'   // { meta = metaFor bindir'; };
+    module_   = module'   // { meta = metaFor module'; };
+    global_   = global'   // { meta = metaFor global'; };
+
+    fPassthru = self: passthru' // {
+      tarball = tarball_ // {
+        passthru = {};
+        #inherit (self) unpacked bindir module global; };
+      };
+      unpacked = unpacked_ // { passthru = {
+        #inherit (self) tarball bindir module global; };
+        inherit (self) tarball;
+      }; };
+      bindir = bindir_ // { passthru = {
+        #inherit (self) tarball unpacked module global; };
+        inherit (self) tarball unpacked;
+      }; };
+      module = module_ // { passthru = {
+        #inherit (self) tarball unpacked bindir global; };
+        inherit (self) tarball unpacked bindir;
+      }; };
+      global = global_ // { passthru = {
+        inherit (self) tarball unpacked bindir module;
+      }; };
+    };
+  in lib.fix fPassthru;
+
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit
     packNodeTarballAsIs  # FIXME: see note at top
@@ -197,5 +298,6 @@ in {
     linkBins
     linkAsGlobal
     mkNodeTarball
+    tarballFix
   ;
 }

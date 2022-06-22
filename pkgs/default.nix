@@ -76,5 +76,6 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     linkBins
     linkAsGlobal
     mkNodeTarball
+    tarballFix
   ;
 } )
