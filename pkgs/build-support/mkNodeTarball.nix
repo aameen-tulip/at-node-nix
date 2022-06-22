@@ -240,7 +240,7 @@
         name = "${to}/${n}";
         path = "${toPathStr unpacked'}/${p}";
       };
-    in lib.mapAttrsToList ftPair pjs'.bin;
+    in lib.mapAttrsToList ftPair ( pjs'.bin or {} );
 
     bindir' = linkFarm "${baseNameOf pjs'.name}-bindir" ( mkBin "bin" );
 
