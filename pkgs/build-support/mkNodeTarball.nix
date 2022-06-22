@@ -226,6 +226,7 @@
 
     tarball' = passthru'.tarball or
       ( if ( ! srcIsDir ) then src else {
+        type = "path";
         # FIXME: built and zip
         outPath = throw ''"Filth is my politics! Filth is my life!" - B.J.'';
       } );
@@ -236,12 +237,15 @@
           tarFlagsLate = ["--strip-components=1"];
       } ) );
 
-    toPath = x: if builtins.isAttrs x then toString x else lib.coercePath x;
+    toPathStr = x:
+      if builtins.isAttrs x
+      then toString x
+      else lib.coercePath x;
 
     mkBin = to: let
       ftPair = n: p: {
         name = "${to}/${n}";
-        path = "${toPath unpacked'}/${p}";
+        path = "${toPathStr unpacked'}/${p}";
       };
     in lib.mapAttrsToList ftPair pjs'.bin;
 
@@ -249,14 +253,14 @@
 
     # FIXME: This needs to get "built"
     module' = let
-      nmdir = [{ inherit (pjs') name; path = toPath unpacked'; }];
+      nmdir = [{ inherit (pjs') name; path = toPathStr unpacked'; }];
     in linkFarm "${baseNameOf pjs'.name}-module" ( ( mkBin ".bin" ) ++ nmdir );
 
     # FIXME: This needs to get "built"
     global' = linkFarm "${baseNameOf pjs'.name}" ( ( mkBin "bin" ) ++ [
       {
         name = "lib/node_modules/${pjs'.name}";
-        path = toPath unpacked';
+        path = toPathStr unpacked';
       }
     ] );
 
@@ -264,7 +268,10 @@
     # where appropriate.
     # For now, use the same `meta' for everything.
     metaFor = drv: { pjs = pjs'; } // meta' // ( drv.meta or {} );
-    asSet = x: if builtins.isAttrs x then x else { path = x; };
+    asSet = x: if builtins.isAttrs x then x else {
+      type = if srcIsDir then "path" else "tarball";
+      path = x;
+    };
 
     tarball_  = ( asSet tarball' )  // { meta = metaFor tarball'; };
     unpacked_ = ( asSet unpacked' ) // { meta = metaFor unpacked'; };
