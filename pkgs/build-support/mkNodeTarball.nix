@@ -274,9 +274,9 @@
 
     tarball_  = ( asSet tarball' )  // { meta = metaFor tarball'; };
     unpacked_ = ( asSet unpacked' ) // { meta = metaFor unpacked'; };
-    bindir_   = bindir'   // { meta = metaFor bindir'; };
-    module_   = module'   // { meta = metaFor module'; };
-    global_   = global'   // { meta = metaFor global'; };
+    bindir_   = bindir'             // { meta = metaFor bindir'; };
+    module_   = module'             // { meta = metaFor module'; };
+    global_   = global'             // { meta = metaFor global'; };
 
     fPassthru = self: {
       tarball = tarball_ // ( passthru' // { passthru = {

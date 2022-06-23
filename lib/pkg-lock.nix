@@ -142,6 +142,61 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # Helper that follows linked entries.
+  realEntry = plock: path: let
+    e = plock.packages."${path}";
+    entry = if e.link or false then plock.packages."${e.resolved}" else e;
+  in assert plock.lockfileVersion == 2; entry;
+
+
+  # Given an NPM v8 `package-lock.json', return the top-level lock entry for
+  # package with `name'.
+  # This does not search nested entries.
+  # This "follows" links to get the actual package info.
+  # The field `name' will be pushed down into entries if it is not present.
+  getTopLevelEntry = plock: name: assert plock.lockfileVersion == 2;
+    { inherit name; } // ( realEntry plock "node_modules/${name}" );
+
+  entriesByName' = plock: let
+    getName = x: let
+      m = builtins.match ".*node_modules/(.*)" x.name;
+    in if m == null then "__DROP__" else builtins.head m;
+    grouped = builtins.groupBy getName ( lib.attrsToList plock.packages );
+    grouped' = removeAttrs grouped ["__DROP__"];
+  in assert plock.lockfileVersion == 2; grouped';
+
+  entriesByName = plock: name: let
+    es = entriesByName' plock;
+    resolveE = { name, value }: realEntry plock name;
+  in builtins.mapAttrs ( _: map resolveE ) es;
+
+  resolveDepFor = plock: from: name: let
+    isSub = k: _: lib.test "${from}/node_modules/.*${name}" k;
+    subs = lib.filterAttrs isSub plock.packages;
+    path = if subs == {} then "node_modules/${name}" else
+           ( builtins.head ( builtins.attrNames subs ) );
+    entry = realEntry plock path;
+  in { resolved = path; value = entry; };
+
+
+  # FIXME: handle arbitrary dependency fields
+  runtimeClosureFor = plock: from: let
+    inherit (builtins) genericClosure attrNames;
+    operator = { key, dependencies ? {}, ... }: let
+      resolve = d:
+        let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };
+    in map resolve ( attrNames dependencies );
+  in genericClosure {
+    startSet = [( ( realEntry plock from ) // { key = from; } )];
+    inherit operator;
+  };
+
+  # bcd = lib.libplock.runtimeClosureFor plock "node_modules/@babel/core"
+  # map ( { key, resolved, integrity, hasInstallScript ? false, devDependencies ? {}, ... }: { inherit key resolved integrity; } // ( if hasInstallScript then { inherit hasInstallScript devDependencies; } else {} ) ) bcd
+
+
+/* -------------------------------------------------------------------------- */
+
   # "pkg" must match a key in `<TOP>.packages'.
   #
   # We assume that the top level is a fake package, and we ignore all of those
@@ -209,14 +264,29 @@ in {
 
 
   # The real lib members.
-  inherit collectResolved collectUnresolved;
-  inherit partitionResolved partitionResolved';
-  inherit dependencyClosureKeyed dependencyClosure;
-  inherit dependencyClosureKeyed' dependencyClosure';
-  inherit partitionDirectResolved partitionDirectResolved';
-  inherit collectDirectResolved collectDirectUnresolved;
-  inherit resolvedFetchersFromLock resolvedFetcherTree;
-  inherit toposortDeps;
+  inherit
+    collectResolved
+    collectUnresolved
+    partitionResolved
+    partitionResolved'
+    dependencyClosureKeyed
+    dependencyClosure
+    dependencyClosureKeyed'
+    dependencyClosure'
+    partitionDirectResolved
+    partitionDirectResolved'
+    collectDirectResolved
+    collectDirectUnresolved
+    resolvedFetchersFromLock
+    resolvedFetcherTree
+    toposortDeps
+    realEntry
+    getTopLevelEntry
+    entriesByName'
+    entriesByName
+    resolveDepFor
+    runtimeClosureFor
+  ;
 }
 
 /**
