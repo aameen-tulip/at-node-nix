@@ -26,8 +26,12 @@ let
   #  ${lndir}/bin/lndir -silent -ignorelinks ${m} $out
   #'';
 
-  link1 = m: ''
-    ${lndir}/bin/lndir -silent -ignorelinks ${m} ${fixPath m}
+  link1 = m: let
+    from = if builtins.isString m then m else m.path;
+    to   = if builtins.isString m then fixPath m else "$out/${m.name}";
+  in ''
+    mkdir -p "${to}"
+    ${lndir}/bin/lndir -silent -ignorelinks ${from} "${to}"
   '';
 
   # If the root of a derivation has `package.json', that tells us the caller
@@ -40,10 +44,9 @@ let
   # FIXME: actually do that lol.
 
 
-  linkedModules = { modules ? [] }: runCommandNoCC "node_modules" {
-      inherit modules;
+  linkModules = { modules ? [] }: runCommandNoCC "node_modules" {
       preferLocalBuild = true;
       allowSubstitutes = false;
   } ( "mkdir -p $out\n" + ( strConcatMap link1 modules ) );
 
-in linkedModules
+in linkModules
