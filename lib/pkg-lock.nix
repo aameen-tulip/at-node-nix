@@ -179,7 +179,18 @@ let
   in { resolved = path; value = entry; };
 
 
-  # FIXME: handle arbitrary dependency fields
+  depClosureFor = depFields: plock: from: let
+    inherit (builtins) genericClosure attrNames;
+    operator = { key, ... }@attrs: let
+      resolve = d:
+        let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };
+    in map resolve ( map ( x: x.name ) ( depList' depFields attrs ) );
+  in genericClosure {
+    startSet = [( ( realEntry plock from ) // { key = from; } )];
+    inherit operator;
+  };
+
+  # Slightly faster by only referencing `dependencies' field.
   runtimeClosureFor = plock: from: let
     inherit (builtins) genericClosure attrNames;
     operator = { key, dependencies ? {}, ... }: let
@@ -285,6 +296,7 @@ in {
     entriesByName'
     entriesByName
     resolveDepFor
+    depClosureFor
     runtimeClosureFor
   ;
 }
