@@ -39,18 +39,21 @@
     bfr = { type = "tarball"; url = resolved; };  # XXX: Impure
     # builtins.fetchTarball
     bft = { url = resolved; };                    # XXX: Impure
+    flake = bfr // { flake = false; };
     impureArgs = {
       nixpkgs.fetchurl      = nfu;
       nixpkgs.fetchzip      = nfz;
       builtins.fetchurl     = bfu;
       builtins.fetchTree    = bfr // { inherit (prefetched) narHash; };
       builtins.fetchTarball = bft // { sha256 = prefetched.narHash; };
+      flake                 = flake // { inherit (prefetched) narHash; };
     };
     pureArgs = {
       nixpkgs.fetchurl      = nfu;
       builtins.fetchurl     = bfu;
       builtins.fetchTree    = bfr;
       builtins.fetchTarball = bft;
+      inherit flake;
     };
   in if impure then impureArgs else pureArgs;
 
@@ -80,7 +83,6 @@
 
 
 /* -------------------------------------------------------------------------- */
-
 
 
 
