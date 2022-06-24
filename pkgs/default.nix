@@ -51,6 +51,12 @@
     inherit (pkgs) runCommandNoCC;
   };
 
+  _plock2nm = import ./build-support/plock-to-node-modules-dir.nix {
+    inherit lib linkModules;
+    inherit (_mkNodeTarball) mkNodeTarball;
+    fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
+  };
+
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
     snapDerivation
@@ -76,5 +82,9 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     linkBins
     linkAsGlobal
     mkNodeTarball
+  ;
+  inherit (_plock2nm)
+    plock2nmFocus
+    plock2nm
   ;
 } )
