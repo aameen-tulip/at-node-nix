@@ -59,11 +59,29 @@
         inherit (pkgsFor) linkFarm linkToPath untar tar;
         inherit (final) lib pacotecli;
       } )
-        mkNodeTarball
         packNodeTarballAsIs
         unpackNodeTarball
+        linkAsNodeModule'
         linkAsNodeModule
+        linkBins
         linkAsGlobal
+        mkNodeTarball
+      ;
+
+      inherit ( import ./pkgs/build-support/fetcher.nix {
+        inherit (final) lib;
+        inherit (pkgsFor) fetchurl fetchgit fetchFromGithub fetchzip;
+      } )
+        per2fetchArgs
+        typeOfEntry
+      ;
+
+      inherit ( import ./build-support/plock-to-node-modules-dir.nix {
+        inherit (final) lib linkModules mkNodeTarball;
+        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
+      } )
+        plock2nmFocus
+        plock2nm
       ;
 
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
@@ -93,21 +111,51 @@
         inherit (ak-nix.trivial.${system}) linkToPath untar tar;
         pacotecli = pacotecli system;
       };
-    in {
+
+      _fetcher = import ./pkgs/build-support/fetcher.nix {
+        inherit lib;
+        inherit (nixpkgs.legacyPackages.${system})
+          fetchurl
+          fetchgit
+          fetchFromGithub
+          fetchzip
+        ;
+      };
+
       linkModules = { modules ? [] }:
         import ./pkgs/build-support/link-node-modules-dir.nix {
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
 
+      _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
+        inherit lib linkModules;
+        inherit (_mkNodeTarball) mkNodeTarball;
+        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
+      };
+    in {
+
       pacotecli = pacotecli system;
+      inherit linkModules;
 
       inherit (_mkNodeTarball)
-        mkNodeTarball
         packNodeTarballAsIs
         unpackNodeTarball
+        linkAsNodeModule'
         linkAsNodeModule
+        linkBins
         linkAsGlobal
+        mkNodeTarball
+      ;
+
+      inherit (_fetcher)
+        per2fetchArgs
+        typeOfEntry
+      ;
+
+      inherit (_plock2nm)
+        plock2nmFocus
+        plock2nm
       ;
 
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
@@ -144,7 +192,7 @@
       # I am aware of how goofy this is.
       # I am aware that I could use `prefetch' - this is more convenient
       # considering this isn't a permament fixture.
-      genFlakeInputs = pkgsFor.writeScript "genFlakeInputs" ''
+      genFlakeInputs = pkgsFor.writeShellScript "genFlakeInputs" ''
         _runnit() {
           ${pkgsFor.nix}/bin/nix                                \
             --extra-experimental-features 'flakes nix-command'  \

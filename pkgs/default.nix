@@ -51,6 +51,11 @@
     inherit (pkgs) runCommandNoCC;
   };
 
+  _fetcher = import ./build-support/fetcher.nix {
+    inherit lib;
+    inherit (pkgs) fetchurl fetchgit fetchFromGithub fetchzip;
+  };
+
   _plock2nm = import ./build-support/plock-to-node-modules-dir.nix {
     inherit lib linkModules;
     inherit (_mkNodeTarball) mkNodeTarball;
@@ -82,6 +87,10 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     linkBins
     linkAsGlobal
     mkNodeTarball
+  ;
+  inherit (_fetcher)
+    per2fetchArgs
+    typeOfEntry
   ;
   inherit (_plock2nm)
     plock2nmFocus
