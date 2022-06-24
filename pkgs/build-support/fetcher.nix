@@ -24,7 +24,7 @@
 
   # Registry tarball package-lock entry to fetch* arguments
   per2fetchArgs = { resolved, ... }@entry: let
-    prefetched = if ( ! impure ) then {} else fetchTree bft;
+    prefetched = if ( ! impure ) then {} else fetchTree bfr;
     nha = plockEntryHashAttr entry;
     # nixpkgs.fetchurl
     nfu = { url = resolved; } // nha;
