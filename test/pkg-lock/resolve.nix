@@ -85,8 +85,17 @@ in rec {
 
     ck = map ( t: ( t.result == t.expected ) || ( report t ) ) run;
 
+    padRight = str: let
+      pad = "                ";
+      width = builtins.stringLength pad;
+      len = builtins.stringLength str;
+      n   = assert len <= width; width - len;
+    in str + ( builtins.substring 0 n pad );
+
+    sysMsg = padRight "(${pkgs.system})";
+
   in assert ( builtins.deepSeq ck ck ) == [];
-    builtins.trace "PASS" ( ck == [] );
+    builtins.trace "PASS: ${sysMsg} resolve.nix" ( ck == [] );
 
   checkDrv = writeText "test.log" ( builtins.deepSeq check "PASS" );
 

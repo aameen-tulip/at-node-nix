@@ -52,12 +52,6 @@ in rec {
   # Use this to compare the `expected' and `actual' contents.
   run = lib.runTests {
 
-    testWasResolved = lib.testAllTrue [
-      ( libplock.wasResolved resolvedDep.name resolvedDep.value )
-      ( ! ( libplock.wasResolved githubDep.name githubDep.value ) )
-      ( ! ( libplock.wasResolved "fake" {} ) )
-    ];
-
     testPartitionResolvedSmall = {
       expr = libplock.partitionResolved smlock;
       expected = import ./data/expected-partition-res-small.nix;
@@ -98,8 +92,17 @@ in rec {
 
     ck = map ( t: ( t.result == t.expected ) || ( report t ) ) run;
 
+    padRight = str: let
+      pad = "                ";
+      width = builtins.stringLength pad;
+      len = builtins.stringLength str;
+      n   = assert len <= width; width - len;
+    in str + ( builtins.substring 0 n pad );
+
+    sysMsg = padRight "(${pkgs.system})";
+
   in assert ( builtins.deepSeq ck ck ) == [];
-    builtins.trace "PASS" ( ck == [] );
+    builtins.trace "PASS: ${sysMsg} dependency-closure.nix" ( ck == [] );
 
   checkDrv = writeText "test.log" ( builtins.deepSeq check "PASS" );
 

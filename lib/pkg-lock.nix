@@ -1,6 +1,21 @@
 { lib }:
 let
 
+  inherit (builtins)
+    attrValues
+    partition
+    mapAttrs
+    listToAttrs
+    isString
+    foldl'
+    genericClosure
+    elem
+    match
+    head
+    groupBy
+    attrNames
+  ;
+
 /* -------------------------------------------------------------------------- */
 
   # FIXME:
@@ -15,12 +30,12 @@ let
 
   # A filter function that return true if an entry is resolved by NPM.
   # NOTE: This returns `false' for any non-NPM resolution.
-  wasResolved = _: v: builtins.isString ( v.resolved or null );
+  wasResolved = _: v: isString ( v.resolved or null );
 
   # Given a list of `{ name = "@scope/name"; value = { ... }; }' pairs,
   # split them into groups "right" and "wrong" ( attributes ) such that
   # `{ right = [<Resolved>]; wrong = [<Unresolved>]; }'
-  partitionDirectResolved' = builtins.partition wasResolved;
+  partitionDirectResolved' = partition wasResolved;
 
   # Like `partitionDirectResolved'', except contents of `right' and `wrong' are
   # converted into attribute sets.
@@ -30,8 +45,7 @@ let
   # instead, which handles dependencies of dependencies - since that is the
   # only case where duplicate keys are valid.
   partitionDirectResolved = plock:
-    builtins.mapAttrs ( _: v: builtins.listToAttrs v )
-      ( partitionDirectResolved' plock );
+    mapAttrs ( _: v: listToAttrs v ) ( partitionDirectResolved' plock );
 
   # Given a lock, return a set of dependencies which are resolved by NPM.
   collectDirectResolved = plock:
@@ -44,12 +58,14 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  partitionResolved' = plock: let
-    dc = map depUnkey ( dependencyClosure' plock );
-  in builtins.partition ( { name, value }: wasResolved name value ) dc;
+  _partitionResolved' = depFields: plock: let
+    dc = map depUnkey ( attrValues ( dependencyClosure' depFields plock ) );
+  in partition ( { name, value }: wasResolved name value ) dc;
+
+  partitionResolved' = _partitionResolved' ["dependencies"];
 
   partitionResolved = plock:
-    builtins.mapAttrs ( _: v: builtins.listToAttrs v )
+    mapAttrs ( _: v: listToAttrs v )
                       ( partitionResolved' plock );
 
   collectResolved = plock: ( partitionResolved plock ).right;
@@ -59,20 +75,20 @@ let
 /* -------------------------------------------------------------------------- */
 
   depList' = depFields: pl: let
-    deps = builtins.foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
+    deps = foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
   in lib.mapAttrsToList lib.nameValuePair deps;
 
   depKeys' = depFields: pl: let
-    deps = builtins.foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
+    deps = foldl' ( acc: f: acc // ( pl.${f} or {} ) ) {} depFields;
   in lib.mapAttrsToList ( name: { version, ... }@value: value // {
     key = "${name}@${version}";
     inherit name;
   } ) deps;
 
   depUnkey = { key, ... }@value: { name = key; inherit value; };
-  depUnkeys = lst: builtins.listToAttrs ( map depUnkey lst );
+  depUnkeys = lst: listToAttrs ( map depUnkey lst );
 
-  dependencyClosureKeyed' = depFields: plock: builtins.genericClosure {
+  dependencyClosureKeyed' = depFields: plock: genericClosure {
     startSet = depKeys' depFields plock;
     operator = depKeys' depFields;
   };
@@ -91,7 +107,7 @@ let
       inherit name;
     } ) ( pl.dependencies or {} );
 
-  dependencyClosureKeyed = plock: builtins.genericClosure {
+  dependencyClosureKeyed = plock: genericClosure {
     startSet = depKeys plock;
     operator = depKeys;
   };
@@ -116,14 +132,13 @@ let
    */
   resolvedFetchersFromLock = fetchurl: plock:
     let applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
-    in builtins.mapAttrs applyFetch ( collectResolved plock );
+    in mapAttrs applyFetch ( collectResolved plock );
 
 
 /* -------------------------------------------------------------------------- */
 
   # FIXME:
   resolvedFetcherTree = fetchurl: plock: let
-    inherit (builtins) mapAttrs;
     applyFetch = _: v: fetchurl { url = v.resolved; hash = v.integrity; };
     resolved = collectResolved plock;
     fetchers = mapAttrs applyFetch  resolved;
@@ -133,7 +148,6 @@ let
 /* -------------------------------------------------------------------------- */
 
   toposortDeps = plock: let
-    inherit (builtins) elem attrValues;
     depl =
       attrValues ( lib.libattrs.pushDownNames ( plock.dependencies or {} ) );
     bDependsOnA = a: b: elem a.name ( attrValues ( b.dependencies or {} ) );
@@ -159,28 +173,27 @@ let
 
   entriesByName' = plock: let
     getName = x: let
-      m = builtins.match ".*node_modules/(.*)" x.name;
-    in if m == null then "__DROP__" else builtins.head m;
-    grouped = builtins.groupBy getName ( lib.attrsToList plock.packages );
+      m = match ".*node_modules/(.*)" x.name;
+    in if m == null then "__DROP__" else head m;
+    grouped = groupBy getName ( lib.attrsToList plock.packages );
     grouped' = removeAttrs grouped ["__DROP__"];
   in assert plock.lockfileVersion == 2; grouped';
 
   entriesByName = plock: name: let
     es = entriesByName' plock;
     resolveE = { name, value }: realEntry plock name;
-  in builtins.mapAttrs ( _: map resolveE ) es;
+  in mapAttrs ( _: map resolveE ) es;
 
   resolveDepFor = plock: from: name: let
     isSub = k: _: lib.test "${from}/node_modules/.*${name}" k;
     subs = lib.filterAttrs isSub plock.packages;
     path = if subs == {} then "node_modules/${name}" else
-           ( builtins.head ( builtins.attrNames subs ) );
+           ( head ( attrNames subs ) );
     entry = realEntry plock path;
   in { resolved = path; value = entry; };
 
 
   depClosureFor = depFields: plock: from: let
-    inherit (builtins) genericClosure attrNames;
     operator = { key, ... }@attrs: let
       resolve = d:
         let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };
@@ -192,7 +205,6 @@ let
 
   # Slightly faster by only referencing `dependencies' field.
   runtimeClosureFor = plock: from: let
-    inherit (builtins) genericClosure attrNames;
     operator = { key, dependencies ? {}, ... }: let
       resolve = d:
         let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };

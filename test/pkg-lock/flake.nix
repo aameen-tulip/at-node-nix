@@ -12,10 +12,19 @@
     checks = utils.lib.eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
+
       dependency-closure = ( import ./dependency-closure.nix {
         inherit (pkgsFor) fetchurl writeText;
         inherit lib;
+        pkgs = { inherit system; };
       } ).checkDrv;
+
+      resolve = ( import ./resolve.nix {
+        inherit (pkgsFor) writeText;
+        inherit lib;
+        pkgs = { inherit system; };
+      } ).checkDrv;
+
     } );
 
   };
