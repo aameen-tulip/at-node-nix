@@ -1,7 +1,7 @@
 { lib
 , fetchurl
 , fetchgit
-, fetchFromGithub
+#, fetchFromGithub
 , fetchzip
 , impure ? ( builtins ? currentTime )
 }: let
@@ -172,4 +172,140 @@
 
 /* -------------------------------------------------------------------------- */
 
-in { inherit per2fetchArgs typeOfEntry; }
+  # This is the only fetcher that doesn't take the entry itself.
+  # You need to pass the "key" ( relative path to directory ) and CWD instead.
+  # NOTE: We intentionally avoid a check like `assert builtins.pathExists abs'
+  #       here because these fetchers may be generated before dependant paths
+  #       are actually fetched, and if they refer to store paths, they may not
+  #       be built yet.
+  #       Instead we put faith in the lazy evaluator.
+  #       For this same reason, we strongly recommend that you explicitly set
+  #       `cwd' because relying on the default of `PWD' makes a BIG assumption,
+  #       which is that all of these paths are locally available.
+  pkp2fetchArgs = {
+    cwd ? ( if impure then builtins.getEnv "PWD"
+                      else throw "Cannot determine CWD to resolve path URIs" )
+  , key # relative path
+  }: let
+    cwd' = assert lib.libpath.isAbspath cwd; head ( match "(.*[^/])/?" cwd );
+    abs = if ( lib.libpath.isAbspath key ) then key else "${cwd'}/${key}";
+  in {
+    builtins.path      = { path = abs; };
+    builtins.fetchTree = { type = "path"; path = abs; };
+    # FIXME: I have no idea if this works.
+    flake              = { type = "path"; path = abs; flake = false; };
+  };
+
+
+/* -------------------------------------------------------------------------- */
+
+  # Symlink Relative ( "dirFetcher" in `pacote' taxonomy )
+  # NOTE: This fetcher triggers additional lifecycle routines that are not
+  #       run for a regular "node_modules/<path>" entry.
+  #       We do not trigger life-cycle here, and defer to the caller.
+  pel2fetchArgs = {
+    cwd ? ( if impure then builtins.getEnv "PWD"
+                      else throw "Cannot determine CWD to resolve link URIs" )
+  }: { resolved, ... }: pkp2fetchArgs { inherit cwd; key = resolved; };
+
+
+/* -------------------------------------------------------------------------- */
+
+  pke2fetchArgs = cwd: key: entry: let
+    type = typeOfEntry entry;
+    cwda = if cwd == null then {} else cwd;
+  in if type == "symlink" then pel2fetchArgs cdwa entry                   else
+     if type == "path"    then pkp2fetchArgs ( { inherit key; } // cwda ) else
+     if type == "git"     then peg2fetchArgs entry                        else
+     if type == "registry-tarball" then per2fetchArgs entry               else
+     throw "Unrecognized entry type for: ${key}";
+
+
+/* -------------------------------------------------------------------------- */
+
+  # FIXME: For local paths, use `nix-gitignore' or use `fetchTree' at the repo's
+  #        top level so that you properly scrub gitignored files.
+  # XXX: Handle `.npmignore' files? ( seriously fuck that feature )
+  defaultFetchers = pb: pr: let
+    defaultFetchTree = {
+      urlFetcher  = fa: fetchTree ( fa.builtins.fetchTree or fa );
+      gitFetcher  = fa: fetchTree ( fa.builtins.fetchTree or fa );
+      linkFetcher = fa: fetchTree ( fa.builtins.fetchTree or fa );
+      dirFetcher  = fa: fetchTree ( fa.builtins.fetchTree or fa );
+    };
+    defaultBuiltins = {
+      # FIXME: Prefer `fetchTarball' in impure mode
+      urlFetcher  = fa: builtins.fetchurl ( fa.builtins.fetchurl or fa );
+      gitFetcher  = fa: builtins.fetchGit ( fa.builtins.fetGit   or fa );
+      linkFetcher = fa: builtins.path     ( fa.builtins.path     or fa );
+      dirFetcher  = fa: builtins.path     ( fa.builtins.path     or fa );
+    };
+    defaultNixpkgs = {
+      # FIXME: Prefer `fetchzip' in impure mode
+      urlFetcher  = fa: fetchurl      ( fa.nixpkgs.fetchurl or fa );
+      gitFetcher  = fa: fetchgit      ( fa.nixpkgs.fetchgit or fa );
+      linkFetcher = fa: builtins.path ( fa.builtins.path    or fa );
+      dirFetcher  = fa: builtins.path ( fa.builtins.path    or fa );
+    };
+  in if pr then defaultFetchTree else
+     if pb then defaultBuiltins  else
+     defaultNixpkgs;
+
+  # I'll admit that I'm not in love with this.
+  # It's definitely appealing to simply say "just use `fetchTree'", but we know
+  # that `fetchTree' fails for a small number of registry tarballs, and in
+  # practice the inflexibility of fetchers in other tools was one of the issues
+  # that led me to create this utility in the first place.
+  #
+  # TODO:
+  # Something a big more clever for argument handling is definitely apppropriate
+  # though, rather than multiple attrsets of args you can make one blob of
+  # fields that you run through `intersectAttrs' ( similar to `callPackage' ).
+  fetcher = {
+    cwd             # Directory containing `package-lock.json' used to realpath
+  , preferBuiltins  ? false
+  , preferFetchTree ? preferBuiltins
+  , urlFetcher      ? null
+  , gitFetcher      ? null
+  , linkFetcher     ? null
+  , dirFetcher      ? null
+  }@cfgArgs: let
+    defaults = defaultFetchers preferBuiltins preferFetchTree;
+    config = {
+      inherit cwd;
+      urlFetcher  = cfgArgs.urlFetcher  or defaults.urlFetcher;
+      gitFetcher  = cfgArgs.gitFetcher  or defaults.gitFetcher;
+      linkFetcher = cfgArgs.linkFetcher or defaults.linkFetcher;
+      dirFetcher  = cfgArgs.dirFetcher  or defaults.dirFetcher;
+    };
+    doFetch = { cfg }: key: entry: let
+      type = typeOfEntry entry;
+      fetchArgs = pke2fetchArgs cfg.cwd key entry;
+      fetchFn =
+      if type == "symlink"          then cfg.linkFetcher else
+      if type == "path"             then cfg.dirFetcher  else
+      if type == "git"              then cfg.gitFetcher  else
+      if type == "registry-tarball" then cfg.urlFetcher  else
+      throw "Unrecognized entry type for: ${entry}";
+    in fetchFn fetchArgs;
+  in lib.makeOverridable doFetch { cfg = config; };
+
+
+/* -------------------------------------------------------------------------- */
+
+in {
+  inherit
+    typeOfEntry
+    # NOTE: These are really just exposed for niche scenarios, I know the names
+    #       are esoteric.
+    #       We really want users to call `fetcher' instead of messing with these
+    #       "internal" implementations.
+    per2fetchArgs
+    peg2fetchArgs
+    pel2fetchArgs
+    pkp2fetchArgs
+    pke2fetchArgs    # This is the router.
+    defaultFetchers
+    fetcher
+  ;
+}

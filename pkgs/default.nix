@@ -89,8 +89,14 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     mkNodeTarball
   ;
   inherit (_fetcher)
-    per2fetchArgs
     typeOfEntry
+    per2fetchArgs
+    peg2fetchArgs
+    pel2fetchArgs
+    pkp2fetchArgs
+    pke2fetchArgs    # This is the router.
+    defaultFetchers
+    fetcher
   ;
   inherit (_plock2nm)
     plock2nmFocus
