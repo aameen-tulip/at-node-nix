@@ -17,6 +17,7 @@ let
 
   inherit (lib) libplock;
 
+  # V1 lockfiles
   biglock = lib.importJSON ./data/big-package-lock.json;
   smlock  = lib.importJSON ./data/small-package-lock.json;
 

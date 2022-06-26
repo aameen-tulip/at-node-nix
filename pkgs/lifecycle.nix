@@ -73,11 +73,18 @@
       "prepare"      # Only run if CWD is a symlink
     ];
     restart = ["prerestart" "restart" "postrestart"];
-    start   = ["prestart" "start" "poststart"];
-    stop    = ["prestop" "stop" "poststop"];
-    test    = ["pretest" "test" "posttest"];
+    start   = ["prestart"   "start"   "poststart"];
+    stop    = ["prestop"    "stop"    "poststop"];
+    test    = ["pretest"    "test"    "posttest"];
     version = ["preversion" "version" "postversion"];
   };
+
+  # For Git Deps ( based on `pacote' and `npm' implementation ):
+  #   Only `prepare' is run.
+  #   `pre/post-pack' is NOT run - those only run for `npm (pack|publish)'
+  #   A tarball is made "manually" by checking `plock.files', `.gitignore',
+  #   `.npmignore', and NPM's default include/exclude rules.
+  #   Honestly, this behavior seems like nonsense to me, but whatever.
 
 in {
 }
