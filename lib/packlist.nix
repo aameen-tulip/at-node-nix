@@ -10,6 +10,7 @@
     head
     isString
     match
+    readDir
     replaceStrings
     split
     stringLength
@@ -19,14 +20,28 @@
 
 /* --------------------------------------------------------------------------- */
 
+# FIXME: `.npmignore' completely overrides `.gitignore' if it exists.
+# Also, this is wicked annoying: but `.npmignore' is processed "per folder",
+# so `.npmignore' in a parent doesn't exclude `sub/.gitignore' from being
+# processed - this adds complexity.
+# A simple approach might be to clone a git repo, then move any `.npmignore'
+# to `.gitignore' recursively and invoke `nix-gitignore' to filer.
+# This whole thing is such a fucking mess honestly - `.npmignore' is a stupid
+# feature and after having read the implementation I believe it likely has a
+# severe impact on NPM's performance.
+
+
+/* --------------------------------------------------------------------------- */
+
   # `ignore-walk' REXPs are not case sensitive, so we need to handle things like
   # "rEaDmE" explicitly.
-  packageMustHaveFileNames' = "readme|copying|license|licence";
-  packageMustHaveFileNames = concatStringsSep "|" [
+  #packageMustHaveFileNames' = "readme|copying|license|licence";
+  packageMustHaveFileNames' = [
     "[Rr][Ee][Aa][Dd][Mm][Ee]"
     "[Cc][Oo][Pp][Yy][Ii][Nn][Gg]"
     "[Ll][Ii][Cc][Ee][Nn][SsCc][Ee]"
   ];
+  packageMustHaveFileNames = concatStringsSep "|" packageMustHaveFileNames';
   # XXX: A leading `@' pattern is a DSL defined by the Node.js package
   # `ignore-walk' in `/lib/index.js' as a part of their "IgnoreWalker" class.
   # It is used to escape "./" which is normally stripped from patterns.
@@ -35,12 +50,22 @@
   # because the zillion tools they're taping together disagree about stripping
   # leading "./" from paths.
   #packageMustHaves = "@(${packageMustHaveFileNames'}){,.*[^~$]}";
-  packageMustHaves = "\\./(${packageMustHaveFileNames'}){,.*[^~$]}";
+
+  packageMustHaves = let
+    giFor = ciname: ["!/${ciname}.*[^~$]" "!/${ciname}"];
+  in builtins.foldl' ( acc: f: acc ++ ( giFor f ) ) packageMustHaveFileNames';
+
   packageMustHavesRE = "(${packageMustHaveFileNames})(\\..*[^~$])?";
 
   # None of these are capture groups, they're used for optionals.
+  # This matches any package directory in a `node_modules' subdir - meaning
+  # "node_modules/bar" and "node_modules/@foo/bar",
+  # but not "node_modules/bar/lib" and "node_modules/@foo/bar/lib",
+  # NOTE: this lacks a ".*" prefix - you should add the prefix for your working
+  # directory, or pass this to `libgi.filterPattern' which defers prefix
+  # handling until execution ( this is the intended usage ).
   followRE =
-    "(\/node_modules\/(@[^/]+\/[^/]+|[^/]+)\/)*\/node_modules(\/@[^/]+)?";
+    "(/node_modules/(@[^/]+/[^/]+|[^/]+)/)*/node_modules(/@[^/]+)?/[^/]+";
 
   ignoreFiles = [".gitignore" ".npmignore"];
 
@@ -84,18 +109,16 @@
   # The tree walker reads `package.json' files for all workspace members, which
   # appear to be marked for inclusion - the `files: []' members specifically.
   # Additionally the "mustHave" files for those workspace members are included.
-
   mustHaveFilesFromPackage = pjs: let
-    browser = if pjs ? browser then ["/${pjs.browser}"] else [];
-    main = if pjs ? main then ["/${pjs.main}"] else [];
-    bins =
-      map ( k: "/${pjs.bin.${k}}" ) ( attrNames ( pjs.bin or {} ) );
+    browser = if pjs ? browser then ["!/${pjs.browser}"] else [];
+    main = if pjs ? main then ["!/${pjs.main}"] else [];
+    bins = map ( k: "!/${pjs.bin.${k}}" ) ( attrNames ( pjs.bin or {} ) );
+    # We invert the pattern compared to `npm-packlist'.
     defaults = [
-      "/package.json"
-      "/npm-shrinkwrap.json"
-      "!/package-lock.json"
-      packageMustHaves
-    ];
+      "!/package.json"
+      "!/npm-shrinkwrap.json"
+      "/package-lock.json"
+    ] ++ packageMustHaves;
   in defaults ++ browser ++ main ++ bins;
 
 
@@ -139,27 +162,50 @@
   # implementation leaves that sort of thing up to the caller.
   readIgnoreFile = x: let
     rules = if isString x then x else builtins.readFile x;
-  in lib.libgi.gitignoreToRegexes ni;
+  in lib.libgi.gitignoreToRegexes rules;
 
 
 /* --------------------------------------------------------------------------- */
 
   # Entries is a list of paths to projects.
   # We use relative paths, which makes processing ignore patterns much simpler.
-  onReadDir = cwd: entries: let
+  # This does not make any considerations about the contents of `package.json',
+  # `.npmignore', or `.gitignore'.
+  # You should only call this if `pjs.files' is empty.
+  # XXX: You should probably replace this with a call to `libgi'.
+  getDirFiles = cwd: entries: let
   in {};
 
 
 /* --------------------------------------------------------------------------- */
 
+  # This returns gitignore patterns for a directory's `entries' and it's pjs.
+  # This is called recursively for bundled dependencies.
+  # XXX: Not sure if we should call recursively for workspace dependencies
   getPackageFiles = cwd: entries: pjs: let
-    fromDir = onReadDir cwd entries;
-    mustPjs = mustHaveFrilesFromPackage pjs;
-    doBundle = ( pjs.bundleDependencies or false ) ||
-               ( pjs.bundledDependencies or false );
-    maybeNm = if doBundle && ( elem "node_modules" entries ) then
-              ["node_modules"] else [];
-    # FIXME: process `files: []' as gitignore patterns
+    mustPjs = mustHaveFilesFromPackage pjs;
+    doBundle =
+      ( ( pjs.bundleDependencies or false ) || ( pjs ? bundledDependencies ) )
+      && ( elem "node_modules" ( attrNames entries ) );
+    bundledDeps = if ( pjs ? bundledDependencies ) then pjs.bundledDependencies
+                                                   else pjs.dependencies;
+    # XXX: add "!" later
+    bundledDirs = map ( k: "node_modules/${k}/" ) ( attrNames bundledDeps );
+    maybeNm = if doBundle then bundledDirs else [];
+    # FIXME: handling the "!" like this is really dumb. You should call `libgi'.
+    nmFiles = let
+      forBundle = k: let
+        d = "${cwd}/${k}";
+        pjs = lib.importJSON' "${d}/package.json";
+        relFiles = getPackageFiles cwd ( readDir d ) pjs;
+        fillDir = f: let
+          neg = ( substring 0 1 f ) == "!";
+          st = if neg then lib.yank "!?([^!].*)" f else f;
+          mr = if ( substring 0 1 st ) == "/" then st else "/**/${st}";
+        in ( if neg then "!" else "" ) + "${d}${mr}";
+      in ( map fillDir relFiles ) ++ ["!${k}"];
+    in lib.concatMap forBundle maybeNm;
+    fromDir = getDirFiles cwd entries;
   in {
   };
 
@@ -249,11 +295,10 @@
     childig     = map ( lib.libpath.realpathRel' opt.path ) opt.workspaces;
     wsIgnores   = if isWsContext then rootig else childig;
     # XXX: now they invoke `super.onReadIgnoreFile'
+  in {};
 
 
 /* --------------------------------------------------------------------------- */
-
-  in {};
 
 in {
 
