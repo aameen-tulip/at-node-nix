@@ -130,7 +130,7 @@
       { name = unpacked'.meta.pjs.name; path = unpacked'.outPath; }
     ] );
     bindir = if lib.libpkginfo.pkgJsonHasBin unpacked'.meta.pjs then
-      builtins.storePath "${linked}/.bin" else null;
+      "${linked}/.bin" else null;
     module = if bindir != null then linked else linkAsNodeModule' {
       unpacked = unpacked';
     };
