@@ -41,7 +41,7 @@
       "preinstall"
       "install"
       "postinstall"
-      "prepublish"
+      "prepublish"    # has `devDependencies' available
       "preprepare"
       "prepare"
       "postprepare"
@@ -58,6 +58,10 @@
       "postprepare"
     ];
     pack = ["prepack" "prepare" "postpack"];
+    # XXX: `publish' doesn't run `prepublish' ... because "reasons".
+    # No but seriously it doesn't.
+    # NPM says it's about legacy support or something but from where I'm
+    # standing this seems like madness.
     publish = [
       "prepublishOnly"
       "prepack"

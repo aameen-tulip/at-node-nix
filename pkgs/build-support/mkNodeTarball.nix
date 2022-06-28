@@ -160,7 +160,7 @@
       }
     ] );
     bindir = if lib.libpkginfo.pkgJsonHasBin unpacked'.meta.pjs then
-      builtins.storePath "${linked}/bin" else null;
+      "${linked}/bin" else null;
     global = if bindir != null then linked else linkAsNodeModule' {
       unpacked = unpacked';
     };
@@ -296,7 +296,6 @@
       }; } );
     };
   in lib.fix fPassthru;
-
 
 
 /* -------------------------------------------------------------------------- */
