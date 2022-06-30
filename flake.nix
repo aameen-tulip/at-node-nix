@@ -146,7 +146,7 @@
     in {
 
       pacotecli = pacotecli system;
-      inherit linkModules snapderivation;
+      inherit linkModules snapDerivation;
 
       inherit (_mkNodeTarball)
         packNodeTarballAsIs
