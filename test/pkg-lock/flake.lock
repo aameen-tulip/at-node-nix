@@ -2,6 +2,7 @@
   "nodes": {
     "ak-nix": {
       "inputs": {
+        "gitignore": "gitignore",
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -10,17 +11,39 @@
         ]
       },
       "locked": {
-        "lastModified": 1656053178,
-        "narHash": "sha256-uuaIYNWooeQpZvOohXMJIFHr2bBB0lgqmYYRX+qf9wA=",
+        "lastModified": 1656555624,
+        "narHash": "sha256-d3mW3NJIjxkt2ic8KQqhcBsWLOTOkHJGwL0Y+cHlAYI=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "929fa33100b1a23a76c0e917d0ee83cfeb8b81b2",
+        "rev": "0e4ec72639e11d1b5b12644f6a453171489507ff",
         "type": "github"
       },
       "original": {
         "owner": "aakropotkin",
         "ref": "main",
         "repo": "ak-nix",
+        "type": "github"
+      }
+    },
+    "gitignore": {
+      "inputs": {
+        "nixpkgs": [
+          "ak-nix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1646480205,
+        "narHash": "sha256-kekOlTlu45vuK2L9nq8iVN17V3sB0WWPqTTW3a2SQG0=",
+        "owner": "hercules-ci",
+        "repo": "gitignore.nix",
+        "rev": "bff2832ec341cf30acb3a4d3e2e7f1f7b590116a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "ref": "master",
+        "repo": "gitignore.nix",
         "type": "github"
       }
     },
