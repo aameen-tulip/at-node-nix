@@ -53,7 +53,7 @@
 
   _fetcher = import ./build-support/fetcher.nix {
     inherit lib;
-    inherit (pkgs) fetchurl fetchgit fetchFromGithub fetchzip;
+    inherit (pkgs) fetchurl fetchgit fetchzip;
   };
 
   _plock2nm = import ./build-support/plock-to-node-modules-dir.nix {

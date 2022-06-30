@@ -70,16 +70,17 @@
 
       inherit ( import ./pkgs/build-support/fetcher.nix {
         inherit (final) lib;
-        inherit (pkgsFor) fetchurl fetchgit fetchFromGithub fetchzip;
+        inherit (pkgsFor) fetchurl fetchgit fetchzip;
       } )
         per2fetchArgs
         typeOfEntry
       ;
 
-      inherit ( import ./build-support/plock-to-node-modules-dir.nix {
+      inherit ( import ./pkgs/build-support/plock-to-node-modules-dir.nix {
         inherit (final) lib linkModules mkNodeTarball;
         fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
       } )
+        plockEntryFetchUnpack
         plock2nmFocus
         plock2nm
       ;
@@ -97,6 +98,11 @@
         inherit (pkgsFor) writeText;
         inherit (final) lib;
         enableTraces = false;
+      };
+
+      snapDerivation = import ./pkgs/make-derivation-simple.nix {
+        inherit (pkgsFor) bash coreutils;
+        inherit (final.stdenv) system;
       };
 
     };
@@ -117,9 +123,13 @@
         inherit (nixpkgs.legacyPackages.${system})
           fetchurl
           fetchgit
-          fetchFromGithub
           fetchzip
         ;
+      };
+
+      snapDerivation = import ./pkgs/make-derivation-simple.nix {
+        inherit (nixpkgs.legacyPackages.${system}) bash coreutils;
+        inherit system;
       };
 
       linkModules = { modules ? [] }:
@@ -154,6 +164,7 @@
       ;
 
       inherit (_plock2nm)
+        plockEntryFetchUnpack
         plock2nmFocus
         plock2nm
       ;

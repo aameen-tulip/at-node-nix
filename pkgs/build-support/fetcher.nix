@@ -1,7 +1,6 @@
 { lib
 , fetchurl
 , fetchgit
-#, fetchFromGithub
 , fetchzip
 , impure ? ( builtins ? currentTime )
 }: let
@@ -143,7 +142,7 @@
     #       replaced with a "/".
     bfg = { url = "${protocol}://${host}/${owner}/${repo}#${rev}"; };
     bfr = bfg // { type = "git"; };
-    prefetch = if ( ! impure ) then {} else fetchTree bfr;
+    prefetched = if ( ! impure ) then {} else fetchTree bfr;
     # You'll still need a SHA here, Nixpkgs won't use the `rev'.
     # I tried fooling with encoding/decoding the `rev' - which "in theory" is
     # related to the repo's checksum; but there's no clear mapping - the
@@ -153,7 +152,7 @@
     nfg = {
       inherit rev;
       url = "${protocol}://${host}/${owner}/${repo}";
-      sha256 = prefetch.narHash;
+      sha256 = prefetched.narHash;
     };
     flake = bfr // { flake = false; };
     impureArgs = {
@@ -214,7 +213,7 @@
   pke2fetchArgs = cwd: key: entry: let
     type = typeOfEntry entry;
     cwda = if cwd == null then {} else cwd;
-  in if type == "symlink" then pel2fetchArgs cdwa entry                   else
+  in if type == "symlink" then pel2fetchArgs cwda entry                   else
      if type == "path"    then pkp2fetchArgs ( { inherit key; } // cwda ) else
      if type == "git"     then peg2fetchArgs entry                        else
      if type == "registry-tarball" then per2fetchArgs entry               else
