@@ -8,6 +8,25 @@
   inherit (lib.libpkginfo) readPkgInfo;
   inherit (builtins) mapAttrs attrValues attrNames filter;
 
+  # FIXME: This needs to get split up.
+  # The processes here are good; but "as is" these routines lack a clear way
+  # to integrate packages that have an `npm (pre|post)install' or build routine.
+  #
+  # Additionally, the handling for the `tarball' output isn't friendly to
+  # flakes or raw source directories.
+  # The `tarball' output could be created from a raw source tree, but it's a bit
+  # redundant since we'll never actually reference it.
+  # Plus you'll want to make a clear distinction about those tarballs to ensure
+  # that they align with the norms of the NPM registry - so ensure that they
+  # don't run an `install' script if they're a Git or local tree.
+  #
+  # In any case, as stated above, this file isn't set up very well to build
+  # anyway, because there isn't a clear way for anyone to pass in dependencies,
+  # and we aren't going to fetch them here.
+  #
+  # "As is" these routines are perfect for processing NPM registry tarballs
+  # which lack an `npm install' routine.
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -88,7 +107,9 @@
 
   binEntries = to: unpacked:
     assert lib.libpkginfo.pkgJsonHasBin unpacked.meta.pjs;
-    assert builtins.pathExists "${unpacked}/package.json"; let
+    # XXX: this assertion was causing IFD.
+    #assert builtins.pathExists "${unpacked}/package.json"; let
+    let
       entries = lib.mapAttrsToList ( n: p: {
         name = "${to}/${n}"; path = "${unpacked}/${p}";
       } ) unpacked.meta.pjs.bin;
@@ -129,7 +150,7 @@
     linked = linkFarm name ( ( binEntries ".bin" unpacked' ) ++ [
       { name = unpacked'.meta.pjs.name; path = unpacked'.outPath; }
     ] );
-    bindir = if lib.libpkginfo.pkgJsonHasBin unpacked'.meta.pjs then
+    bindir = if lib.libpkginfo.pkgJsonHasBin ( unpacked.meta.pjs or unpacked'.meta.pjs ) then
       "${linked}/.bin" else null;
     module = if bindir != null then linked else linkAsNodeModule' {
       unpacked = unpacked';
