@@ -254,7 +254,9 @@
       tarFlagsLate = ["--strip-components=1"];
     } ) );
 
-    toPathStr = x: if builtins.isAttrs x then toString x else lib.coercePath x;
+    toPathStr = x:
+      if builtins.isAttrs x then toString x else
+      if ( lib.isStorePath x ) then x else lib.coercePath x;
 
     mkBin = to: let
       ftPair = n: p: {
