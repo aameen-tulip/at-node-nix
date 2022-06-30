@@ -22,7 +22,6 @@
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
   } else {};
-in rec {
   # This prevents these attributes from being overrideable.
   # We explicitly want to avoid things like `pkgsCross' and other
   # `stdenv' modifiers from triggering cache misses on these derivations.
@@ -40,6 +39,7 @@ in rec {
   shell = "${bash}/bin/bash";
   path  = "${coreutils}/bin";
   inherit system;
+
   mkDerivation = args: derivation ( {
     inherit system;
     builder = shell;
@@ -56,4 +56,5 @@ in rec {
   } // caArgs
     // ( removeAttrs args ["builder" "meta"] ) )
     // { meta = args.meta or {}; };
-}
+
+in mkDerivation
