@@ -38,7 +38,13 @@
     ( import ./development/node-packages/pacote { inherit pkgs; } ).package;
 
   inherit ( import ./tools/floco/pacote.nix { inherit pkgs pacote; } )
-    pacotecli;
+    pacotecli
+  ;
+
+  buildGyp = import ./build-support/buildGyp.nix {
+    inherit lib linkModules;
+    inherit (pkgs) stdenv;
+  };
 
   _mkNodeTarball = import ./build-support/mkNodeTarball.nix {
     inherit lib linkToPath untar tar pacotecli;
@@ -70,6 +76,7 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     pacote
     pacotecli
     linkModules
+    buildGyp
   ;
   inherit (trivial)
     runLn

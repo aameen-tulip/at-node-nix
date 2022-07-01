@@ -55,6 +55,11 @@
           lndir = pkgsFor.xorg.lndir;
         } { inherit modules; };
 
+      buildGyp = import ./build-support/buildGyp.nix {
+        inherit (final) lib linkModules;
+        inherit (pkgsFor) stdenv;
+      };
+
       inherit ( import ./pkgs/build-support/mkNodeTarball.nix {
         inherit (pkgsFor) linkFarm linkToPath untar tar;
         inherit (final) lib pacotecli;
@@ -137,6 +142,11 @@
           inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
+
+      buildGyp = import ./build-support/buildGyp.nix {
+        inherit lib linkModules;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv;
+      };
 
       _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
         inherit lib linkModules;
