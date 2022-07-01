@@ -49,7 +49,8 @@
       node-gyp
       python3
     ];
-    buildInputs = lib.optional stdenv.isDarwin xcbuild;
+    buildInputs = ( attrs.buildInputs or [] ) ++
+                  ( lib.optional stdenv.isDarwin xcbuild );
     postUnpack = ''
       ln -s -- ${depsNm} "$sourceRoot/node_modules"
     '';
