@@ -303,6 +303,28 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # This isn't necessarily the perfect place for this function; but it will
+  # check a directory, or attrset associated with a `package.json' or a single
+  # package entry from a `package-lock.json' to see if it has an install script.
+  # It is best to use this with a path or `package-lock.json' entry, since this
+  # will fail to detect `node-gyp' installs with a regular `package.json'.
+  hasInstallScript = x: let
+    pjs      = getPkgJson x;
+    explicit = pjs.hasInstallScript or false;  # for lock entries
+    scripted = ( pjs ? scripts ) && builtins.any ( a: pjs.scripts ? a ) [
+      "preinstall" "install" "postinstall"
+    ];
+    asPath = lib.libpath.coercePath x;
+    isDir = let
+      inherit (lib.libpath) isCoercibleToPath categorizePath;
+    in ( pjs != x ) && ( isCoercibleToPath x ) &&
+       ( ( categorizePath asPath ) == "directory" );
+    hasGyp = isDir && ( builtins.pathExists "${asPath}/binding.gyp" );
+  in explicit || scripted || hasGyp;
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   #inherit canonicalizePkgName unCanonicalizePkgName;
   inherit
@@ -320,6 +342,7 @@ in {
     getPkgJson
     pkgJsonHasBin
     rewriteDescriptors
+    hasInstallScript
   ;
 
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
