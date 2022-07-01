@@ -11,11 +11,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1656555624,
-        "narHash": "sha256-d3mW3NJIjxkt2ic8KQqhcBsWLOTOkHJGwL0Y+cHlAYI=",
+        "lastModified": 1656704513,
+        "narHash": "sha256-GLUjlhMaZBYsTU2+HSs/3EaU539thofQCMDf8j1lNYE=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "0e4ec72639e11d1b5b12644f6a453171489507ff",
+        "rev": "6e9d34dba9d601a463cea00aa8ea90cc94b217f4",
         "type": "github"
       },
       "original": {
