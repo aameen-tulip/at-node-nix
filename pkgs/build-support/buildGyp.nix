@@ -54,7 +54,6 @@
       ln -s -- ${depsNm} "$sourceRoot/node_modules"
     '';
     configurePhase = lib.withHooks "configure" ''
-      ls -l ./node_modules/**/*
       export BUILDTYPE="${buildType}"
       node-gyp ${sf gypFlags} configure ${sf configureFlags}
     '';
@@ -62,8 +61,8 @@
       node-gyp ${sf gypFlags} build ${sf buildFlags}
     '';
     installPhase = lib.withHooks "install" ''
-      cp -pr --reflink=auto "./build/${buildType}" "$out"
-      mv ./build "$build"
+      cp -pr --reflink=auto -- "./build/${buildType}" "$out"
+      mv -- ./build "$build"
     '';
     passthru = { inherit src nodejs dependencies; };
   } // mkDrvAttrs );
