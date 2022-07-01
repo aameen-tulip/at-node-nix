@@ -21,25 +21,24 @@
   , nodejs
   , node-gyp            ? nodejs.pkgs.node-gyp
   , python3
-  , dependencies        ? {}
+  , nodeModules         ? null  # drv to by symlinked as the `node_modules' dir
   , gypFlags            ? ["--ensure" "--nodedir=${untarx nodejs.src}"]
   , configureFlags      ? []
   , buildFlags          ? []
-  , dontLinkNodeModules ? dependencies == {}
+  , dontLinkNodeModules ? nodeModules == null
   , ...
   } @ attrs: let
     mkDrvAttrs = removeAttrs attrs [
       "nodejs"
       "node-gyp"
       "python3"
-      "dependencies"
+      "nodeModules"
       "gypFlags"
       "configureFlags"
       "buildFlags"
       "dontLinkNodeModules"
       "buildType"
     ];
-    depsNm = linkModules { modules = builtins.attrValues dependencies; };
     sf = builtins.concatStringsSep " ";
   in stdenv.mkDerivation ( {
     inherit name src;
@@ -51,10 +50,13 @@
     ];
     buildInputs = ( attrs.buildInputs or [] ) ++
                   ( lib.optional stdenv.isDarwin xcbuild );
-    postUnpack = ''
-      ln -s -- ${depsNm} "$sourceRoot/node_modules"
+    postUnpack = lib.optionalString ( ! dontLinkNodeModules ) ''
+      ln -s -- ${nodeModules} "$sourceRoot/node_modules"
     '';
     configurePhase = lib.withHooks "configure" ''
+      ls
+      ls ./node_modules
+      ls ./node_modules/**/*
       export BUILDTYPE="${buildType}"
       node-gyp ${sf gypFlags} configure ${sf configureFlags}
     '';
@@ -65,7 +67,7 @@
       cp -pr --reflink=auto -- "./build/${buildType}" "$out"
       mv -- ./build "$build"
     '';
-    passthru = { inherit src nodejs dependencies; };
+    passthru = { inherit src nodejs nodeModules; };
   } // mkDrvAttrs );
 
 
