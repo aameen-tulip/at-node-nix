@@ -56,8 +56,8 @@
         } { inherit modules; };
 
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
-        inherit (final) lib linkModules untar;
-        inherit (pkgsFor) stdenv xz xcbuild;
+        inherit (final) lib;
+        inherit (pkgsFor) stdenv xcbuild;
       };
 
       inherit ( import ./pkgs/build-support/mkNodeTarball.nix {
@@ -143,12 +143,9 @@
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
 
-      buildGyp = let
-        pkgsFor = nixpkgs.legacyPackages.${system};
-      in import ./pkgs/build-support/buildGyp.nix {
-        inherit lib linkModules;
-        inherit (pkgsFor) stdenv xz xcbuild;
-        inherit (ak-nix.trivial.${system}) untar;
+      buildGyp = import ./pkgs/build-support/buildGyp.nix {
+        inherit lib;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild;
       };
 
       _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {

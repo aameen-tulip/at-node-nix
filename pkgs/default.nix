@@ -42,8 +42,8 @@
   ;
 
   buildGyp = import ./build-support/buildGyp.nix {
-    inherit lib linkModules untar;
-    inherit (pkgs) stdenv xz xcbuild;
+    inherit lib;
+    inherit (pkgs) stdenv xcbuild;
   };
 
   _mkNodeTarball = import ./build-support/mkNodeTarball.nix {
