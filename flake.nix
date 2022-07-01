@@ -55,7 +55,7 @@
           lndir = pkgsFor.xorg.lndir;
         } { inherit modules; };
 
-      buildGyp = import ./build-support/buildGyp.nix {
+      buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit (final) lib linkModules;
         inherit (pkgsFor) stdenv;
       };
@@ -143,7 +143,7 @@
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
 
-      buildGyp = import ./build-support/buildGyp.nix {
+      buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit lib linkModules;
         inherit (nixpkgs.legacyPackages.${system}) stdenv;
       };
