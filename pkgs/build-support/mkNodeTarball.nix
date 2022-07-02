@@ -141,6 +141,7 @@
 
   # This links `.bin/' "hidden" in the `node_modules' folder.
   linkAsNodeModule = { unpacked, name ? unpacked.name + "-module" }: let
+    inherit (lib.libpkginfo) pkgJsonHasBin;
     withMetaPass = let
       meta = { pjs = readPkgInfo "${unpacked}/package.json"; } //
              ( unpacked.meta or {} );
@@ -150,7 +151,8 @@
     linked = linkFarm name ( ( binEntries ".bin" unpacked' ) ++ [
       { name = unpacked'.meta.pjs.name; path = unpacked'.outPath; }
     ] );
-    bindir = if lib.libpkginfo.pkgJsonHasBin ( unpacked.meta.pjs or unpacked'.meta.pjs ) then
+    bindir =
+      if pkgJsonHasBin ( unpacked.meta.pjs or unpacked'.meta.pjs ) then
       "${linked}/.bin" else null;
     module = if bindir != null then linked else linkAsNodeModule' {
       unpacked = unpacked';

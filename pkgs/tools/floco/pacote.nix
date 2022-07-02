@@ -8,6 +8,9 @@
 
   inherit (builtins) elem concatStringsSep;
 
+
+/* -------------------------------------------------------------------------- */
+
   # cmd ::= resolve | manifest | packument | tarball | extract
   pacotecli = cmd: flags @ { spec, dest ? null, ... }: let
 
@@ -52,11 +55,55 @@
     outputHashMode = if cmd == "extract" then "recursive" else "flat";
     outputHashAlgo = "sha256";
 
-
   } ( setupCache + ''
     ${pacote}/bin/pacote ${concatStringsSep " " pacoteFlags} > ${stdoutTo}
   '' ) ) // { inherit pacote spec pacoteFlags; };
 
-in {
-  inherit pacotecli;
-}
+
+/* -------------------------------------------------------------------------- */
+
+  defaultFallbacks = {
+    dependencies = {};
+    devDependencies = {};
+    peerDependencies = {};
+    optionalDependencies = {};
+    hasInstallScript = false;
+    ## main = "./index.js";
+    ## # NOTE: if `bin' is a filepath, rather than an attrset, you need to move
+    ## # that field to `directories.bin' and probably delete this field.
+    ## bin = {};
+    ## # These are `to-path = "from-path";' for installs.
+    ## directories = {
+    ##   lib      = "lib";
+    ##   bin      = "bin";  # XXX: see note above about `bin'
+    ##   man      = "man";
+    ##   doc      = "doc";
+    ##   test     = "test";
+    ##   examples = "examples";
+    ## };
+  };
+
+  # Fetch a manifest
+  # NOTE: this is basically only useful to generate info for local builds.
+  # If you want this info from a registry package use their endpoint to avoid
+  # "import from derivation" headaches.
+  pacote-manifest = {
+    droppedFields  ? ["dist" "engines" "_signatures" "_from"]
+  , fallbackFields ? defaultFallbacks
+  }: spec: let
+    full = pacotecli "manifest" { inherit spec; };
+    scrubbed = removeAttrs full droppedFields;
+  in fallbackFields // scrubbed;
+
+  # NOTE: you can very easily implement this in pure Nix.
+  # Pacote is just dropping fields from the registry manifest.
+  # NOTE: The registry manifest are `(<scope>/)?<pkg>/<version>', I don't
+  # think you leveraged that previously when writing the `packumenter'.
+  # NOTE: The manifest fills default `scripts.install' fields for packages
+  # with `bindings.gyp', and also has a `gypfile ::= true|false' field which
+  # you could use to determine `hasInstallScript'.
+
+
+/* -------------------------------------------------------------------------- */
+
+in { inherit pacotecli pacote-manifest; }

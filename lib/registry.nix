@@ -1,17 +1,18 @@
 { lib }:
 let
+  inherit (builtins) unsafeDiscardStringContext readFile fetchurl fromJSON;
 
   # Fetch a packument from the registry.
   # String string contexts to ensure that the fetched result doesn't root its
   # hash from any arguments.
   # NOTE: I honestly don't know if it would do this, but I'm not going to dig
   #       through the Nix source code to find out right now.
-  fetchPackument = registryUrl: name:
-    let url = builtins.unsafeDiscardStringContext "${registryUrl}/${name}"; in
-    builtins.readFile ( builtins.fetchurl url );
+  fetchPackument = registryUrl: name: let
+    url = unsafeDiscardStringContext "${registryUrl}/${name}";
+  in readFile ( fetchurl url );
 
   importFetchPackument = registryUrl: name:
-    builtins.fromJSON ( fetchPackument registryUrl name );
+    fromJSON ( fetchPackument registryUrl name );
 
 
 /* -------------------------------------------------------------------------- */
@@ -319,14 +320,107 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-in {
-  inherit fetchPackument importFetchPackument;
-  inherit packumentPkgLatestVersion;
-  inherit getTarInfo getFetchurlTarballArgs;
-  inherit fetchTarInfo fetchFetchurlTarballArgs fetchFetchurlTarballArgsNpm;
-  inherit packumenter extendWithLatestDeps';
-  inherit packumentClosure' packumentClosure;
-  inherit flakeRegistryFromPackuments flakeRegistryFromNpm;
-  inherit flakeInputFromManifestTarball;
+  fetchManifest = registryUrl: name: version: let
+    url = unsafeDiscardStringContext "${registryUrl}/${name}/${version}";
+  in readFile ( fetchurl url );
 
+  importFetchManifest = registryUrl: name: version:
+    fromJSON ( fetchManifest registryUrl name version );
+
+
+/* -------------------------------------------------------------------------- */
+
+  normalizeManifest = manifest: let
+    removes = [
+      "_npmOperationalInternal"
+      "maintainers"
+      "_npmUser"
+      "contributors"
+      "engines"
+      "homepage"
+      "license"
+      "icon"
+      "keywords"
+      "author"
+      "bugs"
+    ];
+      # Subfields
+    removesDist = [  # dist.<ATTR>
+      "signatures"
+      "npm-signature"
+      "unpackedSize"
+      "fileCount"
+    ];
+    dist = removeAttrs ( manifest.dist or {} ) removesDist;
+    san  = ( removeAttrs manifest removes ) // { inherit dist; };
+    # Missing `install' scripts are automatically added by the registry
+    # for projects with `binding.gyp' in the root.
+    hasInstallScript = ( san ? scripts.install )    ||
+                       ( san ? scripts.preinstall ) ||
+                       ( san ? scripts.postinstall );
+    gypfile = san.gypfile or false;
+  in san // { inherit hasInstallScript gypfile; };
+
+
+/* -------------------------------------------------------------------------- */
+
+  importCleanManifest = registryUrl: name: version:
+    normalizeManifest ( importFetchManifest registryUrl name version );
+
+  importManifestNpm = importCleanManifest "https://registry.npmjs.org";
+
+
+/* -------------------------------------------------------------------------- */
+
+  # FIXME: this is kind of dumb, you'd need to run `prepare'.
+  # Fetch an NPM package using `fetchTree'.
+  fetchGitNpm = { name, version }: let
+    mf = importManifestNpm name version;
+    noPx = builtins.replaceStrings ["git+"] [""] mf.repository.url;
+    # `fetchTree' doesn't like it when you pass `rev' as an argument, which
+    # is probably a bug - this works around the issue.
+    rev = if mf ? gitHead then "#${mf.gitHead}" else "";
+  in builtins.fetchTree {
+    inherit (mf.repository) type;
+    url = noPx + rev;
+  };
+
+
+/* ------------------------------------------------------------------------- -*/
+
+in {
+  inherit
+    fetchPackument
+    importFetchPackument
+    packumentPkgLatestVersion
+  ;
+
+  inherit
+    getTarInfo
+    getFetchurlTarballArgs
+    fetchTarInfo
+    fetchFetchurlTarballArgs
+    fetchFetchurlTarballArgsNpm
+  ;
+
+  inherit
+    packumenter
+    extendWithLatestDeps'
+    packumentClosure'
+    packumentClosure;
+
+  inherit
+    flakeRegistryFromPackuments
+    flakeRegistryFromNpm
+    flakeInputFromManifestTarball
+  ;
+
+  inherit
+    fetchManifest
+    importFetchManifest
+    normalizeManifest
+    importCleanManifest
+    importManifestNpm
+    fetchGitNpm
+  ;
 }
