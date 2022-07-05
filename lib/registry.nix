@@ -372,9 +372,9 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  # FIXME: this is kind of dumb, you'd need to run `prepare'.
   # Fetch an NPM package using `fetchTree'.
-  fetchGitNpm = { name, version }: let
+  # FIXME: this is kind of dumb, you'd need to run `prepare'.
+  fetchGitNpm = name: version: let
     mf = importManifestNpm name version;
     noPx = builtins.replaceStrings ["git+"] [""] mf.repository.url;
     # `fetchTree' doesn't like it when you pass `rev' as an argument, which
