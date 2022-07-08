@@ -158,7 +158,8 @@ let
     in foldl' merge {} ( ad xs );
     allDeps = map collectDeps ( attrValues pr.packuments );
     deduped = attrNames ( foldl' ( a: b: a // b ) {} allDeps );
-    pr' = foldl' ( acc: x: builtins.trace "looking up ${x}" ( acc x ) ) pr deduped;
+    pr' =
+      foldl' ( acc: x: builtins.trace "looking up ${x}" ( acc x ) ) pr deduped;
     mark = k: v: v // { _finished = true; };
     marked = let
       updatep = k: v: ( ! ( v ? _finished ) ) || ( ! v._finished );
