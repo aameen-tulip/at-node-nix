@@ -184,6 +184,19 @@ let
     resolveE = { name, value }: realEntry plock name;
   in mapAttrs ( _: map resolveE ) es;
 
+
+/* -------------------------------------------------------------------------- */
+
+  resolveNameVersion = plock: name: version: let
+    ebn = entriesByName' plock;
+    toRealKeyed = x: let
+      red = realEntry plock x.name;
+      key = red.key or x.value.resolved or x.name;
+    in red // { inherit key; };
+    realsK = map toRealKeyed ebn.${name};
+    tgt = builtins.filter ( x: x.version == version ) realsK;
+  in builtins.head tgt;
+
   resolveDepFor = plock: from: name: let
     isSub = k: _: lib.test "${from}/node_modules/.*${name}" k;
     subs = lib.filterAttrs isSub plock.packages;
@@ -308,6 +321,7 @@ in {
     entriesByName'
     entriesByName
     resolveDepFor
+    resolveNameVersion
     depClosureFor
     runtimeClosureFor
   ;
