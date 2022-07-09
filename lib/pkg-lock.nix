@@ -235,6 +235,45 @@ let
 
 /* -------------------------------------------------------------------------- */
 
+  # Returns the package set attr names corresponding to a v2 package lock
+  # entry's dependencies.
+  # The package set attr is of the form "(@<SCOPE>/)?<NAME>/<VERSION>", which
+  # aligns with the "global" style install paths recommended by NPM's
+  # distro package management "best practices".
+  depsToPkgAttrsFor' = ignoreStartPeers: depFields: plock:
+    # `from' is a lockfile path in which case `ident' and `version' may
+    # be excluded.
+    # If `from' is not given, `ident' ( the pjs `.name' field ) and `version'
+    # should be given to resolve `from' in the lock.
+    # You /can/ exclude `version' but it is really not recommended - doing so
+    # will use the top level entry with `name' - this is provided for
+    # convenience but don't expect to get away with it on any lockfile with
+    # multiple versions of a package.
+    { from ? null, ident ? null, version ? null } @ idargs:
+    assert from == null -> ident != null; let
+      topName = let
+        t = getTopLevelEntry ident;
+      in if ( version == null ) || ( t.version == version ) then t else null;
+      findFrom = let
+        res = ( resolveNameVersion plock ident version ).key;
+        tnm = plock.packages."node_modules/${ident}";
+        tp  = if tnm.link or false then tnm.resolved
+                                   else "node_modules/${ident}";
+      in if topName != null then tp else res;
+      from' = idargs.from or findFrom;
+      dc = depClosureFor' ignoreStartPeers depFields plock from';
+      toKey = { key, version, ... } @ attrs: let
+        name = attrs.name or ( lib.yank' ".*node_modules/(.*)" key );
+      in name + "/" + version;
+    in map toKey dc;
+
+  depsToPkgAttrsFor = depsToPkgAttrsFor' true;
+  runtimeDepsToPkgAttrsFor =
+    depsToPkgAttrsFor ["dependencies" "peerDependencies"];
+
+
+/* -------------------------------------------------------------------------- */
+
   # "pkg" must match a key in `<TOP>.packages'.
   #
   # We assume that the top level is a fake package, and we ignore all of those
@@ -327,6 +366,9 @@ in {
     depClosureFor'
     depClosureFor
     runtimeClosureFor
+    depsToPkgAttrsFor'
+    depsToPkgAttrsFor
+    runtimeDepsToPkgAttrsFor
   ;
 }
 
