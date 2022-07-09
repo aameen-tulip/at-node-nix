@@ -209,26 +209,25 @@ let
   in { resolved = path; value = entry; };
 
 
-  depClosureFor = depFields: plock: from: let
+  depClosureFor' = ignoreStartPeers: depFields: plock: from: let
     operator = { key, ... }@attrs: let
       resolve = d:
         let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };
     in map resolve ( map ( x: x.name ) ( depList' depFields attrs ) );
+    startEnt = ( realEntry plock from ) // { key = from; };
+    startEnt' = startEnt // ( lib.optionalAttrs ignoreStartPeers {
+      peerDependencies     = {};
+      peerDependenciesMeta = {};
+    } );
   in genericClosure {
-    startSet = [( ( realEntry plock from ) // { key = from; } )];
+    startSet = [startEnt'];
     inherit operator;
   };
 
+  depClosureFor = depClosureFor' true;
+
   # Slightly faster by only referencing `dependencies' field.
-  runtimeClosureFor = plock: from: let
-    operator = { key, dependencies ? {}, ... }: let
-      resolve = d:
-        let r = resolveDepFor plock key d; in r.value // { key = r.resolved; };
-    in map resolve ( attrNames dependencies );
-  in genericClosure {
-    startSet = [( ( realEntry plock from ) // { key = from; } )];
-    inherit operator;
-  };
+  runtimeClosureFor = depClosureFor ["dependencies" "peerDependencies"];
 
   # bcd = lib.libplock.runtimeClosureFor plock "node_modules/@babel/core"
   # map ( { key, resolved, integrity, hasInstallScript ? false, devDependencies ? {}, ... }: { inherit key resolved integrity; } // ( if hasInstallScript then { inherit hasInstallScript devDependencies; } else {} ) ) bcd
@@ -325,6 +324,7 @@ in {
     entriesByName
     resolveDepFor
     resolveNameVersion
+    depClosureFor'
     depClosureFor
     runtimeClosureFor
   ;
