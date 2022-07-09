@@ -175,14 +175,17 @@ let
     getName = x: let
       m = match ".*node_modules/(.*)" x.name;
     in if m == null then "__DROP__" else head m;
-    grouped = groupBy getName ( lib.attrsToList plock.packages );
+    # Leaving the `dev' field foils our attempts to use `lib.unique' later.
+    packages = builtins.mapAttrs ( _: x: removeAttrs x ["dev"] ) plock.packages;
+    grouped = groupBy getName ( lib.attrsToList packages );
     grouped' = removeAttrs grouped ["__DROP__"];
-  in assert plock.lockfileVersion == 2; grouped';
+  in assert plock.lockfileVersion == 2;
+    builtins.mapAttrs ( _: lib.unique ) grouped';
 
-  entriesByName = plock: name: let
+  entriesByName = plock: let
     es = entriesByName' plock;
     resolveE = { name, value }: realEntry plock name;
-  in mapAttrs ( _: map resolveE ) es;
+  in mapAttrs ( _: vs: lib.unique ( map resolveE vs ) ) es;
 
 
 /* -------------------------------------------------------------------------- */
