@@ -118,7 +118,7 @@
 
   gypOv = final: prev: {
     __meta = ( prev.__meta or {} ) // { checkedGypfiles = true; };
-    "re2/1.17.7"  = prev."re2/1.17.7"  // { gypfile = true; };
+    "re2/1.17.7" = prev."re2/1.17.7"  // { gypfile = true; };
     "libpq/1.8.9" = prev."libpq/1.8.9" // {
       gypfile = true;
       # FIXME: this can't access `pkgs' here.
@@ -197,14 +197,21 @@
                                                         nodeDepDrvs );
     };
 
+    drvName = let
+      san = builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] man.name;
+    in san + "-" + man.version;
+
     gypInstalled = let
-      baseArgs = { inherit src nodeModules nodejs; };
+      baseArgs = {
+        inherit src nodeModules nodejs;
+        name = drvName + "-gyp";
+      };
       manArgs  = man.builderArgs or {};
       darwinArgs = lib.optionalAttrs stdenv.isDarwin { inherit xcbuild; };
     in buildGyp ( baseArgs // manArgs // darwinArgs );
 
     stdInstalled = stdenv.mkDerivation ( {
-      name = "node-pkg";
+      name = drvName + "-inst";
       inherit src;
       nativeBuildInputs = [
         nodejs
