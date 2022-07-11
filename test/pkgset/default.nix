@@ -42,16 +42,7 @@
     ( lib.hasPrefix "https://registry." v.resolved );
 
   fromPlockV2 = plock: let
-      # FIXME: these honestly belong with builders.
-    __meta = {
-      # # All v2 lock-files include a `hasInstallScript' field when one is present
-      # # and a value of `false' is implied when the field is not declared.
-      # checkedInstallScripts = true;
-      # We still need to distinguish between installs that use `node-gyp' and
-      # those with "plain" `[pre|post]install` scripts declared in
-      # `package.json' `scripts' fields.
-      # checkedGypFile = false;
-    };
+    __meta = {};
     # You can probably support v1 locks by tweaking this and the "node_modules/"
     # check in `isRegistryTarball' above.
     regEntries = lib.filterAttrs isRegistryTarball plock.packages;
@@ -195,8 +186,6 @@
     src = sources.${key};
     man = manifest.${key};
 
-    # XXX: FIXME: This is coming up empty... FFS
-    # FIXME: don't refence lock here as global
     deps = runtimeDepsToPkgAttrsFor foo-lock {
       inherit (man) version;
       ident = man.name;
@@ -204,17 +193,10 @@
 
     nodeDepDrvs = lib.filterAttrs ( k: _: builtins.elem k deps ) allMods;
     nodeModules = linkModules {
-      # FIXME: you need resolve name version again...
-      # you need to stick to `plock' more closely because you're converting
-      # to/from package attrs A LOT
-      #modules = let
-      #  toNP = k: v: { name = dirOf k; path = v.outPath + "/" + ( dirOf k ); };
-      #in builtins.attrValues ( builtins.mapAttrs toNP nodeDepDrvs );
       modules = builtins.attrValues ( builtins.mapAttrs ( _: v: v.outPath )
                                                         nodeDepDrvs );
     };
 
-    # FIXME: missing xcbuild
     gypInstalled = let
       baseArgs = { inherit src nodeModules nodejs; };
       manArgs  = man.builderArgs or {};
@@ -254,12 +236,12 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # This is the `node_modules' dir for `foo'.
   nodeModulesDir = linkModules {
     modules = let
       drvs = lib.filterAttrs ( k: v: ! lib.hasPrefix "__" k ) allNodeModules;
     in map ( x: x.outPath ) ( builtins.attrValues drvs );
   };
-
 
 
 /* -------------------------------------------------------------------------- */

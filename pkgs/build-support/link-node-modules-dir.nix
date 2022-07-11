@@ -27,10 +27,11 @@ let
   #'';
 
   link1 = fixup: m: let
-    from = if builtins.isString m then m else m.path;
+    from = if builtins.isString m then m else
+           ( m.path or m.outPath or ( toString m ) );
     to = let
       fromString = if fixup then fixPath m else "$out";
-    in if builtins.isString m then fromString else "$out/${m.name}";
+    in if builtins.isString m then fromString else "$out/${m.name or "."}";
   in ( if fixup then "mkdir -p \"${to}\"\n" else "" ) + ''
     ${lndir}/bin/lndir -silent -ignorelinks ${from} "${to}"
   '';
