@@ -223,7 +223,7 @@
         ln -s -- ${nodeModules} "$sourceRoot/node_modules"
         export PATH="$PATH:$sourceRoot/node_modules/.bin"
       '';
-      buildPhase = lib.withHooks ''
+      buildPhase = lib.withHooks "build" ''
         eval "$( jq '.scripts.preinstall  // \":\"' ./package.json; )"
         eval "$( jq '.scripts.install     // \":\"' ./package.json; )"
         eval "$( jq '.scripts.postinstall // \":\"' ./package.json; )"
