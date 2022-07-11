@@ -160,18 +160,20 @@
   in bins;
 
   mkModule = built: key: let
-    bname = baseNameOf manifest.${key}.name;
-    version = manifest.${key}.version;
+    name = manifest.${key}.name or ( dirOf key );
+    bname = baseNameOf name;
+    version = manifest.${key}.version or ( baseNameOf key );
     lbin = mkBins built key ".bin";
-    nmdir = [{ name = manifest.${key}.name; path = built.${key}.outPath; }];
+    nmdir = [{ inherit name; path = built.${key}.outPath; }];
   in linkFarm "${bname}-${version}-module" ( lbin ++ nmdir );
 
   mkGlobal = built: key: let
-    bname = baseNameOf manifest.${key}.name;
-    version = manifest.${key}.version;
+    name = manifest.${key}.name or ( dirOf key );
+    bname = baseNameOf name;
+    version = manifest.${key}.version or ( baseNameOf key );
     gbin    = mkBins built key "bin";
     gnmdir = [{
-      name = "lib/node_modules/${manifest.${key}.name}";
+      name = "lib/node_modules/${name}";
       path = built.${key}.outPath;
     }];
   in linkFarm "${bname}-${version}" ( gbin ++ gnmdir );
@@ -205,9 +207,11 @@
       # FIXME: you need resolve name version again...
       # you need to stick to `plock' more closely because you're converting
       # to/from package attrs A LOT
-      modules = let
-        toNP = k: v: { name = dirOf k; path = v.outPath + "/" + ( dirOf k ); };
-      in builtins.attrValues ( builtins.mapAttrs toNP nodeDepDrvs );
+      #modules = let
+      #  toNP = k: v: { name = dirOf k; path = v.outPath + "/" + ( dirOf k ); };
+      #in builtins.attrValues ( builtins.mapAttrs toNP nodeDepDrvs );
+      modules = builtins.attrValues ( builtins.mapAttrs ( _: v: v.outPath )
+                                                        nodeDepDrvs );
     };
 
     # FIXME: missing xcbuild
@@ -250,6 +254,16 @@
 
 /* -------------------------------------------------------------------------- */
 
+  nodeModulesDir = linkModules {
+    modules = let
+      drvs = lib.filterAttrs ( k: v: ! lib.hasPrefix "__" k ) allNodeModules;
+    in map ( x: x.outPath ) ( builtins.attrValues drvs );
+  };
+
+
+
+/* -------------------------------------------------------------------------- */
+
 in {
   inherit
     foo-lock
@@ -281,5 +295,9 @@ in {
 
     lib
     linkModules
+    linkFarm
+    buildGyp
+
+    nodeModulesDir
   ;
 }

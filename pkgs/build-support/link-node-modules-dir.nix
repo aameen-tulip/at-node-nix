@@ -26,11 +26,12 @@ let
   #  ${lndir}/bin/lndir -silent -ignorelinks ${m} $out
   #'';
 
-  link1 = m: let
+  link1 = fixup: m: let
     from = if builtins.isString m then m else m.path;
-    to   = if builtins.isString m then fixPath m else "$out/${m.name}";
-  in ''
-    mkdir -p "${to}"
+    to = let
+      fromString = if fixup then fixPath m else "$out";
+    in if builtins.isString m then fromString else "$out/${m.name}";
+  in ( if fixup then "mkdir -p \"${to}\"\n" else "" ) + ''
     ${lndir}/bin/lndir -silent -ignorelinks ${from} "${to}"
   '';
 
@@ -44,9 +45,9 @@ let
   # FIXME: actually do that lol.
 
 
-  linkModules = { modules ? [] }: runCommandNoCC "node_modules" {
+  linkModules = { modules ? [], fixup ? false }: runCommandNoCC "node_modules" {
       preferLocalBuild = true;
       allowSubstitutes = false;
-  } ( "mkdir -p $out\n" + ( strConcatMap link1 modules ) );
+  } ( "mkdir -p $out\n" + ( strConcatMap ( link1 fixup ) modules ) );
 
 in linkModules
