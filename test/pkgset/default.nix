@@ -1,5 +1,5 @@
 { lib      ? import ../../lib { inherit (ak-nix) lib; }
-, ak-nix   ? builtins.getFlake "ak-nix"
+, ak-nix   ? builtins.getFlake "github:aakropotkin/ak-nix"
 
 , nodejs   ? pkgs.nodejs-14_x
 , linkFarm ? pkgs.linkFarm
