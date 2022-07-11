@@ -240,7 +240,7 @@ let
   # The package set attr is of the form "(@<SCOPE>/)?<NAME>/<VERSION>", which
   # aligns with the "global" style install paths recommended by NPM's
   # distro package management "best practices".
-  depsToPkgAttrsFor' = ignoreStartPeers: depFields: plock:
+  depClosureToPkgAttrsFor' = ignoreStartPeers: depFields: plock:
     # `from' is a lockfile path in which case `ident' and `version' may
     # be excluded.
     # If `from' is not given, `ident' ( the pjs `.name' field ) and `version'
@@ -252,7 +252,7 @@ let
     { from ? null, ident ? null, version ? null } @ idargs:
     assert from == null -> ident != null; let
       topName = let
-        t = getTopLevelEntry ident;
+        t = getTopLevelEntry plock ident;
       in if ( version == null ) || ( t.version == version ) then t else null;
       findFrom = let
         res = ( resolveNameVersion plock ident version ).key;
@@ -261,11 +261,53 @@ let
                                    else "node_modules/${ident}";
       in if topName != null then tp else res;
       from' = idargs.from or findFrom;
-      dc = depClosureFor' ignoreStartPeers depFields plock from';
+      dc = let
+        c = depClosureFor' ignoreStartPeers depFields plock from';
+      # Drop the module we're checking from the closure.
+      in builtins.tail c;
       toKey = { key, version, ... } @ attrs: let
-        name = attrs.name or ( lib.yank' ".*node_modules/(.*)" key );
+        name = attrs.name or ( lib.yank ".*node_modules/(.*)" key );
       in name + "/" + version;
     in map toKey dc;
+
+  depClosureToPkgAttrsFor = depClosureToPkgAttrsFor' true;
+  runtimeClosureToPkgAttrsFor =
+    depClosureToPkgAttrsFor ["dependencies" "peerDependencies"];
+
+
+/* -------------------------------------------------------------------------- */
+
+  # Direct Deps + ( maybe peers recursively if `depFields' include "peerDep*" )
+  depsToPkgAttrsFor' = ignoreStartPeers: depFields: plock:
+    { from ? null, ident ? null, version ? null } @ idargs:
+    assert from == null -> ident != null; let
+      topName = let
+        t = getTopLevelEntry plock ident;
+      in if ( version == null ) || ( t.version == version ) then t else null;
+      findFrom = let
+        res = ( resolveNameVersion plock ident version ).key;
+        tnm = plock.packages."node_modules/${ident}";
+        tp  = if tnm.link or false then tnm.resolved
+                                   else "node_modules/${ident}";
+      in if topName != null then tp else res;
+      from' = idargs.from or findFrom;
+      resolve = k: d:
+        let r = resolveDepFor plock k d; in r.value // { key = r.resolved; };
+      peerFields =
+        builtins.filter ( lib.hasPrefix "peerDependencies" ) depFields;
+      directFields =
+        builtins.filter ( f: ! lib.hasPrefix "peerDependencies" f ) depFields;
+      ent = plock.packages.${from'};
+      toKey = { key, version, ... } @ attrs: let
+        name = attrs.name or ( lib.yank ".*node_modules/(.*)" key );
+      in name + "/" + version;
+      directNames = map ( x: x.name ) ( depList' directFields ent );
+      directKeys  = map ( i: toKey ( resolve from' i ) ) directNames;
+      pdc = let
+        pc = depClosureFor' ignoreStartPeers peerFields plock from';
+      # drop the actual module we're checking from the closure list.
+      in builtins.tail pc;
+    in ( map toKey pdc ) ++ directKeys;
 
   depsToPkgAttrsFor = depsToPkgAttrsFor' true;
   runtimeDepsToPkgAttrsFor =
@@ -366,39 +408,11 @@ in {
     depClosureFor'
     depClosureFor
     runtimeClosureFor
+    depClosureToPkgAttrsFor'
+    depClosureToPkgAttrsFor
+    runtimeClosureToPkgAttrsFor
     depsToPkgAttrsFor'
     depsToPkgAttrsFor
     runtimeDepsToPkgAttrsFor
   ;
 }
-
-/**
- * Cannot be read back because it contains store paths.
- *
- * fetcherSerial = drv: {
- *   inherit (drv) name;
- *   value = {
- *     drv = { inherit (drv) outPath drvAttrs drvPath; };
- *     tarball = {
- *       inherit (drv) url;
- *       hash = drv.outputHash;
- *     };
- *     unpacked = builtins.fetchTree ( builtins.storePath drv.outPath );
- *   };
- * }
- *
- *
- * THIS works
- *
- * fetcherSerial = drv: {
- *   inherit (drv) name;
- *   fetchTarballArgs = {
- *     inherit (drv) url;
- *     hash = drv.outputHash;
- *   };
- *   unpacked = {
- *     name = "source";
- *     inherit ( builtins.fetchTree drv.outPath ) narHash;
- *   };
- * }
- */

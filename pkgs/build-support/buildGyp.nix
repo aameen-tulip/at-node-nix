@@ -56,9 +56,7 @@
       nodejs
       node-gyp
       python
-    ];
-    buildInputs = ( attrs.buildInputs or [] ) ++
-                  ( lib.optional stdenv.isDarwin xcbuild );
+    ] ++ ( lib.optional stdenv.isDarwin xcbuild );
     postUnpack = lib.optionalString ( ! dontLinkNodeModules ) ''
       ln -s -- ${nodeModules} "$sourceRoot/node_modules"
     '';
@@ -70,11 +68,11 @@
       node-gyp ${sf gypFlags} build ${sf buildFlags}
     '';
     installPhase = lib.withHooks "install" ''
-      mkdir -p "$build" "$out"
+      mkdir -p "$build"
       cp -pr --reflink=auto -- ./build "$build"
       rm -f -- ./node_modules
       cd "$NIX_BUILD_TOP"
-      mv -- "$sourceRoot" "$out/package"
+      mv -- "$sourceRoot" "$out"
     '';
     passthru = { inherit src nodejs nodeModules; };
   } // mkDrvAttrs );
