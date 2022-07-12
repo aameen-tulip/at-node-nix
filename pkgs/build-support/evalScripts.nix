@@ -1,4 +1,13 @@
-{ lib, stdenv }: let
+{ lib
+, stdenv
+
+# NOTE: You aren't required to pass these, but they serve as fallbacks.
+# I have commented them out to prevent accidental variable shadowing; but it is
+# recommended that you pass them.
+## , nodejs ? null
+## , jq     ? null
+, ...
+} @ globalAttrs: let
 
   # Evaluate the named script fields in a project's `package.json' file.
   # This is analogous to `npm run SCRIPT' or `yarn run SCRIPT'.
@@ -37,8 +46,8 @@
   , nodeModules
   # If you ACTUALLY want to avoid this you can explicitly set to `null' but
   # honestly I never seen a `postInstall' that didn't call `node'.
-  , nodejs
-  , jq
+  , nodejs ? globalAttrs.nodejs or ( throw "You must pass nodejs explicitly" )
+  , jq     ? globalAttrs.jq  or ( throw "You must pass jq explicitly" )
   # Scripts to be run during `builPhase'.
   # These are executed in the order they appear, and may appear multiple times.
   , runScripts ? [
@@ -66,9 +75,7 @@
   in stdenv.mkDerivation ( {
     nativeBuildInputs = ( attrs.nativeBuildInputs or [] ) ++ [jq] ++
                         ( lib.optional ( nodejs != null ) nodejs );
-    postUnpack = let
-      doLink = ! ( man.dontLinkModules or false );
-    in lib.optionalString doLink ''
+    postUnpack = lib.optionalString ( ! dontLinkModules ) ''
       ln -s -- ${nodeModules} "$sourceRoot/node_modules"
       export PATH="$PATH:$sourceRoot/node_modules/.bin"
     '';
@@ -77,7 +84,7 @@
         fallback = lib.optionalString skipMissing "// \":\"";
       in ''eval "$( jq -r '.scripts.${sn} ${fallback}' ./package.json; )"'';
       runAll = builtins.concatStringsSep "\n" ( map runOne runScripts );
-    in lib.withHooks "build";
+    in lib.withHooks "build" runAll;
     installPhase = lib.withHooks "install" ''
       rm -f -- ./node_modules
       cd "$NIX_BUILD_TOP"

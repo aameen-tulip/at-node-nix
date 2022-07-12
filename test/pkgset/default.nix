@@ -12,6 +12,9 @@
 , linkModules    ? import ../../pkgs/build-support/link-node-modules-dir.nix {
     inherit lndir runCommandNoCC;
   }
+, evalScripts ? import ../../pkgs/build-support/evalScripts.nix {
+    inherit lib stdenv nodejs jq;
+  }
 , stdenv   ? pkgs.stdenv
 , jq       ? pkgs.jq
 , xcbuild  ? pkgs.xcbuild
@@ -215,39 +218,44 @@
       darwinArgs = lib.optionalAttrs stdenv.isDarwin { inherit xcbuild; };
     in buildGyp ( baseArgs // manArgs // darwinArgs );
 
-    stdInstalled = stdenv.mkDerivation ( {
+    stdInstalled = evalScripts ( {
       name = drvName + "-inst";
-      inherit src;
-      nativeBuildInputs = [
-        nodejs
-        jq
-      ];
-      postUnpack = let
-        doLink = ! ( man.dontLinkModules or false );
-      in lib.optionalString doLink ''
-        ln -s -- ${nodeModules} "$sourceRoot/node_modules"
-        export PATH="$PATH:$sourceRoot/node_modules/.bin"
-      '';
-      # XXX: Certain `postInstall' scripts might actually need to be
-      # `setupHook's because they sometimes try to poke around the top level
-      # package's `node_modules/' directory to sanity check API compatibility
-      # when version conflicts exist in a node environment.
-      # PERSONALLY - I don't think that they should do this, and I'll point out
-      # that every single package that I have seen do this was accompanied by
-      # a security audit alert by NPM... but I'm calling this "good enough"
-      # until I actually find a package that breaks.
-      buildPhase = lib.withHooks "build" ''
-        eval "$( jq -r '.scripts.preinstall  // ":"' ./package.json; )"
-        eval "$( jq -r '.scripts.install     // ":"' ./package.json; )"
-        eval "$( jq -r '.scripts.postinstall // ":"' ./package.json; )"
-      '';
-      installPhase = lib.withHooks "install" ''
-        rm -f -- ./node_modules
-        cd "$NIX_BUILD_TOP"
-        mv -- "$sourceRoot" "$out"
-      '';
-      passthru = { inherit src nodejs nodeModules; };
+      inherit nodeModules src;
     } // ( man.builderArgs or {} ) );
+
+    ##stdInstalled = stdenv.mkDerivation ( {
+    ##  name = drvName + "-inst";
+    ##  inherit src;
+    ##  nativeBuildInputs = [
+    ##    nodejs
+    ##    jq
+    ##  ];
+    ##  postUnpack = let
+    ##    doLink = ! ( man.dontLinkModules or false );
+    ##  in lib.optionalString doLink ''
+    ##    ln -s -- ${nodeModules} "$sourceRoot/node_modules"
+    ##    export PATH="$PATH:$sourceRoot/node_modules/.bin"
+    ##  '';
+    ##  # XXX: Certain `postInstall' scripts might actually need to be
+    ##  # `setupHook's because they sometimes try to poke around the top level
+    ##  # package's `node_modules/' directory to sanity check API compatibility
+    ##  # when version conflicts exist in a node environment.
+    ##  # PERSONALLY - I don't think that they should do this, and I'll point out
+    ##  # that every single package that I have seen do this was accompanied by
+    ##  # a security audit alert by NPM... but I'm calling this "good enough"
+    ##  # until I actually find a package that breaks.
+    ##  buildPhase = lib.withHooks "build" ''
+    ##    eval "$( jq -r '.scripts.preinstall  // ":"' ./package.json; )"
+    ##    eval "$( jq -r '.scripts.install     // ":"' ./package.json; )"
+    ##    eval "$( jq -r '.scripts.postinstall // ":"' ./package.json; )"
+    ##  '';
+    ##  installPhase = lib.withHooks "install" ''
+    ##    rm -f -- ./node_modules
+    ##    cd "$NIX_BUILD_TOP"
+    ##    mv -- "$sourceRoot" "$out"
+    ##  '';
+    ##  passthru = { inherit src nodejs nodeModules; };
+    ##} // ( man.builderArgs or {} ) );
 
   in if hasGyp    man then gypInstalled else
      if hasNgInst man then stdInstalled else
