@@ -122,7 +122,11 @@
     "re2/1.17.7" = prev."re2/1.17.7"  // { gypfile = true; };
     "libpq/1.8.9" = prev."libpq/1.8.9" // {
       gypfile = true;
-      # FIXME: this can't access `pkgs' here.
+      # FIXME: this can't access `pkgs' here - you need to pass these in
+      # through the overlay somehow.
+      # Remember that you can't allow `builderArgs' to accept an argument
+      # either, it needs to be "flat" data that can be serialized.
+      # you might use an accessor key similar to what you did for node modules.
       builderArgs.buildInputs = [pkgs.postgresql];
     };
   };
