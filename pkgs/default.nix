@@ -68,6 +68,25 @@
     fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
   };
 
+  evalScripts = import ./build-support/evalScripts.nix {
+    inherit lib nodejs;
+    inherit (pkgs) stdenv jq;
+  };
+
+  runInstallScripts = args: let
+    installed = evalScripts ( {
+      runScripts  = ["preinstall" "install" "postinstall"];
+      skipMissing = true;
+    } // args );
+    warnMsg = "WARNING: " +
+              "attempting to run installation scripts on a package which " +
+              "uses `node-gyp' - you likely want to use `buildGyp' instead.";
+    maybeWarn = x:
+      if ( args.gypfile or args.meta.gypfile or false ) then
+        ( builtins.trace warnMsg x ) else x;
+  in maybeWarn installed;
+
+
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
     snapDerivation
@@ -77,6 +96,8 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     pacotecli
     linkModules
     buildGyp
+    evalScripts
+    runInstallScripts
   ;
   inherit (trivial)
     runLn

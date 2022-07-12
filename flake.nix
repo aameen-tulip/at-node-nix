@@ -60,6 +60,24 @@
         inherit (pkgsFor) stdenv xcbuild;
       };
 
+      evalScripts = import ./pkgs/build-support/evalScripts.nix {
+        inherit (final) lib;
+        inherit (pkgsFor) stdenv jq nodejs;
+      };
+
+      runInstallScripts = args: let
+        installed = final.evalScripts ( {
+          runScripts  = ["preinstall" "install" "postinstall"];
+          skipMissing = true;
+        } // args );
+        warnMsg = "WARNING: " +
+         "attempting to run installation scripts on a package which " +
+         "uses `node-gyp' - you likely want to use `buildGyp' instead.";
+        maybeWarn = x:
+          if ( args.gypfile or args.meta.gypfile or false ) then
+            ( builtins.trace warnMsg x ) else x;
+      in maybeWarn installed;
+
       inherit ( import ./pkgs/build-support/mkNodeTarball.nix {
         inherit (pkgsFor) linkFarm linkToPath untar tar;
         inherit (final) lib pacotecli;
@@ -148,6 +166,24 @@
         inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild;
       };
 
+      evalScripts = import ./pkgs/build-support/evalScripts.nix {
+        inherit lib;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv jq nodejs;
+      };
+
+      runInstallScripts = args: let
+        installed = evalScripts ( {
+          runScripts  = ["preinstall" "install" "postinstall"];
+          skipMissing = true;
+        } // args );
+        warnMsg = "WARNING: " +
+         "attempting to run installation scripts on a package which " +
+         "uses `node-gyp' - you likely want to use `buildGyp' instead.";
+        maybeWarn = x:
+          if ( args.gypfile or args.meta.gypfile or false ) then
+            ( builtins.trace warnMsg x ) else x;
+      in maybeWarn installed;
+
       _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
         inherit lib linkModules;
         inherit (_mkNodeTarball) mkNodeTarball;
@@ -156,7 +192,13 @@
     in {
 
       pacotecli = pacotecli system;
-      inherit linkModules snapDerivation buildGyp;
+      inherit
+        linkModules
+        snapDerivation
+        buildGyp
+        evalScripts
+        runInstallScripts
+      ;
 
       inherit (_mkNodeTarball)
         packNodeTarballAsIs
