@@ -316,61 +316,73 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  # "pkg" must match a key in `<TOP>.packages'.
-  #
-  # We assume that the top level is a fake package, and we ignore all of those
-  # fields - the dependency declarations at the top level will already have
-  # been propagated into `packages.<PATH>' members, and we don't implement a
-  # semver parser at time of writing - so the top level info is useless to us.
-  #
-  # NOTE: Packages in `node_modules/' subdirs don't have "name" fields.
-  # This is actually fine because the you can yank that from the field,
-  #   "path/to/foo/node_modules/@bar/quux": { version: "1.0.0", ... }
-  # The closure is going to be found by looking for other keys with the same
-  # prefix as `pkg' + "/node_modules/", and you may also get a few stragglers
-  # at the top level.
-  #
-  # Strategy:
-  #   1. Construct a list of package IDs + versions from `dependencies' lists.
-  #   2. Collect any subdir `node_modules/' matches, and remove those from the
-  #      working list.
-  #   3. Locate remaining packages at top level.
-  #
-  # When packages are "located", keys must include both the package name
-  # and version.
-  # Remember that package resolution is only performed up/down RELATIVE to the
-  # dependant - you cannot "locate" a package that is a subdir of sibling.
-  # In theory you should never need to, assuming NPM's lock did in fact
-  # calculate the ideal tree properly.
-  #
-  # Keep in mind that the goal of this function is ultimately to "remove"
-  # packages unrelated to the closure from the lock-file.
-  # With that in mind, perform operations in an additive manner to a "new" tree;
-  # but when doing so take subtrees "as is" - this simplifies the effort,
-  # because we won't "form a top level closure, and reduce to scoped trees" -
-  # we're already started with ( in theory ) properly scoped trees.
-  #
-  #
-  # An example of this process after executing `npm i --legacy-peer-deps --ignore-scripts'
-  # Jump to a package's subdir to inspect their local `node_modules/' packages.
-  #   comm -23 <( jq -r '.dependencies + .devDependencies|keys[]' ./package.json|sort; ) <( find ./node_modules -type f -name package.json -exec jq -r '.name' {} \; |sort; )
-  # This produce a list of packages that need to be found at the top level.
-  # The top level keys are paths, not names, so you'll need to check the names
-  # of top level members, or traverse into the top level `node_modules/' path
-  # and do the obnoxious trimming on names.
-  # You can honestly probably just do:
-  #   if <TOP>.packages ? node_modules/${dep.name} then ... else
-  #   filterAttrs ( _: v: v.name == dep.name ) <TOP>.packages
-  #
-  # # XXX: we can probably get away with assuming that there's no repeated
-  #        names with conflicting versions at the top level - but this isn't
-  #        safe for a "general purpose" solution.
-  #
-  # NEVERMIND: The lockfile makes the links for us! we can just follow the
-  #   { link = true; resolved = <REL-PATH>; }
-  #
-  workspaceClosureFor = plock: pkg:
-    {};
+  # FIXME: this currently only supports v2 locks.
+  # This is the part that is actually effected by the v2 lock.
+  isRegistryTarball = k: v:
+    ( lib.hasPrefix "node_modules/" k ) &&
+    ( ! ( v.link or false ) ) &&
+    # This really just aims to exclude `git+' protocol resolutions.
+    ( lib.hasPrefix "https://registry." v.resolved );
+
+
+/* -------------------------------------------------------------------------- */
+
+  # FIXME: this currently only supports registry packages.
+  # Adding the other types of resolution isn't "hard", I just haven't done
+  # it yet.
+  # Largely this just means copying/calling other routines that already handle
+  # those types of resolution.
+  fromPlockV2 = plock: let
+    __meta = {};
+    # You can probably support v1 locks by tweaking this and the "node_modules/"
+    # check in `isRegistryTarball' above.
+    regEntries = lib.filterAttrs isRegistryTarball plock.packages;
+    toSrc = { resolved, integrity, version, hasInstallScript ? false, ... }: let
+      ident =
+        lib.yank "https?://registry\\.[^/]+/(.*)/-/.*\\.tgz" resolved;
+    in {
+      inherit version ident;
+      key = "${ident}/${version}";
+      url = resolved;
+      hash = integrity;
+      # FIXME:
+    }; #// ( if hasInstallScript then { inherit hasInstallScript; } else {} );
+    toSrcNV = e: let
+      value = toSrc e;
+    in { name = value.key; inherit value; };
+    srcEntriesList = map toSrcNV ( builtins.attrValues regEntries );
+    srcEntries = builtins.listToAttrs srcEntriesList;
+  in srcEntries // { inherit __meta; };
+
+
+/* -------------------------------------------------------------------------- */
+
+  # FIXME: this currently only supports registry packages.
+  manifestInfoFromPlockV2 = plock: let
+    inherit (lib) filterAttrs;
+    keeps = {
+      name                 = null;
+      version              = null;
+      bin                  = null;
+      # `devDependencies' will not appear in registry dependencies because they
+      # are already "built".
+      dependencies         = null;
+      peerDependencies     = null;
+      peerDependenciesMeta = null;
+      optionalDependencies = null;
+      hasInstallScript     = null;
+    };
+    # Values from second attrset are preserved.
+    filtAttrs = builtins.intersectAttrs keeps;
+    mkEntry = k: pe: let
+      name = pe.name or
+        ( lib.yank "https?://registry\\.[^/]+/(.*)/-/.*\\.tgz" pe.resolved );
+      key = name + "/" + pe.version;
+    in { name  = key; value = { inherit name key; } // ( filtAttrs pe ); };
+    regEntries = lib.filterAttrs isRegistryTarball plock.packages;
+    manEntryList = builtins.attrValues ( builtins.mapAttrs mkEntry regEntries );
+    manEntries = builtins.listToAttrs manEntryList;
+  in manEntries // { __meta.checkedInstallScripts = true; };
 
 
 /* -------------------------------------------------------------------------- */
@@ -378,8 +390,16 @@ let
 in {
 
   # Really just exported for testing.
-  inherit wasResolved depList depKeys depUnkey depUnkeys;
-  inherit depList' depKeys';
+  inherit
+    wasResolved
+    depList
+    depKeys
+    depUnkey
+    depUnkeys
+    isRegistryTarball
+    depList'
+    depKeys'
+  ;
 
 
   # The real lib members.
@@ -414,5 +434,6 @@ in {
     depsToPkgAttrsFor'
     depsToPkgAttrsFor
     runtimeDepsToPkgAttrsFor
+    manifestInfoFromPlockV2
   ;
 }

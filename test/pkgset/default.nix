@@ -28,44 +28,15 @@
 
   inherit (lib.libplock)
     runtimeDepsToPkgAttrsFor
+    manifestInfoFromPlockV2
+    isRegistryTarball
+    fromPlockV2
   ;
 
 
 /* -------------------------------------------------------------------------- */
 
   foo-lock = lib.importJSON ./pkgs/foo/package-lock.json;
-
-/* -------------------------------------------------------------------------- */
-
-  # This is the part that is actually effected by the v2 lock.
-  isRegistryTarball = k: v:
-    ( lib.hasPrefix "node_modules/" k ) &&
-    ( ! ( v.link or false ) ) &&
-    # This really just aims to exclude `git+' protocol resolutions.
-    ( lib.hasPrefix "https://registry." v.resolved );
-
-  fromPlockV2 = plock: let
-    __meta = {};
-    # You can probably support v1 locks by tweaking this and the "node_modules/"
-    # check in `isRegistryTarball' above.
-    regEntries = lib.filterAttrs isRegistryTarball plock.packages;
-    toSrc = { resolved, integrity, version, hasInstallScript ? false, ... }: let
-      ident =
-        lib.yank "https?://registry\\.[^/]+/(.*)/-/.*\\.tgz" resolved;
-    in {
-      inherit version ident;
-      key = "${ident}/${version}";
-      url = resolved;
-      hash = integrity;
-      # FIXME:
-    }; #// ( if hasInstallScript then { inherit hasInstallScript; } else {} );
-    toSrcNV = e: let
-      value = toSrc e;
-    in { name = value.key; inherit value; };
-    srcEntriesList = map toSrcNV ( builtins.attrValues regEntries );
-    srcEntries = builtins.listToAttrs srcEntriesList;
-  in srcEntries // { inherit __meta; };
-
 
 /* -------------------------------------------------------------------------- */
 
@@ -87,34 +58,6 @@
        sourceInfo // { inherit meta; };
     srcEntries = builtins.mapAttrs toSrc registry;
   in srcEntries // { __meta = registry.__meta // { inherit registry; }; };
-
-
-/* -------------------------------------------------------------------------- */
-
-  manifestInfoFromPlockV2 = plock: let
-    keeps = {
-      name                 = null;
-      version              = null;
-      bin                  = null;
-      # `devDependencies' will not appear in registry dependencies because they
-      # are already "built".
-      dependencies         = null;
-      peerDependencies     = null;
-      peerDependenciesMeta = null;
-      optionalDependencies = null;
-      hasInstallScript     = null;
-    };
-    # Values from second attrset are preserved.
-    filtAttrs = builtins.intersectAttrs keeps;
-    mkEntry = k: pe: let
-      name = pe.name or
-        ( lib.yank "https?://registry\\.[^/]+/(.*)/-/.*\\.tgz" pe.resolved );
-      key = name + "/" + pe.version;
-    in { name  = key; value = { inherit name key; } // ( filtAttrs pe ); };
-    regEntries = lib.filterAttrs isRegistryTarball plock.packages;
-    manEntryList = builtins.attrValues ( builtins.mapAttrs mkEntry regEntries );
-    manEntries = builtins.listToAttrs manEntryList;
-  in manEntries // { __meta.checkedInstallScripts = true; };
 
 
 /* -------------------------------------------------------------------------- */
