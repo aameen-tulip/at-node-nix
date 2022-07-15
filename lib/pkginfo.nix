@@ -20,24 +20,22 @@ let
 /* -------------------------------------------------------------------------- */
 
   # Split a `package.json' name field into "scope" ( if any ) and the
-  # package name, yielding a set with the original name, "pname", and scope.
+  # package name, yielding a set with the original name, "bname", and scope.
   # Ex:
-  #   "@foo/bar" ==> { name = "@foo/bar"; pname = "bar"; scope = "foo" }
-  #   "bar" ==> { name = "bar"; pname = "bar"; scope = null }
+  #   "@foo/bar" ==> { name = "@foo/bar"; bname = "bar"; scope = "foo" }
+  #   "bar" ==> { name = "bar"; bname = "bar"; scope = null }
   isPkgJsonName = test "(@[^/@.]+/)?([^/@.]+)";
 
   parsePkgJsonNameField = name: assert ( isPkgJsonName name ); let
-    inherit (builtins) substring length stringLength elemAt head;
-    sname    = lib.splitString "/" name;
-    len      = length sname;
+    inherit (builtins) substring stringLength;
     dropStr1 = str: substring 1 ( stringLength str ) str;
-  in if ( len == 1 ) then { scope = null; pname = name; inherit name; } else
-     if ( len == 2 ) then {
-       inherit name;
-       scope = dropStr1 ( head sname );
-       pname = elemAt sname 1;
-       _type = "";
-     } else throw "Invalid package name: ${name}";
+  in {
+    ident = name;
+    bname = baseNameOf name;
+    scope =
+      if ( substring 0 1 name ) == "@" then dropStr1 ( dirOf name ) else null;
+    _type = "";
+  };
 
 
 /* -------------------------------------------------------------------------- */
@@ -67,67 +65,114 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  # Replace special characters in a Node.js package name to create a name which
-  # is usable as a shell variable or ( unquoted ) Nix attribute name.
-  # Doing this consistently is essential for organizing package sets.
-  # This function may also be used to canonicalize tarball names.
-  # Ex:
-  #   "@foo/bar-baz"          ==> "__at__foo__slash__bar__bar__baz"
-  #   "foo-bar-baz-1.0.0.tgz" ==> "foo__bar__bar__baz__bar__1__dot__0__dot__0__dot__tgz"
-  #canonicalizePkgName =
-  #  builtins.replaceStrings ["@"      "/"         "-"       "."]
-  #                          ["__at__" "__slash__" "__bar__" "__dot__"];
+  node2nixName = { ident ? args.name, version, ... } @ args: let
+    fid = "${builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] ident
+            }-${version}";
+    fsb = ( if args.scope != null then "_at_${args.scope}_slash_" else "" ) +
+          "${args.bname}-${version}";
+  in if ( args ? bname ) && ( args ? scope ) then fsb else fid;
 
-  #unCanonicalizePkgName =
-  #  builtins.replaceStrings ["__at__" "__slash__" "__bar__" "__dot__"]
-  #                          ["@"      "/"         "-"       "."];
-
-
-  # FIXME: use the style `yarn2nix' has.
-  # It uses these for the tarball names as well, just adding `.tgz'
-  #   "@babel-code-frame/code-frame@7.8.3"
-  #     ==> "_babel_code_frame___code_frame_7.8.3"
-  # To create an offline cache ( yarn v1.x style ) they literally use:
-  #   linkfarm "offline" [ { name = "foo"; path = fetchurl {}; } ... ];
-  # This won't work with `yarn' v2, since they use a shorted identifier, but
-  # it's still a useful style for attribute names.
-  #
 
 /* -------------------------------------------------------------------------- */
 
   # NPM's registry does not include `scope' in its tarball names.
   # However, running `npm pack' DOES produce tarballs with the scope as a
-  # a prefix to the name as: "${scope}-${pname}-${version}.tgz".
-  asLocalTarballName = { pname, scope ? null, version }:
-    if scope != null then "${scope}-${pname}-${version}.tgz"
-                     else "${pname}-${version}.tgz";
+  # a prefix to the name as: "${scope}-${bname}-${version}.tgz".
+  asLocalTarballName = { bname, scope ? null, version }:
+    if scope != null then "${scope}-${bname}-${version}.tgz"
+                     else "${bname}-${version}.tgz";
 
-  asNpmRegistryTarballName = { pname, version }: "${pname}-${version}.tgz";
+  asNpmRegistryTarballName = { bname, version }: "${bname}-${version}.tgz";
 
 
 /* -------------------------------------------------------------------------- */
 
-  mkPkgInfo = args@{ name, version, ... }:
-    let inherit ( parsePkgJsonNameField name ) pname scope;
+  mkPkgInfo = { ident ? args.name, version, ... } @ args:
+    let inherit ( parsePkgJsonNameField ident ) bname scope;
     in args // {
-      inherit pname scope;
+      inherit bname scope ident;
       _type = "pkginfo";
 
       localTarballName =
-        asLocalTarballName { inherit pname scope version; };
+        asLocalTarballName { inherit bname scope version; };
       registryTarballName =
-        asNpmRegistryTarballName { inherit pname version; };
+        asNpmRegistryTarballName { inherit bname version; };
 
       scopeDir = if scope != null then "@${scope}/" else "";
-      #canonicalName = canonicalizePkgName name;
+      node2nixName =
+        if scope != null then "_at_${scope}_slash_${bname}-${version}"
+                         else "${bname}-${version}";
     };
 
 
 /* -------------------------------------------------------------------------- */
 
+  allDepFields = [
+    "dependencies"
+    "devDependencies"
+    "optionalDependencies"
+    "peerDependencies"
+  ];
+  depMetaFields = [
+    "bundledDependencies"   # true (all) | false (none) | list of idents
+    "bundleDependencies"    # alternative spelling... because sure why not
+    "peerDependenciesMeta"  # attrs of `<IDENT> = { ... }'
+  ];
+
   allDependencies = x:
     ( x.optionalDependencies or {} ) // ( x.peerDependencies or {} ) //
     ( x.devDependencies      or {} ) // ( x.dependencies     or {} );
+
+/* -------------------------------------------------------------------------- */
+
+  getDepFields = depFields: x:
+    assert builtins.all ( k: builtins.elem k allDepFields ) depFields;
+    builtins.foldl' ( acc: k: acc // ( x.${k} or {} ) ) {} depFields;
+
+
+/* -------------------------------------------------------------------------- */
+
+  normalizedDepFields = depFields: x: let
+    a  = x.dependencies or {};
+    p  = x.peerDependencies or {};
+    d  = x.devDependencies or {};
+    o  = x.optionalDependencies or {};
+    # This accepts two spellings... ffs.
+    b  = x.bundledDependencies or x.bundleDependencies or false;
+    pm = x.peerDependenciesMeta or {};
+    markDeps = k: v: let
+      io = pm.${k}.optional or ( o ? ${k} );
+      ib = if builtins.isBool b then b else builtins.elem k b;
+      ip = p ? ${k};
+      id = d ? ${k};
+      ir = ! ( ip || id );
+      mo = lib.optionalAttrs io { optional = true; };
+      mb = lib.optionalAttrs ib { bundled = true; };
+      mp = lib.optionalAttrs ip { peer = true; };
+      md = lib.optionalAttrs id { dev = true; };
+      mr = lib.optionalAttrs ir { runtime = true; };
+    in { descriptor = v; } // mo // mb // mp // md // mr;
+  in builtins.mapAttrs markDeps ( getDepFields depFields x );
+
+  normalizedDepsAll = normalizedDepFields allDepFields;
+
+
+/* -------------------------------------------------------------------------- */
+
+  getNormalizedDeps = {
+    optional ? false
+  , peer     ? false
+  , dev      ? true
+  }: x: let
+    md = if dev then ["devDependencies"] else [];
+    mo = if optional then ["optionalDependencies"] else [];
+    mp = if peer then ["peerDependencies"] else [];
+    fields = ["dependencies"] ++ md ++ mo ++ mp;
+    norm = normalizedDepFields fields x;
+    fo = v: ! optional -> ! ( v.optional or false );
+    fp = v: ! peer -> ! ( v.peer or false );
+    filt = k: v: ( fo v ) && ( fp v );
+  in lib.filterAttrs filt norm;
 
 
 /* -------------------------------------------------------------------------- */
@@ -259,7 +304,9 @@ let
 
 /* -------------------------------------------------------------------------- */
 
-  pkgJsonHasBin = x: ( getPkgJson x ) ? bin;
+  pkgJsonHasBin = x: let
+    pjs = getPkgJson x;
+  in pjs ? bin || pjs ? directories.bin;
 
 
 /* -------------------------------------------------------------------------- */
@@ -333,7 +380,6 @@ in {
     asLocalTarballName
     asNpmRegistryTarballName
     mkPkgInfo
-    allDependencies
     workspacePackages
     readWorkspacePackages
     importJSON'
@@ -343,6 +389,17 @@ in {
     pkgJsonHasBin
     rewriteDescriptors
     hasInstallScript
+    node2nixName
+  ;
+
+  inherit
+    allDepFields
+    depMetaFields
+    allDependencies
+    getDepFields
+    normalizedDepFields
+    normalizedDepsAll
+    getNormalizedDeps
   ;
 
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
