@@ -11,6 +11,7 @@
 , config  ? { contentAddressedByDefault = false; }
 , ak-nix  ? builtins.getFlake "github:aakropotkin/ak-nix/main"
 , lib     ? import ../lib { inherit (ak-nix) lib; }
+, nodejs  ? pkgs.nodejs-14_x
 , ...
 }: let
   # This is placed outside of scope to prevent overrides.
@@ -86,6 +87,16 @@
         ( builtins.trace warnMsg x ) else x;
   in maybeWarn installed;
 
+  _node-pkg-set = import ./node-pkg-set.nix {
+    inherit lib evalScripts buildGyp nodejs;
+    inherit (pkgs) stdenv jq xcbuild linkFarm;
+    inherit (_fetcher) typeOfEntry;
+    fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
+    doFetch = _fetcher.fetcher {
+      cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
+      preferBuiltins = true;
+    };
+  };
 
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
@@ -130,4 +141,7 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     plock2nmFocus
     plock2nm
   ;
+
+  pkgEntFromPlockV2 = _node-pkg-set;
+
 } )

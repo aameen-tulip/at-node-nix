@@ -39,7 +39,7 @@
     name ? let
       bn = if ( ident != null ) then ( baseNameOf ident ) else "node-pkg";
       v  = if ( version != null ) then "-" + v else "";
-    in bn + "-inst-" + v
+    in bn + "-inst" + v
   , ident   ? src.meta.ident or null    # Just used for the name fallback
   , version ? src.meta.version or null  # Just used for the name fallback
   , src
@@ -50,11 +50,7 @@
   , jq     ? globalAttrs.jq  or ( throw "You must pass jq explicitly" )
   # Scripts to be run during `builPhase'.
   # These are executed in the order they appear, and may appear multiple times.
-  , runScripts ? [
-      "preinstall"
-      "install"
-      "postinstall"
-    ]
+  , runScripts ? ["preinstall" "install" "postinstall"]
   # If a script is not found, is will be skipped unless `skipMissing' is false.
   , skipMissing     ? true
   # Skip linking the `node_modules' directory.

@@ -36,7 +36,7 @@
     name ? let
       bn = if ( ident != null ) then ( baseNameOf ident ) else "node-gyp-pkg";
       v  = if ( version != null ) then "-" + v else "";
-    in bn + "-inst-" + v
+    in bn + "-inst" + v
   , ident   ? src.meta.ident or null    # Just used for the name fallback
   , version ? src.meta.version or null  # Just used for the name fallback
   , src
@@ -88,6 +88,7 @@
     ] ++ ( lib.optional stdenv.isDarwin xcbuild );
     postUnpack = lib.optionalString ( ! dontLinkModules ) ''
       ln -s -- ${nodeModules} "$sourceRoot/node_modules"
+      export PATH="$PATH:$sourceRoot/node_modules/.bin"
     '';
     configurePhase = let
       runPreInst =
