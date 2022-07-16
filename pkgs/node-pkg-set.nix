@@ -1,4 +1,9 @@
 { lib
+, doFetch      # A configured `fetcher' from `./build-support/fetcher.nix'.
+, typeOfEntry
+, fetchurl    ? lib.fetchurlDrv
+, buildGyp
+, evalScripts
 }: let
 
 /* -------------------------------------------------------------------------- */
@@ -133,6 +138,7 @@
         src       = "${final.names.bname}-source-${prev.version}";
         built     = "${final.names.bname}-built-${prev.version}";
         installed = "${final.names.bname}-inst-${prev.version}";
+        prepared  = "${final.names.bname}-prep-${prev.version}";
         module    = "${final.names.bname}-module-${prev.version}";
         global    = "${final.names.bname}-${prev.version}";
       } // ( if final.scoped then { scope = dirOf prev.ident; } else {} );
@@ -160,6 +166,87 @@
     } // ( lib.optionalAttrs hasBin { inherit (pl2ent) bin; } );
 
     basics = { inherit key ident version meta; };
+
+    entType = typeOfEntry pl2ent;
+
+    tarball = let
+      url  = pl2ent.resolved;
+      hash = pl2ent.integrity;
+    in if entType != "registry-tarball" then null else fetchurl {
+      name = meta.names.registryTarball;
+      inherit hash url;
+      unpack = false;
+    };
+
+    source = doFetch pl2ent;
+
+    # FIXME: pass in the whole package set somewhere so we can create the
+    # the `passthru' members `nodeModulesDir[-dev]'.
+
+    # Assumed to be a git checkout or local tree.
+    # These do not run the `install' or `prepare' routines, since those are
+    # supposed to run after `install'.
+    built = final: if ! final.hasBuild then null else evalScripts {
+      name = meta.names.built;
+      src = source;
+      inherit (final.passthru) nodejs;
+      # Both `dependencies' and `devDependencies' are available for this step.
+      # NOTE: `devDependencies' are NOT available during the `install'/`prepare'
+      # builder and you should consider how this effects both closures and
+      # any "non-standard" fixups you do a package.
+      nodeModules = final.passthru.nodeModulesDir-dev;
+      runScripts = [
+        # These aren't supported by NPM, but they are supported by Pacote.
+        # Realistically, you want them because of Yarn.
+        "prebuild" "build" "postbuild"
+        # NOTE: I know, "prepublish" I know.
+        # It is fucking evil, but you probably already knew that.
+        # `prepublish' actually isn't run for publishing or `git' checkouts
+        # which aim to mimick the creation of a published tarball.
+        # It only exists for backwards compatibility to support a handful of
+        # ancient registry tarballs.
+      ] ++ ( lib.optional ( entType != "git" ) "prepublish" );
+    };
+
+    # FIXME
+    installed = if ! hasInstallScript then null else final: let
+      # Runs `gyp' and may run `[pre|post]install' if they're defined.
+      # You may need to add meta hints to hooks to account for neanderthals that
+      # hide the `binding.gyp' file in a subdirectory - because `npmjs.org'
+      # does not detect these and will not contain correct `gypfile' fields in
+      # registry manifests.
+      gyp = buildGyp {
+        name = final.meta.names.installed;
+        src = final.built or final.source;
+        inherit (final.passthru) nodejs;
+        nodeModules = final.passthru.nodeModulesDir;
+      };
+      # Plain old install scripts.
+      std = evalScripts {
+        name = final.meta.names.installed;
+        src = final.built or final.source;
+        inherit (final.passthru) nodejs;
+      };
+      # Add node-gyp "just in case" and check dynamically.
+      # This is just to avoid IFD but you should add an overlay with hints
+      # to avoid using this builder.
+      maybeGyp = evalScripts {
+      };
+    in if final.meta.gypfile or false then gyp else std;
+
+    prepared = final: let
+      src = final.installed or final.built or final.source;
+    in if ! final.hasPrepare then src else evalScripts {
+      name = meta.names.prepared;
+      inherit ident version src;
+      nodeModules = final.passthru.nodeModulesDir;
+      runScripts = ["preprepare" "prepare" "postprepare"];
+    };
+
+    bin = null;
+    global = null;
+    module = null;
+    passthru = {};
 
   in basics;
 

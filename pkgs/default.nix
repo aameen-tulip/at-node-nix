@@ -42,8 +42,8 @@
   ;
 
   buildGyp = import ./build-support/buildGyp.nix {
-    inherit lib;
-    inherit (pkgs) stdenv xcbuild;
+    inherit lib nodejs;
+    inherit (pkgs) stdenv xcbuild jq;
   };
 
   _mkNodeTarball = import ./build-support/mkNodeTarball.nix {

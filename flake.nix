@@ -57,7 +57,7 @@
 
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit (final) lib;
-        inherit (pkgsFor) stdenv xcbuild;
+        inherit (pkgsFor) stdenv xcbuild jq nodejs;
       };
 
       evalScripts = import ./pkgs/build-support/evalScripts.nix {
@@ -163,7 +163,7 @@
 
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild jq nodejs;
       };
 
       evalScripts = import ./pkgs/build-support/evalScripts.nix {

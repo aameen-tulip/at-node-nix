@@ -39,7 +39,7 @@
     name ? let
       bn = if ( ident != null ) then ( baseNameOf ident ) else "node-pkg";
       v  = if ( version != null ) then "-" + v else "";
-    in bn + v + "-inst"
+    in bn + "-inst-" + v
   , ident   ? src.meta.ident or null    # Just used for the name fallback
   , version ? src.meta.version or null  # Just used for the name fallback
   , src

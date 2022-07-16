@@ -435,5 +435,6 @@ in {
     depsToPkgAttrsFor
     runtimeDepsToPkgAttrsFor
     manifestInfoFromPlockV2
+    fromPlockV2
   ;
 }

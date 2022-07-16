@@ -41,7 +41,7 @@
       "preinstall"
       "install"
       "postinstall"
-      "prepublish"    # has `devDependencies' available
+      "prepublish"    # has `devDependencies' available. This is legacy nonsense
       "preprepare"
       "prepare"
       "postprepare"

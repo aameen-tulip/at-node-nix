@@ -4,8 +4,8 @@
 , nodejs   ? pkgs.nodejs-14_x
 , linkFarm ? pkgs.linkFarm
 , buildGyp ? import ../../pkgs/build-support/buildGyp.nix {
-    inherit lib;
-    inherit (pkgs) stdenv xcbuild;
+    inherit lib nodejs;
+    inherit (pkgs) stdenv xcbuild jq;
   }
 , lndir          ? pkgs.xorg.lndir
 , runCommandNoCC ? pkgs.runCommandNoCC
@@ -154,7 +154,7 @@
 
     gypInstalled = let
       baseArgs = {
-        inherit src nodeModules nodejs;
+        inherit src nodeModules;
         name = drvName + "-gyp";
       };
       manArgs  = man.builderArgs or {};

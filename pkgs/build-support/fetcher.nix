@@ -96,11 +96,11 @@
 /* -------------------------------------------------------------------------- */
 
   # Pacote/NPM check for the following scripts for Git checkouts:
-  #   scripts.postinstall
   #   scripts.build
   #   scripts.preinstall
   #   scripts.install
-  #   scripts.prepack
+  #   scripts.postinstall
+  #   scripts.prepack     NOTE: I'm getting conflicting info on this. Maybe difference in NPM versions?
   #   scripts.prepare
   # If any are defined, `npm install' is run to get dependencies, then
   # `pacote' passes the checked out directory to `dirFetcher', to `dirFetcher'
@@ -268,7 +268,7 @@
   , gitFetcher      ? null
   , linkFetcher     ? null
   , dirFetcher      ? null
-  }@cfgArgs: let
+  } @ cfgArgs: let
     defaults = defaultFetchers preferBuiltins preferFetchTree;
     config = {
       inherit cwd;
