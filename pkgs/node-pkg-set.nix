@@ -334,8 +334,8 @@
         stdenv  # ( for `isDarwin` )
         xcbuild # ( Darwin only )
         nodejs
-        # nodeModulesDir
-        # nodeModulesDir-dev
+        # nodeModulesDir      ( Must be added by "parent" package set )
+        # nodeModulesDir-dev  ( Must be added by "parent" package set )
       ;
     };
 
@@ -370,6 +370,8 @@
     devKeys = lib.libplock.depsToPkgAttrsFor [
       "devDependencies" "peerDependencies"
     ] plock;
+
+    # Create a rudimentary extensible entry for each package lock entry.
     extEnts = let
       toKEnt = pkey: { key, ident, version, meta, ... } @ value: {
         name = key;
@@ -383,10 +385,15 @@
           };
         };
       };
-
       kents = let inherit (builtins) listToAttrs mapAttrs attrValues; in
         listToAttrs ( attrValues ( mapAttrs toKEnt pl2ents ) );
 
+      # Add the full closure of `devDependency' keys to entries.
+      # The basic entry only lists direct `devDependency' keys at this point.
+      # This could technically be done earlier in the basic entry, but waiting
+      # until all of the runtime closure key lists are populated makes this a
+      # bit less ugly since we can just inherit them for the direct
+      # `devDependency' list to create the dev closure.
       withIndirectDevDepKeys = let
         getDepKeys = dkey: kents.${dkey}.meta.runtimeDepKeys;
         extendDevKeys = _: { meta, ... } @ prev: let
@@ -397,6 +404,12 @@
       in builtins.mapAttrs extendDevKeys kents;
     in mkExtInfo {} withIndirectDevDepKeys;
 
+    # Now that the runtime and dev dependency key lists are populated, we can
+    # create `node_modules/' derivations from those lists yanking modules from
+    # the package set.
+    # These derivations need to remain as unevaluated "thunks" until the
+    # `prepareOv' is actually applied, because the builders are still functions
+    # waiting to be passed the `final' ( "self" ) object to be realised.
     injectNodeModulesDirsOv = final: prev: let
       injectDepsFor = key: plent: let
         nodeModulesDir = linkModules {
@@ -417,7 +430,16 @@
       entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) prev;
     in builtins.mapAttrs injectDepsFor entries;
 
-    # Now we can actually evaluate the builds.
+    withNodeModulesDirs = extEnts.__extend injectNodeModulesDirsOv;
+
+    # Now we can actually evaluate ( realise ) the builds.
+    # We pass the `final' form of each package entry to the builders, allowing
+    # the fixed point to perform toposorting "magically" for us.
+    # It is still possible to override the builders after this point; but you
+    # will want to remember to override the `passthru' to keep them aligned with
+    # the real entries.
+    # TODO: `passthru' should be created as a final overlay to avoid
+    # ugly/tedious overrides like this.
     prepareOv = final: prev: let
       prepareFor = key: plent: let
         built' = if ! ( plent ? built ) then {} else {
@@ -443,8 +465,7 @@
       entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) prev;
     in builtins.mapAttrs prepareFor entries;
 
-    withNodeModulesDirs = extEnts.__extend injectNodeModulesDirsOv;
-
+    # We're ready to roll y'all!
   in withNodeModulesDirs.__extend prepareOv;
 
 
