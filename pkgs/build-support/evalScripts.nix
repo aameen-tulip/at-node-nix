@@ -55,6 +55,7 @@
   , skipMissing     ? true
   # Skip linking the `node_modules' directory.
   , dontLinkModules ? false
+  , ...
   } @ attrs: let
     mkDrvArgs = removeAttrs attrs [
       "ident"

@@ -88,7 +88,7 @@
   in maybeWarn installed;
 
   _node-pkg-set = import ./node-pkg-set.nix {
-    inherit lib evalScripts buildGyp nodejs;
+    inherit lib evalScripts buildGyp nodejs linkModules;
     inherit (pkgs) stdenv jq xcbuild linkFarm;
     inherit (_fetcher) typeOfEntry;
     fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
@@ -142,6 +142,9 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     plock2nm
   ;
 
-  pkgEntFromPlockV2 = _node-pkg-set;
+  inherit (_node-pkg-set)
+    pkgEntFromPlockV2
+    pkgSetFromPlockV2
+  ;
 
 } )

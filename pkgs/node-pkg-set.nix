@@ -1,9 +1,10 @@
 { lib
-, doFetch      # A configured `fetcher' from `./build-support/fetcher.nix'.
 , typeOfEntry
+, doFetch      # A configured `fetcher' from `./build-support/fetcher.nix'.
 , fetchurl    ? lib.fetchurlDrv
 , buildGyp
 , evalScripts
+, linkModules
 , linkFarm
 , stdenv
 , xcbuild
@@ -94,12 +95,12 @@
   # such as `toJSON' - it is recommended that you replace the default
   # implementation for this functor in most cases.
   mkExtInfo = { serialFn ? serialDefault }: info: let
-    functorOv = final: prev: {
-      __serial  = serialFn final;
-      __entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) final;
+    info' = self: info // {
+      __serial  = serialFn self;
+      __entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) self;
     };
-    infoExt = lib.makeExtensibleWithCustomName "__extend" ( self: info );
-  in infoExt.__extend functorOv;
+    infoExt = lib.makeExtensibleWithCustomName "__extend" info';
+  in infoExt;
 
 
 /* -------------------------------------------------------------------------- */
@@ -169,7 +170,7 @@
   , hasInstallScript ? false
   , hasBin ? ( pl2ent.bin or {} ) != {}
   , ident  ? pl2ent.name or
-             lib.libstr.yank' ".*node_modules/((@[^@/]+/)?[^@/]+)" pkey
+             ( lib.libstr.yank' ".*node_modules/((@[^@/]+/)?[^@/]+)" pkey )
   , ...
   } @ pl2ent: let
 
@@ -202,7 +203,7 @@
     # Assumed to be a git checkout or local tree.
     # These do not run the `install' or `prepare' routines, since those are
     # supposed to run after `install'.
-    built = final: if ! final.meta.hasBuild then null else evalScripts {
+    built = self: if ! self.meta.hasBuild then null else evalScripts {
       name = meta.names.built;
       src = source;
       inherit version nodejs jq;
@@ -210,7 +211,7 @@
       # NOTE: `devDependencies' are NOT available during the `install'/`prepare'
       # builder and you should consider how this effects both closures and
       # any "non-standard" fixups you do a package.
-      nodeModules = final.passthru.nodeModulesDir-dev;
+      nodeModules = self.passthru.nodeModulesDir-dev;
       runScripts = [
         # These aren't supported by NPM, but they are supported by Pacote.
         # Realistically, you want them because of Yarn.
@@ -224,24 +225,24 @@
       ] ++ ( lib.optional ( entType != "git" ) "prepublish" );
     };
 
-    installed = if ! hasInstallScript then null else final: let
+    installed = if ! hasInstallScript then null else self: let
       # Runs `gyp' and may run `[pre|post]install' if they're defined.
       # You may need to add meta hints to hooks to account for neanderthals that
       # hide the `binding.gyp' file in a subdirectory - because `npmjs.org'
       # does not detect these and will not contain correct `gypfile' fields in
       # registry manifests.
       gyp = buildGyp {
-        name = final.meta.names.installed;
-        src = final.built or final.source;
+        name = self.meta.names.installed;
+        src = self.built or self.source;
         inherit version nodejs jq xcbuild stdenv;
-        nodeModules = final.passthru.nodeModulesDir;
+        nodeModules = self.passthru.nodeModulesDir;
       };
       # Plain old install scripts.
       std = evalScripts {
-        name = final.meta.names.installed;
-        src = final.built or final.source;
+        name = self.meta.names.installed;
+        src = self.built or self.source;
         inherit version nodejs jq;
-        nodeModules = final.passthru.nodeModulesDir;
+        nodeModules = self.passthru.nodeModulesDir;
       };
       # Add node-gyp "just in case" and check dynamically.
       # This is just to avoid IFD but you should add an overlay with hints
@@ -251,12 +252,13 @@
           fallback = "// \":\"";
         in ''eval "$( jq -r '.scripts.${sn} ${fallback}' ./package.json; )"'';
       in evalScripts {
-        name = final.meta.names.installed;
-        src = final.built or final.source;
+        name = self.meta.names.installed;
+        src = self.built or self.source;
         inherit version nodejs jq;
-        nodeModules = final.passthru.nodeModulesDir;
+        nodeModules = self.passthru.nodeModulesDir;
         # `nodejs' and `jq' are added by `evalScripts'
         nativeBuildInputs = [
+          nodejs.pkgs.node-gyp
           nodejs.python
         ] ++ ( lib.optional stdenv.isDarwin xcbuild );
         buildType = "Release";
@@ -264,7 +266,6 @@
           hasInstJqCmd = "'.scripts.install // false'";
         in lib.withHooks "configure" ''
           node-gyp() { command node-gyp --ensure --nodedir="$nodejs" "$@"; }
-          export node-gyp
           if test -z "''${isGyp+y}" && test -r ./binding.gyp; then
             isGyp=:
             if test "$( jq -r ${hasInstJqCmd} ./package.json; )" != false; then
@@ -285,41 +286,41 @@
           ${runOne "preinstall"}
         '';
       };
-      gypfileKnown = if final.meta.gypfile then gyp else std;
-    in if final ? meta.gypfile then gypfileKnown else maybeGyp;
+      gypfileKnown = if self.meta.gypfile then gyp else std;
+    in if self ? meta.gypfile then gypfileKnown else maybeGyp;
 
-    prepared = final: let
-      src = final.installed or final.built or final.source;
+    prepared = self: let
+      src = self.installed or self.built or self.source;
       prep = evalScripts {
       name = meta.names.prepared;
       inherit version src nodejs jq;
-      nodeModules = final.passthru.nodeModulesDir;
+      nodeModules = self.passthru.nodeModulesDir;
       runScripts = ["preprepare" "prepare" "postprepare"];
     };
-    in if ! ( final.hasPrepare or false ) then src else prep;
+    in if ! ( self.hasPrepare or false ) then src else prep;
 
-    mkBins = to: final: let
+    mkBins = to: self: let
       ftPair = n: p: {
         name = if to != null then "${to}/${n}" else n;
-        path = "${final.prepared}/${p}";
+        path = "${self.prepared}/${p}";
       };
       binList = lib.mapAttrsToList ftPair pl2ent.bin;
     in if ! hasBin then null else binList;
 
     bin = if ! hasBin then null else
-      final: linkFarm meta.names.bin ( mkBins null final );
+      self: linkFarm meta.names.bin ( mkBins null self );
 
-    global = final: let
-      bindir = if hasBin then ( mkBins "bin" final ) else [];
+    global = self: let
+      bindir = if hasBin then ( mkBins "bin" self ) else [];
       gnmdir  = [{
         name = "lib/node_modules/${ident}";
-        path = final.prepared.outPath;
+        path = self.prepared.outPath;
       }];
     in linkFarm meta.names.global ( gnmdir ++ bindir );
 
-    module = final: let
-      bindir = if hasBin then ( mkBins ".bin" final ) else [];
-      lnmdir  = [{ name = ident; path = final.prepared.outPath; }];
+    module = self: let
+      bindir = if hasBin then ( mkBins ".bin" self ) else [];
+      lnmdir  = [{ name = ident; path = self.prepared.outPath; }];
     in linkFarm meta.names.module ( lnmdir ++ bindir );
 
     passthru = {
@@ -343,33 +344,108 @@
              ( lib.optionalAttrs ( tarball != null ) { inherit tarball; } );
     in mkExtInfo {} ents;
 
-    # FIXME: do resolution here.
+    # XXX: These builders have not been "invoked", they are thunks which
+    # must be called with `final' in a later overlay after
+    # `nodeModulesDir[-dev]' fields have been added.
+    # We cannot do this now because we need the full package set to populate
+    # those field after resolution has been performed and derivations can be
+    # created/toposorted.
     buildersOv = final: prev: let
       # Optional drvs
-      # XXX: This causes infinite recursion.
-      # You need to actually assing this, and at least for registry pkgs you
-      # know that it doesn't need to build.
-      mbuilt = lib.optionalAttrs prev.meta.hasBuild ( built final );
-      minst  = lib.optionalAttrs ( installed != null ) ( installed final );
-      mbin   = lib.optionalAttrs ( bin != null ) ( bin final );
-      # Passthru
-      mpbuilt = lib.optionalAttrs ( final ? built ) { inherit (final) built; };
-      mpbin   = lib.optionalAttrs ( final ? bin ) { inherit (final) bin; };
-      mpinst =
-        lib.optionalAttrs ( final ? installed ) { inherit (final) installed; };
-    in {
-      prepared = prepared final;
-      module   = module final;
-      global   = global final;
-      passthru = ( mpbuilt // mpbin // mpinst ) // {
-        #nodeModules-dev = { /* FIXME */ };
-        #nodeModules     = { /* FIXME */ };
-        inherit (final) prepared module global;
-      } // prev.passthru;
-    } // mbuilt // minst // mbin;
+      mbuilt = lib.optionalAttrs prev.meta.hasBuild { inherit built; };
+      minst  = lib.optionalAttrs ( installed != null ) { inherit installed; };
+      mbin   = lib.optionalAttrs ( bin != null ) { inherit bin; };
+    in { inherit prepared module global; } // mbuilt // minst // mbin;
 
   in basics.__extend buildersOv;
 
+
+/* -------------------------------------------------------------------------- */
+
+  pkgSetFromPlockV2 = plock: let
+    pl2ents = builtins.mapAttrs pkgEntFromPlockV2 plock.packages;
+    runtimeKeys = lib.libplock.runtimeClosureToPkgAttrsFor plock;
+    # These are direct dev deps.
+    # Additional keys are inherited in the overlay below.
+    devKeys = lib.libplock.depsToPkgAttrsFor [
+      "devDependencies" "peerDependencies"
+    ] plock;
+    extEnts = let
+      toKEnt = pkey: { key, ident, version, meta, ... } @ value: {
+        name = key;
+        value = value // {
+          meta = let
+            keyArgs = { from = pkey; inherit ident version; };
+          in meta // {
+            runtimeDepKeys = runtimeKeys keyArgs;
+            devDepKeys =
+              lib.optionals ( meta.hasBuild or false ) ( devKeys keyArgs );
+          };
+        };
+      };
+
+      kents = let inherit (builtins) listToAttrs mapAttrs attrValues; in
+        listToAttrs ( attrValues ( mapAttrs toKEnt pl2ents ) );
+
+      withIndirectDevDepKeys = let
+        getDepKeys = dkey: kents.${dkey}.meta.runtimeDepKeys;
+        extendDevKeys = _: { meta, ... } @ prev: let
+          indirects = map getDepKeys meta.devDepKeys;
+          all = meta.runtimeDepKeys ++ meta.devDepKeys ++
+                ( builtins.concatLists indirects );
+        in prev // { meta = meta // { devDepKeys = lib.unique all; }; };
+      in builtins.mapAttrs extendDevKeys kents;
+    in mkExtInfo {} withIndirectDevDepKeys;
+
+    injectNodeModulesDirsOv = final: prev: let
+      injectDepsFor = key: plent: let
+        nodeModulesDir = linkModules {
+          modules = let depKeys = plent.meta.runtimeDepKeys;
+          in map ( k: final.${k}.module.outPath ) depKeys;
+        };
+        nodeModulesDir-dev = linkModules {
+          modules = let depKeys = plent.meta.devDepKeys;
+          in map ( k: final.${k}.module.outPath ) depKeys;
+        };
+        mdd = lib.optionalAttrs ( plent.meta.hasBuild or false ) {
+          inherit nodeModulesDir-dev;
+        };
+      in plent // {
+        passthru = { inherit nodeModulesDir; } // mdd // plent.passthru;
+      };
+      # XXX: We cannot use `prev.__entries' inside of an overlay.
+      entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) prev;
+    in builtins.mapAttrs injectDepsFor entries;
+
+    # Now we can actually evaluate the builds.
+    prepareOv = final: prev: let
+      prepareFor = key: plent: let
+        built' = if ! ( plent ? built ) then {} else {
+          built = plent.built plent;
+        };
+        install' = if ! ( plent ? installed ) then {} else {
+          installed = plent.installed final.${key};
+        };
+        bin' = if ! ( plent ? bin ) then {} else {
+          bin = plent.bin final.${key};
+        };
+        prepared = plent.prepared final.${key};
+        global = plent.global final.${key};
+        module = plent.module final.${key};
+
+        mandatory = { inherit prepared global module; };
+        maybes = install' // built' // bin';
+
+        passthru = plent.passthru // mandatory // maybes;
+
+      in plent // { inherit passthru; } // mandatory // maybes;
+      # XXX: We cannot use `prev.__entries' inside of an overlay.
+      entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) prev;
+    in builtins.mapAttrs prepareFor entries;
+
+    withNodeModulesDirs = extEnts.__extend injectNodeModulesDirsOv;
+
+  in withNodeModulesDirs.__extend prepareOv;
 
 
 /* -------------------------------------------------------------------------- */
@@ -387,7 +463,12 @@
 
 # FIXME: This is only exposed right now for testing.
 # This file is only partially complete.
-in pkgEntFromPlockV2
+in {
+  inherit
+    pkgEntFromPlockV2
+    pkgSetFromPlockV2
+  ;
+}
 
 
 /* -------------------------------------------------------------------------- */
