@@ -152,25 +152,43 @@
 
 /* -------------------------------------------------------------------------- */
 
-  # Merge two extensible info attrsets by recursively merging/updating members.
-  # This will attempt to compose `__extend' routines both at the top level and
-  # in sub-attrsets.
-  mergeExtInfo = f: g: let
-    inherit (builtins) isAttrs intersectAttrs mapAttrs isFunction;
-    mergeAttr = k: gv: let
-      ext = let
-        gOvA = prev: gv.__unfix__ or ( final: gv );
-        gOvF = if isFunction ( gv {} ) then gv else ( final: gv );
-        gOv  = if isAttrs gv then gOvA else gOvF;
-      in if gv ? __extend then mergeExtInfo f.${k} gv else
-         f.${k}.__extend gOv;
-      reg = if ( isAttrs gv ) && ( f ? ${k} )
-            then lib.recursiveUpdate f.${k} gv
-            else gv;
-      isExt = ( isFunction gv ) || ( f ? ${k}.__extend );
-    in if isExt then ext else reg;
-    ext = mapAttrs mergeAttr ( intersectAttrs f g );
-  in f.__extend ext;
+  ### FIXME
+  ### Merge two extensible info attrsets by recursively merging/updating members.
+  ### Both attrsets must be extensible.
+  ### This will attempt to compose `__extend' routines both at the top level and
+  ### in sub-attrsets.
+  ##mergeExtInfo = f: g: let
+  ##  inherit (builtins) isAttrs intersectAttrs mapAttrs isFunction;
+  ##  mergeAttr = k: gv: let
+  ##    ext = let
+  ##      gOvA = final: gv.__unfix__ or ( prev: gv );
+  ##      gOvF = if isFunction ( gv {} ) then gv else ( prev: gv );
+  ##      gOv  = if isAttrs gv then gOvA else gOvF;
+  ##    in if gv ? __extend then mergeExtInfo f.${k} gv else
+  ##       f.${k}.__extend gOv;
+  ##    reg = if ( isAttrs gv ) && ( f ? ${k} )
+  ##          then lib.recursiveUpdate f.${k} gv
+  ##          else gv;
+  ##    isExt = ( isFunction gv ) || ( f ? ${k}.__extend );
+  ##  in if isExt then ext else reg;
+  ##  ext = mapAttrs mergeAttr ( intersectAttrs f g );
+  ##in f.__extend ext;
+
+
+/* -------------------------------------------------------------------------- */
+
+  # XXX: Non-recursive
+  updateAttrsE = lattrs: rattrs: let
+    anyExtensible  = ( lattrs ? __extend ) || ( rattrs ? __extend );
+    bothExtensible = ( lattrs ? __extend ) && ( rattrs ? __extend );
+    extL = lattrs.__extend ( final: prev: rattrs );
+    extR = rattrs.__extend ( final: prev:
+      lib.filterAttrs ( k: _: ! prev ? ${k} ) lattrs
+    );
+    fromSingleExt = if ( lattrs ? __extend ) then extL else extR;
+    fromBothExt = lattrs.__extend ( final: prev: rattrs.__entries );
+    mergeExtensibles = if bothExtensible then fromBothExt else fromSingleExt;
+  in if anyExtensible then mergeExtensibles else ( lattrs // rattrs );
 
 
 /* -------------------------------------------------------------------------- */
@@ -197,7 +215,7 @@
       __type = "ext:meta";
     };
     addNames = final: prev: {
-      scoped = ( builtins.substring 0 1 prev.ident ) != "@";
+      scoped = ( builtins.substring 0 1 prev.ident ) == "@";
       names = {
         __serial = false;
         bname = baseNameOf prev.ident;
@@ -225,6 +243,6 @@
 
 in {
   inherit serialAsIs serialIgnore serialDrop serialDefault;
-  inherit mkExtInfo mergeExtInfo;
+  inherit mkExtInfo /* mergeExtInfo */ updateAttrsE;
   inherit metaCore;
 }

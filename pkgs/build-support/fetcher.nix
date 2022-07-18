@@ -212,7 +212,7 @@
 
   pke2fetchArgs = cwd: key: entry: let
     type = typeOfEntry entry;
-    cwda = if cwd == null then {} else cwd;
+    cwda = if cwd == null then {} else { inherit cwd; };
   in if type == "symlink" then pel2fetchArgs cwda entry                   else
      if type == "path"    then pkp2fetchArgs ( { inherit key; } // cwda ) else
      if type == "git"     then peg2fetchArgs entry                        else
@@ -277,17 +277,17 @@
       linkFetcher = cfgArgs.linkFetcher or defaults.linkFetcher;
       dirFetcher  = cfgArgs.dirFetcher  or defaults.dirFetcher;
     };
-    doFetch = { cfg }: key: entry: let
+    doFetch = self: key: entry: let
       type = typeOfEntry entry;
-      fetchArgs = pke2fetchArgs cfg.cwd key entry;
+      fetchArgs = pke2fetchArgs self.cwd key entry;
       fetchFn =
-      if type == "symlink"          then cfg.linkFetcher else
-      if type == "path"             then cfg.dirFetcher  else
-      if type == "git"              then cfg.gitFetcher  else
-      if type == "registry-tarball" then cfg.urlFetcher  else
+      if type == "symlink"          then self.linkFetcher else
+      if type == "path"             then self.dirFetcher  else
+      if type == "git"              then self.gitFetcher  else
+      if type == "registry-tarball" then self.urlFetcher  else
       throw "Unrecognized entry type for: ${entry}";
     in fetchFn fetchArgs;
-  in lib.makeOverridable doFetch { cfg = config; };
+  in config // { __functor = self: doFetch self; };
 
 
 /* -------------------------------------------------------------------------- */

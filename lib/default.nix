@@ -55,6 +55,7 @@
 
     inherit (final.libmeta)
       serialDefault
+      updateAttrsE
       mkExtInfo
       metaCore
     ;

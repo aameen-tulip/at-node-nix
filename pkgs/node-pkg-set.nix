@@ -65,7 +65,7 @@
   # v2 package locks normalize most fields, so for example, `bin' will always
   # be an attrset of name -> path, even if the original `project.json' wrote
   # `"bin": "./foo"' or `"direcories": { "bin": "./scripts" }'.
-  pkgEntFromPlockV2 = pkey: {
+  pkgEntFromPlockV2 = lockDir: pkey: {
     version
   , hasInstallScript ? false
   , hasBin ? ( pl2ent.bin or {} ) != {}
@@ -78,11 +78,14 @@
     entType  = typeOfEntry pl2ent;
     hasBuild = entType != "registry-tarball";
 
-    meta = ( metaCore { inherit ident version; } ) // {
-      inherit hasInstallScript hasBin hasBuild;
-      entries.__serial = false;
-      entries.pl2 = pl2ent // { inherit pkey; };
-    } // ( lib.optionalAttrs hasBin { inherit (pl2ent) bin; } );
+    meta = let
+      core = metaCore { inherit ident version; };
+      extras = {
+        inherit hasInstallScript hasBin hasBuild;
+        entries.__serial = false;
+        entries.pl2 = pl2ent // { inherit pkey; };
+      } // ( lib.optionalAttrs hasBin { inherit (pl2ent) bin; } );
+    in core.__extend ( final: prev: extras );
 
     tarball = let
       url  = pl2ent.resolved;
@@ -93,9 +96,9 @@
       unpack = false;
     };
 
-    # FIXME: `pkey' is only referenced for local paths, but we need to account
-    # for passing in `cwd' as the dir containing the `package-lock.json'.
-    source = doFetch pkey pl2ent;
+    doFetch' = globalAttrs.doFetch // { cwd = lockDir; };
+
+    source = doFetch' pkey pl2ent;
 
     # Assumed to be a git checkout or local tree.
     # These do not run the `install' or `prepare' routines, since those are
@@ -166,9 +169,9 @@
     in self.passthru.linkFarm meta.names.module ( lnmdir ++ bindir );
 
     passthru = {
+      doFetch = doFetch';
       inherit
         lib
-        doFetch
         fetchurl
         buildGyp
         evalScripts
@@ -197,6 +200,7 @@
     buildersOv = final: prev: let
       # Optional drvs
       mbuilt = lib.optionalAttrs prev.meta.hasBuild { inherit built; };
+      # FIXME: collect `installed.meta.gypfile' in impure mode.
       minst  = lib.optionalAttrs ( installed != null ) { inherit installed; };
       mbin   = lib.optionalAttrs ( bin != null ) { inherit bin; };
     in { inherit prepared module global; } // mbuilt // minst // mbin;
@@ -207,14 +211,21 @@
 /* -------------------------------------------------------------------------- */
 
   # FIXME: allow `nodejs' and other `passthru' members to be passed in.
-  pkgSetFromPlockV2 = plock: let
-    pl2ents = builtins.mapAttrs pkgEntFromPlockV2 plock.packages;
+  # XXX: If you expect any local fetchers to actually work you must
+  # the argument `lockDir' or `lockPath'.
+  pkgSetFromPlockV2 = {
+    plock    ? lib.importJSON' lockPath
+  , lockDir  ? dirOf lockPath
+  , lockPath ? "${lockDir}/package-lock.json"
+  }: let
+    pl2ents = builtins.mapAttrs ( pkgEntFromPlockV2 lockDir ) plock.packages;
     runtimeKeys = lib.libplock.runtimeClosureToPkgAttrsFor plock;
     # These are direct dev deps.
     # Additional keys are inherited in the overlay below.
     devKeys = lib.libplock.depsToPkgAttrsFor [
       "devDependencies" "peerDependencies"
     ] plock;
+
 
     # Create a rudimentary extensible entry for each package lock entry.
     extEnts = let

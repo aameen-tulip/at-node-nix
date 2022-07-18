@@ -68,7 +68,6 @@
       "nativeBuildInputs"  # We extend this
       "passthru"           # We extend this
     ];
-
   in stdenv.mkDerivation ( {
     nativeBuildInputs = ( attrs.nativeBuildInputs or [] ) ++ [jq] ++
                         ( lib.optional ( nodejs != null ) nodejs );
@@ -99,4 +98,4 @@
     # a security audit alert by NPM... but I'm calling this "good enough"
     # until I actually find a package that breaks.
 
-in evalScripts
+in lib.makeOverridable evalScripts
