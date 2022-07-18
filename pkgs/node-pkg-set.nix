@@ -28,7 +28,7 @@
  *   [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
  *   [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
  *   module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
- *   passthru     ( Holds the fields above )
+ *   passthru     ( Holds the fields above + `nodejs', and a few other drvs )
  *   key          ( `[@SCOPE/]NAME/VERSION' )
  *   meta         ( package info yanked from locks, manifets, etc - no drvs! )
  * }
@@ -100,40 +100,45 @@
     # Assumed to be a git checkout or local tree.
     # These do not run the `install' or `prepare' routines, since those are
     # supposed to run after `install'.
-    built = self: if ! ( self.meta.hasBuild or false ) then null else runBuild {
-      name = meta.names.built;
-      src = source;
-      inherit version nodejs jq;
-      # Both `dependencies' and `devDependencies' are available for this step.
-      # NOTE: `devDependencies' are NOT available during the `install'/`prepare'
-      # builder and you should consider how this effects both closures and
-      # any "non-standard" fixups you do a package.
-      nodeModules = self.passthru.nodeModulesDir-dev;
-      # NOTE: I know, "prepublish" I know.
-      # It is fucking evil, but you probably already knew that.
-      # `prepublish' actually isn't run for publishing or `git' checkouts
-      # which aim to mimick the creation of a published tarball.
-      # It only exists for backwards compatibility to support a handful of
-      # ancient registry tarballs.
-      runPrePublish = entType != "git";
-    };
+    built = self: if ! ( self.meta.hasBuild or false ) then null else
+      self.passthru.runBuild {
+        name = meta.names.built;
+        src = source;
+        inherit version;
+        inherit (self.passthru) nodejs jq;
+        # Both `dependencies' and `devDependencies' are available for this step.
+        # NOTE: `devDependencies' are NOT available during the
+        # `install'/`prepare'builder and you should consider how this effects
+        # both closures and any "non-standard" fixups you do a package.
+        nodeModules = self.passthru.nodeModulesDir-dev;
+        # NOTE: I know, "prepublish" I know.
+        # It is fucking evil, but you probably already knew that.
+        # `prepublish' actually isn't run for publishing or `git' checkouts
+        # which aim to mimick the creation of a published tarball.
+        # It only exists for backwards compatibility to support a handful of
+        # ancient registry tarballs.
+        runPrePublish = entType != "git";
+      };
 
-    installed = if ! hasInstallScript then null else self: genericInstall {
-      name = self.meta.names.installed;
-      src = self.built or self.source;
-      nodeModules = self.passthru.nodeModulesDir;
-      inherit version nodejs jq xcbuild stdenv;
-      inherit (self) meta;
-    };
+    installed = if ! hasInstallScript then null else self:
+      self.passthru.genericInstall {
+        name = self.meta.names.installed;
+        src = self.built or self.source;
+        nodeModules = self.passthru.nodeModulesDir;
+        inherit version;
+        inherit (self) meta;
+        inherit (self.passthru) nodejs jq xcbuild stdenv;
+      };
 
     prepared = self: let
       src = self.installed or self.built or self.source;
-      prep = evalScripts {
-      name = meta.names.prepared;
-      inherit version src nodejs jq;
-      nodeModules = self.passthru.nodeModulesDir;
-      runScripts = ["preprepare" "prepare" "postprepare"];
-    };
+      prep = self.passthru.evalScripts {
+        name = meta.names.prepared;
+        inherit version src;
+        nodeModules = self.passthru.nodeModulesDir;
+        runScripts = ["preprepare" "prepare" "postprepare"];
+        inherit (self.passthru) nodejs jq;
+      };
     in if ! ( self.hasPrepare or false ) then src else prep;
 
     mkBins = to: self: let
@@ -145,7 +150,7 @@
     in if ! hasBin then null else binList;
 
     bin = if ! hasBin then null else
-      self: linkFarm meta.names.bin ( mkBins null self );
+      self: self.passthru.linkFarm meta.names.bin ( mkBins null self );
 
     global = self: let
       bindir = if hasBin then ( mkBins "bin" self ) else [];
@@ -153,12 +158,12 @@
         name = "lib/node_modules/${ident}";
         path = self.prepared.outPath;
       }];
-    in linkFarm meta.names.global ( gnmdir ++ bindir );
+    in self.passthru.linkFarm meta.names.global ( gnmdir ++ bindir );
 
     module = self: let
       bindir = if hasBin then ( mkBins ".bin" self ) else [];
       lnmdir  = [{ name = ident; path = self.prepared.outPath; }];
-    in linkFarm meta.names.module ( lnmdir ++ bindir );
+    in self.passthru.linkFarm meta.names.module ( lnmdir ++ bindir );
 
     passthru = {
       inherit
@@ -172,6 +177,7 @@
         stdenv  # ( for `isDarwin` )
         xcbuild # ( Darwin only )
         nodejs
+        jq
         # nodeModulesDir      ( Must be added by "parent" package set )
         # nodeModulesDir-dev  ( Must be added by "parent" package set )
       ;
@@ -200,6 +206,7 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # FIXME: allow `nodejs' and other `passthru' members to be passed in.
   pkgSetFromPlockV2 = plock: let
     pl2ents = builtins.mapAttrs pkgEntFromPlockV2 plock.packages;
     runtimeKeys = lib.libplock.runtimeClosureToPkgAttrsFor plock;
