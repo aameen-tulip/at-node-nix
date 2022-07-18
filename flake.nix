@@ -91,6 +91,29 @@
         mkNodeTarball
       ;
 
+      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
+        inherit (final) lib evalScripts buildGyp nodejs linkModules;
+        inherit (final) runBuild genericInstall;
+        inherit (pkgsFor) stdenv jq xcbuild linkFarm;
+        inherit (final._fetcher) typeOfEntry;
+        fetchurl = final.lib.fetchurlDrv;  # For tarballs without unpacking
+        doFetch = final._fetcher.fetcher {
+          cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
+          preferBuiltins = true;
+        };
+      };
+
+      genericInstall = import ./pkgs/build-support/genericInstall.nix {
+        inherit (final) lib buildGyp evalScripts nodejs;
+        inherit (pkgsFor) stdenv jq xcbuild;
+      };
+
+      runBuild = import ./pkgs/build-support/runBuild.nix {
+        inherit (final) lib evalScripts nodejs;
+        inherit (pkgsFor) stdenv jq;
+      };
+
+
       inherit ( import ./pkgs/build-support/fetcher.nix {
         inherit (final) lib;
         inherit (pkgsFor) fetchurl fetchgit fetchzip;
@@ -161,14 +184,18 @@
           lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
         } { inherit modules; };
 
+      # FIXME: this interface for handling `nodejs' input is hideous
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild jq nodejs;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild jq;
+        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
       };
 
+      # FIXME: this interface for handling `nodejs' input is hideous
       evalScripts = import ./pkgs/build-support/evalScripts.nix {
         inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv jq nodejs;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv jq;
+        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
       };
 
       runInstallScripts = args: let
@@ -184,6 +211,34 @@
             ( builtins.trace warnMsg x ) else x;
       in maybeWarn installed;
 
+      # FIXME: this interface for handling `nodejs' input is hideous
+      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
+        inherit lib evalScripts buildGyp linkModules genericInstall;
+        inherit runBuild;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv jq xcbuild linkFarm;
+        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
+        inherit (_fetcher) typeOfEntry;
+        fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
+        doFetch = _fetcher.fetcher {
+          cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
+          preferBuiltins = true;
+        };
+      };
+
+      # FIXME: this interface for handling `nodejs' input is hideous
+      genericInstall = import ./pkgs/build-support/genericInstall.nix {
+        inherit lib buildGyp evalScripts;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv jq xcbuild;
+        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
+      };
+
+      # FIXME: this interface for handling `nodejs' input is hideous
+      runBuild = import ./pkgs/build-support/runBuild.nix {
+        inherit lib evalScripts;
+        inherit (nixpkgs.legacyPackages.${system}) stdenv jq;
+        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
+      };
+
       _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
         inherit lib linkModules;
         inherit (_mkNodeTarball) mkNodeTarball;
@@ -198,6 +253,14 @@
         buildGyp
         evalScripts
         runInstallScripts
+        genericInstall
+        runBuild
+      ;
+
+      # FIXME: this interface for handling `nodejs' input is hideous
+      inherit (_node-pkg-set)
+        pkgEntFromPlockV2
+        pkgSetFromPlockV2
       ;
 
       inherit (_mkNodeTarball)

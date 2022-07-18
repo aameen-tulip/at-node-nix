@@ -38,6 +38,14 @@
 
 /* -------------------------------------------------------------------------- */
 
+  inherit (lib.libmeta)
+    mkExtInfo
+    metaCore
+  ;
+
+
+/* -------------------------------------------------------------------------- */
+
   entryFromTypes = [
     "package.json"
     "package-lock.json"      # Detect version
@@ -50,116 +58,6 @@
     "manifest"
     "packument"
   ];
-
-
-/* -------------------------------------------------------------------------- */
-
-  serialAsIs   = self: self;
-  serialIgnore = false;
-  serialDrop   = self: "__DROP__";
-
-  serialDefault = self: let
-    keepF = k: v: let
-      inherit (builtins) isAttrs isString typeOf elem;
-      keepType = elem ( typeOf v ) ["set" "string" "bool" "list" "int"];
-      keepAttrs =
-        if v ? __serial then v.__serial != serialIgnore else
-          ( ! lib.isDerivation v );
-      keepStr = ! lib.hasPrefix "/nix/store/" v;
-      keepT =
-        if isAttrs  v then keepAttrs else
-        if isString v then keepStr   else keepType;
-      keepKey = ! lib.hasPrefix "__" k;
-    in keepKey && keepT;
-    keeps = lib.filterAttrs keepF ( removeAttrs self ["__serial" "passthru"] );
-    serializeF = k: v: let
-      fromSerial =
-        if builtins.isFunction v.__serial then v.__serial v else v.__serial;
-      fromAttrs = if v ? __serial then fromSerial else
-                  if v ? __toString then toString v else
-                  serialDefault v;
-    in if builtins.isAttrs v then fromAttrs else v;
-    serialized = builtins.mapAttrs serializeF keeps;
-  in lib.filterAttrs ( _: v: v != "__DROP__" ) serialized;
-
-
-/* -------------------------------------------------------------------------- */
-
-  # Make an extensible attrset with functors `__extend', `__entries', and
-  # `__serial' which are intended to create a common interface for handling
-  # various sorts of package info.
-  # `__extend` allow you to apply overlays to add new fields in a fixed point,
-  # and is identical to the `nixpkgs.lib.extends' "overlay" function.
-  # `__entries' scrubs any "non-entry" fields which is useful for mapping over
-  # "real" entries to avoid processing meta fields.
-  # `__serial' scrubs any entries or fields of those entries which should not
-  # be written to disk in the even that entries are serialized with a function
-  # such as `toJSON' - it is recommended that you replace the default
-  # implementation for this functor in most cases.
-  mkExtInfo = { serialFn ? serialDefault }: info: let
-    info' = self: info // {
-      __serial  = serialFn self;
-      __entries = lib.filterAttrs ( k: _: ! lib.hasPrefix "__" k ) self;
-    };
-    infoExt = lib.makeExtensibleWithCustomName "__extend" info';
-  in infoExt;
-
-
-/* -------------------------------------------------------------------------- */
-
-  mergeExtInfo = f: g: let
-    inherit (builtins) isAttrs intersectAttrs mapAttrs isFunction;
-    mergeAttr = k: gv: let
-      ext = let
-        gOvA = prev: gv.__unfix__ or ( final: gv );
-        gOvF = if isFunction ( gv {} ) then gv else ( final: gv );
-        gOv  = if isAttrs gv then gOvA else gOvF;
-      in if gv ? __extend then mergeExtInfo f.${k} gv else
-         f.${k}.__extend gOv;
-      reg = if ( isAttrs gv ) && ( f ? ${k} )
-            then lib.recursiveUpdate f.${k} gv
-            else gv;
-      isExt = ( isFunction gv ) || ( f ? ${k}.__extend );
-    in if isExt then ext else reg;
-    ext = mapAttrs mergeAttr ( intersectAttrs f g );
-  in f.__extend ext;
-
-
-/* -------------------------------------------------------------------------- */
-
-  metaCore = {
-    key     ? args.ident + "/" + args.version
-  , ident   ? dirOf args.key
-  , version ? baseNameOf args.key
-  } @ args: let
-    em = mkExtInfo {} {
-      inherit key ident version;
-      entries.__serial = false;
-      __type = "ext:meta";
-    };
-    addNames = final: prev: {
-      scoped = ( builtins.substring 0 1 prev.ident ) != "@";
-      names = {
-        __serial = false;
-        bname = baseNameOf prev.ident;
-        node2nix =
-          ( if final.scoped then "_at_${final.names.scope}_slash_" else "" ) +
-          "${final.names.bname}-${prev.version}";
-        registryTarball = "${final.names.bname}-${prev.version}.tgz";
-        localTarball =
-          ( if final.scoped then "${final.names.scope}-" else "" ) +
-          final.names.registryTarball;
-        tarball   = final.names.registryTarball;
-        src       = "${final.names.bname}-source-${prev.version}";
-        built     = "${final.names.bname}-built-${prev.version}";
-        installed = "${final.names.bname}-inst-${prev.version}";
-        prepared  = "${final.names.bname}-prep-${prev.version}";
-        bin       = "${final.names.bname}-bin-${prev.version}";
-        module    = "${final.names.bname}-module-${prev.version}";
-        global    = "${final.names.bname}-${prev.version}";
-      } // ( if final.scoped then { scope = dirOf prev.ident; } else {} );
-    };
-  in em.__extend addNames;
 
 
 /* -------------------------------------------------------------------------- */
