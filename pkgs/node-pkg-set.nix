@@ -173,6 +173,7 @@
       inherit
         lib
         fetchurl
+        runBuild
         buildGyp
         evalScripts
         genericInstall
