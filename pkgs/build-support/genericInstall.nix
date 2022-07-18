@@ -9,10 +9,10 @@
 let
 
   genericInstall = {
-    name
-  , version
+    name        ? meta.names.installed
+  , version     ? meta.version
   , src
-  , nodeModules
+  , nodeModules # Expected to be `nodeModulesDir'
   , meta        ? {}
   # gypfile     # Recommended that you pass this if it is known: true|false.
                 # If unset, we use the `maybeGyp' builder to avoid IFD.

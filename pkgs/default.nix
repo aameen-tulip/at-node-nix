@@ -88,7 +88,7 @@
   in maybeWarn installed;
 
   _node-pkg-set = import ./node-pkg-set.nix {
-    inherit lib evalScripts buildGyp nodejs linkModules genericInstall;
+    inherit lib evalScripts buildGyp nodejs linkModules genericInstall runBuild;
     inherit (pkgs) stdenv jq xcbuild linkFarm;
     inherit (_fetcher) typeOfEntry;
     fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
@@ -103,6 +103,11 @@
     inherit (pkgs) stdenv jq xcbuild;
   };
 
+  runBuild = import ./build-support/runBuild.nix {
+    inherit lib evalScripts nodejs;
+    inherit (pkgs) stdenv jq;
+  };
+
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
   inherit
     snapDerivation
@@ -115,6 +120,7 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     evalScripts
     runInstallScripts
     genericInstall
+    runBuild
   ;
   inherit (trivial)
     runLn

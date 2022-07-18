@@ -5,6 +5,7 @@
 , buildGyp
 , evalScripts
 , genericInstall
+, runBuild
 , linkModules
 , linkFarm
 , stdenv
@@ -198,13 +199,10 @@
     # for passing in `cwd' as the dir containing the `package-lock.json'.
     source = doFetch pkey pl2ent;
 
-    # FIXME: pass in the whole package set somewhere so we can create the
-    # the `passthru' members `nodeModulesDir[-dev]'.
-
     # Assumed to be a git checkout or local tree.
     # These do not run the `install' or `prepare' routines, since those are
     # supposed to run after `install'.
-    built = self: if ! self.meta.hasBuild then null else evalScripts {
+    built = self: if ! ( self.meta.hasBuild or false ) then null else runBuild {
       name = meta.names.built;
       src = source;
       inherit version nodejs jq;
@@ -213,17 +211,13 @@
       # builder and you should consider how this effects both closures and
       # any "non-standard" fixups you do a package.
       nodeModules = self.passthru.nodeModulesDir-dev;
-      runScripts = [
-        # These aren't supported by NPM, but they are supported by Pacote.
-        # Realistically, you want them because of Yarn.
-        "prebuild" "build" "postbuild"
-        # NOTE: I know, "prepublish" I know.
-        # It is fucking evil, but you probably already knew that.
-        # `prepublish' actually isn't run for publishing or `git' checkouts
-        # which aim to mimick the creation of a published tarball.
-        # It only exists for backwards compatibility to support a handful of
-        # ancient registry tarballs.
-      ] ++ ( lib.optional ( entType != "git" ) "prepublish" );
+      # NOTE: I know, "prepublish" I know.
+      # It is fucking evil, but you probably already knew that.
+      # `prepublish' actually isn't run for publishing or `git' checkouts
+      # which aim to mimick the creation of a published tarball.
+      # It only exists for backwards compatibility to support a handful of
+      # ancient registry tarballs.
+      runPrePublish = entType != "git";
     };
 
     installed = if ! hasInstallScript then null else self: genericInstall {
