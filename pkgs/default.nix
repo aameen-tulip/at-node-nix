@@ -88,7 +88,7 @@
   in maybeWarn installed;
 
   _node-pkg-set = import ./node-pkg-set.nix {
-    inherit lib evalScripts buildGyp nodejs linkModules;
+    inherit lib evalScripts buildGyp nodejs linkModules genericInstall;
     inherit (pkgs) stdenv jq xcbuild linkFarm;
     inherit (_fetcher) typeOfEntry;
     fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
@@ -96,6 +96,11 @@
       cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
       preferBuiltins = true;
     };
+  };
+
+  genericInstall = import ./build-support/genericInstall.nix {
+    inherit lib buildGyp evalScripts nodejs;
+    inherit (pkgs) stdenv jq xcbuild;
   };
 
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
@@ -109,6 +114,7 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     buildGyp
     evalScripts
     runInstallScripts
+    genericInstall
   ;
   inherit (trivial)
     runLn

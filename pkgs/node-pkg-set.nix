@@ -4,6 +4,7 @@
 , fetchurl    ? lib.fetchurlDrv
 , buildGyp
 , evalScripts
+, genericInstall
 , linkModules
 , linkFarm
 , stdenv
@@ -225,69 +226,13 @@
       ] ++ ( lib.optional ( entType != "git" ) "prepublish" );
     };
 
-    installed = if ! hasInstallScript then null else self: let
-      # Runs `gyp' and may run `[pre|post]install' if they're defined.
-      # You may need to add meta hints to hooks to account for neanderthals that
-      # hide the `binding.gyp' file in a subdirectory - because `npmjs.org'
-      # does not detect these and will not contain correct `gypfile' fields in
-      # registry manifests.
-      gyp = buildGyp {
-        name = self.meta.names.installed;
-        src = self.built or self.source;
-        inherit version nodejs jq xcbuild stdenv;
-        nodeModules = self.passthru.nodeModulesDir;
-      };
-      # Plain old install scripts.
-      std = evalScripts {
-        name = self.meta.names.installed;
-        src = self.built or self.source;
-        inherit version nodejs jq;
-        nodeModules = self.passthru.nodeModulesDir;
-      };
-      # Add node-gyp "just in case" and check dynamically.
-      # This is just to avoid IFD but you should add an overlay with hints
-      # to avoid using this builder.
-      maybeGyp = let
-        runOne = sn: let
-          fallback = "// \":\"";
-        in ''eval "$( jq -r '.scripts.${sn} ${fallback}' ./package.json; )"'';
-      in evalScripts {
-        name = self.meta.names.installed;
-        src = self.built or self.source;
-        inherit version nodejs jq;
-        nodeModules = self.passthru.nodeModulesDir;
-        # `nodejs' and `jq' are added by `evalScripts'
-        nativeBuildInputs = [
-          nodejs.pkgs.node-gyp
-          nodejs.python
-        ] ++ ( lib.optional stdenv.isDarwin xcbuild );
-        buildType = "Release";
-        configurePhase = let
-          hasInstJqCmd = "'.scripts.install // false'";
-        in lib.withHooks "configure" ''
-          node-gyp() { command node-gyp --ensure --nodedir="$nodejs" "$@"; }
-          if test -z "''${isGyp+y}" && test -r ./binding.gyp; then
-            isGyp=:
-            if test "$( jq -r ${hasInstJqCmd} ./package.json; )" != false; then
-              export BUILDTYPE="$buildType"
-              node-gyp configure
-            fi
-          else
-            isGyp=
-          fi
-        '';
-        buildPhase = lib.withHooks "build" ''
-          ${runOne "preinstall"}
-          if test -n "$isGyp"; then
-            eval "$( jq -r '.scripts.install // \"node-gyp\"' ./package.json; )"
-          else
-            ${runOne "install"}
-          fi
-          ${runOne "preinstall"}
-        '';
-      };
-      gypfileKnown = if self.meta.gypfile then gyp else std;
-    in if self ? meta.gypfile then gypfileKnown else maybeGyp;
+    installed = if ! hasInstallScript then null else self: genericInstall {
+      name = self.meta.names.installed;
+      src = self.built or self.source;
+      nodeModules = self.passthru.nodeModulesDir;
+      inherit version nodejs jq xcbuild stdenv;
+      inherit (self) meta;
+    };
 
     prepared = self: let
       src = self.installed or self.built or self.source;
@@ -330,6 +275,7 @@
         fetchurl
         buildGyp
         evalScripts
+        genericInstall
         linkFarm
         stdenv  # ( for `isDarwin` )
         xcbuild # ( Darwin only )
