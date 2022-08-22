@@ -1,12 +1,69 @@
+# ============================================================================ #
+#
+# The purpose of this flake is to provide you with useful utilities for building
+# Node.js+Nix projects in whatever context or toolkit you choose; while the
+# `pkgSet' interfaces use pure Nix+Bash builders, you should view `pkgSet' and
+# `metaSet' as abstractions which may be used with any setup - you just need to
+# provide the bindings/implementations for their prototypes.
+#
+# This flake provides an overlay which extends `ak-nix' and `nixpkgs' which is
+# the preferred avenue for using these routines.
+#
+# Additional flake outputs expose several utilities through `nodeutils' for more
+# direct access with limited closures.
+# The tradeoff here is that you aren't realistically able to override most
+# functions and derivations "globally", so you might only want to use these in a
+# REPL or a small project.
+# Also keep in mind that I'm not going to go out of my way to make override
+# style argument passing "bullet-proof" with these exposures; doing so is
+# tedious and that's literally what overlays are intended for so use the right
+# tool for the job.
+#
+# The `lib' output contains routines which are not system dependendant and these
+# never reference derivations, so you can freely access them "purely" even when
+# `system' is unknown.
+# In some cases these routines may bottom out into routines which accent
+# derivations or `system' as args so that they can provide common interfaces for
+# various routines ( `libfetch' for example ); but the expressions themselves
+# are not system dependant.
+#
+# Beyond that the `lib' and several `pkgs/' builders were designed for
+# general-purpose use, or use with NPM and Yarn rather than `pkgSet' or
+# `metaSet', while I may not focus too much on documenting those expressions
+# I do advise readers to take a look at them, because they may save you a lot of
+# pain and suffering if you were to try and implement similar routines
+# from scratch.
+#
+# ---------------------------------------------------------------------------- #
+#
+# NOTE: At time of writing I am migrating large bodies of "battle tested"
+# expressions from the branch `nps-scoped' onto `main', as well as some
+# routines which are held in a private repository.
+# As these routines are merged to `main' I intend to take that opportunity to
+# document them and write test cases.
+# If you come across what appears to be a dead end or a missing function, please
+# run a quick search on `nps-scoped' or feel free to send me an email
+# at <alex.ameen.tx@gmail.com> or contact me on Matrix <growpotkin1:matrix.org>.
+#
+# ---------------------------------------------------------------------------- #
+
 {
+
+  description = "Node.js+Nix Package Management Expressions";
+
+# ============================================================================ #
+
   inputs.nix.url = "github:NixOS/nix/master";
   inputs.nix.inputs.nixpkgs.follows = "/nixpkgs";
+
   inputs.utils.url = "github:numtide/flake-utils/master";
   inputs.utils.inputs.nixpkgs.follows = "/nixpkgs";
+
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.ak-nix.inputs.utils.follows = "/utils";
 
+# ============================================================================ #
 
   outputs = { self, nixpkgs, nix, utils, ak-nix }: let
     inherit (builtins) getFlake;

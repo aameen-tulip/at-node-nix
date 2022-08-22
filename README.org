@@ -1,0 +1,63 @@
+#+TITLE: at-node-nix
+#+AUTHOR: Alex Ameen
+#+EMAIL: alex.ameen.tx@gmail.com
+
+Node.js Nix expressions
+
+* About
+The purpose of this flake is to provide you with useful utilities for building
+Node.js+Nix projects in whatever context or toolkit you choose.
+While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSet= and =metaSet= as abstractions which may be used with any setup - you just need to provide the bindings/implementations for their prototypes.
+
+* Interfaces and Tools
+** =ExtInfo=
+A "class-like" attrset made to be extensible into various forms of meta-data entries and collections.
+I would be remiss to simply call these "class-like" ( Caution: I am about to use pretentious FP terms, don't worry if you aren't following[fn:1] ) without highlighting that these are Abstract Data Types[fn:ADT] ( ADTs ) carrying self-referential functors; these are Combinators, not Class-Objects and they are not autognostic and do not represent truly abstract interfaces.
+
+At bottom this is a good old fashioned recursive attrset, with a few functors that take =self= as an arg.
+It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do; but rolled into a single object with complementary usage.
+
+This is the base that =meta(Core|Ent|Set)= and several other constructs are built on.
+The most notable base routines are =__serial= and =__extend=.
+- =__serial=: Serialize objects into representations suitable for =builtins.toJSON= to dump to disk.
+  + This may ( and should ) be customized to suit your use case; but the default serializer is quite useful as is.
+- =__extend=: This is literally just =lib.extends= ( commonly seen as =nixpkgs.extend= or =lib.extend= ) but renamed to avoid clashing with any fields which might use that name.
+  + The uniform "__<FN>" naming scheme also makes it easy to hide functors in order to map over data fields.
+
+** =metaCore= ( also known as =metaEnt= ) and =metaSet=.
+Used to aggregate various types of package metadata into a common collection.
+The purpose of this attrset is to convert =package.json=, =package-lock.json=, =manifest.json=, =blub.json=, or whatever other metadata you've got into a uniform attrs that can later be transformed into derivations or otherwise processed by this code-base's utilities.
+- =metaEntFrom*=: These routines convert metadata focused on a single module/package into =metaEnt=.
+  + =metaEntFromPjs=: Converts =package.json= data to =metaEnt=.
+  + =metaEntFromPlockV2=: Converts a single entry from =package-lock.json= to =metaEnt=.
+  + You are encouraged to add new transformers.
+- =metaEntriesFrom*=: These routines convert metadata a collection of modules/pacakges ( =metaEnt= ) into a group as =metaSet=.
+  + =metaEntriesFromPjs=: Converts =package.json= workspace to =metaSet=.
+  + =metaEntriesFromPlockV2=: Converts a =dependencies=(v1&2)/=packages=(V2&3) =package-lock.json= to =metaSet=.
+  + You are encouraged to add new transformers.
+
+* Flake Outputs
+This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the preferred avenue for using these routines.
+
+** =nodeutils= Output
+Additional flake outputs expose several utilities through =nodeutils= for more direct access with limited closures.
+The tradeoff here is that you aren=t realistically able to override most functions and derivations "globally", so you might only want to use these in a REPL or a small project.
+Also keep in mind that I'm not going to go out of my way to make override style argument passing "bullet-proof" with these exposures; doing so is tedious and that's literally what overlays are intended for so use the right tool for the job.
+
+** =lib= Output
+The =lib= output contains routines which are not system dependendant and these never reference derivations, so you can freely access them "purely" even when =system= is unknown.
+In some cases these routines may bottom out into routines which accent derivations or =system= as args so that they can provide common interfaces for various routines ( =libfetch= for example ); but the expressions themselves are not system dependant.
+
+** Hidden Gems and Miscellaneous Expressions
+Beyond that the =lib= and several ~pkgs/~ builders were designed for general-purpose use, or use with NPM and Yarn rather than =pkgSet= or =metaSet=, while I may not focus too much on documenting those expressions.
+I do advise readers to take a look at them, because they may save you a lot of pain and suffering if you were to try and implement similar routines from scratch.
+
+* Migration Notice
+At time of writing I am migrating large bodies of "battle tested" expressions from the branch =nps-scoped= onto =main=, as well as some routines which are held in a private repository.
+As these routines are merged to =main= I intend to take that opportunity to document them and write test cases.
+
+If you come across what appears to be a dead end or a missing function, please run a quick search on =nps-scoped= or feel free to send me an email at <alex.ameen.tx@gmail.com> or contact me on Matrix <growpotkin1:matrix.org>.
+
+* Footnotes
+[fn:ADT] https://www.cs.utexas.edu/~wcook/Drafts/2009/essay.pdf
+[fn:1] This whole sentence is pedantic and if it confuses you ignore it. I have to include it because if I don't some dweeb is going to file an issue complaining that "ackchuyally these are NOT classes!". If you are reading this because you filed an issue like this, and I directed you to this footnote: William Cook told me to tell you that "You're obnoxious".
