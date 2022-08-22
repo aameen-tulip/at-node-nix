@@ -41,7 +41,7 @@ This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the
 
 ** =nodeutils= Output
 Additional flake outputs expose several utilities through =nodeutils= for more direct access with limited closures.
-The tradeoff here is that you aren=t realistically able to override most functions and derivations "globally", so you might only want to use these in a REPL or a small project.
+The tradeoff here is that you aren't realistically able to override most functions and derivations "globally", so you might only want to use these in a REPL or a small project.
 Also keep in mind that I'm not going to go out of my way to make override style argument passing "bullet-proof" with these exposures; doing so is tedious and that's literally what overlays are intended for so use the right tool for the job.
 
 ** =lib= Output
