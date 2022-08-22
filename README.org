@@ -12,7 +12,7 @@ While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSe
 * Interfaces and Tools
 ** =ExtInfo=
 A "class-like" attrset made to be extensible into various forms of meta-data entries and collections.
-I would be remiss to simply call these "class-like" ( Caution: I am about to use pretentious FP terms, don't worry if you aren't following[fn:1] ) without highlighting that these are Abstract Data Types[fn:ADT] ( ADTs ) carrying self-referential functors; these are Combinators, not Class-Objects and they are not autognostic and do not represent truly abstract interfaces.
+I would be remiss to simply call these "class-like" /( Caution: I am about to use pretentious FP terms[fn:1] )/ without highlighting that these are Abstract Data Types[fn:ADT] ( ADTs ) carrying self-referential functors; these are Combinators, not Class-Objects and they are not autognostic and do not represent truly abstract interfaces.
 
 At bottom this is a good old fashioned recursive attrset, with a few functors that take =self= as an arg.
 It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do; but rolled into a single object with complementary usage.
@@ -60,4 +60,5 @@ If you come across what appears to be a dead end or a missing function, please r
 
 * Footnotes
 [fn:ADT] https://www.cs.utexas.edu/~wcook/Drafts/2009/essay.pdf
+
 [fn:1] This whole sentence is pedantic and if it confuses you ignore it. I have to include it because if I don't some dweeb is going to file an issue complaining that "ackchuyally these are NOT classes!". If you are reading this because you filed an issue like this, and I directed you to this footnote: William Cook told me to tell you that "You're obnoxious".
