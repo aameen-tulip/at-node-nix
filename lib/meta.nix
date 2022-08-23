@@ -325,7 +325,7 @@
 
   # Add metadata related to output names and other misc name info.
   # NOTE: This is also available as a non-recursive "flat" addition below as
-  # `metaEntAddNames' as a slight optimization at the expense of treating names
+  # `metaEntNames' as a slight optimization at the expense of treating names
   # as "static", this also has the advantage of avoiding any accidental
   # recursion headaches with later extensions.
   metaEntExtendWithNames = final: prev: {
