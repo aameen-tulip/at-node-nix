@@ -54,10 +54,17 @@
     ;
 
     inherit (final.libmeta)
+      serialAsIs
       serialDefault
-      updateAttrsE
+      serialIgnore
+      serialDrop
+      extInfoExtras
+      mkExtInfo'
       mkExtInfo
-      metaCore
+      metaEntryFromTypes
+      mkMetaEnt'
+      mkMetaEnt
+      mkMetaSet
     ;
 
   } );

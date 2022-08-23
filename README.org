@@ -17,14 +17,14 @@ I would be remiss to simply call these "class-like" /( Caution: I am about to us
 At bottom this is a good old fashioned recursive attrset, with a few functors that take =self= as an arg.
 It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do; but rolled into a single object with complementary usage.
 
-This is the base that =meta(Core|Ent|Set)= and several other constructs are built on.
+This is the base that =meta(Ent|Set)= and several other constructs are built on.
 The most notable base routines are =__serial= and =__extend=.
 - =__serial=: Serialize objects into representations suitable for =builtins.toJSON= to dump to disk.
   + This may ( and should ) be customized to suit your use case; but the default serializer is quite useful as is.
 - =__extend=: This is literally just =lib.extends= ( commonly seen as =nixpkgs.extend= or =lib.extend= ) but renamed to avoid clashing with any fields which might use that name.
   + The uniform "__<FN>" naming scheme also makes it easy to hide functors in order to map over data fields.
 
-** =metaCore= ( also known as =metaEnt= ) and =metaSet=.
+** =metaEnt= and =metaSet=.
 Used to aggregate various types of package metadata into a common collection.
 The purpose of this attrset is to convert =package.json=, =package-lock.json=, =manifest.json=, =blub.json=, or whatever other metadata you've got into a uniform attrs that can later be transformed into derivations or otherwise processed by this code-base's utilities.
 - =metaEntFrom*=: These routines convert metadata focused on a single module/package into =metaEnt=.
@@ -61,4 +61,4 @@ If you come across what appears to be a dead end or a missing function, please r
 * Footnotes
 [fn:ADT] https://www.cs.utexas.edu/~wcook/Drafts/2009/essay.pdf
 
-[fn:1] This whole sentence is pedantic and if it confuses you ignore it. I have to include it because if I don't some dweeb is going to file an issue complaining that "ackchuyally these are NOT classes!". If you are reading this because you filed an issue like this, and I directed you to this footnote: William Cook told me to tell you that "You're obnoxious".
+[fn:1] This whole sentence is pedantic and if it confuses you ignore it. I have to include it because if I don't some dweeb is going to screech that "ackchuyally these are NOT classes!". If you are reading this because you filed an issue like this, and I directed you to this footnote: William Cook told me to tell you that "You're obnoxious".
