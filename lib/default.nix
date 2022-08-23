@@ -11,6 +11,7 @@
     libplock   = callLibs ./pkg-lock.nix;
     libreg     = callLibs ./registry.nix;
     libmeta    = callLibs ./meta.nix;
+    libtree    = callLibs ./ideal-tree-plockv2.nix;
 
     inherit (final.libparse)
       tryParseIdent
@@ -25,6 +26,8 @@
 
     inherit (final.libpkginfo)
       importJSON'
+      getNpmCpuForPlatform
+      getNpmCpuForSystem
     ;
 
     inherit (final.libstr)
@@ -65,6 +68,10 @@
       mkMetaEnt'
       mkMetaEnt
       mkMetaSet
+    ;
+
+    inherit (final.libtree)
+      idealTreeMetaSetPlockV2
     ;
 
   } );

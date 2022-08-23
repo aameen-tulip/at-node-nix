@@ -1,4 +1,9 @@
+# ---------------------------------------------------------------------------- #
+
 { lib }:
+
+# ---------------------------------------------------------------------------- #
+
 let
 
   inherit (lib) isType setType;
@@ -6,7 +11,7 @@ let
   inherit (lib.libpath) coercePath;
   inherit (lib.libstr) test;
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # This wipes out any C style comments in JSON files that were written by
   # sub-humans that cannot abide by simple file format specifications.
@@ -17,7 +22,7 @@ let
     fromJSON ( lib.libstr.removeSlashSlashComments ( readFile file ) );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Split a `package.json' name field into "scope" ( if any ) and the
   # package name, yielding a set with the original name, "bname", and scope.
@@ -38,7 +43,7 @@ let
   };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # `str' may be either a scoped package name ( package.json name field )
   # or just the "scope part" of a name.
@@ -63,7 +68,7 @@ let
                 };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   node2nixName = { ident ? args.name, version, ... } @ args: let
     fid = "${builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] ident
@@ -73,7 +78,7 @@ let
   in if ( args ? bname ) && ( args ? scope ) then fsb else fid;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # NPM's registry does not include `scope' in its tarball names.
   # However, running `npm pack' DOES produce tarballs with the scope as a
@@ -85,7 +90,7 @@ let
   asNpmRegistryTarballName = { bname, version }: "${bname}-${version}.tgz";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   mkPkgInfo = { ident ? args.name, version, ... } @ args:
     let inherit ( parsePkgJsonNameField ident ) bname scope;
@@ -105,7 +110,7 @@ let
     };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   allDepFields = [
     "dependencies"
@@ -123,14 +128,14 @@ let
     ( x.optionalDependencies or {} ) // ( x.peerDependencies or {} ) //
     ( x.devDependencies      or {} ) // ( x.dependencies     or {} );
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   getDepFields = depFields: x:
     assert builtins.all ( k: builtins.elem k allDepFields ) depFields;
     builtins.foldl' ( acc: k: acc // ( x.${k} or {} ) ) {} depFields;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   normalizedDepFields = depFields: x: let
     a  = x.dependencies or {};
@@ -157,7 +162,7 @@ let
   normalizedDepsAll = normalizedDepFields allDepFields;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   getNormalizedDeps = {
     optional ? false
@@ -175,7 +180,7 @@ let
   in lib.filterAttrs filt norm;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Matches "/foo/*/bar", "/foo/*", "*".
   # But NOT "/foo/\*/bar".
@@ -192,7 +197,7 @@ let
     ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   explicitWorkspaces = workspaces:
     builtins.filter ( p: ! ( hasGlob p ) ) workspaces;
@@ -210,7 +215,7 @@ let
   dirHasPackageJson = p: builtins.pathExists "${coercePath p}/package.json";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   processWorkspacePath = p: let
     reportDir = d:
@@ -232,7 +237,7 @@ let
     workspacePackages ( dirOf pjp ) ( importJSON' pjp );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Given a path-like `p', add `${p}/package.json' if `p' if `p' isn't a path
   # to a `package.json' file already.
@@ -247,7 +252,7 @@ let
     if ( ( baseNameOf p ) == "package.json" ) then s else "${s}/package.json";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   pkgJsonFromPath = p: let
     pjs = pkgJsonForPath p;
@@ -255,7 +260,7 @@ let
     importJSON' pjs;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Like `pkgJsonFromPath', except that if we don't find `package.json'
   # initially, we will check two layers of subdirectories.
@@ -302,14 +307,14 @@ let
      throw "Cannot get package.json from type: ${typeOf x}";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   pkgJsonHasBin = x: let
     pjs = getPkgJson x;
   in pjs ? bin || pjs ? directories.bin;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Replace `package.json' dependency descriptors ( "^1.0.0" ) with new values;
   # presumably paths to the Nix Store or exact versions.
@@ -347,8 +352,7 @@ let
   in assert verifyFields; assert verifyResolves; rewritten;
 
 
-
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # This isn't necessarily the perfect place for this function; but it will
   # check a directory, or attrset associated with a `package.json' or a single
@@ -370,7 +374,58 @@ let
   in explicit || scripted || hasGyp;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
+
+  # These are aimed at handling NPM's `cpu' and `os' fields for optinal deps.
+  # The spec here is:
+  #   If a dependency is marked as optional, the install is allowed to fail
+  #   ( this ain't going to fly with Nix so this is tough to replicate ).
+  #   A `package.json' may indicate the fields `cpu' and `os' to specify the
+  #   systems it is intended to support; from the consumer perspective if a dep
+  #   is marked optional we can assume the install will fail is the `cpu'/`os'
+  #   declarations tell us that our system is unsupported - this allows Nix to
+  #   at least skip these to align with the spec more closely.
+  #
+  # Given that Nix really can't align with the NPM spec here "perfectly" without
+  # performing installs in a sort of `try ... catch' type environment; these
+  # fields are enormously helpful.
+  #
+  # I have constructed this list of CPUs and OSs from those that I have
+  # encountered in the wild; and you may find the need to extend this list.
+  # I encourage you to PR if you find values that I haven't listed here.
+  npmCpus = [
+    "x64"
+    "ia32"
+    "arm"
+    "arm64"
+    "s390x"  # No clue
+    "ppc64"
+    "mips64el"
+  ];
+
+  npmProcessorMap = {
+    x86_64   = "x64";
+    aarch64  = "arm64";
+  };
+
+  npmLookupProc = p: let
+    msg = "Unsupported CPU: ${p}. " +
+          "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
+    np = npmProcessorMap.${p} or throw msg;
+  in lib.checkListOf "NPM CPUs" npmCpus np;
+
+  # Takes a `nixpkgs.(build|host|target)Platform' attrset as an argument.
+  # Returns the NPM CPU enum for that platform.
+  getNpmCpuForPlatform = { uname, ... }: npmLookupProc uname.processor;
+
+  # Takes a Nix system pair and returns the NPM CPU enum for that platform.
+  getNpmCpuForSystem = system:
+    npmLookupProc ( builtins.head ( builtins.split "-" system ) );
+
+  # FIXME: add OS handler. It's basically `plat.parsed.kernel.name'
+
+
+# ---------------------------------------------------------------------------- #
 
 in {
   #inherit canonicalizePkgName unCanonicalizePkgName;
@@ -402,5 +457,12 @@ in {
     getNormalizedDeps
   ;
 
+  inherit
+    getNpmCpuForPlatform
+    getNpmCpuForSystem
+  ;
+
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
 }
+
+# ---------------------------------------------------------------------------- #
