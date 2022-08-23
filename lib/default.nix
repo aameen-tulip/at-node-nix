@@ -28,6 +28,8 @@
       importJSON'
       getNpmCpuForPlatform
       getNpmCpuForSystem
+      getNpmOSForPlatform
+      getNpmOSForSystem
     ;
 
     inherit (final.libstr)
@@ -71,7 +73,7 @@
     ;
 
     inherit (final.libtree)
-      idealTreeMetaSetPlockV2
+      idealTreeMetaSetPlockV2  # NOTE: Only for "root" package
     ;
 
   } );

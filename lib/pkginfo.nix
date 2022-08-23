@@ -422,7 +422,49 @@ let
   getNpmCpuForSystem = system:
     npmLookupProc ( builtins.head ( builtins.split "-" system ) );
 
-  # FIXME: add OS handler. It's basically `plat.parsed.kernel.name'
+
+# ---------------------------------------------------------------------------- #
+
+  npmOSs = [
+    "darwin"
+    "freebsd"
+    "linux"
+    "openbsd"
+    "sunprocess"
+    "win32"
+    "aix"
+    "android"
+  ];
+
+  # Maps `platform.parsed.kernel.name' to NPM OS.
+  # These are almost always the same; but there's a few exceptions so I won't
+  # be lazy.
+  npmOSMap = {
+    darwin  = "darwin";
+    freebsd = "freebsd";
+    linux   = "linux";
+    openbsd = "openbsd";
+    solaris = "sunprocess";  # The oddball
+    win32   = "win32";
+    # Unsupported:
+    #  aix
+    #  android
+  };
+
+  npmLookupOS = o: let
+    msg = "Unsupported OS: ${o}. " +
+          "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
+    no = npmOSMap.${o} or throw msg;
+  in lib.checkListOf "NPM OSs" npmOSs no;
+
+  getNpmOSForPlatform = { parsed, ... }: npmLookupOS parsed.kernel.name;
+  getNpmOSForSystem   = system: npmLookupOS ( lib.yank "[^-]+-(.*)" system );
+
+
+  # FIXME: Handle `engines' particularly Node.js version.
+  # Reading engine versions for NPM and Yarn may be useful indirectly to provide
+  # hints to `metaEnt' functions; but I don't see any real reason to fool with
+  # them until the need comes up.
 
 
 # ---------------------------------------------------------------------------- #
@@ -460,6 +502,8 @@ in {
   inherit
     getNpmCpuForPlatform
     getNpmCpuForSystem
+    getNpmOSForPlatform
+    getNpmOSForSystem
   ;
 
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
