@@ -34,7 +34,7 @@
     plock   ? args.__meta.plock or metaSet.__meta.plock
   # `metaSet' is optional if you provide `plock'.
   , metaSet ? if args ? __meta.setFromType then args else
-                 throw "I need a metaSet to detect rootKey"
+              throw "I need a metaSet to detect rootKey"
 
   # Whether to include `dev' dependencies in tree.
   # Setting this to `false' will produce the equivalent of `--omit-dev'.

@@ -1,4 +1,4 @@
-{ lib ? ( builtins.getFlake "nixpkgs" ).lib }:
+{ lib, config ? {}, ... } @ globalAttrs: let
 /**
  * Range comparators:
  *   =   Used if no qualifier is stated ( "foo@1.0" is really "foo@=1.0" )
@@ -11,8 +11,6 @@
  *  1.2.3 - 2.3  :=  >=1.2.3 <2.4.0-0
  *  1.2.3 - 2    :=  >=1.2.3 <3.0.0-0
  */
-
-let
 
   versionRE = let
     np        = "(0|[1-9][0-9]*)";

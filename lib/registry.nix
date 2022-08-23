@@ -1,5 +1,5 @@
-{ lib }:
-let
+{ lib, config ? {}, ... } @ globalAttrs: let
+
   inherit (builtins) unsafeDiscardStringContext readFile fetchurl fromJSON;
 
   # Fetch a packument from the registry.

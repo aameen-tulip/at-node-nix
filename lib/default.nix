@@ -1,6 +1,12 @@
-{ lib ? builtins.getFlake "github:aakropotkin/ak-nix?dir=lib" }: let
+# ============================================================================ #
+
+# Must be `lib' from `ak-nix'.
+{ lib, config ? {}, ... } @ globalAttrs: let
+
+# ---------------------------------------------------------------------------- #
+
   lib' = lib.extend ( final: prev: let
-    callLibs = file: import file { lib = final; };
+    callLibs = file: import file { lib = final; inherit config; };
   in {
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
     libparse   = callLibs ./parse.nix;

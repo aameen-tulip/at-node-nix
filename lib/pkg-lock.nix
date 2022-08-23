@@ -1,5 +1,4 @@
-{ lib }:
-let
+{ lib, config ? {}, ... } @ globalAttrs: let
 
   inherit (builtins)
     attrValues

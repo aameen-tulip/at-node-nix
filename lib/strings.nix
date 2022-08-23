@@ -1,5 +1,4 @@
-{ lib }:
-let
+{ lib, config ? {}, ... } @ globalAttrs: let
 
   lines = lib.splitString "\n";
 
