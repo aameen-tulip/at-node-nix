@@ -15,7 +15,7 @@
   # because Nix has no way of determining which derivation produced the path.
   # This is why the separation between `passthru' and `meta' exists.
   #
-  # NOTE: It is find to "fill metadata" fields from things like a REGISTERED
+  # NOTE: It is fine to "fill metadata" fields from things like a REGISTERED
   # `package.json' or `packument' file ( NOT a local tree/git checkout! ), but
   # you need to be absolutely positive that this metadata will never change for
   # this package version, and in theory you should be able to carve this in
