@@ -64,7 +64,7 @@ jobs:
               pf = if v then \"PASS\" else \"FAIL\";
             in builtins.trace \"\${pf}: \${k}\" v;
             rsl = builtins.all ( k: report k tests.runSimple.\${k} )
-                               tests.runSimple;
+                               ( builtins.attrNames tests.runSimple );
           in assert rsl; \"PASS: ideal-tree-plockv2\"";
           exit "$?"
         working-directory: lib/tests/ideal-tree-plockv2
