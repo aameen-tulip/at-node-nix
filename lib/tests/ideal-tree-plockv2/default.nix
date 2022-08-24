@@ -1,6 +1,7 @@
 # ============================================================================ #
 #
 # TODO: Use the real test runner framework.
+# TODO: Hook into `nix flake check' or a github action.
 # Currently this just has a function `runSimple' that assigns true/false to
 # tests which pass/fail.
 #
@@ -21,11 +22,11 @@
   } // ( lib.optionalAttrs ( ! lib.inPureEvalMode ) {
     system = builtins.currentSystem;
   } )
-, writeText ? pkgsFor.writeText
-# For fallback
-, pkgsFor ?
-    if ( config ? system ) then ( builtins.getFlake "nixpkgs" ).${config.system}
-                           else import <nixpkgs> {}
+##, writeText ? pkgsFor.writeText
+## For fallback
+##, pkgsFor ?
+##    if ( config ? system ) then ( builtins.getFlake "nixpkgs" ).${config.system}
+##                           else import <nixpkgs> {}
 , ak-nix ? builtins.getFlake "github:aakropotkin/ak-nix"
 } @ args: let
 

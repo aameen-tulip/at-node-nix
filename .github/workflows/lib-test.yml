@@ -1,0 +1,67 @@
+name: Lib Tests
+on:
+  push:
+    paths:
+      - flake.nix
+      - lib/default.nix
+      # For `getNpm(Cpu|OS)For(System|Platform)'
+      - lib/pkginfo.nix
+      - lib/ideal-tree-plockv2.nix
+      - lib/tests/ideal-tree-plockv2/default.nix
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lib-tests:
+    runs-on: ubuntu-latest
+    env:
+      SYSTEM: x86_64-linux
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@d64e0553100205688c0fb2fa16edb0fc8663c590
+        with:
+          nix_path: nixpkgs=channel:nixpkgs-22.05
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://cache.nixos.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            max-jobs = auto
+            cores = 0
+            substitute = true
+            builders-use-substitutes = true
+            fallback = true
+            connect-timeout = 5
+            stalled-download-timeout = 90
+            timeout = 0
+      - name: Setup
+        run: |
+          echo "# ============================================================================ #" >&2;
+          echo "  Lets build CNP nerds:" >&2;
+          { printf '    bash   version: '; bash   --version|head -n1; } >&2;
+          { printf '    nix    version: '; nix    --version; } >&2;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          # Register aliases to avoid the long ref
+          nix registry add head    "github:aameen-tulip/at-node-nix/$GITHUB_REF"
+          nix registry add nixpkgs "github:NixOS/nixpkgs/29769d2a1390d294469bcc6518f17931953545e1";
+          # TODO: there's definitely a better way to pin this.
+          nix registry add ak-nix  "github:aakropotkin/ak-nix/$(
+            nix run nixpkgs#jq -r -- '.nodes[ak-nix].locked.rev' ./flake.lock;
+          )";
+
+      - name: Ideal Tree PlockV2
+        run: |
+          nix eval --expr "let
+            tests  = import ./default.nix {
+              config.system           = \"$SYSTEM\";
+              config.enableImpureMeta = false;
+              ak-nix                  = builtins.getFlake \"ak-nix\";
+            };
+            report = k: v: let
+              if v then \"PASS\" else \"FAIL\";
+            in builtins.trace \"\${PF}: \${k}\" v;
+            rsl = builtins.all ( k: report k tests.runSimple.\${k} )
+                               tests.runSimple;
+          in assert rsl";
+          exit "$?"
+        working-directory: lib/tests/ideal-tree-plockv2
