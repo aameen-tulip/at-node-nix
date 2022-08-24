@@ -1,7 +1,7 @@
 # ============================================================================ #
 #
 # TODO: Use the real test runner framework.
-# TODO: Hook into `nix flake check' or a github action.
+# TODO: Hook into `nix flake check'.
 # Currently this just has a function `runSimple' that assigns true/false to
 # tests which pass/fail.
 #
@@ -53,7 +53,6 @@
       };
       "node_modules/a" = {
         version = "1.0.0";
-        devDependencies.b = "^1.0.0";
         resolved = "https://example.com/a";
         integrity = "sha512-phony=";
       };
@@ -67,7 +66,7 @@
       "node_modules/c" = {
         version   = "2.1.1";
         dev       = true;
-        resolved  = "https://example.com/b";
+        resolved  = "https://example.com/c";
         integrity = "sha512-phony=";
       };
     };
@@ -76,7 +75,6 @@
         version    = "1.0.0";
         resolved   = "https://example.com/a";
         integrity  = "sha512-phony=";
-        requires.b = "^1.0.0";
       };
       b = {
         version    = "1.0.1";
@@ -88,7 +86,7 @@
       c = {
         version   = "2.1.1";
         dev       = true;
-        resolved  = "https://example.com/b";
+        resolved  = "https://example.com/c";
         integrity = "sha512-phony=";
       };
     };
