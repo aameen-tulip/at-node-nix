@@ -1,6 +1,7 @@
 name: Lib Tests
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     paths:
       - .github/workflows/lib-test.yml
       - flake.nix
@@ -42,7 +43,7 @@ jobs:
           { printf '    nix    version: '; nix    --version; } >&2;
           echo "# ---------------------------------------------------------------------------- #" >&2;
           # Register aliases to avoid the long ref
-          nix registry add head    "github:aameen-tulip/at-node-nix/$GITHUB_REF"
+          nix registry add head    "github:aameen-tulip/at-node-nix/$GITHUB_REF";
           nix registry add nixpkgs "github:NixOS/nixpkgs/29769d2a1390d294469bcc6518f17931953545e1";
           # TODO: there's definitely a better way to pin this.
           nix registry add ak-nix  "github:aakropotkin/ak-nix/$(
