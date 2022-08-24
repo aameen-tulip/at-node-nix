@@ -167,7 +167,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  inputs = { inherit lib config writeText pkgsFor ak-nix; };
+  inputs = { inherit lib config /* writeText pkgsFor */ ak-nix; };
   inherit tests;
   runSimple =
     builtins.mapAttrs ( k: { expr, expected }: expr == expected ) tests;
