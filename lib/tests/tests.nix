@@ -1,4 +1,4 @@
-args @ { lib, ... }: let
+{ lib, ... } @ args: let
 
   inherit (builtins) typeOf tryEval mapAttrs toJSON;
 

@@ -409,8 +409,8 @@
   npmLookupProc = p: let
     msg = "Unsupported CPU: ${p}. " +
           "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
-    np = npmProcessorMap.${p} or throw msg;
-  in lib.checkListOf "NPM CPUs" npmCpus np;
+    np = npmProcessorMap.${p} or ( throw msg );
+  in lib.assertOneOf "NPM CPU" np npmCpus;
 
   # Takes a `nixpkgs.(build|host|target)Platform' attrset as an argument.
   # Returns the NPM CPU enum for that platform.
@@ -452,8 +452,8 @@
   npmLookupOS = o: let
     msg = "Unsupported OS: ${o}. " +
           "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
-    no = npmOSMap.${o} or throw msg;
-  in lib.checkListOf "NPM OSs" npmOSs no;
+    no = npmOSMap.${o} or ( throw msg );
+  in lib.assertOneOf "NPM OSs" no npmOSs;
 
   getNpmOSForPlatform = { parsed, ... }: npmLookupOS parsed.kernel.name;
   getNpmOSForSystem   = system: npmLookupOS ( lib.yank "[^-]+-(.*)" system );
