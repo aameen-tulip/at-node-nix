@@ -52,9 +52,10 @@ jobs:
 
       - name: Ideal Tree PlockV2
         run: |
-          nix eval --raw --expr "let
+          # We need `--impure' to read local files.
+          # Expressions themselves are pure here.
+          nix eval --impure --raw --expr "let
             tests  = import ./default.nix {
-              lib                     = ( builtins.getFlake \"head\" ).lib;
               config.system           = \"$SYSTEM\";
               config.enableImpureMeta = false;
               ak-nix                  = builtins.getFlake \"ak-nix\";
