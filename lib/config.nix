@@ -48,10 +48,10 @@
     hasDefaultFields = let
       common = intersectAttrs cfg defaultFlocoConfig;
       hasTop = ( attrNames common ) == ( attrNames defaultFlocoConfig );
-      hasReg = cfg ? registryScopes ? _default;
+      hasReg = cfg ? registryScopes._default;
       hasFetchers = let
-        cf = intersectAttrs cfg.fetcher defaultFlocoConfig.fetcher;
-      in ( attrNames cf ) == ( attrNames defaultFlocoConfig.fetcher );
+        cf = intersectAttrs cfg.fetchers defaultFlocoConfig.fetchers;
+      in ( attrNames cf ) == ( attrNames defaultFlocoConfig.fetchers );
     in hasTop && hasReg && hasFetchers;
     regAllStrings = all builtins.isString ( attrValues cfg.registryScopes );
   in hasDefaultFields && regAllStrings;
