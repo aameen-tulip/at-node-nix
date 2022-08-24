@@ -1,3 +1,20 @@
+# ============================================================================ #
+#
+# NOTE: This test case basically served as the proof-of-concept for a new wave
+# of builders and the `(meta|pkg)Set' constructs that have been developed in the
+# `nps-scoped' branch over the last few months ( currently being merged in ).
+# I haven't been maintaining this as if it were an "active" test case over the
+# last few months; but some miracle this bastard still works.
+# 
+# If you're looking for a rudimentary project template that doesn't demand too
+# much complexity, this is honestly a great jumping off point.
+# If you want more robust edge case handling, or ( especially ) if you need to
+# dynamically generate your derivations then this probably won't cut it; but
+# if you're cool with doing things a bit like the old `node2nix' "generate and
+# edit manually" approach this is a contender.
+#
+# ---------------------------------------------------------------------------- #
+
 { lib      ? import ../../lib { inherit (ak-nix) lib; }
 , ak-nix   ? builtins.getFlake "github:aakropotkin/ak-nix"
 
@@ -24,7 +41,7 @@
 , pkgs     ? nixpkgs.legacyPackages.${system}
 }: let
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   inherit (lib.libplock)
     runtimeDepsToPkgAttrsFor
@@ -34,11 +51,11 @@
   ;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   foo-lock = lib.importJSON ./pkgs/foo/package-lock.json;
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   registry = fromPlockV2 foo-lock;
 
@@ -60,7 +77,7 @@
   in srcEntries // { __meta = registry.__meta // { inherit registry; }; };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   gypOv = final: prev: {
     __meta = ( prev.__meta or {} ) // { checkedGypfiles = true; };
@@ -81,7 +98,7 @@
     lib.fix ( lib.extends gypOv ( self: ( manifestInfoFromPlockV2 foo-lock ) ) );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   hasGyp    = v: v.gypfile or false;
   hasInst = v: ( v.hasInstallScript or false ) && ( v ? version );
@@ -91,7 +108,7 @@
   manEasy   = lib.filterAttrs ( _: v: ! ( hasInst v ) ) manifest;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   mkBins = built: key: to: let
     ftPair = n: p: {
@@ -123,7 +140,7 @@
   in lf // { passthru = ( lf.passthru or {} ) // { built = built.${key}; }; };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   stage1-nodeModules = let
     easy = builtins.mapAttrs ( k: v: mkModule sources k ) manEasy;
@@ -171,7 +188,7 @@
      src;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # This is the `node_modules' dir for `foo'.
   nodeModulesDir = linkModules {
@@ -181,7 +198,7 @@
   };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
 in {
   inherit

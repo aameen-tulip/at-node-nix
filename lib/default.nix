@@ -18,6 +18,8 @@
     libreg     = callLibs ./registry.nix;
     libmeta    = callLibs ./meta.nix;
     libtree    = callLibs ./ideal-tree-plockv2.nix;
+    # TODO: handle merge of fetch.nix ( partial ), nm-scope.nix ( maybe ),
+    #       and `libmeta-pl2' ( needs small alignment with `meta.nix' ).
 
     inherit (final.libparse)
       tryParseIdent
@@ -32,6 +34,9 @@
 
     inherit (final.libpkginfo)
       importJSON'
+      getDepFields
+      getNormalizedDeps
+      addNormalizedDepsToMeta
       getNpmCpuForPlatform
       getNpmCpuForSystem
       getNpmOSForPlatform

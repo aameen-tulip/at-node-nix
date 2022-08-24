@@ -215,24 +215,31 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Expand globs in workspace paths for a `package.json' file.
+  # XXX: This only supports globs at the end of paths.
   processWorkspacePath = p: let
-    reportDir = d:
-      if ( dirHasPackageJson d ) then "${d}/package.json" else null;
     dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
            else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
            else [p];
-    process = dirs: builtins.filter ( x: x != null ) ( map reportDir dirs );
-  in if ( ! ( hasGlob ( dirOf p ) ) ) then ( process dirs ) else
-    ( throw ( "processGlobEnd: Only globs at the end of paths are " +
-              "handled! Cannot process: ${p}" ) );
+    process = dirs: builtins.filter ( x: x != null ) dirs;
+    msg = "processGlobEnd: Only globs at the end of paths arg handled: ${p}";
+  in if ( hasGlob ( dirOf p ) ) then throw msg else ( process dirs );
 
-  workspacePackages = dir: pkgInfo:
-    if ! ( pkgInfo ? workspaces.packages ) then [] else
-      let processPath = p: processWorkspacePath ( ( toString dir ) + "/${p}" );
-      in builtins.concatLists ( map processPath pkgInfo.workspaces.packages );
+  # Looks up workspace paths ( if any ) in a `package.json'.
+  # This supports either NPM or Yarn style workspace fields
+  workspacePackages = dir: pkgInfo: let
+    packages = pkgInfo.workspaces.packages or pkgInfo.workspaces or [];
+    processPath = p: processWorkspacePath "${toString dir}/${p}";
+  in builtins.concatLists ( map processPath packages );
 
+  # Given a path to a project dir or `package.json', return list of ws paths.
   readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
     workspacePackages ( dirOf pjp ) ( importJSON' pjp );
+
+  # Make workspace paths absolute.
+  normalizeWorkspaces = dir: pjs:
+    if ! ( pjs ? workspaces ) then [] else
+    map ( lib.libpath.realpathRel dir ) ( workspacePackages dir pjs );
 
 
 # ---------------------------------------------------------------------------- #
@@ -249,13 +256,11 @@
   in if ( p' == "" ) then "package.json" else
     if ( ( baseNameOf p ) == "package.json" ) then s else "${s}/package.json";
 
-
-# ---------------------------------------------------------------------------- #
-
+  # Reads a `package.json' after `pkgJsonForPath' ( see docs above ).
   pkgJsonFromPath = p: let
     pjs = pkgJsonForPath p;
   in assert builtins.pathExists pjs;
-    importJSON' pjs;
+     importJSON' pjs;
 
 
 # ---------------------------------------------------------------------------- #
@@ -307,9 +312,14 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # `packge.json' files can indicate that they have bins using either the
+  # `bin' field ( a string or attrs ), or by specifying a relative path to
+  # a directory filled with executables using the `directories.bin' field.
+  # This predicate lets us know if we need to handle "any sort of bin stuff"
+  # for a `package.json'.
   pkgJsonHasBin = x: let
     pjs = getPkgJson x;
-  in pjs ? bin || pjs ? directories.bin;
+  in ( pjs ? bin ) || ( pjs ? directories.bin );
 
 
 # ---------------------------------------------------------------------------- #
@@ -370,6 +380,33 @@
        ( ( categorizePath asPath ) == "directory" );
     hasGyp = isDir && ( builtins.pathExists "${asPath}/binding.gyp" );
   in explicit || scripted || hasGyp;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # These are most useful for `package.json' entries where we may actually
+  # need to perform resolution; they are not very useful for package sets
+  # based on lock files - unless you are composing multiple locks.
+  addNormalizedDepsToMeta = { version, entries, ... } @ meta: let
+    fromEnt = entries.pl2ent or entries.pjs or entries.manifest or
+      entries.packument.versions.${version} or
+      ( throw ( "(addNormalizedDepsToMeta) " +
+                "Cannot find an entry to lookup dependencies" ) );
+    norm = lib.libpkginfo.normalizedDepsAll fromEnt;
+    updated = lib.recursiveUpdate meta.depInfo norm;
+    # XXX: At time of writing `*DepPins' are the only other kinds of fields in
+    # the `depInfo' attrset, and those fields should not be serialzed.
+    # With that in mind, we can simply set `__serial' to our normalized ents.
+    # If `depInfo' is extended in the future, this should be extended to avoid
+    # throwing away other fields which may want to be serialized.
+    __serial = norm;
+    depInfoEnts = if meta ? depInfo then updated else norm;
+    depInfo = depInfoEnts // { inherit __serial; };
+    injectDepInfo = if meta ? __update then meta.__update else ( b: meta // b );
+  in injectDepInfo { inherit depInfo; };
+
+  addNormalizedDepsToEnt = { meta, ... } @ ent:
+    ent.__update { meta = addNormalizedDepsToMeta meta; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -468,25 +505,34 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  #inherit canonicalizePkgName unCanonicalizePkgName;
   inherit
-    parsePkgJsonNameField
-    normalizePkgScope
-    asLocalTarballName
-    asNpmRegistryTarballName
-    mkPkgInfo
-    workspacePackages
-    readWorkspacePackages
     importJSON'
-    pkgJsonForPath
-    pkgJsonFromPath
-    getPkgJson
+    mkPkgInfo
     pkgJsonHasBin
     rewriteDescriptors
     hasInstallScript
-    node2nixName
   ;
-
+  # `package.json' locators
+  inherit
+    pkgJsonForPath
+    pkgJsonFromPath
+    getPkgJson
+  ;
+  # Names
+  inherit
+    parsePkgJsonNameField
+    node2nixName
+    normalizePkgScope
+    asLocalTarballName
+    asNpmRegistryTarballName
+  ;
+  # Workspaces
+  inherit
+    workspacePackages
+    readWorkspacePackages
+    normalizeWorkspaces
+  ;
+  # Deps
   inherit
     allDepFields
     depMetaFields
@@ -495,8 +541,10 @@ in {
     normalizedDepFields
     normalizedDepsAll
     getNormalizedDeps
+    addNormalizedDepsToMeta
+    addNormalizedDepsToEnt
   ;
-
+  # System Info
   inherit
     getNpmCpuForPlatform
     getNpmCpuForSystem
@@ -508,3 +556,7 @@ in {
 }
 
 # ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

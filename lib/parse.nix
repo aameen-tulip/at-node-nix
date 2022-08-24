@@ -1,7 +1,24 @@
-{ lib, config ? {}, ... } @ globalAttrs:
-rec {
+# ============================================================================ #
+#
+# NOTE: These were one of the earliest set of routines written for this project.
+# They were largely aimed at processing `yarn.lock(v2)' entries.
+# These aren't used in newer `(meta|pkg)Set' style routines; but they
+# may be useful to folks who just need some standalone Node.js
+# helper routines/parsers.
+#
+# XXX: The `nameInfo' function is sensitive to `enableStringContextDiscards'.
+#
+# ---------------------------------------------------------------------------- #
 
-/* -------------------------------------------------------------------------- */
+{ lib
+, config ? {
+    # You better know what you're doing if you change this setting.
+    enableStringContextDiscards = false;
+  }
+, ...
+} @ globalAttrs: let
+
+# ---------------------------------------------------------------------------- #
 
 /**
  * Parses a string into an ident.
@@ -25,7 +42,7 @@ rec {
     if rsl != null then rsl else throw "Invalid ident (${str})";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
 /**
  * Parses a `string` into a descriptor
@@ -58,7 +75,7 @@ rec {
   parseDescriptorStrict = parseDescriptor' true;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   /**
    * Parses a `string` into a locator.
@@ -94,10 +111,28 @@ rec {
   parseLocatorStrict = parseLocator' true;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
+  # Collects various forms of name/ident info into a single attrset.
+  # XXX: When `enableStringContextDiscards = true', this functions performs
+  #      unsafe discards.
+  #      This routine is meant for parsing lockfiles and other forms of
+  #      "static" metadata when running in that mode.
+  # If you strip string contexts for bogus package entries, for example
+  # "I have this local project that I work on and don't update the version
+  # number between rebuilds", you may find that Nix isn't rebuilding your
+  # derivations "as expected".
+  # If you use this on anything other than a lockfile containing "static"
+  # registry tarballs or otherwise "pure" source references - you're
+  # fucking it up and you should stop doing that.
+  # If you aren't sure if you can safely strip string contexts, consult the
+  # wall of text at the top of `lib/meta.nix' that covers this topic in
+  # more detail.
   nameInfo = str: let
-    inherit (builtins) unsafeDiscardStringContext;
+    unsafeDiscardStringContext =
+      if ( config.enableStringContextDiscards or false )
+      then builtins.unsafeDiscardStringContext
+      else x: x;  # `id' op.
     pi' = tryParseIdent ( unsafeDiscardStringContext str );
     pd' = tryParseDescriptor true ( unsafeDiscardStringContext str );
     pl' = tryParseLocator true ( unsafeDiscardStringContext str );
@@ -110,13 +145,13 @@ rec {
   in { inherit name scopeDir; } // ids;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
-  isGitRev = str:
-    ( builtins.match "[0-9a-f]{40}" str ) != null;
+  # Matches any 16bit SHA256 hash.
+  isGitRev = str: ( builtins.match "[0-9a-f]{40}" str ) != null;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   getPjScopeDir = x: let
     inherit (builtins) isPath isString isAttrs match head pathExists tryEval;
@@ -143,13 +178,32 @@ rec {
         throw "Cannot get scopeDir from type: ${builtins.typeOf x}";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
-  #getPjName = x: let
-  #  inherit (builtins) isString isAttrs;
-  #in if
+in {
+  inherit
+    tryParseIdent
+    parseIdent
 
+    tryParseDescriptor
+    parseDescriptor'
+    parseDescriptor
+    parseDescriptorStrict
 
-/* -------------------------------------------------------------------------- */
+    tryParseLocator
+    parseLocator'
+    parseLocator
+    parseLocatorStrict
 
+    nameInfo
+    isGitRev
+    getPjsScopeDir
+  ;
 }
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #
