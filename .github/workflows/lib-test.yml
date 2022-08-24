@@ -2,6 +2,7 @@ name: Lib Tests
 on:
   push:
     paths:
+      - .github/workflows/lib-test.yml
       - flake.nix
       - lib/default.nix
       # For `getNpm(Cpu|OS)For(System|Platform)'
