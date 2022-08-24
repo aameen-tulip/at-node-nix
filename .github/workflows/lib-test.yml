@@ -58,8 +58,8 @@ jobs:
               ak-nix                  = builtins.getFlake \"ak-nix\";
             };
             report = k: v: let
-              if v then \"PASS\" else \"FAIL\";
-            in builtins.trace \"\${PF}: \${k}\" v;
+              pf = if v then \"PASS\" else \"FAIL\";
+            in builtins.trace \"\${pf}: \${k}\" v;
             rsl = builtins.all ( k: report k tests.runSimple.\${k} )
                                tests.runSimple;
           in assert rsl";
