@@ -52,7 +52,7 @@ jobs:
 
       - name: Ideal Tree PlockV2
         run: |
-          nix eval --expr "let
+          nix eval --raw --expr "let
             tests  = import ./default.nix {
               config.system           = \"$SYSTEM\";
               config.enableImpureMeta = false;
@@ -63,6 +63,6 @@ jobs:
             in builtins.trace \"\${pf}: \${k}\" v;
             rsl = builtins.all ( k: report k tests.runSimple.\${k} )
                                tests.runSimple;
-          in assert rsl";
+          in assert rsl; \"PASS: ideal-tree-plockv2\"";
           exit "$?"
         working-directory: lib/tests/ideal-tree-plockv2
