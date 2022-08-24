@@ -38,7 +38,6 @@ jobs:
       - name: Setup
         run: |
           echo "# ============================================================================ #" >&2;
-          echo "  Lets build CNP nerds:" >&2;
           { printf '    bash   version: '; bash   --version|head -n1; } >&2;
           { printf '    nix    version: '; nix    --version; } >&2;
           echo "# ---------------------------------------------------------------------------- #" >&2;
