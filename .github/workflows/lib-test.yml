@@ -1,12 +1,22 @@
 name: Lib Tests
 on:
+  push:
+    branches:
+      -  main
+    paths:
+      - .github/workflows/lib-test.yml
+      - flake.nix
+      - lib/default.nix
+      # For `getNpm(Cpu|OS)For(System|Platform)'
+      - lib/pkginfo.nix
+      - lib/ideal-tree-plockv2.nix
+      - lib/tests/ideal-tree-plockv2/default.nix
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - .github/workflows/lib-test.yml
       - flake.nix
       - lib/default.nix
-      # For `getNpm(Cpu|OS)For(System|Platform)'
       - lib/pkginfo.nix
       - lib/ideal-tree-plockv2.nix
       - lib/tests/ideal-tree-plockv2/default.nix
@@ -52,19 +62,15 @@ jobs:
 
       - name: Ideal Tree PlockV2
         run: |
-          # We need `--impure' to read local files.
-          # Expressions themselves are pure here.
-          nix eval --impure --raw --expr "let
-            tests = import ./default.nix {
-              flocoConfig.system           = \"$SYSTEM\";
-              flocoConfig.enableImpureMeta = false;
-              ak-nix = builtins.getFlake \"ak-nix\";
-            };
+          nix eval --raw -f ./. runSimple                                            \
+            --arg flocoConfig "{ system = \"$SYSTEM\"; enableImpureMeta = false; }"  \
+            --arg ak-nix "builtins.getFlake \"ak-nix\""                              \
+            --apply "runSimple: let
             report = k: v: let
               pf = if v then \"PASS\" else \"FAIL\";
             in builtins.trace \"\${pf}: \${k}\" v;
-            rsl = builtins.all ( k: report k tests.runSimple.\${k} )
-                               ( builtins.attrNames tests.runSimple );
+            rsl = builtins.all ( k: report k runSimple.\${k} )
+                               ( builtins.attrNames runSimple );
           in assert rsl; \"PASS: ideal-tree-plockv2\"";
           exit "$?"
         working-directory: lib/tests/ideal-tree-plockv2
