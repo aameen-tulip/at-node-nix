@@ -1,13 +1,19 @@
 # ============================================================================ #
 
 # Must be `lib' from `ak-nix'.
-{ lib, config ? {}, ... } @ globalAttrs: let
+{ lib, flocoConfig ? {}, ... } @ globalAttrs: let
 
 # ---------------------------------------------------------------------------- #
 
   lib' = lib.extend ( final: prev: let
-    callLibs = file: import file { lib = final; inherit config; };
+    # XXX: I'm not crazy about possibly polluting `lib' with the config.
+    callLibs = file: import file { lib = final; };
   in {
+    # This one's the oddball.
+    # This means `libcfg' cannot call functions from other libs defined here.
+    libcfg      = import ./config.nix { inherit (prev) lib; };
+    flocoConfig = final.libcfg.mkFlocoConfig flocoConfig;
+
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
     libparse   = callLibs ./parse.nix;
     librange   = callLibs ./ranges.nix;
@@ -81,6 +87,8 @@
     inherit (final.libtree)
       idealTreeMetaSetPlockV2  # NOTE: Only for "root" package
     ;
+
+    inherit (final.libcfg) mkFlocoConfig;
 
   } );
 in lib'
