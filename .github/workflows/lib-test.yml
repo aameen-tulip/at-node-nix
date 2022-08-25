@@ -1,6 +1,8 @@
 name: Lib Tests
 on:
   push:
+    branches:
+      -  main
     paths:
       - .github/workflows/lib-test.yml
       - flake.nix
