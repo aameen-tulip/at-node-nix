@@ -1,4 +1,4 @@
-{ lib, config ? {}, ... } @ globalAttrs: let
+{ lib }: let
 /**
  * Range comparators:
  *   =   Used if no qualifier is stated ( "foo@1.0" is really "foo@=1.0" )

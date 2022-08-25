@@ -1,13 +1,19 @@
 # ============================================================================ #
 
 # Must be `lib' from `ak-nix'.
-{ lib, config ? {}, ... } @ globalAttrs: let
+{ lib, flocoConfig ? {}, ... } @ globalAttrs: let
 
 # ---------------------------------------------------------------------------- #
 
   lib' = lib.extend ( final: prev: let
-    callLibs = file: import file { lib = final; inherit config; };
+    # XXX: I'm not crazy about possibly polluting `lib' with the config.
+    callLibs = file: import file { lib = final; };
   in {
+    # This one's the oddball.
+    # This means `libcfg' cannot call functions from other libs defined here.
+    libcfg      = import ./config.nix { inherit (prev) lib; };
+    flocoConfig = final.libcfg.mkFlocoConfig flocoConfig;
+
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
     libparse   = callLibs ./parse.nix;
     librange   = callLibs ./ranges.nix;
@@ -20,6 +26,7 @@
     libtree    = callLibs ./ideal-tree-plockv2.nix;
     # TODO: handle merge of fetch.nix ( partial ), nm-scope.nix ( maybe ),
     #       and `libmeta-pl2' ( needs small alignment with `meta.nix' ).
+    libsys     = callLibs ./system.nix;
 
     inherit (final.libparse)
       tryParseIdent
@@ -37,10 +44,6 @@
       getDepFields
       getNormalizedDeps
       addNormalizedDepsToMeta
-      getNpmCpuForPlatform
-      getNpmCpuForSystem
-      getNpmOSForPlatform
-      getNpmOSForSystem
     ;
 
     inherit (final.libstr)
@@ -55,6 +58,7 @@
       pkgsAsAttrsets
     ;
 
+    # FIXME: Needs to be pruned for dead-code
     inherit (final.libplock)
       partitionResolved
       toposortDeps
@@ -85,6 +89,15 @@
 
     inherit (final.libtree)
       idealTreeMetaSetPlockV2  # NOTE: Only for "root" package
+    ;
+
+    inherit (final.libcfg) mkFlocoConfig;
+
+    inherit (final.libsys)
+      getNpmCpuForSystem
+      getNpmOSForSystem
+      getNpmSys'
+      getNpmSys
     ;
 
   } );

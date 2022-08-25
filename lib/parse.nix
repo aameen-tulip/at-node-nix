@@ -1,3 +1,4 @@
+
 # ============================================================================ #
 #
 # NOTE: These were one of the earliest set of routines written for this project.
@@ -6,17 +7,9 @@
 # may be useful to folks who just need some standalone Node.js
 # helper routines/parsers.
 #
-# XXX: The `nameInfo' function is sensitive to `enableStringContextDiscards'.
-#
 # ---------------------------------------------------------------------------- #
 
-{ lib
-, config ? {
-    # You better know what you're doing if you change this setting.
-    enableStringContextDiscards = false;
-  }
-, ...
-} @ globalAttrs: let
+{ lib }: let
 
 # ---------------------------------------------------------------------------- #
 
@@ -128,9 +121,9 @@
   # If you aren't sure if you can safely strip string contexts, consult the
   # wall of text at the top of `lib/meta.nix' that covers this topic in
   # more detail.
-  nameInfo = str: let
+  nameInfo' = enableStringContextDiscards: str: let
     unsafeDiscardStringContext =
-      if ( config.enableStringContextDiscards or false )
+      if enableStringContextDiscards
       then builtins.unsafeDiscardStringContext
       else x: x;  # `id' op.
     pi' = tryParseIdent ( unsafeDiscardStringContext str );
@@ -144,6 +137,7 @@
     name = scopeDir + ids.pname;
   in { inherit name scopeDir; } // ids;
 
+  nameInfo = nameInfo' false str;
 
 # ---------------------------------------------------------------------------- #
 
@@ -195,6 +189,7 @@ in {
     parseLocator
     parseLocatorStrict
 
+    nameInfo'
     nameInfo
     isGitRev
     getPjsScopeDir
