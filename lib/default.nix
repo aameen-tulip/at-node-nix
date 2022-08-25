@@ -24,6 +24,8 @@
     libreg     = callLibs ./registry.nix;
     libmeta    = callLibs ./meta.nix;
     libtree    = callLibs ./ideal-tree-plockv2.nix;
+    # TODO: handle merge of fetch.nix ( partial ), nm-scope.nix ( maybe ),
+    #       and `libmeta-pl2' ( needs small alignment with `meta.nix' ).
     libsys     = callLibs ./system.nix;
 
     inherit (final.libparse)
@@ -39,6 +41,9 @@
 
     inherit (final.libpkginfo)
       importJSON'
+      getDepFields
+      getNormalizedDeps
+      addNormalizedDepsToMeta
     ;
 
     inherit (final.libstr)
@@ -53,6 +58,7 @@
       pkgsAsAttrsets
     ;
 
+    # FIXME: Needs to be pruned for dead-code
     inherit (final.libplock)
       partitionResolved
       toposortDeps

@@ -102,10 +102,6 @@
 
       pacotecli = pacotecli final.system;
 
-      npm-why = ( import ./pkgs/development/node-packages/npm-why {
-        pkgs = pkgsFor;
-      } ).npm-why;
-
       linkModules = { modules ? [] }:
         pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
           inherit (pkgsFor) runCommandNoCC;
@@ -379,10 +375,6 @@
         enableTraces = true;
         inherit (pkgsFor) writeText;
       };
-
-      npm-why = ( import ./pkgs/development/node-packages/npm-why {
-        pkgs = pkgsFor;
-      } ).npm-why;
 
       # I am aware of how goofy this is.
       # I am aware that I could use `prefetch' - this is more convenient
