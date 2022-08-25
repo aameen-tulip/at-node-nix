@@ -16,12 +16,10 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib ? import ../../default.nix { inherit (ak-nix) lib; inherit config; }
-, config ? {
-    enableImpureMeta = ! lib.inPureEvalMode;
-  } // ( lib.optionalAttrs ( ! lib.inPureEvalMode ) {
+{ lib ? import ../../default.nix { inherit (ak-nix) lib; inherit flocoConfig; }
+, flocoConfig ? lib.optionalAttrs ( ! lib.inPureEvalMode ) {
     system = builtins.currentSystem;
-  } )
+  }
 ##, writeText ? pkgsFor.writeText
 ## For fallback
 ##, pkgsFor ?
@@ -165,7 +163,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  inputs = { inherit lib config /* writeText pkgsFor */ ak-nix; };
+  inputs = { inherit lib flocoConfig /* writeText pkgsFor */ ak-nix; };
   inherit tests;
   runSimple =
     builtins.mapAttrs ( k: { expr, expected }: expr == expected ) tests;

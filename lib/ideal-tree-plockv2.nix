@@ -25,7 +25,7 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib, config ? {}, ... } @ globalAttrs: let
+{ lib }: let
 
 # ---------------------------------------------------------------------------- #
 
@@ -86,7 +86,8 @@
   #   os|cpu
   #   system
   #   targetPlaform  ( from `stdenv'. `(host|build)Platform' are fallbacks )
-  #   config.system or builtins.currentSystem if config.enableImpureMeta = true.
+  #   flocoConfig.system
+  #   builtins.currentSystem ( iff flocoConfig.enableImpureMeta = true ).
   #
   # Personally, I would pass `system' here unless you're cross-compiling, in
   # which case you'll want to pass `targetPlatform'.
@@ -94,7 +95,7 @@
   # Filter out usupported systems. Use "target" platform.
   , skipUnsupported ? ( cpu != null ) || ( os != null )
 
-  , system ? config.system or
+  , system ? flocoConfig.system or
              ( if enableImpureMeta then builtins.currentSystem else null )
   # Priority for platforms aligns with Nixpkgs' fallbacks
   , buildPlatform  ? null
@@ -120,8 +121,8 @@
   # FIXME: handle `engines'?
 
   # More junk used to derive `system'.
-  , config           ? globalAttrs.config or {}
-  , enableImpureMeta ? config.enableImpureMeta or false
+  , flocoConfig      ? lib.flocoConfig or {}
+  , enableImpureMeta ? flocoConfig.enableImpureMeta or false
   , ...
   } @ args: let
     # Get a package identifier from a `package-lock.json(v2)' entry.
