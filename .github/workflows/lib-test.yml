@@ -55,10 +55,10 @@ jobs:
           # We need `--impure' to read local files.
           # Expressions themselves are pure here.
           nix eval --impure --raw --expr "let
-            tests  = import ./default.nix {
-              config.system           = \"$SYSTEM\";
-              config.enableImpureMeta = false;
-              ak-nix                  = builtins.getFlake \"ak-nix\";
+            tests = import ./default.nix {
+              flocoConfig.system           = \"$SYSTEM\";
+              flocoConfig.enableImpureMeta = false;
+              ak-nix = builtins.getFlake \"ak-nix\";
             };
             report = k: v: let
               pf = if v then \"PASS\" else \"FAIL\";
