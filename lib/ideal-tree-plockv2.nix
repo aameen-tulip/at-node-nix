@@ -6,12 +6,6 @@
 # This should be used for creating the `nodeModulesDir[-dev]' derivations
 # for packages which are the "root" of a package lock.
 #
-#
-# FIXME: The CPU/OS detection routines amount to half of the code here.
-#        They should be moved to a lib because it would be obnoxious to try and
-#        keep the fallback pattern/methods used here aligned with other parts of
-#        the codebase if they're all done ad-hoc.
-#
 # ---------------------------------------------------------------------------- #
 #
 # TERMS:
@@ -29,7 +23,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Given a `package-lock.json(v2)' tproduce an attrset representing a
+  # Given a `package-lock.json(v2)' produce an attrset representing a
   # `node_modules/' directory.
   # Outputs `{ "node_modules/<IDENT>" = "<IDENT>/<VERSION>" (pkey); ... }'
   # mappings which reflect the `packages' field in the lock.
@@ -55,12 +49,6 @@
   # This could be handled more gracefully by a more robust `mkNmDir'
   # implementation that created symlinks to the source directory; but frankly
   # dependency cycles like this are fucking evil.
-  # Projects that have dependency cycles are incredibly fragile and it is
-  # incredibly rare that the bootstrap process they demand is warranted
-  # ( compilers and core build utilities are almost exclusively the exception ).
-  # Don't file a bug report complaining about them, I'm just going to tell you
-  # to refactor your codebase or make snide remarks about how your org has a
-  # "staffing issue".
   , rootKey ? if metaSet != null then metaSet.__meta.rootKey else
               "${plock.name}/${plock.version}"
   # Whether to include `dev' dependencies in tree.
@@ -79,35 +67,14 @@
   # This boolean toggles filtering ( "skipping" ) on/off entirely.
   # If we aren't provided with enough info to guess the OS/CPU then we won't
   # filter out any pacakges.
-
-  # You can comb through the conditionals to see the fallback behavior, but
-  # the priority is:
-  #   (os|cpu)Cond
-  #   os|cpu
-  #   system
-  #   targetPlaform  ( from `stdenv'. `(host|build)Platform' are fallbacks )
-  #   builtins.currentSystem ( iff flocoConfig.enableImpureMeta = true ).
-  #
-  # Personally, I would pass `system' here unless you're cross-compiling, in
-  # which case you'll want to pass `targetPlatform'.
-
-  # Filter out usupported systems. Use "target" platform.
+  # It is recommended that you pass `npmSys', `hostPlatform', or `system' for us
+  # to try and derive `os' and `cpu' from ( unlessed given ).
+  # FIXME: handle `engines'?
+  , os     ? if npmSys == null then null else npmSys.os
+  , cpu    ? if npmSys == null then null else npmSys.cpu
+  , npmSys ? lib.getNpmSys' args
+  # Filter out usupported systems. Use "host" platform.
   , skipUnsupported ? ( cpu != null ) || ( os != null )
-
-  , system ? if enableImpureMeta then builtins.currentSystem else null
-  # Priority for platforms aligns with Nixpkgs' fallbacks
-  , buildPlatform  ? null
-  , hostPlatform   ? buildPlatform
-  , targetPlatform ? hostPlatform
-
-  , cpu ?
-      if args ? system then lib.getNpmCpuForSystem system else
-      if targetPlatform != null then lib.getNpmCpuForPlatform targetPlatform
-      else system  # `system' bottoms out to `null' in pure mode.
-  , os ?
-      if args ? system then lib.getNpmOSForSystem system else
-      if targetPlatform != null then lib.getNpmOSForPlatform targetPlatform else
-      system  # `system' bottoms out to `null' in pure mode.
   # The user is also free to pass arbitrary conditionals in here if they like.
   # These have the highest priority and will clobber earlier args.
   # The default is almost certainly what you want to use though.
@@ -116,14 +83,14 @@
       if cpu == null then true else builtins.elem cpu supportedCpus
   , osCond ? supportedOss:
       if os == null then true else builtins.elem os supportedOss
-  # FIXME: handle `engines'?
-
-  # More junk used to derive `system'.
-  , flocoConfig ? throw "You must provide `flocoConfig' or indicate platform"
-  , enableImpureMeta ? args.flocoConfig.enableImpureMeta or
-                       lib.libcfg.defaultFlocoConfig.enableImpureMeta  # (false)
+  # These are used by the `getNpmSys' fallback and must be declared for
+  # `callPackage' and `functionArgs' to work - see `lib/system.nix' for more
+  # more details. PREFER: `system' and `hostPlatform'.
+  , system ? null, hostPlatform ? null, buildPlatform ? null
+  , enableImpureMeta ? null, stdenv ? null, flocoConfig ? null
   , ...
   } @ args: let
+
     # Get a package identifier from a `package-lock.json(v2)' entry.
     getIdent = dir: {
       ident ? pl2ent.name or lib.yank ".*node_modules/((@[^/]+/)?[^/]+)" dir
