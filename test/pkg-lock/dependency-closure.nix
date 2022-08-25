@@ -105,6 +105,7 @@ in rec {
   in assert ( builtins.deepSeq ck ck ) == [];
     builtins.trace "PASS: ${sysMsg} dependency-closure.nix" ( ck == [] );
 
-  checkDrv = writeText "test.log" ( builtins.deepSeq check "PASS" );
+  checkDrv = writeText "dependency-closure-test.log"
+                       ( builtins.deepSeq check "PASS" );
 
 } // { __functor = self: self.checkDrv; }

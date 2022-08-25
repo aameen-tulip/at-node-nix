@@ -97,6 +97,6 @@ in rec {
   in assert ( builtins.deepSeq ck ck ) == [];
     builtins.trace "PASS: ${sysMsg} resolve.nix" ( ck == [] );
 
-  checkDrv = writeText "test.log" ( builtins.deepSeq check "PASS" );
+  checkDrv = writeText "resolve-test.log" ( builtins.deepSeq check "PASS" );
 
 } // { __functor = self: self.checkDrv; }

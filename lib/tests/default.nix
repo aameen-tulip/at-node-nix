@@ -2,30 +2,36 @@
 # This is likely not the "ideal" way to utilize the test suite, but for someone
 # who is consuming your project and knows nothing about it - this file should
 # allow them to simply run `nix build' to see if the test suite passes.
-# This will produce a dummy derivation if tests pass, or will throw an eval
-# time error if they fail.
-# From the perspective of a CI system or `nix flake check' - this is the desired
-# behavior for a failing test suite.
 #
 # During active/iterative development, maintainters and contributors will almost
 # certainly prefer the specialized interfaces of `run.nix' or `check.nix'.
 { nixpkgs     ? builtins.getFlake "nixpkgs"
 , system      ? builtins.currentSystem
-, pkgs        ? nixpkgs.legacyPackages.${system}
-, writeText   ? pkgs.writeText
+, pkgsFor     ? nixpkgs.legacyPackages.${system}
+, writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
 , lib         ? import ../. { inherit (ak-nix) lib; }
 , outputAttrs ? false
+, keepFailed  ? false  # Useful if you run the test explicitly.
+, doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
 } @ args: let
-  inputs = args // { inherit lib; };
-  check  = import ./check.nix inputs;
-  checkerDrv = writeText "test.log" check;
-in if outputAttrs then { inherit inputs check checkerDrv; } else checkerDrv
-
-# NOTE: this file's output/behavior is identical to `lib.libdbg.checkerDrv'.
-# The definition has been inlined for the benefit of readers.
-# Just know that a `flake.nix' file that uses `checkerDrv' or `mkTestHarness'
-# is equivalent.
-# XXX: Obviously delete the above comment if you modify the output in a way that
-# doesn't align with `lib.libdbg.checkerDrv'.
+  tests = import ./tests.nix { inherit lib pkgsFor; };
+  inputs = args // { inherit lib tests; };
+  # We need `check' and `checkerDrv' to use different `checker' functions which
+  # is why we have explicitly provided an alternative `check' as a part
+  # of `mkCheckerDrv'.
+  harness = let
+    name = "lib-tests";
+  in lib.libdbg.mkTestHarness {
+    inherit name keepFailed tests writeText;
+    mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {
+      inherit name keepFailed writeText;
+      check = lib.libdbg.checkerReport "lib-tests" harness.run;
+    };
+    checker = name: run: let
+      msg = lib.libdbg.checkerMsg name run;
+      rsl = lib.libdbg.checkerDefault name run;
+    in if doTrace then builtins.trace msg rsl else rsl;
+  };
+in if outputAttrs then harness else harness.checkDrv
