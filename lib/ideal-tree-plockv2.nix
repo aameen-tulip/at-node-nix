@@ -68,26 +68,22 @@
   # If we aren't provided with enough info to guess the OS/CPU then we won't
   # filter out any pacakges.
   # It is recommended that you pass `npmSys', `hostPlatform', or `system' for us
-  # to try and derive `os' and `cpu' from ( unlessed given ).
+  # to try and derive.
   # FIXME: handle `engines'?
-  , os     ? if npmSys == null then null else npmSys.os
-  , cpu    ? if npmSys == null then null else npmSys.cpu
   , npmSys ? lib.getNpmSys' args
   # Filter out usupported systems. Use "host" platform.
-  , skipUnsupported ? ( cpu != null ) || ( os != null )
+  , skipUnsupported ? npmSys != null
   # The user is also free to pass arbitrary conditionals in here if they like.
   # These have the highest priority and will clobber earlier args.
   # The default is almost certainly what you want to use though.
   # If CPU or OS could not be determined, these conditionals filter nothing.
-  , cpuCond ? supportedCpus:
-      if cpu == null then true else builtins.elem cpu supportedCpus
-  , osCond ? supportedOss:
-      if os == null then true else builtins.elem os supportedOss
+  , sysCond ? pjs: lib.pkgSysCond pjs npmSys
   # These are used by the `getNpmSys' fallback and must be declared for
   # `callPackage' and `functionArgs' to work - see `lib/system.nix' for more
   # more details. PREFER: `system' and `hostPlatform'.
   , system ? null, hostPlatform ? null, buildPlatform ? null
-  , enableImpureMeta ? null, stdenv ? null, flocoConfig ? null
+  , cpu ? null, os ? null, enableImpureMeta ? null, stdenv ? null
+  , flocoConfig ? null
   , ...
   } @ args: let
 
@@ -99,30 +95,40 @@
     # Get a `(pkg|meta)Set' key from a `package-lock.json(v2)' entry.
     getKey = dir: { version, ident ? getIdent dir pl2ent, ... } @ pl2ent:
       "${ident}/${version}";
+    # Collect a list of paths that need to be dropped as a result of
+    # `optionalDependencies' filtering ( using `sysCond' ) as well as any
+    # `ignoed(Keys|Idents)' matches.
+    # We need this list so that we can perform a second pass which also drops
+    # any `node_modules/' subdirs associated with these packages.
+    # Dev/Prod filtering doesn't need to be handled here, since the plock(v2)
+    # contains `dev' fields for all paths already, which accounts for subdirs.
+    drops = let
+      pjsPkgs = removeAttrs plock.packages [""];
+      isUnsupported = _: { optional ? false, ... } @ e:
+        optional && ( ! ( sysCond e ) );
+      unsupported = lib.filterAttrs isUnsupported pjsPkgs;
+      isIgnored = k: v: let
+        ik = builtins.elem ( getKey k v )   ignoredKeys;
+        ii = builtins.elem ( getIdent k v ) ignoredIdents;
+      in ii || ik;
+      ignored = lib.filterAttrs isIgnored pjsPkgs;
+      ients = if skipUnsupported then ignored // unsupported else ignored;
+      # We're only interested in the keys.
+      ipaths = builtins.attrNames ients;
+      wois   = removeAttrs pjsPkgs ipaths;
+      isISub = p: builtins.any ( i: lib.hasPrefix i p ) ipaths;
+      subs   = builtins.filter isISub ( builtins.attrNames wois );
+    in [""] ++ ipaths ++ subs;
     # Filter `package-lock.json(v2)' entries to deps we want to install.
     nml = let
       # Drop root entry.
       # This is unrelated to avoiding cycles with `ignore*'.
       # The `package-lock.json(v2)' includes an entry representing the `lockDir'
       # which we aren't interested in preserving.
-      full = removeAttrs plock.packages [""];
+      wois = removeAttrs plock.packages drops;
       # Drop dev dependencies if `dev = false'.
-      isDevProd = _: v: if dev then true else ! ( v.dev or false );
-      # Drop deps intended for unsupported systems.
-      isSupported = _: v: let
-        opt     = v.optional or false;
-        suppCpu = if v ? cpu then cpuCond v.cpu else true;
-        suppOs  = if v ? os  then osCond  v.os  else true;
-        # FIXME: Handle engines?
-      in if ( ! skipUnsupported ) || ( ! opt ) then true else
-         suppCpu && suppOs;
-      # Handle `ignoredKeys'.
-      isKeep = k: v:
-        ( ! ( builtins.elem ( getKey k v )   ignoredKeys ) ) &&
-        ( ! ( builtins.elem ( getIdent k v ) ignoredIdents ) );
-      # All together now.
-      cond = k: v: ( isDevProd k v ) && ( isSupported k v ) && ( isKeep k v );
-    in lib.filterAttrs cond full;
+      isDevProd = _: v: ! ( v.dev or false );
+    in if dev then wois else lib.filterAttrs isDevProd wois;
   in builtins.mapAttrs getKey nml;
 
 

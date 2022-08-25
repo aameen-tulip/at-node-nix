@@ -1,8 +1,19 @@
+# ============================================================================ #
+
 { lib, ... } @ args: let
+
+# ---------------------------------------------------------------------------- #
 
   inherit (builtins) typeOf tryEval mapAttrs toJSON;
 
   inherit (lib) libpkginfo;
+
+  # Tests for some libs are in dedicated subdirs with data files.
+  idealTreeTests = ( import ./ideal-tree-plockv2 { inherit lib; } ).tests;
+
+  subdirTests = idealTreeTests;
+
+# ---------------------------------------------------------------------------- #
 
 # A set of test cases to be run by `run.nix'.
 # Test cases are simple pairs of expressions and expected results.
@@ -92,4 +103,13 @@ in {
     };
   };
 
-}  # End tests
+  # Inherit tests from subdirs
+} // subdirTests
+# End tests
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

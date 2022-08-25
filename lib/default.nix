@@ -98,6 +98,7 @@
       getNpmOSForSystem
       getNpmSys'
       getNpmSys
+      pkgSysCond
     ;
 
   } );

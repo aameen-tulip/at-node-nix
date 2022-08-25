@@ -1,13 +1,9 @@
 # ============================================================================ #
 #
-# TODO: Use the real test runner framework.
-# TODO: Hook into `nix flake check'.
 # Currently this just has a function `runSimple' that assigns true/false to
 # tests which pass/fail.
 #
 # TODO: ignored(Keys|Idents)
-# TODO: CPU/OS filtering
-# TODO: CPU/OS filtering using (os|cpu)Cond
 # TODO: Preserve `rootKey'
 # TODO: Args from `metaSet'
 # TODO: Args from `(build|host|target)Platform'
@@ -17,9 +13,7 @@
 # ---------------------------------------------------------------------------- #
 
 { lib ? import ../../default.nix { inherit (ak-nix) lib; inherit flocoConfig; }
-, flocoConfig ? lib.optionalAttrs ( ! lib.inPureEvalMode ) {
-    system = builtins.currentSystem;
-  }
+, flocoConfig ? {}
 ##, writeText ? pkgsFor.writeText
 ## For fallback
 ##, pkgsFor ?
@@ -93,6 +87,63 @@
   # A real lock.
   plock1 = lib.importJSON' ./package-lock-1.json;
 
+  # A lock with nested optionals.
+  # We use this to ensure that if a package if dropped, any subdirs are also
+  # dropped ( even if they lack a system conditional ).
+  # I trimmed this lock down to only the required fields.
+  # NOTE: In the test runner we hard code `x86_64-linux' as the host system, so
+  # these values are written to be included/filtered base on that.
+  # That system setting is just used for filtering and is more or less arbitrary
+  # for the purposes of this test.
+  plock2 = {
+    name    = "test";
+    version = "2.0.0";
+    packages = {
+      # Keep
+      "node_modules/a" = {
+        optional = true;
+        version  = "1.0.0";
+        os       = ["linux"];
+        cpu      = ["x64"];
+      };
+      "node_modules/a/node_modules/c" = {
+        optional = true;
+        version  = "1.0.0";
+      };
+      "node_modules/e" = {
+        optional = true;
+        version  = "1.0.0";
+        os       = ["linux"];
+      };
+      "node_modules/f" = {
+        optional = true;
+        version  = "1.0.0";
+        cpu      = ["x64"];
+      };
+      # Drop
+      "node_modules/b" = {
+        optional = true;
+        version  = "1.0.0";
+        os       = ["darwin"];
+        cpu      = ["x64"];
+      };
+      "node_modules/b/node_modules/d" = {
+        optional = true;
+        version  = "1.0.0";
+      };
+      "node_modules/g" = {
+        optional = true;
+        version  = "1.0.0";
+        os       = ["darwin"];
+      };
+      "node_modules/h" = {
+        optional = true;
+        version  = "1.0.0";
+        cpu      = ["arm64"];
+      };
+    };
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -129,7 +180,6 @@
     # Just make sure this doesn't crash.
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaDev1 = {
-      # Just
       expr = let
         rsl' = idealTreeMetaSetPlockV2 {
           plock  = plock1;
@@ -143,7 +193,6 @@
     # Just make sure this doesn't crash.
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaProd1 = {
-      # Just
       expr = let
         rsl' = idealTreeMetaSetPlockV2 {
           plock  = plock1;
@@ -155,6 +204,19 @@
       expected = let
         nd = lib.filterAttrs ( _: v: ! ( v.dev or false ) ) plock1.packages;
       in builtins.attrNames ( removeAttrs nd [""] );
+    };
+
+    testNoMetaSys = {
+      expr = idealTreeMetaSetPlockV2 {
+        plock  = plock2;
+        system = "x86_64-linux";
+      };
+      expected = {
+        "node_modules/a"                = "a/1.0.0";
+        "node_modules/a/node_modules/c" = "c/1.0.0";
+        "node_modules/e"                = "e/1.0.0";
+        "node_modules/f"                = "f/1.0.0";
+      };
     };
 
   };
