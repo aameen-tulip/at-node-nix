@@ -40,7 +40,7 @@
     msg = "Unsupported CPU: ${p}. " +
           "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
     np = npmProcessorMap.${p} or ( throw msg );
-  in lib.assertOneOf "NPM CPU" np npmCpus;
+  in builtins.deepSeq ( lib.assertOneOf "NPM CPU" np npmCpus ) np;
 
   # Takes a `nixpkgs.(build|host|target)Platform' attrset as an argument.
   # Returns the NPM CPU enum for that platform.
@@ -83,7 +83,7 @@
     msg = "Unsupported OS: ${o}. " +
           "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
     no = npmOSMap.${o} or ( throw msg );
-  in lib.assertOneOf "NPM OSs" no npmOSs;
+  in builtins.deepSeq ( lib.assertOneOf "NPM OSs" no npmOSs ) no;
 
   getNpmOSForPlatform = { parsed, ... }: npmLookupOS parsed.kernel.name;
   getNpmOSForSystem   = system: npmLookupOS ( lib.yank "[^-]+-(.*)" system );
@@ -157,6 +157,36 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Create a conditional that can be applied to a `package[-lock].json' entry to
+  # determine if the package is supported by the host system.
+  pkgCpuCond = { cpu ? null, ... } @ pjs: sysArgs: let
+    npmSys  = getNpmSys sysArgs;
+    hostCpu = if builtins.isString sysArgs then sysArgs else npmSys.cpu;
+  in assert hostCpu != null;
+     if cpu == null then true else builtins.elem hostCpu cpu;
+
+  pkgOSCond = { os ? null, ... } @ pjs: sysArgs: let
+    npmSys  = getNpmSys sysArgs;
+    hostOS = if builtins.isString sysArgs then sysArgs else npmSys.os;
+  in assert hostOS != null;
+     if os == null then true else builtins.elem hostOS os;
+
+  # Handles OS and CPU together.
+  pkgSysCond = { cpu ? null, os ? null, ... } @ pjs: sysArgs: let
+    npmSys  =
+      if ( builtins.isAttrs sysArgs ) &&
+         ( sysArgs ? os ) && ( sysArgs ? cpu ) then sysArgs else
+      if builtins.isString sysArgs then getNpmSys { system = sysArgs; } else
+      getNpmSys sysArgs;
+    cpuCond = if cpu == null then true else builtins.elem npmSys.cpu cpu;
+    osCond  = if os  == null then true else builtins.elem npmSys.os os;
+  in assert npmSys.os  != null;
+     assert npmSys.cpu != null;
+     cpuCond && osCond;
+
+
+# ---------------------------------------------------------------------------- #
+
   # FIXME: Handle `engines' particularly Node.js version.
   # Reading engine versions for NPM and Yarn may be useful indirectly to provide
   # hints to `metaEnt' functions; but I don't see any real reason to fool with
@@ -174,6 +204,10 @@ in {
     getNpmOSForSystem
     getNpmSys'
     getNpmSys
+
+    pkgCpuCond
+    pkgOSCond
+    pkgSysCond
   ;
 
 }

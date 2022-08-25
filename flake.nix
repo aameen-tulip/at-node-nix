@@ -368,6 +368,18 @@
 
       inherit (pacoteFlake.packages.${system}) pacote;
 
+      lib-tests = import ./lib/tests {
+        # `writeText' and `lib' are the only two attributes which legitimately
+        # need to cause retesting.
+        # Because these are so quick, the convenience of having them available
+        # for iterative development in the REPL outweighs spurrious reruns.
+        # XXX: When the APIs in this `flake' stabilize this should be corrected.
+        inherit nixpkgs system lib ak-nix;
+        pkgs = pkgsFor;
+        enableTraces = true;
+        inherit (pkgsFor) writeText;
+      };
+
       npm-why = ( import ./pkgs/development/node-packages/npm-why {
         pkgs = pkgsFor;
       } ).npm-why;
@@ -404,31 +416,10 @@
     apps = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system};
     in {
-
       # Yeah, we're recursively calling Nix.
       genFlakeInputs = {
         type = "app";
         program = self.packages.${system}.genFlakeInputs.outPath;
-      };
-
-    } );
-
-
-/* -------------------------------------------------------------------------- */
-
-    checks = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system};
-    in {
-      lib = import ./lib/tests {
-        # `writeText' and `lib' are the only two attributes which legitimately
-        # need to cause retesting.
-        # Because these are so quick, the convenience of having them available
-        # for iterative development in the REPL outweighs spurrious reruns.
-        # XXX: When the APIs in this `flake' stabilize this should be corrected.
-        inherit nixpkgs system lib ak-nix;
-        pkgs = pkgsFor;
-        enableTraces = true;
-        inherit (pkgsFor) writeText;
       };
     } );
 
