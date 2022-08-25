@@ -47,7 +47,7 @@ jobs:
           nix registry add nixpkgs "github:NixOS/nixpkgs/29769d2a1390d294469bcc6518f17931953545e1";
           # TODO: there's definitely a better way to pin this.
           nix registry add ak-nix  "github:aakropotkin/ak-nix/$(
-            nix run nixpkgs#jq -- -r '.nodes[ak-nix].locked.rev' ./flake.lock;
+            nix run nixpkgs#jq -- -r '.nodes["ak-nix"].locked.rev' ./flake.lock;
           )";
 
       - name: Ideal Tree PlockV2
