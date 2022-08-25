@@ -24,6 +24,7 @@
     libreg     = callLibs ./registry.nix;
     libmeta    = callLibs ./meta.nix;
     libtree    = callLibs ./ideal-tree-plockv2.nix;
+    libsys     = callLibs ./system.nix;
 
     inherit (final.libparse)
       tryParseIdent
@@ -38,10 +39,6 @@
 
     inherit (final.libpkginfo)
       importJSON'
-      getNpmCpuForPlatform
-      getNpmCpuForSystem
-      getNpmOSForPlatform
-      getNpmOSForSystem
     ;
 
     inherit (final.libstr)
@@ -89,6 +86,13 @@
     ;
 
     inherit (final.libcfg) mkFlocoConfig;
+
+    inherit (final.libsys)
+      getNpmCpuForSystem
+      getNpmOSForSystem
+      getNpmSys'
+      getNpmSys
+    ;
 
   } );
 in lib'
