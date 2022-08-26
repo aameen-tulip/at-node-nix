@@ -20,6 +20,7 @@
 ##    if ( config ? system ) then ( builtins.getFlake "nixpkgs" ).${config.system}
 ##                           else import <nixpkgs> {}
 , ak-nix ? builtins.getFlake "github:aakropotkin/ak-nix"
+, ...
 } @ args: let
 
 # ---------------------------------------------------------------------------- #
@@ -224,12 +225,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-in {
-  inputs = { inherit lib flocoConfig /* writeText pkgsFor */ ak-nix; };
-  inherit tests;
-  runSimple =
-    builtins.mapAttrs ( k: { expr, expected }: expr == expected ) tests;
-}
+in tests
 
 # ---------------------------------------------------------------------------- #
 #

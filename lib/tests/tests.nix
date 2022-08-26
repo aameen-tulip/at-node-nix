@@ -9,7 +9,7 @@
   inherit (lib) libpkginfo;
 
   # Tests for some libs are in dedicated subdirs with data files.
-  idealTreeTests = ( import ./ideal-tree-plockv2 { inherit lib; } ).tests;
+  idealTreeTests = import ./ideal-tree-plockv2 ( args // { inherit lib; } );
 
   subdirTests = idealTreeTests;
 
