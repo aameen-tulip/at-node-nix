@@ -12,16 +12,7 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib ? import ../../default.nix { inherit (ak-nix) lib; inherit flocoConfig; }
-, flocoConfig ? {}
-##, writeText ? pkgsFor.writeText
-## For fallback
-##, pkgsFor ?
-##    if ( config ? system ) then ( builtins.getFlake "nixpkgs" ).${config.system}
-##                           else import <nixpkgs> {}
-, ak-nix ? builtins.getFlake "github:aakropotkin/ak-nix"
-, ...
-} @ args: let
+{ lib, flocoConfig ? {}, ...  } @ args: let
 
 # ---------------------------------------------------------------------------- #
 
@@ -86,7 +77,7 @@
   };
 
   # A real lock.
-  plock1 = lib.importJSON' ./package-lock-1.json;
+  plock1 = lib.importJSON' "${toString ./data/it2-package-lock.json}";
 
   # A lock with nested optionals.
   # We use this to ensure that if a package if dropped, any subdirs are also

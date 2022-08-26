@@ -364,17 +364,12 @@
 
       inherit (pacoteFlake.packages.${system}) pacote;
 
-      lib-tests = import ./lib/tests {
-        inherit nixpkgs system lib ak-nix pkgsFor;
-        inherit (pkgsFor) writeText;
-        enableTraces = true;
-      };
-      lib-tests2 = import ./tests/pkg-lock {
+      tests = ( import ./tests {
         inherit nixpkgs system lib ak-nix pkgsFor;
         inherit (pkgsFor) writeText;
         enableTraces = true;
         fetchurl = lib.fetchurlDrv;
-      };
+      } ).checkDrv;
 
       # I am aware of how goofy this is.
       # I am aware that I could use `prefetch' - this is more convenient

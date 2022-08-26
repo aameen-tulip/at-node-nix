@@ -1,24 +1,27 @@
-name: Lib Tests
+name: All Tests
 on:
   push:
     branches:
       -  main
     paths:
-      - .github/workflows/lib-test.yml
+      - .github/workflows/all-test.yml
       - flake.nix
       - lib/default.nix
       - lib/**
+      - tests/**
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - .github/workflows/lib-test.yml
+      - .github/workflows/all-test.yml
       - flake.nix
+      - lib/default.nix
       - lib/**
+      - tests/**
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  lib-tests:
+  all-tests:
     runs-on: ubuntu-latest
     env:
       SYSTEM: x86_64-linux
@@ -49,7 +52,5 @@ jobs:
           # Register aliases to avoid the long ref
           nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
 
-      - name: Lib Tests
-        run: nix build head#lib-tests -L --show-trace
-      - name: Lib Tests ( Legacy )
-        run: nix build head#lib-tests2 -L --show-trace
+      - name: All Tests
+        run: nix build head#tests -L --show-trace
