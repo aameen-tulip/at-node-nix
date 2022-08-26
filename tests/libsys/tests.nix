@@ -115,22 +115,61 @@
 
 # ---------------------------------------------------------------------------- #
 
-    # FIXME:
     testPkgCpuCond = {
-      expr = {};
-      expected = {};
+      expr = let
+        checkSys = pjs: pkgCpuCond pjs { system = "x86_64-linux"; };
+      in map checkSys [
+        { cpu = ["x64" "arm64"]; }
+        {}
+        { cpu = ["arm64"]; }
+      ];
+      expected = [
+        true
+        true
+        false
+      ];
     };
 
-    # FIXME:
     testPkgOSCond = {
-      expr = {};
-      expected = {};
+      expr = let
+        checkSys = pjs: pkgOSCond pjs { system = "x86_64-linux"; };
+      in map checkSys [
+        { os = ["linux" "darwin"]; }
+        {}
+        { os = ["darwin"]; }
+      ];
+      expected = [
+        true
+        true
+        false
+      ];
     };
 
-    # FIXME:
     testPkgSysCond = {
-      expr = {};
-      expected = {};
+      expr = let
+        checkSys = pjs: pkgSysCond pjs { system = "x86_64-linux"; };
+      in map checkSys [
+        { cpu = ["x64" "arm64"]; }
+        { os = ["linux" "darwin"]; }
+        {}
+        { cpu = ["arm64"]; }
+        { os = ["darwin"]; }
+        { cpu = ["x64" "arm64"]; os = ["linux"]; }
+        { cpu = ["x64" "arm64"]; os = ["darwin"]; }
+        { cpu = ["arm64"]; os = ["linux"]; }
+        { cpu = []; os = ["linux"]; }
+      ];
+      expected = [
+        true
+        true
+        true
+        false
+        false
+        true
+        false
+        false
+        false
+      ];
     };
 
   };  # End Tests

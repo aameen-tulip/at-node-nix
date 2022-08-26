@@ -134,9 +134,17 @@
 
 # ---------------------------------------------------------------------------- #
 
+  subdirsOfPathPlockV2' = { plock, path }:
+    builtins.filter ( lib.hasPrefix path )
+                    ( builtins.attrNames plock.packages );
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     idealTreeMetaSetPlockV2
+    subdirsOfPathPlockV2'
   ;
 }
 
