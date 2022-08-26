@@ -1,6 +1,3 @@
-#
-# FIXME: move to top level `tests/' dir.
-#
 # ============================================================================ #
 #
 # Provides sane defaults for running this set of tests.
@@ -16,10 +13,10 @@
 { nixpkgs     ? builtins.getFlake "nixpkgs"
 , system      ? builtins.currentSystem
 , pkgsFor     ? nixpkgs.legacyPackages.${system}
+, fetchurl    ? lib.fetchurlDrv
 , writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
-, lib         ? import "${toString ../.}" { inherit (ak-nix) lib; }
-, outputAttrs ? false
+, lib         ? import "${toString ../../lib}" { inherit (ak-nix) lib; }
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
@@ -27,12 +24,32 @@
 
 # ---------------------------------------------------------------------------- #
 
-  tests = import ./tests.nix ( args // { inherit lib pkgsFor; } );
+  # Used to import test files.
+  autoArgs = {
+    inherit lib;
+    inherit fetchurl;  # `dependency-closure.nix' for testing plv1 fetchers.
+  } // args;
+
+  tests = let
+    testsFrom = file: let
+      fn    = import file;
+      fargs = builtins.functionArgs fn;
+      ts    = fn ( builtins.intersectAttrs fargs autoArgs );
+    in assert builtins.isAttrs ts;
+       ts;
+  in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
+    "${toString ./resolve.nix}"
+    "${toString ./dependency-closure.nix}"
+    "${toString ./ideal-tree-v2.nix}"
+  ];
+
+# ---------------------------------------------------------------------------- #
+
   # We need `check' and `checkerDrv' to use different `checker' functions which
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "lib-tests";
+    name = "libplock-tests";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {
@@ -48,11 +65,11 @@
 
 # ---------------------------------------------------------------------------- #
 
-in if outputAttrs then harness else harness.checkDrv
+in harness
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 #
 #
 #
-# =========================================================================== #
+# ============================================================================ #
