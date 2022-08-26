@@ -50,6 +50,6 @@ jobs:
           nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
 
       - name: Lib Tests
-        run: nix flake build head#lib-tests -L --show-trace
+        run: nix build head#lib-tests -L --show-trace
       - name: Lib Tests ( Legacy )
-        run: nix flake build head#lib-tests2 -L --show-trace
+        run: nix build head#lib-tests2 -L --show-trace
