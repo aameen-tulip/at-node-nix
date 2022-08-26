@@ -7,19 +7,13 @@ on:
       - .github/workflows/lib-test.yml
       - flake.nix
       - lib/default.nix
-      # For `getNpm(Cpu|OS)For(System|Platform)'
-      - lib/pkginfo.nix
-      - lib/ideal-tree-plockv2.nix
-      - lib/tests/ideal-tree-plockv2/default.nix
+      - lib/**
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - .github/workflows/lib-test.yml
       - flake.nix
-      - lib/default.nix
-      - lib/pkginfo.nix
-      - lib/ideal-tree-plockv2.nix
-      - lib/tests/ideal-tree-plockv2/default.nix
+      - lib/**
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -53,24 +47,9 @@ jobs:
           { printf '    nix    version: '; nix    --version; } >&2;
           echo "# ---------------------------------------------------------------------------- #" >&2;
           # Register aliases to avoid the long ref
-          nix registry add head    "github:aameen-tulip/at-node-nix/$GITHUB_REF";
-          nix registry add nixpkgs "github:NixOS/nixpkgs/29769d2a1390d294469bcc6518f17931953545e1";
-          # TODO: there's definitely a better way to pin this.
-          nix registry add ak-nix  "github:aakropotkin/ak-nix/$(
-            nix run nixpkgs#jq -- -r '.nodes["ak-nix"].locked.rev' ./flake.lock;
-          )";
+          nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
 
-      - name: Ideal Tree PlockV2
-        run: |
-          nix eval --raw -f ./. runSimple                                            \
-            --arg flocoConfig "{ system = \"$SYSTEM\"; enableImpureMeta = false; }"  \
-            --arg ak-nix "builtins.getFlake \"ak-nix\""                              \
-            --apply "runSimple: let
-            report = k: v: let
-              pf = if v then \"PASS\" else \"FAIL\";
-            in builtins.trace \"\${pf}: \${k}\" v;
-            rsl = builtins.all ( k: report k runSimple.\${k} )
-                               ( builtins.attrNames runSimple );
-          in assert rsl; \"PASS: ideal-tree-plockv2\"";
-          exit "$?"
-        working-directory: lib/tests/ideal-tree-plockv2
+      - name: Lib Tests
+        run: nix flake build head#lib-tests -L --show-trace
+      - name: Lib Tests ( Legacy )
+        run: nix flake build head#lib-tests2 -L --show-trace
