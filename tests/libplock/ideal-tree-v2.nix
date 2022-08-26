@@ -77,7 +77,7 @@
   };
 
   # A real lock.
-  plock1 = lib.importJSON' "${toString ./data/it2-package-lock.json}";
+  plock1 = lib.importJSON' ./data/it2-package-lock.json;
 
   # A lock with nested optionals.
   # We use this to ensure that if a package if dropped, any subdirs are also

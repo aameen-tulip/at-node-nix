@@ -3,10 +3,7 @@
 # Provides sane defaults for running this set of tests.
 # This is likely not the "ideal" way to utilize the test suite, but for someone
 # who is consuming your project and knows nothing about it - this file should
-# allow them to simply run `nix build' to see if the test suite passes.
-#
-# During active/iterative development, maintainters and contributors will almost
-# certainly prefer the specialized interfaces of `run.nix' or `check.nix'.
+# allow them to simply run `nix build -f .' to see if the test suite passes.
 #
 # ---------------------------------------------------------------------------- #
 
@@ -16,7 +13,7 @@
 , fetchurl    ? lib.fetchurlDrv
 , writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
-, lib         ? import "${toString ../lib}" { inherit (ak-nix) lib; }
+, lib         ? import ../lib { inherit (ak-nix) lib; }
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
@@ -38,8 +35,8 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    "${toString ./libplock}"
-    "${toString ./libpkginfo}"
+    ./libplock
+    ./libpkginfo
   ];
 
 # ---------------------------------------------------------------------------- #
