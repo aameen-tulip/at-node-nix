@@ -113,17 +113,19 @@
   getNpmSys' = {
     system ? if enableImpureMeta then builtins.currentSystem else null
   , cpu ?
+      if args ? npmSys.cpu then npmSys.cpu else
       if args ? flocoConfig.npmSys.cpu then flocoConfig.npmSys.cpu else
-      if args ? system then lib.getNpmCpuForSystem system else
-      if hostPlatform != null then lib.getNpmCpuForPlatform hostPlatform else
+      if args ? system then getNpmCpuForSystem system else
+      if hostPlatform != null then getNpmCpuForPlatform hostPlatform else
       # `system' bottoms out to `null' in pure mode.
-      if system != null then lib.getNpmCpuForSystem system else null
+      if system != null then getNpmCpuForSystem system else null
   , os ?
+      if args ? npmSys.os then npmSys.os else
       if args ? flocoConfig.npmSys.os then flocoConfig.npmSys.os else
-      if args ? system then lib.getNpmOSForSystem system else
-      if hostPlatform != null then lib.getNpmOSForPlatform hostPlatform else
+      if args ? system then getNpmOSForSystem system else
+      if hostPlatform != null then getNpmOSForPlatform hostPlatform else
       # `system' bottoms out to `null' in pure mode.
-      if system != null then lib.getNpmOSForSystem system else null
+      if system != null then getNpmOSForSystem system else null
   # Priority for platforms aligns with Nixpkgs' fallbacks
   , hostPlatform     ? if stdenv != null then stdenv.hostPlatform else
                        args.flocoConfig.hostPlatform or buildPlatform
