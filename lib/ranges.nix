@@ -1,16 +1,23 @@
+# ============================================================================ #
+#
+# Range comparators:
+#   =   Used if no qualifier is stated ( "foo@1.0" is really "foo@=1.0" )
+#   <=, >=, <, > allow two version specs but do latest/min are assumed when only
+#                one is given.
+#  || separate comparator expressions.
+#
+#  x - y  "ranges" are syntactic sugar for ">=x <=y"
+#
+#  With subversions there's a special caveat:
+#  1.2.3 - 2.3  :=  >=1.2.3 <2.4.0-0
+#  1.2.3 - 2    :=  >=1.2.3 <3.0.0-0
+#
+# ---------------------------------------------------------------------------- #
+
 { lib }: let
-/**
- * Range comparators:
- *   =   Used if no qualifier is stated ( "foo@1.0" is really "foo@=1.0" )
- *   <=, >=, <, > allow two version specs but do latest/min are assumed when only one is given.
- *  || separate comparator expressions.
- *
- *  x - y  "ranges" are syntactic sugar for ">=x <=y"
- *
- *  With subversions there's a special caveat:
- *  1.2.3 - 2.3  :=  >=1.2.3 <2.4.0-0
- *  1.2.3 - 2    :=  >=1.2.3 <3.0.0-0
- */
+
+# ---------------------------------------------------------------------------- #
+
 
   versionRE = let
     np        = "(0|[1-9][0-9]*)";
@@ -27,36 +34,29 @@
     mods    = "[~^]";
     cmpPatt = "([<>]=?|=?[<>]|=)";
     betPatt = "(${ws}-|-${ws})";
-
     modPatt    = "(${mods})?(${versionRE})";
     cmpVerPatt = "(${cmpPatt}${ws}*(${versionRE})|(${versionRE})${ws}*${cmpPatt})";
     rangePatt  = "(${versionRE})${ws}*${betPatt}${ws}*(${versionRE})";
     termPatt   = "${ws}*(${cmpVerPatt}(${ws}*${cmpVerPatt})?|${rangePatt}|${modPatt})${ws}*";
     # We have to escape "|" using "[|]", NOT "\|".
     stPatt     = "${termPatt}([|][|]${termPatt})*";
-
     matched = match stPatt str;
-
     # FIXME: This indexing is Nightmarish.
     term = head matched;
     restTerms = elemAt matched ( ( length matched ) / 2 );
-
     matchRange  = match rangePatt term;
     matchMod    = match modPatt term;
     matchCmpVer = match "${cmpVerPatt}(${ws}*${cmpVerPatt})?" term;
-
     fromRange = let
       left  = head matchRange;
       right = elemAt matchRange ( ( ( length matchRange ) / 2 ) + 1 );
       sorted = sortVersionsA [left right];
     in { from = head sorted; to = elemAt sorted 1; type = "range"; };
-
     fromMod = let m' = head matchMod; in {
       mod = if ( m' == null ) then "=" else m';
       version = elemAt matchMod 1;
       type = "mod";
     };
-
     fromCmp = let
       left     = head matchCmpVer;
       right    = elemAt matchCmpVer ( ( ( length matchCmpVer ) / 2 ) + 1 );
@@ -64,10 +64,8 @@
       getVer   = e: head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
       parseCmp = e: { op = getOp e; version = getVer e; };
     in { left = parseCmp left; right = parseCmp right; type = "cmp"; };
-
     rest = if ( restTerms != null ) then ( parseVersionConstraint' restTerms )
                                     else null;
-
   in if ( matchRange != null )  then ( fromRange // { inherit rest; } ) else
      if ( matchMod != null )    then ( fromMod   // { inherit rest; } ) else
      if ( matchCmpVer != null ) then ( fromCmp   // { inherit rest; } ) else
@@ -90,6 +88,9 @@
   in null;
 
 
+# ---------------------------------------------------------------------------- #
+
+
   sortVersions' = descending: versions: let
     inherit (builtins) compareVersions sort;
     cmp' = a: b: ( compareVersions a b ) >= 0;
@@ -98,6 +99,10 @@
 
   sortVersionsD = sortVersions' true;
   sortVersionsA = sortVersions' false;
+  sortVersions  = sortVersionsA;
+
+
+# ---------------------------------------------------------------------------- #
 
   # Determine if a version string is a "release" version.
   # Release version strings must not contain a pre-release "tag", but may still
@@ -107,6 +112,9 @@
 
   latestRelease = vs: let inherit (builtins) filter head; in
     head ( sortVersionsD ( filter isRelease vs ) );
+
+
+# ---------------------------------------------------------------------------- #
 
   # Split a version string into a list of 6 components following semver spec.
   semverSplit = v: let
@@ -118,6 +126,9 @@
     # Keep fields [0, 2, 4, 6, 8, 10]
     keeps = map ( i: builtins.elemAt matched i ) [0 2 4 6 8 10];
   in if ( matched == null ) then [null null null null null null] else keeps;
+
+
+# ---------------------------------------------------------------------------- #
 
   # Split a version string into a labeled set of subcomponents following
   # semver spec.
@@ -133,6 +144,9 @@
     buildMeta = at 5;
   };
 
+
+# ---------------------------------------------------------------------------- #
+
   # Fills missing fields in versions, and strips leading "v".
   # "v1.0"            ==> "1.0.0-0"
   # "v1.2.3-X.4+5Y.6" ==> "1.2.3-X.4+5Y.6"
@@ -146,10 +160,32 @@
     b   = if ( ps.buildMeta != null ) then ( "+" + ps.buildMeta ) else "";
   in nb + b;
 
+
+# ---------------------------------------------------------------------------- #
+
 in {
-  inherit sortVersions' sortVersionsD sortVersionsA;
-  sortVersions = sortVersionsA;
-  inherit isRelease latestRelease;
-  inherit semverSplit parseSemver normalizeVersion;
-  inherit parseVersionConstraint';
+  inherit
+    versionRE
+
+    sortVersions'
+    sortVersionsD
+    sortVersionsA
+    sortVersions
+
+    isRelease
+    latestRelease
+
+    parseVersionConstraint'
+    semverSplit
+    parseSemver
+
+    normalizeVersion
+  ;
 }
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

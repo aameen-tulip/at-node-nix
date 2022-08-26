@@ -36,8 +36,8 @@
   ];
 
   npmProcessorMap = {
-    x86_64   = "x64";
-    aarch64  = "arm64";
+    x86_64  = "x64";
+    aarch64 = "arm64";
   };
 
   npmLookupProc = p: let
