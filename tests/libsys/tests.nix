@@ -103,8 +103,8 @@
     # We really just care that the `(builtins|lib).functionArgs' align.
     testGetNpmSys = {
       expr = [
-        ( builtins.functionArgs getNpmSys' )
-        ( lib.functionArgs getNpmSys' )
+        ( builtins.functionArgs getNpmSys )
+        ( lib.functionArgs getNpmSys )
       ];
       expected = [
         ( builtins.functionArgs getNpmSys' )

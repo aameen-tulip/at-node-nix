@@ -1,32 +1,36 @@
 # ============================================================================ #
+#
+# These are aimed at handling NPM's `cpu' and `os' fields for optinal deps.
+#
+# The spec here is:
+#   If a dependency is marked as optional, the install is allowed to fail
+#   ( this ain't going to fly with Nix so this is tough to replicate ).
+#   A `package.json' may indicate the fields `cpu' and `os' to specify the
+#   systems it is intended to support; from the consumer perspective if a dep
+#   is marked optional we can assume the install will fail is the `cpu'/`os'
+#   declarations tell us that our system is unsupported - this allows Nix to
+#   at least skip these to align with the spec more closely.
+#
+# Given that Nix really can't align with the NPM spec here "perfectly" without
+# performing installs in a sort of `try ... catch' type environment; these
+# fields are enormously helpful.
+#
+# I have constructed this list of CPUs and OSs from those that I have
+# encountered in the wild; and you may find the need to extend this list.
+# I encourage you to PR if you find values that I haven't listed here.
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
 
 # ---------------------------------------------------------------------------- #
 
-  # These are aimed at handling NPM's `cpu' and `os' fields for optinal deps.
-  # The spec here is:
-  #   If a dependency is marked as optional, the install is allowed to fail
-  #   ( this ain't going to fly with Nix so this is tough to replicate ).
-  #   A `package.json' may indicate the fields `cpu' and `os' to specify the
-  #   systems it is intended to support; from the consumer perspective if a dep
-  #   is marked optional we can assume the install will fail is the `cpu'/`os'
-  #   declarations tell us that our system is unsupported - this allows Nix to
-  #   at least skip these to align with the spec more closely.
-  #
-  # Given that Nix really can't align with the NPM spec here "perfectly" without
-  # performing installs in a sort of `try ... catch' type environment; these
-  # fields are enormously helpful.
-  #
-  # I have constructed this list of CPUs and OSs from those that I have
-  # encountered in the wild; and you may find the need to extend this list.
-  # I encourage you to PR if you find values that I haven't listed here.
   npmCpus = [
     "x64"
     "ia32"
     "arm"
     "arm64"
-    "s390x"  # No clue
+    "s390x"     # Sounds made up TBH.
     "ppc64"
     "mips64el"
   ];
@@ -38,7 +42,7 @@
 
   npmLookupProc = p: let
     msg = "Unsupported CPU: ${p}. " +
-          "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
+          "( If this sounds wrong add it to the list in `lib/system.nix' )";
     np = npmProcessorMap.${p} or ( throw msg );
   in builtins.deepSeq ( lib.assertOneOf "NPM CPU" np npmCpus ) np;
 
@@ -81,7 +85,7 @@
 
   npmLookupOS = o: let
     msg = "Unsupported OS: ${o}. " +
-          "( If this sounds wrong add it to the list in `lib/pkginfo.nix' )";
+          "( If this sounds wrong add it to the list in `lib/system.nix' )";
     no = npmOSMap.${o} or ( throw msg );
   in builtins.deepSeq ( lib.assertOneOf "NPM OSs" no npmOSs ) no;
 
@@ -213,6 +217,7 @@ in {
   ;
 
 }
+
 
 # ---------------------------------------------------------------------------- #
 #
