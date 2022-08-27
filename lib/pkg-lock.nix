@@ -24,17 +24,7 @@
     attrNames
   ;
 
-/* -------------------------------------------------------------------------- */
-
-  # FIXME:
-  #   Most of these were written referencing a lockfile created by NPM v6.
-  #   NPM v8 made notable changes to the "top level" keys of their lockfile
-  #   to support workspaces.
-  #   Luckily these changes largely just effect treatment of the top-level; but
-  #   these functions should be updated accordingly.
-
-
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Helper that follows linked entries.
   realEntry = plock: path: let
@@ -52,7 +42,7 @@
     { inherit name; } // ( realEntry plock "node_modules/${name}" );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   resolveDepFor = plock: from: ident: let
     isSub = k: _: lib.test "${from}/node_modules/${ident}" k;
@@ -127,7 +117,7 @@
      resolvePkgVersionFor { inherit plock; fromPath = parentPath; } ident;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   pinVersionsFromPLockV2 = plock: let
     pinEnt = from: {
@@ -164,34 +154,19 @@
       };
     in builtins.listToAttrs
       ( map renameFromKey ( builtins.attrValues pinned ) );
-    # It is with a heavy heart that I added support for "instances"; known as
-    # "ABI Conflicts" in compiled languages ( the most dangerous category of
-    # undefined behavior ).
-    # If your code breaks because of "instances", it's possible that there is a
-    # bug here in this routine, but know that I will not respond to any issues
-    # or PRs which relate to this "feature".
-    # If your code-base depends on instances, then it should be refactored or
-    # put down like the rabid animal that it is.
-    # The idea that other package managers allow this would be comical if not
-    # for how dangerous it were in real world software that real people
-    # depend on.
-    # Reliance on "instances" indicates that a project has sprawled without
-    # sane regard for interface design; and reflects poorly on the authors who
-    # produced those interfaces.
-    # If you file a bug about how you `node-gyp' build is selecting the wrong
-    # `nan' version when deeply nested in `node_modules/' directories, I will
-    # mock you and likely make snide remarks about how "you should never have
-    # transfered out that MBA program at University".
-    # The software we write is used in infrastructure that everyday people
-    # depend on to pay their bills, access health care, and communicate with one
-    # another - when those systems are poorly engineered or maintained there are
-    # real world consequences.
-    # My critique of these failure on the part of authors is not merely to call
-    # them "stupid", I sincerely fear that they are unknowingly putting others
-    # at risk by their own ignorance or lack of education in core
-    # Software Engineering fundamentals, which cannot easily be conveyed leaving
-    # me with only "have you considered other career paths?" to get the desired
-    # point across.
+    # This routine identifies "conflicting instances" of packages with ambiguous
+    # resolution in a lockfile.
+    # These are a sibling of the "ABI Conflicts" from compiled languages
+    # ( likely the most dangerous category of undefined behavior ).
+    # NPM and Yarn produce no erros or warnings about these conflicts and only
+    # concern themselves with Node's ABI ( using the `engines' field ); I have a
+    # far more skeptical attitude and am temporarily emitting warnings which I
+    # will later turn to errors.
+    # Reliance on "conflicting instances" indicates that a project has sprawled
+    # without sane regard for interface design; if you file a PR confused about
+    # why the 8 conflicting versions of NaN aren't resolving against multiple
+    # same version instances of `foo' the way they did with NPM, I'm just going
+    # to say "cool I'm glad I could help you locate lurking UB in your codebase".
     instances = let
       pushDownPkey =
         builtins.mapAttrs ( pkey: v: v // { inherit pkey; } ) pinned;
@@ -214,20 +189,16 @@
   in renamed // instances; # this clobbers
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
 in {
-
-  # The real lib members.
   inherit
     realEntry
     getTopLevelEntry
-
     resolveDepFor
     resolvePkgKeyFor
     resolvePkgVersionFor
     splitNmToAttrPath
-
     pinVersionsFromPLockV2
   ;
 }
