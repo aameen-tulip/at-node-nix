@@ -25,6 +25,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Some V3 Helpers
+
   # (V3) Helper that follows linked entries.
   # If you look in the `package.*' attrs you'll see symlink entries use the
   # `resolved' field to point to out of tree directories, and do not contain
@@ -35,7 +37,6 @@
     entry = if e.link or false then plock.packages."${e.resolved}" else e;
   in assert supportsPlV3 plock;
      entry;
-
 
   # (V3) Return the top-level lock entry for package with `name'.
   # This does not search nested entries.
@@ -48,7 +49,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Some V3 Helpers
+  # Schema Indepent Helpers
 
   # From a "node_modules/foo/node_modules/@bar/quux" path, get "@bar/quux".
   pathId = lib.yank ".*node_modules/(.*)";
@@ -59,20 +60,48 @@
   # Return `null' if path is the root or a direct child of root.
   parentPath = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+";
 
+  # Given a `node_modules/foo/node_modules/@bar/quux/...' path ( string ), split
+  # to a list of identifiers with the same hierarcy.
+  # In the example above we expect `["foo" "@bar/quux"]'.
+  splitNmToIdentPath = nmpath: let
+    sp = builtins.tail ( lib.splitString "node_modules/" nmpath );
+    stripTrailingSlash = s: let
+      m = lib.yank "(.*[^/])/" s;
+    in if m == null then s else m;
+  in map stripTrailingSlash sp;
+
 
 # ---------------------------------------------------------------------------- #
 
   # (V3)
-  resolveDepFor = plock: from: ident: let
+  # Starting at `from' directory/package in the `node_modules/' tree, resolve
+  # `ident' and return the associated entry.
+  # Node resolution searches for modules first in `<FROM>/node_modules/' if one
+  # exists ( top level only, not recursively ) and if a module is not found it
+  # begins searching "up" in parent dirs until the filesystem root is reached.
+  # In Nix builds we use isolated builds under `/tmp/' at build time or
+  # `/nix/store/' at runtime so in theory we should only care about the entries
+  # in our lock when searching "up".
+  # In any case the builders in this framework actually enforce sandboxing so
+  # we actually can rely on this.
+  # Returns `null' if resolution fails.
+  resolveDepForPlockV3 = plock: from: ident: let
+    # Is `ident' a direct subdir of `from'?
     isSub = k: _: lib.test "${from}/node_modules/${ident}" k;
+    # All direct subdirs of `from'
     subs = lib.filterAttrs isSub plock.packages;
     parent = parentPath from;
-    fromParent = resolveDepFor plock parent ident;
+    # Traverse towards parents to resolve. ( Only if `ident' isn't a subdir )
+    fromParent = if from == "" then null else resolveDepFor plock parent ident;
     path = if subs != {} then ( builtins.head ( builtins.attrNames subs ) ) else
       if parent != null then null else "node_modules/${ident}";
     entry = realEntry plock path;
   in assert supportsPlV3 plock;
-     if path == null then fromParent else { resolved = path; value = entry; };
+     if path == null then fromParent else {
+       inherit ident;
+       resolved = path;
+       value    = entry;
+     };
 
 
 # ---------------------------------------------------------------------------- #
@@ -106,19 +135,6 @@
      if ent.link or false then resolvePkgKeyFor {
        inherit plock; from = ent.resolved;
      } ident else if version != null then fromSub else fromParent;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Given a `node_modules/foo/node_modules/@bar/quux/...' path ( string ), split
-  # to a list of identifiers with the same hierarcy.
-  # In the example above we expect `["foo" "@bar/quux"]'.
-  splitNmToIdentPath = nmpath: let
-    sp = builtins.tail ( lib.splitString "node_modules/" nmpath );
-    stripTrailingSlash = s: let
-      m = lib.yank "(.*[^/])/" s;
-    in if m == null then s else m;
-  in map stripTrailingSlash sp;
 
 
 # ---------------------------------------------------------------------------- #
@@ -228,7 +244,7 @@ in {
     getTopLevelEntry
     pathId
     parentPath
-    resolveDepFor
+    resolveDepForPlockV3
     resolvePkgKeyFor
     resolvePkgVersionFor
     splitNmToIdentPath

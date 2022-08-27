@@ -49,6 +49,11 @@
       expected = "node_modules/foo";
     };
 
+    testResolveDepForPlockV3 = {
+      expr = {};
+      expected = {};
+    };
+
   };
 
 
