@@ -59,7 +59,9 @@
   # Used to find "the parent dir of a subdir".
   # Return `null' if path is the root.
   # Returns "" for a child of the root. 
-  parentPath = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+";
+  parentPath = p: let
+    m = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+" p;
+  in if p == "" then null else if m == null then "" else m;
 
   # Given a `node_modules/foo/node_modules/@bar/quux/...' path ( string ), split
   # to a list of identifiers with the same hierarcy.
@@ -87,21 +89,26 @@
   # we actually can rely on this.
   # Returns `null' if resolution fails.
   resolveDepForPlockV3 = plock: from: ident: let
-    # Is `ident' a direct subdir of `from'?
-    isSub = k: _: lib.test "${from}/node_modules/${ident}" k;
-    # All direct subdirs of `from'
-    subs = lib.filterAttrs isSub plock.packages;
-    parent = parentPath from;
+    asSub = let
+      # We can't do "${from}/..." because `from' may be "".
+      fs = if from == "" then "" else "${from}/";
+    in "${fs}node_modules/${ident}";
     # Traverse towards parents to resolve. ( Only if `ident' isn't a subdir )
-    fromParent = if from == "" then null else resolveDepFor plock parent ident;
-    path = if subs != {} then ( builtins.head ( builtins.attrNames subs ) ) else
-      if parent != null then null else "node_modules/${ident}";
-    entry = realEntry plock path;
+    fromParent = let
+      pf = parentPath from;
+    in if from != "" then resolveDepForPlockV3 plock pf ident else
+       # Handle attempts to resolve "`from' from `from'" ( love it )
+       if ident != plock.name then null else {
+         inherit ident;
+         resolved = "";
+         value    = plock.packages."";
+       };
   in assert supportsPlV3 plock;
-     if path == null then fromParent else {
+     if from == null then null else
+     if ( ! ( plock.packages ? ${asSub} ) ) then fromParent else {
        inherit ident;
-       resolved = path;
-       value    = entry;
+       resolved = asSub;
+       value    = realEntry plock asSub;
      };
 
 
