@@ -5,15 +5,17 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib, fetchurl }: let
+{ lib }: let
 
 # ---------------------------------------------------------------------------- #
 
-  inherit (lib) libplock;
+  inherit (lib.libplock)
+    pinVersionsFromPlockV2
+  ;
 
   # V1 lockfiles
-  biglock = lib.importJSON ./data/big-package-lock.json;
-  smlock  = lib.importJSON ./data/small-package-lock.json;
+  #biglock = lib.importJSON ./data/big-package-lock.json;
+  #smlock  = lib.importJSON ./data/small-package-lock.json;
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,11 +24,10 @@
   # Use this to compare the `expected' and `actual' contents.
   tests = {
 
-    testGenFetchersSmall = {
-      expr = let
-        fetchers = libplock.resolvedFetchersFromLock fetchurl smlock;
-      in builtins.all lib.isDerivation ( builtins.attrValues fetchers );
-      expected = true;
+    # FIXME
+    testPinVersionsFromPlockV2 = {
+      expr = {};
+      expected = {};
     };
 
   };

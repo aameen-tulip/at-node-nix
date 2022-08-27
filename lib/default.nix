@@ -58,11 +58,8 @@
       pkgsAsAttrsets
     ;
 
-    # FIXME: Needs to be pruned for dead-code
     inherit (final.libplock)
-      partitionResolved
-      toposortDeps
-      resolvedFetchersFromLock
+      #pinVersionsFromPlockV2  # FIXME: this looks fishy needs tests
     ;
 
     inherit (final.libreg)
@@ -91,7 +88,9 @@
       idealTreeMetaSetPlockV2  # NOTE: Only for "root" package
     ;
 
-    inherit (final.libcfg) mkFlocoConfig;
+    inherit (final.libcfg)
+      mkFlocoConfig
+    ;
 
     inherit (final.libsys)
       getNpmCpuForSystem

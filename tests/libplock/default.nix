@@ -35,8 +35,7 @@
     in assert builtins.isAttrs ts;
        ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./resolve.nix
-    ./dependency-closure.nix
+    ./tests.nix
     ./ideal-tree-v2.nix
   ];
 
