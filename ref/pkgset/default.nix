@@ -3,15 +3,11 @@
 # NOTE: This test case basically served as the proof-of-concept for a new wave
 # of builders and the `(meta|pkg)Set' constructs that have been developed in the
 # `nps-scoped' branch over the last few months ( currently being merged in ).
-# I haven't been maintaining this as if it were an "active" test case over the
-# last few months; but some miracle this bastard still works.
-# 
-# If you're looking for a rudimentary project template that doesn't demand too
-# much complexity, this is honestly a great jumping off point.
-# If you want more robust edge case handling, or ( especially ) if you need to
-# dynamically generate your derivations then this probably won't cut it; but
-# if you're cool with doing things a bit like the old `node2nix' "generate and
-# edit manually" approach this is a contender.
+#
+# After pruning redundant or dead code from `libplock' some routines this test
+# depended on were removed ( they contained bugs in edge cases which are fixed
+# in new routines, and upgrading this test case was not worth the effort ).
+#
 #
 # ---------------------------------------------------------------------------- #
 
