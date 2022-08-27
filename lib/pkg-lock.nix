@@ -1,7 +1,11 @@
 # ============================================================================ #
 #
-# FIXME: This file needs to be pruned for dead code, or at least split more
-# clearly into routines intended for V1 and V2 lockfiles.
+# Routines related to scraping `package-lock.json' data.
+# Note that there are 3 schema versions of locks, V1 and V3 are bridged by
+# a V2 schema which is compatible with both.
+# Comments below may refer to a routine as being for "V2", in retrospect this
+# naming scheme was unhelpful - I ought to have said "V3".
+# TODO: Rename these routines and patch asserts.
 #
 # ---------------------------------------------------------------------------- #
 
