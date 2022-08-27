@@ -14,12 +14,14 @@
     splitNmToIdentPath
     pathId
     parentPath
+    resolveDepForPlockV1
     resolveDepForPlockV3
   ;
 
   # V1 Lockfiles
   plv1-big   = lib.importJSON ./data/plv1-big.json;
   plv1-small = lib.importJSON ./data/plv1-small.json;
+  plv1-dev   = lib.importJSON ./data/plv1-dev.json;
   # V2 Lockfiles
   plv2-it    = lib.importJSON ./data/plv2-it.json;
 
@@ -116,6 +118,22 @@
           value.version = "1.0.0";
           value.name    = "test";
         }
+      ];
+    };
+
+    testResolveDepForPlockV1 = {
+      expr = let
+        res = { ident, ... } @ args: let
+          ctx = ( removeAttrs args ["ident"] ) // { plock = plv1-dev; };
+          rsl = resolveDepForPlockV1 ctx ident;
+        in if rsl == null then null else rsl.resolved;
+      in map res [
+        { from = ""; ident = "@ampproject/remapping"; }
+        { from = ""; ident = "phony"; }
+      ];
+      expected = [
+        "node_modules/@ampproject/remapping"
+        null
       ];
     };
 

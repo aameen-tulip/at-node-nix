@@ -38,14 +38,6 @@
   in assert supportsPlV3 plock;
      entry;
 
-  # (V3) Return the top-level lock entry for package with `name'.
-  # This does not search nested entries.
-  # This "follows" links to get the actual package info.
-  # The field `name' will be pushed down into entries if it is not present.
-  getTopLevelEntry = plock: name:
-    assert supportsPlV3 plock;
-    { inherit name; } // ( realEntry plock "node_modules/${name}" );
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -114,45 +106,17 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: support either V1 or V3, don't depend on hybrid fields.
-  # `dependencies' specifically.
-  resolvePkgKeyFor = {
-    plock
-  , from   ? ""
-  , parent ?  let
-      _maybeParent = parentPath from;
-    in if _maybeParent == null then "" else _maybeParent
-  , ent    ? realEntry plock from
-  } @ ctx: ident: let
-    fromTop = let
-      fromTopNm = ( getTopLevelEntry plock ident ).version;
-      _version  = if ident == plock.name then plock.version else fromTopNm;
-    in "${ident}/${_version}";
-    fromParent =
-      if parent != ""
-      then ( resolvePkgKeyFor { inherit plock; from = parent; } ident )
-      else fromTop;
-    sub = ent.dependencies.${ident}    or
-          ent.dependencies.${ident}    or null;
-    version =
-      if ( sub == null ) || ( builtins.isString sub ) then null else
-      if ( sub.link or false ) then plock.packages.${sub.resolved}.version else
-      sub.version;
-    fromSub = "${ident}/${version}";
-  in if from == "" then fromTop else
-     if ent.link or false then resolvePkgKeyFor {
-       inherit plock; from = ent.resolved;
-     } ident else if version != null then fromSub else fromParent;
-
-
-# ---------------------------------------------------------------------------- #
-
-
-  # This one is wonky, it's V2 only and uses fields from V1 and V3.
-  # This might be the only function that actually takes advantage of the hybrid.
-  # FIXME: this should target V1 or V3, not V2 since that's going to be
-  # deprecated in the near future.
-  resolvePkgVersionFor = {
+  # (V1) Same deal as the V3 form, except we use args `parentPath' and
+  # `fromPath' and traverse `dependencies' fields instead of `packages' field.
+  # Because this form is a hierarchy of attrs is a little bit of a pain; but
+  # it's more of less the same process.
+  # The only real "gotcha" is that V1 schema uses `dependencies' field for
+  # subdirs ( with nested entries ), and `requires' fields ( descriptors only )
+  # for resolutions in parent dirs.
+  # This function accepts `from' as a V3 style path optionally and will convert
+  # it for you, but the `fromPath' argument is faster, if you are performing
+  # several calls it may be more efficient to pre-process your args this way.
+  resolveDepForPlockV1 = {
     plock
   , from       ? ""
   , parentPath ? lib.take ( ( builtins.length fromPath ) - 1 ) fromPath
@@ -164,10 +128,26 @@
     lib.getAttrFromPath ( lib.intersperse "dependencies" fromPath )
                         plock.dependencies
   } @ ctx: ident: let
-    depHasSubs = builtins.isAttrs ent.dependencies.${ident};
-    depWasNormalized = ( ent ? dependencies.${ident} ) && depHasSubs;
-  in if depWasNormalized then ent.dependencies.${ident}.version else
-     resolvePkgVersionFor { inherit plock; fromPath = parentPath; } ident;
+    # NOTE: because we want the real entry we only look at `dependencies' and
+    # not `requires'; instead we let recursion get the real entry for us.
+    isSub = ent ? dependencies.${ident};
+    depEnt = {
+      inherit ident;
+      resolved = let
+        # NOTE: "" case is handled below don't sweat it here.
+        isp = lib.intersperse "/node_modules/" ( fromPath ++ [ident] );
+      in "node_modules/${builtins.concatStringsSep "" isp}";
+      value = ent.dependencies.${ident};
+    };
+    fromParent = if ( fromPath == [] ) && ( ident == plock.name ) then {
+      inherit ident;
+      resolved = "";
+      value = plock;
+    } else resolveDepForPlockV1 { inherit plock; fromPath = parentPath; } ident;
+  in if isSub then depEnt else
+     # Failure case
+     if ( fromPath == [] ) && ( ident != plock.name ) then null else
+     fromParent;
 
 
 # ---------------------------------------------------------------------------- #
@@ -180,7 +160,8 @@
     , name            ? pathId from
     , ...
     } @ ent: let
-      pin = resolvePkgVersionFor { inherit from plock; };
+      #pin = resolvePkgVersionFor { inherit from plock; };
+      pin = ident: ( resolveDepForPlockV3 plock from ident ).version;
       pinDep = ident: descriptor:
         if builtins.isString descriptor then pin ident else descriptor.version;
       rt' = lib.optionalAttrs ( dependencies != {} ) {
@@ -249,12 +230,10 @@ in {
     supportsPlV1
     supportsPlV3
     realEntry
-    getTopLevelEntry
     pathId
     parentPath
+    resolveDepForPlockV1
     resolveDepForPlockV3
-    resolvePkgKeyFor
-    resolvePkgVersionFor
     splitNmToIdentPath
     pinVersionsFromPLockV2
   ;
