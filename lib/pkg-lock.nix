@@ -56,7 +56,8 @@
   # Drop one trailing nmDir layer as:
   #   "node_modules/foo/node_modules/@bar/quux" -> "node_modules/foo".
   # Used to find "the parent dir of a subdir".
-  # Return `null' if path is the root or a direct child of root.
+  # Return `null' if path is the root.
+  # Returns "" for a child of the root. 
   parentPath = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+";
 
 
