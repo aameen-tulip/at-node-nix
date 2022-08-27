@@ -13,57 +13,77 @@
 
 # ---------------------------------------------------------------------------- #
 
-  inherit (builtins)
-    attrValues
-    partition
-    mapAttrs
-    listToAttrs
-    isString
-    foldl'
-    genericClosure
-    elem
-    match
-    head
-    groupBy
-    attrNames
-  ;
+  # Because `package-lock.json(V2)' supports schemas v1 and v3, these helpers
+  # shorten schema checks.
+
+  supportsPlV1 = { lockfileVersion, ... }:
+    ( lockfileVersion == 1 ) || ( lockfileVersion == 2 );
+
+  supportsPlV3 = { lockfileVersion, ... }:
+    ( lockfileVersion == 2 ) || ( lockfileVersion == 3 );
+
 
 # ---------------------------------------------------------------------------- #
 
-  # Helper that follows linked entries.
+  # (V3) Helper that follows linked entries.
+  # If you look in the `package.*' attrs you'll see symlink entries use the
+  # `resolved' field to point to out of tree directories, and do not contain
+  # any other package information.
+  # This helps us fetch the "real" entry so we can look up metadata.
   realEntry = plock: path: let
     e = plock.packages."${path}";
     entry = if e.link or false then plock.packages."${e.resolved}" else e;
-  in assert plock.lockfileVersion == 2; entry;
+  in assert supportsPlV3 plock;
+     entry;
 
 
-  # Given an NPM v8 `package-lock.json', return the top-level lock entry for
-  # package with `name'.
+  # (V3) Return the top-level lock entry for package with `name'.
   # This does not search nested entries.
   # This "follows" links to get the actual package info.
   # The field `name' will be pushed down into entries if it is not present.
-  getTopLevelEntry = plock: name: assert plock.lockfileVersion == 2;
+  getTopLevelEntry = plock: name:
+    assert supportsPlV3 plock;
     { inherit name; } // ( realEntry plock "node_modules/${name}" );
 
 
 # ---------------------------------------------------------------------------- #
 
+  # Some V3 Helpers
+
+  # From a "node_modules/foo/node_modules/@bar/quux" path, get "@bar/quux".
+  pathId = lib.yank ".*node_modules/(.*)";
+
+  # Drop one trailing nmDir layer as:
+  #   "node_modules/foo/node_modules/@bar/quux" -> "node_modules/foo".
+  # Used to find "the parent dir of a subdir".
+  # Return `null' if path is the root or a direct child of root.
+  parentPath = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+";
+
+
+# ---------------------------------------------------------------------------- #
+
+  # (V3)
   resolveDepFor = plock: from: ident: let
     isSub = k: _: lib.test "${from}/node_modules/${ident}" k;
     subs = lib.filterAttrs isSub plock.packages;
-    parent = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+" from;
+    parent = parentPath from;
     fromParent = resolveDepFor plock parent ident;
-    path = if subs != {} then ( head ( attrNames subs ) ) else
+    path = if subs != {} then ( builtins.head ( builtins.attrNames subs ) ) else
       if parent != null then null else "node_modules/${ident}";
     entry = realEntry plock path;
-  in if path == null then fromParent else { resolved = path; value = entry; };
+  in assert supportsPlV3 plock;
+     if path == null then fromParent else { resolved = path; value = entry; };
 
 
+# ---------------------------------------------------------------------------- #
+
+  # FIXME: support either V1 or V3, don't depend on hybrid fields.
+  # `dependencies' specifically.
   resolvePkgKeyFor = {
     plock
   , from   ? ""
   , parent ?  let
-      _maybeParent = lib.yank "(.*)/node_modules/(@[^/]+/)?[^/]+" from;
+      _maybeParent = parentPath from;
     in if _maybeParent == null then "" else _maybeParent
   , ent    ? realEntry plock from
   } @ ctx: ident: let
@@ -76,8 +96,6 @@
       then ( resolvePkgKeyFor { inherit plock; from = parent; } ident )
       else fromTop;
     sub = ent.dependencies.${ident}    or
-          ent.dependencies.${ident}    or
-          ent.devDependencies.${ident} or
           ent.dependencies.${ident}    or null;
     version =
       if ( sub == null ) || ( builtins.isString sub ) then null else
@@ -90,12 +108,20 @@
      } ident else if version != null then fromSub else fromParent;
 
 
-  splitNmToAttrPath = nmpath: let
+# ---------------------------------------------------------------------------- #
+
+  # Given a `node_modules/foo/node_modules/@bar/quux/...' path ( string ), split
+  # to a list of identifiers with the same hierarcy.
+  # In the example above we expect `["foo" "@bar/quux"]'.
+  splitNmToIdentPath = nmpath: let
     sp = builtins.tail ( lib.splitString "node_modules/" nmpath );
     stripTrailingSlash = s: let
       m = lib.yank "(.*[^/])/" s;
     in if m == null then s else m;
   in map stripTrailingSlash sp;
+
+
+# ---------------------------------------------------------------------------- #
 
 
   # This one is wonky, it's V2 only and uses fields from V1 and V3.
@@ -106,11 +132,10 @@
     plock
   , from       ? ""
   , parentPath ? lib.take ( ( builtins.length fromPath ) - 1 ) fromPath
-  , fromIdent  ? if from == "" then plock.name else
-                 lib.yank ".*node_modules/(.*)" from
+  , fromIdent  ? if from == "" then plock.name else pathId from
   , fromPath   ?
       if ctx ? parentPath then ( parentPath ++ [fromIdent] ) else
-      ( splitNmToAttrPath from )
+      ( splitNmToIdentPath from )
   , ent ? if fromPath == [] then plock else
     lib.getAttrFromPath ( lib.intersperse "dependencies" fromPath )
                         plock.dependencies
@@ -128,7 +153,7 @@
       version
     , dependencies    ? {}
     , devDependencies ? {}
-    , name            ? lib.yank ".*node_modules/(.*)" from
+    , name            ? pathId from
     , ...
     } @ ent: let
       pin = resolvePkgVersionFor { inherit from plock; };
@@ -197,12 +222,16 @@
 
 in {
   inherit
+    supportsPlV1
+    supportsPlV3
     realEntry
     getTopLevelEntry
+    pathId
+    parentPath
     resolveDepFor
     resolvePkgKeyFor
     resolvePkgVersionFor
-    splitNmToAttrPath
+    splitNmToIdentPath
     pinVersionsFromPLockV2
   ;
 }

@@ -20,6 +20,10 @@
     idealTreeMetaSetPlockV2
   ;
 
+  # A V2 lock
+  plock1 = lib.importJSON ./data/plv2-it.json;
+
+
 # ---------------------------------------------------------------------------- #
 
   # A trivially simple lock written manually.
@@ -75,9 +79,6 @@
       };
     };
   };
-
-  # A real lock.
-  plock1 = lib.importJSON' ./data/it2-package-lock.json;
 
   # A lock with nested optionals.
   # We use this to ensure that if a package if dropped, any subdirs are also

@@ -11,11 +11,15 @@
 
   inherit (lib.libplock)
     pinVersionsFromPlockV2
+    splitNmToIdentPath
+    pathId
+    parentPath
   ;
 
   # V1 lockfiles
-  #biglock = lib.importJSON ./data/big-package-lock.json;
-  #smlock  = lib.importJSON ./data/small-package-lock.json;
+  plv1-big   = lib.importJSON ./data/plv1-big.json;
+  plv1-small = lib.importJSON ./data/plv1-small.json;
+  plv2-it    = lib.importJSON ./data/plv2-it.json;
 
 /* -------------------------------------------------------------------------- */
 
@@ -28,6 +32,21 @@
     testPinVersionsFromPlockV2 = {
       expr = {};
       expected = {};
+    };
+
+    testSplitNmToIdentPath = {
+      expr = splitNmToIdentPath "node_modules/foo/node_modules/@bar/quux";
+      expected = ["foo" "@bar/quux"];
+    };
+
+    testPathId = {
+      expr = pathId "node_modules/foo/node_modules/@bar/quux";
+      expected = "@bar/quux";
+    };
+
+    testParentPath = {
+      expr = parentPath "node_modules/foo/node_modules/@bar/quux";
+      expected = "node_modules/foo";
     };
 
   };
