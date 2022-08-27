@@ -45,8 +45,16 @@
     };
 
     testParentPath = {
-      expr = parentPath "node_modules/foo/node_modules/@bar/quux";
-      expected = "node_modules/foo";
+      expr = map parentPath [
+        "node_modules/foo/node_modules/@bar/quux"
+        "node_modules/foo"
+        ""
+      ];
+      expected = [
+        "node_modules/foo"
+        ""
+        null
+      ];
     };
 
   };
