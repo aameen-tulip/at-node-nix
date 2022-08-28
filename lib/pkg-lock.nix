@@ -65,6 +65,22 @@
     in if m == null then s else m;
   in map stripTrailingSlash sp;
 
+  # Fields that `pinVersionsFromPlockV(1|3)' functions should rewrite.
+  # The values are unimportant here, and whether or not a lock has a field isn't
+  # important either.
+  # NOTE: We do not want to rewrite `peerDependencies' since we do not support
+  # `--legacy-peer-deps' in these routines.
+  # Legacy peer deps should be handled before invoking the pin routines by
+  # adding missing peers to a lock in the appropriate dependency fields using
+  # `peerDependenciesMeta' ( see `lib/pkginfo.nix' for these routines ).
+  pinFields = {
+    dependencies         = true;
+    devDependencies      = true;
+    optionalDependencies = true;
+    requires             = true;  # V3
+    # XXX: Do not pin peer deps.
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -152,13 +168,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  pinFields = {
-    dependencies         = true;
-    devDependencies      = true;
-    optionalDependencies = true;
-    requires             = true;
-  };
-
+  # (V3)
   # Convert version descriptors to version numbers based on a lock's contents.
   # This is used to isolate builds with a reduced scope to avoid
   # spurious rebuilds.
