@@ -177,7 +177,7 @@
   # by minimizing the derivation environments by packge we avoid rebuilds that
   # should have no effect on a package.
   pinVersionsFromPlockV3 = plock: let
-    pinPath = { scope, ents } @ acc: path: let
+    pinPath = { scopes, ents } @ acc: path: let
       e = plock.packages.${path};
       # Get versions of subdirs and add to current scope.
       # This wipes out packages with the same ident in the same way that the
@@ -190,20 +190,22 @@
       in scope' // {
         ${ident} = ( realEntry plock "${fs}node_modules/${ident}" ).version;
       };
-      newScope = builtins.foldl' getVS scope depIds;
+      parentScope = if path == "" then {} else scopes.${parentPath path};
+      newScope    = builtins.foldl' getVS parentScope depIds;
       pinned = let
         fields = builtins.intersectAttrs pinFields e;
         rewriteOne = _: ef: builtins.intersectAttrs ef newScope;
       in e // ( builtins.mapAttrs rewriteOne fields );
-    in if ( e.link or false ) then acc else {
-      scope = newScope;
-      ents  = ents // { ${path} = pinned; };
+      optNotLink = lib.optionalAttrs ( ! ( e.link or false ) );
+    in {
+      scopes = scopes // { ${path} = newScope; };
+      ents   = ents // ( optNotLink { ${path} = pinned; } );
     };
   in assert supportsPlV3 plock;
      plock // {
        packages = let
-         paths = builtins.attrNames plock.packages;
-         pinned = builtins.foldl' pinPath { scope = {}; ents = {}; } paths;
+         paths  = builtins.attrNames plock.packages;
+         pinned = builtins.foldl' pinPath { scopes = {}; ents = {}; } paths;
        in pinned.ents;
      };
 
