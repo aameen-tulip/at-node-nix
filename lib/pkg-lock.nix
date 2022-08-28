@@ -173,9 +173,9 @@
   # This is used to isolate builds with a reduced scope to avoid
   # spurious rebuilds.
   # Without pins and isolated builds, any change to the lock would require all
-  # packages with install scripts, builds, or prepare routines to be rerun;
-  # by minimizing the derivation environments by packge we avoid rebuilds that
-  # should have no effect on a package.
+  # packages with install scripts, builds, or prepare routines to be rerun.
+  # By minimizing the derivation environments we avoid rebuilds that should have
+  # no effect on a package.
   pinVersionsFromPlockV3 = plock: let
     pinPath = { scopes, ents } @ acc: path: let
       e = plock.packages.${path};
@@ -218,6 +218,45 @@
          pinned = builtins.foldl' pinPath { scopes = {}; ents = {}; } paths;
        in plock.packages // pinned.ents;
      };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # (V1)
+  # Rewrite all `requires' fields with resolved versions using lock entries.
+  pinVersionsFromPlockV1 = plock: let
+    pinReqs = scope: e: if ( ! ( e ? requires ) ) then e else e // {
+      requires = builtins.intersectAttrs e.requires scope;
+    };
+    pinEnt = scope: e: let
+      depAttrs = removeAttrs ( builtins.intersectAttrs pinFields e )
+                             ["requires"];
+      # Extend parent scope with our subdirs to pass to children.
+      newScope = let
+        depVers = builtins.mapAttrs ( _: { version, ... }: version );
+      in builtins.foldl' ( a: b: a // ( depVers b ) ) scope
+                         ( builtins.attrValues depAttrs );
+      # Pin our requires with actual versions.
+      pinned = let
+        pinAttr = _: builtins.mapAttrs ( _: pinReqs newScope );
+        pinnedReqs = builtins.mapAttrs pinAttr depAttrs;
+        deps = builtins.mapAttrs ( _: builtins.mapAttrs ( _: pinEnt newScope ) ) pinnedReqs;
+      in e // deps;
+    in builtins.trace ( builtins.toJSON newScope ) pinned;
+
+    rootEnt = lib.optionalAttrs ( plock ? name ) {
+      ${plock.name} = plock.version or
+                      ( throw "No version specified for ${plock.name}" );
+    };
+    # The root entry has a bogus `requires' field in V2 locks which needs to
+    # be hidden while running `pinPath'.
+    # This stashes the value to be restored later.
+    rootReq = lib.optionalAttrs ( plock ? requires ) {
+      inherit (plock) requires;
+    };
+    pinnedLock = pinEnt rootEnt ( removeAttrs plock ["requires"] );
+  in assert supportsPlV1 plock;
+     pinnedLock // rootReq;
 
 
 # ---------------------------------------------------------------------------- #
@@ -306,6 +345,7 @@ in {
     resolveDepForPlockV1
     resolveDepForPlockV3
     splitNmToIdentPath
+    pinVersionsFromPlockV1
     pinVersionsFromPlockV2
     pinVersionsFromPlockV3
   ;
