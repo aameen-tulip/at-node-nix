@@ -152,6 +152,15 @@
 
 # ---------------------------------------------------------------------------- #
 
+  pinVersionsFromPlockV3 = plock: let
+    pinPath = { scope, ents } @ acc: path: let
+      e = plock.packages.${path};
+    in if ( e.link or false ) then acc else FIXME;
+  in {};
+
+
+# ---------------------------------------------------------------------------- #
+
   pinVersionsFromPLockV2 = plock: let
     pinEnt = from: {
       version

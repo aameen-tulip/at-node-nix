@@ -22,9 +22,9 @@
   plv1-big   = lib.importJSON ./data/plv1-big.json;
   plv1-small = lib.importJSON ./data/plv1-small.json;
   plv1-dev   = lib.importJSON ./data/plv1-dev.json;
-  # V2 Lockfiles
-  plv2-it    = lib.importJSON ./data/plv2-it.json;
 
+  # V2 Lockfiles
+  plv2-it = lib.importJSON ./data/plv2-it.json;
   # V2 with minimal fields for a few resolution tests
   plv2-res-phony = {
     name            = "test";
