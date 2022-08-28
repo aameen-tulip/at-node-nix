@@ -190,23 +190,33 @@
       in scope' // {
         ${ident} = ( realEntry plock "${fs}node_modules/${ident}" ).version;
       };
+      # Fetch parent scope and extend it with our subdirs.
       parentScope = if path == "" then {} else scopes.${parentPath path};
       newScope    = builtins.foldl' getVS parentScope depIds;
+      # Pin our dependency fields with actual versions.
       pinned = let
-        fields = builtins.intersectAttrs pinFields e;
+        fields     = builtins.intersectAttrs pinFields e;
         rewriteOne = _: ef: builtins.intersectAttrs ef newScope;
       in e // ( builtins.mapAttrs rewriteOne fields );
+      # Skip link entries, we will pin the "real" entry which users will locate
+      # using `realEntry'.
       optNotLink = lib.optionalAttrs ( ! ( e.link or false ) );
     in {
+      # I believe still need to record the scope of link entries.
+      # XXX: This might not really be necessary, but I haven't tested and would
+      # like to err on the safe side until I do.
       scopes = scopes // { ${path} = newScope; };
       ents   = ents // ( optNotLink { ${path} = pinned; } );
     };
   in assert supportsPlV3 plock;
      plock // {
+       # Replace `packages' field with updated entries.
+       # We update rather than replace because we skipped creating `link'
+       # entries and want to preserve the old values.
        packages = let
          paths  = builtins.attrNames plock.packages;
          pinned = builtins.foldl' pinPath { scopes = {}; ents = {}; } paths;
-       in pinned.ents;
+       in plock.packages // pinned.ents;
      };
 
 
