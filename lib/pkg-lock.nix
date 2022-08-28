@@ -152,16 +152,56 @@
 
 # ---------------------------------------------------------------------------- #
 
+  pinFields = {
+    dependencies         = true;
+    devDependencies      = true;
+    optionalDependencies = true;
+    requires             = true;
+  };
+
+  # Convert version descriptors to version numbers based on a lock's contents.
+  # This is used to isolate builds with a reduced scope to avoid
+  # spurious rebuilds.
+  # Without pins and isolated builds, any change to the lock would require all
+  # packages with install scripts, builds, or prepare routines to be rerun;
+  # by minimizing the derivation environments by packge we avoid rebuilds that
+  # should have no effect on a package.
   pinVersionsFromPlockV3 = plock: let
     pinPath = { scope, ents } @ acc: path: let
       e = plock.packages.${path};
-    in if ( e.link or false ) then acc else FIXME;
-  in {};
+      # Get versions of subdirs and add to current scope.
+      # This wipes out packages with the same ident in the same way that the
+      # Node resolution algorithm does.
+      depIds = builtins.attrNames ( ( e.dependencies or {} )    //
+                                    ( e.devDependencies or {} ) //
+                                    ( e.optionalDependencies or {} ) );
+      getVS = scope': ident: let
+        fs = if path == "" then "" else "${path}/";
+      in scope' // {
+        ${ident} = ( realEntry plock "${fs}node_modules/${ident}" ).version;
+      };
+      newScope = builtins.foldl' getVS scope depIds;
+      pinned = let
+        fields = builtins.intersectAttrs pinFields e;
+        rewriteOne = _: ef: builtins.intersectAttrs ef newScope;
+      in e // ( builtins.mapAttrs rewriteOne fields );
+    in if ( e.link or false ) then acc else {
+      scope = newScope;
+      ents  = ents // { ${path} = pinned; };
+    };
+  in assert supportsPlV3 plock;
+     plock // {
+       packages = let
+         paths = builtins.attrNames plock.packages;
+         pinned = builtins.foldl' pinPath { scope = {}; ents = {}; } paths;
+       in pinned.ents;
+     };
 
 
 # ---------------------------------------------------------------------------- #
 
-  pinVersionsFromPLockV2 = plock: let
+  # FIXME: alter to handle V1 lock only.
+  pinVersionsFromPlockV2 = plock: let
     pinEnt = from: {
       version
     , dependencies    ? {}
@@ -244,7 +284,8 @@ in {
     resolveDepForPlockV1
     resolveDepForPlockV3
     splitNmToIdentPath
-    pinVersionsFromPLockV2
+    pinVersionsFromPlockV2
+    pinVersionsFromPlockV3
   ;
 }
 
