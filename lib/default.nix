@@ -59,6 +59,8 @@
     ;
 
     inherit (final.libplock)
+      supportsPlV1
+      supportsPlV3
       resolveDepForPlockV1
       resolveDepForPlockV3
       pinVersionsFromPlockV1

@@ -10,8 +10,8 @@
 #
 # TERMS:
 #   - plock:  package-lock.json
-#   - v2/pl2: package-lock.json shema version 2 used by NPM.
-#             This version is a hybrid that is the union of a v1 and v3 lock.
+#   - v3/pl3: package-lock.json shema version 3 used by NPM.
+#             NOTE: A v2 lock is compatible with v3 and be used.
 #   - key:    a `(meta|pkg)Set' attribute key ( pkgSet.${key} ==> pkgEnt )
 #             These are used to uniquely identify packages.
 #             They are simply "<IDENT>/<VERSION>" strings.
@@ -23,7 +23,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Given a `package-lock.json(v3)' produce an attrset representing a
+  # Given a `package-lock.json(v2/3)' produce an attrset representing a
   # `node_modules/' directory.
   # Outputs `{ "node_modules/<IDENT>" = "<IDENT>/<VERSION>" (pkey); ... }'
   # mappings which reflect the `packages' field in the lock.
@@ -89,11 +89,11 @@
 
     # Get a package identifier from a `package-lock.json(v2)' entry.
     getIdent = dir: {
-      ident ? pl2ent.name or ( lib.libplock.pathId dir )
+      ident ? plent.name or ( lib.libplock.pathId dir )
     , ...
-    } @ pl2ent: ident;
+    } @ plent: ident;
     # Get a `(pkg|meta)Set' key from a `package-lock.json(v2)' entry.
-    getKey = dir: { version, ident ? getIdent dir pl2ent, ... } @ pl2ent:
+    getKey = dir: { version, ident ? getIdent dir plent, ... } @ plent:
       "${ident}/${version}";
     # Collect a list of paths that need to be dropped as a result of
     # `optionalDependencies' filtering ( using `sysCond' ) as well as any
@@ -129,7 +129,9 @@
       # Drop dev dependencies if `dev = false'.
       isDevProd = _: v: ! ( v.dev or false );
     in if dev then wois else lib.filterAttrs isDevProd wois;
-  in builtins.mapAttrs getKey nml;
+    treeKeyed = builtins.mapAttrs getKey nml;
+  in assert lib.libplock.supportsPlV3 plock;
+     treeKeyed;
 
 
 # ---------------------------------------------------------------------------- #

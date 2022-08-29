@@ -91,6 +91,7 @@
   plock2 = {
     name    = "test";
     version = "2.0.0";
+    lockfileVersion = 2;
     packages = {
       # Keep
       "node_modules/a" = {
