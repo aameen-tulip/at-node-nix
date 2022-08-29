@@ -188,7 +188,7 @@
                       ( throw "No version specified for ${plock.name}" );
     };
     # The root entry has a bogus `requires' field in V2 locks which needs to
-    # be hidden while running `pinPath'.
+    # be hidden while running `pinEnt'.
     # This stashes the value to be restored later.
     rootReq = lib.optionalAttrs ( plock ? requires ) {
       inherit (plock) requires;
