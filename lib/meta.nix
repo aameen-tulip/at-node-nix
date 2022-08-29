@@ -266,6 +266,7 @@
     "package-lock.json"      # Detect version
     "package-lock.json(v1)"
     "package-lock.json(v2)"
+    "package-lock.json(v3)"
     "yarn.lock"              # Detect version
     "yarn.lock(v1)"
     "yarn.lock(v2)"
@@ -275,13 +276,21 @@
     "raw"                    # Fallback/Default for manual entries
   ];
 
+  metaEntWasPlock = { entryFromType ? "raw", ... }:
+    builtins.elem entryFromType [
+      "package-lock.json"
+      "package-lock.json(v1)"
+      "package-lock.json(v2)"
+      "package-lock.json(v3)"
+    ];
+
 
 # ---------------------------------------------------------------------------- #
 
-  # Hide values which can be easily inferred from `package-lock.json(v2)' entry.
+  # Hide values which can be easily inferred from `package-lock.json' entry.
   # For example we know the entry must declare `hasInstallScript' so we can
   # safely omit it.
-  metaEntPl2Serial = self: let
+  metaEntPlSerial = self: let
     # Start with the default serializer's output.
     dft = metaEntSerialDefault self;
     # Drop values which are assumed to be false when unspecified.
@@ -299,7 +308,7 @@
     } // ( lib.optionalAttrs ( self ? gypfile ) {
       inherit (self) gypfile;
     } ) );
-  in assert self.entryFromType == "package-lock.json(v2)";
+  in assert metaEntWasPlock self;
      hide // keepTrue // inst';
 
 
@@ -313,7 +322,10 @@
   # Largely these hide additional fields which can be easily inferred using
   # `entFromType`.
   metaEntSerialsByFromType = {
-    "package-lock.json(v2)" = metaEntPl2Serial;
+    "package-lock.json"     = metaEntPlSerial;
+    "package-lock.json(v1)" = metaEntPlSerial;
+    "package-lock.json(v2)" = metaEntPlSerial;
+    "package-lock.json(v3)" = metaEntPlSerial;
     _default                = metaEntSerialDefault;
   };
 
@@ -570,6 +582,7 @@ in {
     mkMetaEnt'
     mkMetaEnt
     metaEntIsSimple
+    metaEntWasPlock
   ;
   # Meta Sets
   inherit

@@ -17,8 +17,12 @@
 # ---------------------------------------------------------------------------- #
 
   inherit (lib.libtree)
-    idealTreeMetaSetPlockV2
+    idealTreePlockV3
   ;
+
+  # A V2 lock
+  plock1 = lib.importJSON ./data/plv2-it.json;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -76,9 +80,6 @@
     };
   };
 
-  # A real lock.
-  plock1 = lib.importJSON' ./data/it2-package-lock.json;
-
   # A lock with nested optionals.
   # We use this to ensure that if a package if dropped, any subdirs are also
   # dropped ( even if they lack a system conditional ).
@@ -90,6 +91,7 @@
   plock2 = {
     name    = "test";
     version = "2.0.0";
+    lockfileVersion = 2;
     packages = {
       # Keep
       "node_modules/a" = {
@@ -146,7 +148,7 @@
 
     # Dead simple test.
     testNoMetaDev0 = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock0;
         system = "x86_64-linux";  # remember this is just filler.
       };
@@ -159,7 +161,7 @@
 
     # Drop `dev'
     testNoMetaProd0 = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock0;
         system = "x86_64-linux";  # remember this is just filler.
         dev    = false;
@@ -173,7 +175,7 @@
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaDev1 = {
       expr = let
-        rsl' = idealTreeMetaSetPlockV2 {
+        rsl' = idealTreePlockV3 {
           plock  = plock1;
           system = "x86_64-linux";  # remember this is just filler.
         };
@@ -186,7 +188,7 @@
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaProd1 = {
       expr = let
-        rsl' = idealTreeMetaSetPlockV2 {
+        rsl' = idealTreePlockV3 {
           plock  = plock1;
           system = "x86_64-linux";  # remember this is just filler.
           dev    = false;
@@ -199,7 +201,7 @@
     };
 
     testNoMetaSys = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock2;
         system = "x86_64-linux";
       };

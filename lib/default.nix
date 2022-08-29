@@ -23,7 +23,7 @@
     libplock   = callLibs ./pkg-lock.nix;
     libreg     = callLibs ./registry.nix;
     libmeta    = callLibs ./meta.nix;
-    libtree    = callLibs ./ideal-tree-plockv2.nix;
+    libtree    = callLibs ./tree.nix;
     # TODO: handle merge of fetch.nix ( partial ), nm-scope.nix ( maybe ),
     #       and `libmeta-pl2' ( needs small alignment with `meta.nix' ).
     libsys     = callLibs ./system.nix;
@@ -59,7 +59,12 @@
     ;
 
     inherit (final.libplock)
-      #pinVersionsFromPlockV2  # FIXME: this looks fishy needs tests
+      supportsPlV1
+      supportsPlV3
+      resolveDepForPlockV1
+      resolveDepForPlockV3
+      pinVersionsFromPlockV1
+      pinVersionsFromPlockV3
     ;
 
     inherit (final.libreg)
@@ -85,7 +90,7 @@
     ;
 
     inherit (final.libtree)
-      idealTreeMetaSetPlockV2  # NOTE: Only for "root" package
+      idealTreePlockV3  # NOTE: Only for "root" package
     ;
 
     inherit (final.libcfg)
