@@ -123,7 +123,7 @@
     nml = let
       # Drop root entry.
       # This is unrelated to avoiding cycles with `ignore*'.
-      # The `package-lock.json(v2)' includes an entry representing the `lockDir'
+      # The `package-lock.json(v3)' includes an entry representing the `lockDir'
       # which we aren't interested in preserving.
       wois = removeAttrs plock.packages drops;
       # Drop dev dependencies if `dev = false'.
