@@ -10,7 +10,6 @@
 # ---------------------------------------------------------------------------- #
 
   inherit (lib.libplock)
-    pinVersionsFromPlockV2
     splitNmToIdentPath
     pathId
     parentPath

@@ -66,8 +66,6 @@
   in map stripTrailingSlash sp;
 
   # Fields that `pinVersionsFromPlockV(1|3)' functions should rewrite.
-  # The values are unimportant here, and whether or not a lock has a field isn't
-  # important either.
   # NOTE: We do not want to rewrite `peerDependencies' since we do not support
   # `--legacy-peer-deps' in these routines.
   # Legacy peer deps should be handled before invoking the pin routines by
@@ -77,7 +75,7 @@
     dependencies         = true;
     devDependencies      = true;
     optionalDependencies = true;
-    requires             = true;  # V3
+    requires             = true;
     # XXX: Do not pin peer deps.
   };
 
@@ -122,7 +120,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # (V1) Same deal as the V3 form, except we use args `parentPath' and
+  # (V1)
+  # Same deal as the V3 form, except we use args `parentPath' and
   # `fromPath' and traverse `dependencies' fields instead of `packages' field.
   # Because this form is a hierarchy of attrs is a little bit of a pain; but
   # it's more of less the same process.
@@ -164,6 +163,43 @@
      # Failure case
      if ( fromPath == [] ) && ( ident != plock.name ) then null else
      fromParent;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # (V1)
+  # Rewrite all `requires' fields with resolved versions using lock entries.
+  pinVersionsFromPlockV1 = plock: let
+    pinEnt = scope: e: let
+      depAttrs = removeAttrs ( builtins.intersectAttrs pinFields e )
+                             ["requires"];
+      # Extend parent scope with our subdirs to pass to children.
+      newScope = let
+        depVers = builtins.mapAttrs ( _: { version, ... }: version );
+      in builtins.foldl' ( a: b: a // ( depVers b ) ) scope
+                         ( builtins.attrValues depAttrs );
+      # Pin our requires with actual versions.
+      pinned = let
+        deps = builtins.mapAttrs ( _: builtins.mapAttrs ( _: pinEnt newScope ) )
+                                 depAttrs;
+        req  = lib.optionalAttrs ( e ? requires ) {
+          requires = builtins.intersectAttrs e.requires scope;
+        };
+      in e // deps req;
+    in pinned;
+    rootEnt = lib.optionalAttrs ( plock ? name ) {
+      ${plock.name} = plock.version or
+                      ( throw "No version specified for ${plock.name}" );
+    };
+    # The root entry has a bogus `requires' field in V2 locks which needs to
+    # be hidden while running `pinPath'.
+    # This stashes the value to be restored later.
+    rootReq = lib.optionalAttrs ( plock ? requires ) {
+      inherit (plock) requires;
+    };
+    pinnedLock = pinEnt rootEnt ( removeAttrs plock ["requires"] );
+  in assert supportsPlV1 plock;
+     pinnedLock // rootReq;
 
 
 # ---------------------------------------------------------------------------- #
@@ -222,117 +258,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # (V1)
-  # Rewrite all `requires' fields with resolved versions using lock entries.
-  pinVersionsFromPlockV1 = plock: let
-    pinEnt = scope: e: let
-      depAttrs = removeAttrs ( builtins.intersectAttrs pinFields e )
-                             ["requires"];
-      # Extend parent scope with our subdirs to pass to children.
-      newScope = let
-        depVers = builtins.mapAttrs ( _: { version, ... }: version );
-      in builtins.foldl' ( a: b: a // ( depVers b ) ) scope
-                         ( builtins.attrValues depAttrs );
-      # Pin our requires with actual versions.
-      pinned = let
-        deps = builtins.mapAttrs ( _: builtins.mapAttrs ( _: pinEnt newScope ) )
-                                 depAttrs;
-        req  = lib.optionalAttrs ( e ? requires ) {
-          requires = builtins.intersectAttrs e.requires scope;
-        };
-      in e // deps req;
-    in pinned;
-    rootEnt = lib.optionalAttrs ( plock ? name ) {
-      ${plock.name} = plock.version or
-                      ( throw "No version specified for ${plock.name}" );
-    };
-    # The root entry has a bogus `requires' field in V2 locks which needs to
-    # be hidden while running `pinPath'.
-    # This stashes the value to be restored later.
-    rootReq = lib.optionalAttrs ( plock ? requires ) {
-      inherit (plock) requires;
-    };
-    pinnedLock = pinEnt rootEnt ( removeAttrs plock ["requires"] );
-  in assert supportsPlV1 plock;
-     pinnedLock // rootReq;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: alter to handle V1 lock only.
-  pinVersionsFromPlockV2 = plock: let
-    pinEnt = from: {
-      version
-    , dependencies    ? {}
-    , devDependencies ? {}
-    , name            ? pathId from
-    , ...
-    } @ ent: let
-      #pin = resolvePkgVersionFor { inherit from plock; };
-      pin = ident: ( resolveDepForPlockV3 plock from ident ).version;
-      pinDep = ident: descriptor:
-        if builtins.isString descriptor then pin ident else descriptor.version;
-      rt' = lib.optionalAttrs ( dependencies != {} ) {
-        runtimeDepPins =
-          builtins.mapAttrs pinDep
-            ( lib.filterAttrs ( _: v: ! ( v.dev or false ) ) dependencies );
-      };
-      hasNormalizedDev =
-        builtins.any ( v: v.dev or false ) ( builtins.attrValues dependencies );
-      dev' =
-        lib.optionalAttrs ( hasNormalizedDev || ( devDependencies != {} ) ) {
-          devDepPins = let
-            dd = builtins.mapAttrs pinDep devDependencies;
-            d = builtins.mapAttrs pinDep
-                  ( lib.filterAttrs ( _: v: ( v.dev or false ) ) dependencies );
-          in dd // d;
-        };
-    in { key = "${name}/${version}"; inherit name version; } // rt' // dev';
-    pinned = builtins.mapAttrs pinEnt plock.packages;
-    renamed = let
-      renameFromKey = { key, ... } @ value: {
-        name  = key;
-        value = removeAttrs value ["pkey" "key" "name" "version"];
-      };
-    in builtins.listToAttrs
-      ( map renameFromKey ( builtins.attrValues pinned ) );
-    # This routine identifies "conflicting instances" of packages with ambiguous
-    # resolution in a lockfile.
-    # These are a sibling of the "ABI Conflicts" from compiled languages
-    # ( likely the most dangerous category of undefined behavior ).
-    # NPM and Yarn produce no erros or warnings about these conflicts and only
-    # concern themselves with Node's ABI ( using the `engines' field ); I have a
-    # far more skeptical attitude and am temporarily emitting warnings which I
-    # will later turn to errors.
-    # Reliance on "conflicting instances" indicates that a project has sprawled
-    # without sane regard for interface design; if you file a PR confused about
-    # why the 8 conflicting versions of NaN aren't resolving against multiple
-    # same version instances of `foo' the way they did with NPM, I'm just going
-    # to say "cool I'm glad I could help you locate lurking UB in your codebase".
-    instances = let
-      pushDownPkey =
-        builtins.mapAttrs ( pkey: v: v // { inherit pkey; } ) pinned;
-      kg = builtins.groupBy ( x: x.key ) ( builtins.attrValues pushDownPkey );
-      count = _: gents: let
-        all = builtins.length gents;
-        uniq = lib.unique ( map ( m: removeAttrs m ["pkey"] ) gents );
-      in ( 1 < all ) && ( 1 < ( builtins.length uniq ) );
-      need = lib.filterAttrs count kg;
-      byPkey = _: builtins.listToAttrs ( { pkey, ... } @ value: {
-        name = pkey;
-        value.instances = removeAttrs value ["pkey" "key" "name" "version"];
-      } );
-      insts = builtins.mapAttrs byPkey need;
-      warn =
-        "WARNING: Conflicting instances of packages were detected in your lock"
-        + "\nXXX: Seriously, I know you blow off warnings, this is actually "
-        + "bad and you need to take immediate action.";
-    in if ( insts != {} ) then builtins.trace warn insts else {};
-  in renamed // instances; # this clobbers
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     supportsPlV1
@@ -344,7 +269,6 @@ in {
     resolveDepForPlockV3
     splitNmToIdentPath
     pinVersionsFromPlockV1
-    pinVersionsFromPlockV2
     pinVersionsFromPlockV3
   ;
 }

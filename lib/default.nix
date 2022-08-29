@@ -59,7 +59,10 @@
     ;
 
     inherit (final.libplock)
-      #pinVersionsFromPlockV2  # FIXME: this looks fishy needs tests
+      resolveDepForPlockV1
+      resolveDepForPlockV3
+      pinVersionsFromPlockV1
+      pinVersionsFromPlockV3
     ;
 
     inherit (final.libreg)
