@@ -225,9 +225,6 @@
   # (V1)
   # Rewrite all `requires' fields with resolved versions using lock entries.
   pinVersionsFromPlockV1 = plock: let
-    pinReqs = scope: e: if ( ! ( e ? requires ) ) then e else e // {
-      requires = builtins.intersectAttrs e.requires scope;
-    };
     pinEnt = scope: e: let
       depAttrs = removeAttrs ( builtins.intersectAttrs pinFields e )
                              ["requires"];
@@ -238,12 +235,13 @@
                          ( builtins.attrValues depAttrs );
       # Pin our requires with actual versions.
       pinned = let
-        pinAttr = _: builtins.mapAttrs ( _: pinReqs newScope );
-        pinnedReqs = builtins.mapAttrs pinAttr depAttrs;
-        deps = builtins.mapAttrs ( _: builtins.mapAttrs ( _: pinEnt newScope ) ) pinnedReqs;
-      in e // deps;
-    in builtins.trace ( builtins.toJSON newScope ) pinned;
-
+        deps = builtins.mapAttrs ( _: builtins.mapAttrs ( _: pinEnt newScope ) )
+                                 depAttrs;
+        req  = lib.optionalAttrs ( e ? requires ) {
+          requires = builtins.intersectAttrs e.requires scope;
+        };
+      in e // deps req;
+    in pinned;
     rootEnt = lib.optionalAttrs ( plock ? name ) {
       ${plock.name} = plock.version or
                       ( throw "No version specified for ${plock.name}" );
