@@ -87,12 +87,12 @@
   , ...
   } @ args: let
 
-    # Get a package identifier from a `package-lock.json(v2)' entry.
+    # Get a package identifier from a `package-lock.json(v3)' entry.
     getIdent = dir: {
       ident ? plent.name or ( lib.libplock.pathId dir )
     , ...
     } @ plent: ident;
-    # Get a `(pkg|meta)Set' key from a `package-lock.json(v2)' entry.
+    # Get a `(pkg|meta)Set' key from a `package-lock.json(v3)' entry.
     getKey = dir: { version, ident ? getIdent dir plent, ... } @ plent:
       "${ident}/${version}";
     # Collect a list of paths that need to be dropped as a result of
@@ -100,7 +100,7 @@
     # `ignoed(Keys|Idents)' matches.
     # We need this list so that we can perform a second pass which also drops
     # any `node_modules/' subdirs associated with these packages.
-    # Dev/Prod filtering doesn't need to be handled here, since the plock(v2)
+    # Dev/Prod filtering doesn't need to be handled here, since the plock
     # contains `dev' fields for all paths already, which accounts for subdirs.
     drops = let
       pjsPkgs = removeAttrs plock.packages [""];
