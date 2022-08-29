@@ -52,21 +52,9 @@
     inherit (pkgs) linkFarm;
   };
 
-  # FIXME: pass `lib' as an arg and improve fixup routines.
-  linkModules = import ./build-support/link-node-modules-dir.nix {
-    inherit (pkgs.xorg) lndir;
-    inherit (pkgs) runCommandNoCC;
-  };
-
   _fetcher = import ./build-support/fetcher.nix {
     inherit lib;
     inherit (pkgs) fetchurl fetchgit fetchzip;
-  };
-
-  _plock2nm = import ./build-support/plock-to-node-modules-dir.nix {
-    inherit lib linkModules;
-    inherit (_mkNodeTarball) mkNodeTarball;
-    fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
   };
 
   evalScripts = import ./build-support/evalScripts.nix {
@@ -87,17 +75,6 @@
         ( builtins.trace warnMsg x ) else x;
   in maybeWarn installed;
 
-  _node-pkg-set = import ./node-pkg-set.nix {
-    inherit lib evalScripts buildGyp nodejs linkModules genericInstall runBuild;
-    inherit (pkgs) stdenv jq xcbuild linkFarm;
-    inherit (_fetcher) typeOfEntry;
-    fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
-    doFetch = _fetcher.fetcher {
-      cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
-      preferBuiltins = true;
-    };
-  };
-
   genericInstall = import ./build-support/genericInstall.nix {
     inherit lib buildGyp evalScripts nodejs;
     inherit (pkgs) stdenv jq xcbuild;
@@ -108,14 +85,24 @@
     inherit (pkgs) stdenv jq;
   };
 
-in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
+in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: let
+  callPackage  = lib.callPackageWith final;
+  callPackages = lib.callPackagesWith final;
+
+  _node-pkg-set = callPackages ./node-pkg-set.nix {
+    fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
+    doFetch = _fetcher.fetcher {
+      cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
+      preferBuiltins = true;
+    };
+  };
+in {
   inherit
     snapDerivation
     trivial
     lib
     pacote
     pacotecli
-    linkModules
     buildGyp
     evalScripts
     runInstallScripts
@@ -149,14 +136,12 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: {
     defaultFetchers
     fetcher
   ;
-  inherit (_plock2nm)
-    plock2nmFocus
-    plock2nm
-  ;
 
   inherit (_node-pkg-set)
     pkgEntFromPlockV2
     pkgSetFromPlockV2
   ;
+
+  mkNmDir = callPackage ./mkNmDir.nix;
 
 } )

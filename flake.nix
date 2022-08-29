@@ -102,12 +102,6 @@
 
       pacotecli = pacotecli final.system;
 
-      linkModules = { modules ? [] }:
-        pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit (pkgsFor) runCommandNoCC;
-          lndir = pkgsFor.xorg.lndir;
-        } { inherit modules; };
-
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
         inherit (final) lib;
         inherit (pkgsFor) stdenv xcbuild jq nodejs;
@@ -145,7 +139,7 @@
       ;
 
       _node-pkg-set = import ./pkgs/node-pkg-set.nix {
-        inherit (final) lib evalScripts buildGyp nodejs linkModules;
+        inherit (final) lib evalScripts buildGyp nodejs;
         inherit (final) runBuild genericInstall;
         inherit (pkgsFor) stdenv jq xcbuild linkFarm;
         inherit (final._fetcher) typeOfEntry;
@@ -175,15 +169,6 @@
         typeOfEntry
       ;
 
-      inherit ( import ./pkgs/build-support/plock-to-node-modules-dir.nix {
-        inherit (final) lib linkModules mkNodeTarball;
-        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
-      } )
-        plockEntryFetchUnpack
-        plock2nmFocus
-        plock2nm
-      ;
-
       yml2json = import ./pkgs/build-support/yml-to-json.nix {
         inherit (pkgsFor) yq runCommandNoCC;
       };
@@ -210,6 +195,7 @@
 /* -------------------------------------------------------------------------- */
 
     nodeutils = ( eachDefaultSystemMap ( system: let
+
       _mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
         inherit lib;
         inherit (nixpkgs.legacyPackages.${system}) linkFarm;
@@ -226,16 +212,14 @@
         ;
       };
 
+      yml2json = import ./pkgs/build-support/yml-to-json.nix {
+        inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
+      };
+
       snapDerivation = import ./pkgs/make-derivation-simple.nix {
         inherit (nixpkgs.legacyPackages.${system}) bash coreutils;
         inherit system;
       };
-
-      linkModules = { modules ? [] }:
-        import ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
-          lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
-        } { inherit modules; };
 
       # FIXME: this interface for handling `nodejs' input is hideous
       buildGyp = import ./pkgs/build-support/buildGyp.nix {
@@ -266,7 +250,7 @@
 
       # FIXME: this interface for handling `nodejs' input is hideous
       _node-pkg-set = import ./pkgs/node-pkg-set.nix {
-        inherit lib evalScripts buildGyp linkModules genericInstall;
+        inherit lib evalScripts buildGyp genericInstall;
         inherit runBuild;
         inherit (nixpkgs.legacyPackages.${system}) stdenv jq xcbuild linkFarm;
         nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
@@ -292,16 +276,10 @@
         nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
       };
 
-      _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
-        inherit lib linkModules;
-        inherit (_mkNodeTarball) mkNodeTarball;
-        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
-      };
     in {
 
       pacotecli = pacotecli system;
       inherit
-        linkModules
         snapDerivation
         buildGyp
         evalScripts
@@ -331,22 +309,13 @@
         typeOfEntry
       ;
 
-      inherit (_plock2nm)
-        plockEntryFetchUnpack
-        plock2nmFocus
-        plock2nm
-      ;
-
-      yml2json = import ./pkgs/build-support/yml-to-json.nix {
-        inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
-      };
-  
       yarnLock = import ./pkgs/build-support/yarn-lock.nix {
         inherit (nixpkgs.legacyPackages.${system}) fetchurl yarn writeText;
-        inherit (self.nodeutils.${system}) yml2json;
-        inherit lib;
+        inherit lib yml2json;
       };
-  
+
+      # This is the actual function, the script ( in `packages' ) with the same
+      # name is a frontend.
       genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
         inherit (nixpkgs.legacyPackages.${system}) writeText;
         inherit lib;
@@ -374,40 +343,9 @@
       # I am aware of how goofy this is.
       # I am aware that I could use `prefetch' - this is more convenient
       # considering this isn't a permament fixture.
-      genFlakeInputs = pkgsFor.writeShellScript "genFlakeInputs" ''
-        _runnit() {
-          ${pkgsFor.nix}/bin/nix                                \
-            --extra-experimental-features 'flakes nix-command'  \
-            eval --impure --raw --expr "
-              import ${toString ./pkgs/tools/floco/generate-flake-inputs.nix} {
-                writeText = _: d: d;
-                enableTraces = false;
-                dir = \"$1\";
-              }";
-        }
-        _abspath() {
-          ${pkgsFor.coreutils}/bin/realpath "$1";
-        }
-        if test "$1" = "-o" || test "$1" = "--out"; then
-          _runnit "$( _abspath "$2"; )" > "$2";
-        else
-          _runnit "$( _abspath "$1"; )";
-        fi
-      '';
+      genFlakeInputs =
+        pkgsFor.callPackage ./pkgs/tools/floco/genFlakeInputs.nix {};
 
-    } );
-
-
-/* -------------------------------------------------------------------------- */
-
-    apps = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system};
-    in {
-      # Yeah, we're recursively calling Nix.
-      genFlakeInputs = {
-        type = "app";
-        program = self.packages.${system}.genFlakeInputs.outPath;
-      };
     } );
 
 

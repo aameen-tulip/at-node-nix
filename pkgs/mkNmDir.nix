@@ -1,8 +1,8 @@
 # ============================================================================ #
 #
 # FIXME:
-# This depends on `idealTreeMetaSetPlockV2' to basically fill in `outPath' for
-# `pkgSet' keys; but honestly this is as simple as `pkgEnt.prepared.outPath'.
+# This depends on `idealTreePlockV3' to basically fill in `outPath' for `pkgSet'
+# keys; but honestly this is as simple as `pkgEnt.prepared.outPath'.
 # I haven't merged that routine yet but I'm adding this immediately to share as
 # a reference implementation.
 #
@@ -10,7 +10,7 @@
 
 {
   name  ? "node_modules"
-, tree  # result of `idealTreeMetaSetPlockV2 { pkgSet = ...; }'
+, tree  # Result of `idealTreePlockV3 { pkgSet = ...; }'.
         # Basically just an attrs of `{ "node_modules/<NAME>" = `pkgEnt'; ... }'
         # You can also just use `path -> outPath' or `path -> drv' attrs.
         # See implementation below for details ( search "pent.prepared" )
@@ -161,6 +161,7 @@
     export PATH="''${PATH:+$PATH:}${PATH}";
   '';
 in if emitScript then setPath + buildCommand else drv
+
 
 # ---------------------------------------------------------------------------- #
 #

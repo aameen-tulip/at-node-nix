@@ -6,7 +6,7 @@
 , evalScripts
 , genericInstall
 , runBuild
-, linkModules
+, mkNmDir
 , linkFarm
 , stdenv
 , xcbuild
@@ -269,14 +269,16 @@
     # waiting to be passed the `final' ( "self" ) object to be realised.
     injectNodeModulesDirsOv = final: prev: let
       injectDepsFor = key: plent: let
-        nodeModulesDir = linkModules {
-          modules = let depKeys = plent.meta.runtimeDepKeys;
-          in map ( k: final.${k}.module.outPath ) depKeys;
-        };
-        nodeModulesDir-dev = linkModules {
-          modules = let depKeys = plent.meta.devDepKeys;
-          in map ( k: final.${k}.module.outPath ) depKeys;
-        };
+        nodeModulesDir = /* FIXME */ mkNmDir {};
+        #nodeModulesDir = linkModules {
+        #  modules = let depKeys = plent.meta.runtimeDepKeys;
+        #  in map ( k: final.${k}.module.outPath ) depKeys;
+        #};
+        nodeModulesDir-dev = /* FIXME */ mkNmDir {};
+        #nodeModulesDir-dev = linkModules {
+        #  modules = let depKeys = plent.meta.devDepKeys;
+        #  in map ( k: final.${k}.module.outPath ) depKeys;
+        #};
         mdd = lib.optionalAttrs ( plent.meta.hasBuild or false ) {
           inherit nodeModulesDir-dev;
         };
