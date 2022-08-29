@@ -159,7 +159,8 @@
       resolved = "";
       value = plock;
     } else resolveDepForPlockV1 { inherit plock; fromPath = parentPath; } ident;
-  in if isSub then depEnt else
+  in assert supportsPlV1 plock;
+     if isSub then depEnt else
      # Failure case
      if ( fromPath == [] ) && ( ident != plock.name ) then null else
      fromParent;
