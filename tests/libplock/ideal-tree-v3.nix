@@ -17,7 +17,7 @@
 # ---------------------------------------------------------------------------- #
 
   inherit (lib.libtree)
-    idealTreeMetaSetPlockV2
+    idealTreePlockV3
   ;
 
   # A V2 lock
@@ -147,7 +147,7 @@
 
     # Dead simple test.
     testNoMetaDev0 = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock0;
         system = "x86_64-linux";  # remember this is just filler.
       };
@@ -160,7 +160,7 @@
 
     # Drop `dev'
     testNoMetaProd0 = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock0;
         system = "x86_64-linux";  # remember this is just filler.
         dev    = false;
@@ -174,7 +174,7 @@
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaDev1 = {
       expr = let
-        rsl' = idealTreeMetaSetPlockV2 {
+        rsl' = idealTreePlockV3 {
           plock  = plock1;
           system = "x86_64-linux";  # remember this is just filler.
         };
@@ -187,7 +187,7 @@
     # We just ensure that the paths match up using `deepSeq' to force eval.
     testNoMetaProd1 = {
       expr = let
-        rsl' = idealTreeMetaSetPlockV2 {
+        rsl' = idealTreePlockV3 {
           plock  = plock1;
           system = "x86_64-linux";  # remember this is just filler.
           dev    = false;
@@ -200,7 +200,7 @@
     };
 
     testNoMetaSys = {
-      expr = idealTreeMetaSetPlockV2 {
+      expr = idealTreePlockV3 {
         plock  = plock2;
         system = "x86_64-linux";
       };

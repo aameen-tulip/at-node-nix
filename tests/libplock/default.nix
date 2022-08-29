@@ -36,7 +36,7 @@
        ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
     ./tests.nix
-    ./ideal-tree-v2.nix
+    ./ideal-tree-v3.nix
     ./pin-lock-v3.nix
   ];
 

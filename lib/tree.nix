@@ -23,7 +23,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Given a `package-lock.json(v2)' produce an attrset representing a
+  # Given a `package-lock.json(v3)' produce an attrset representing a
   # `node_modules/' directory.
   # Outputs `{ "node_modules/<IDENT>" = "<IDENT>/<VERSION>" (pkey); ... }'
   # mappings which reflect the `packages' field in the lock.
@@ -37,7 +37,7 @@
   #
   # NOTE: This function does not require that `metaSet' be passed.
   # If it is omitted we'll detect `__rootKey' from `plock'.
-  idealTreeMetaSetPlockV2 = {
+  idealTreePlockV3 = {
     plock ? args.__meta.plock or metaSet.__meta.plock
   # XXX: `metaSet' is optional when you provide `plock'.
   , metaSet ? if args ? __meta.setFromType then args else null
@@ -89,7 +89,7 @@
 
     # Get a package identifier from a `package-lock.json(v2)' entry.
     getIdent = dir: {
-      ident ? pl2ent.name or lib.yank ".*node_modules/((@[^/]+/)?[^/]+)" dir
+      ident ? pl2ent.name or ( lib.libplock.pathId dir )
     , ...
     } @ pl2ent: ident;
     # Get a `(pkg|meta)Set' key from a `package-lock.json(v2)' entry.
@@ -119,7 +119,7 @@
       isISub = p: builtins.any ( i: lib.hasPrefix i p ) ipaths;
       subs   = builtins.filter isISub ( builtins.attrNames wois );
     in [""] ++ ipaths ++ subs;
-    # Filter `package-lock.json(v2)' entries to deps we want to install.
+    # Filter `package-lock.json(v3)' entries to deps we want to install.
     nml = let
       # Drop root entry.
       # This is unrelated to avoiding cycles with `ignore*'.
@@ -134,17 +134,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-  subdirsOfPathPlockV2' = { plock, path }:
-    builtins.filter ( lib.hasPrefix path )
-                    ( builtins.attrNames plock.packages );
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
-    idealTreeMetaSetPlockV2
-    subdirsOfPathPlockV2'
+    idealTreePlockV3
   ;
 }
 

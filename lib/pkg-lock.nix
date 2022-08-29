@@ -34,6 +34,14 @@
      entry;
 
 
+  subdirsOfPathPlockV3' = { plock, path }:
+    builtins.filter ( lib.hasPrefix path )
+                    ( builtins.attrNames plock.packages );
+  subdirsOfPathPlockV3 = x:
+    if ( x ? plock ) && ( x ? path ) then subdirsOfPathPlockV3' x else
+    path: subdirsOfPathPlockV3 { plock = x; inherit path; };
+
+
 # ---------------------------------------------------------------------------- #
 
   # Schema Indepent Helpers
@@ -266,6 +274,7 @@ in {
     splitNmToIdentPath
     pinVersionsFromPlockV1
     pinVersionsFromPlockV3
+    subdirsOfPathPlockV3
   ;
 }
 
