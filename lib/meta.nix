@@ -582,6 +582,7 @@ in {
     mkMetaEnt'
     mkMetaEnt
     metaEntIsSimple
+    metaEntWasPlock
   ;
   # Meta Sets
   inherit
