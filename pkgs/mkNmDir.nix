@@ -1,10 +1,13 @@
 # ============================================================================ #
 #
-# FIXME:
 # This depends on `idealTreePlockV3' to basically fill in `outPath' for `pkgSet'
 # keys; but honestly this is as simple as `pkgEnt.prepared.outPath'.
-# I haven't merged that routine yet but I'm adding this immediately to share as
-# a reference implementation.
+#
+# TODO: Separate core routine to work independently of `pkgSet' by expecting
+#       store paths as values, and have a `mkNmDirWithPkgSet' shim.
+#
+# TODO: Separate the creation of the build command into a helper so that
+#       `emitScript' is not necessary.
 #
 # ---------------------------------------------------------------------------- #
 

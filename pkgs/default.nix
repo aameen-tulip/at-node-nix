@@ -15,13 +15,7 @@
 , ...
 }: let
   # This is placed outside of scope to prevent overrides.
-  # Don't override it.
-  # Don't override bash.
-  # Don't override coreutils.
-  # Do not pass "go".
-  # Do not trigger a rebuild for literally hundreds of thousands of drvs because
-  # a single byte changed in a single file connected to `stdenv'.
-  # XXX: Are we clear? About not overriding these inputs? Are we?
+  # Don't override its `bash' and `coreutils' args.
   snapDerivation = import ./make-derivation-simple.nix {
     inherit (pkgs) bash coreutils;
     inherit (config) contentAddressedByDefault;
