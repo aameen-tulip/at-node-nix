@@ -229,7 +229,7 @@
     tree' = let
       doStrip = lib.hasPrefix "node_modules/"
                               ( builtins.head ( builtins.attrNames tree ) );
-    in stripLeadingNmDirs tree;
+    in if doStrip then stripLeadingNmDirs tree else tree;
 
     haveBin = lib.filterAttrs ( hasBin { inherit ignoreSubBins; } ) tree';
 
