@@ -93,7 +93,13 @@
   getTodir = path: ent: let
     fromEnt = if builtins.isString ent then null else
               ent.ident or ent.name or ent.meta.ident or ent.meta.name or null;
-    subdir = if fromEnt != null then fromEnt else lib.libplock.pathId path;
+    fromPath = lib.libplock.pathId path;
+    subdir = if fromEnt != null then fromEnt else
+             if fromPath != null then fromPath else
+             # Since we have already stripped the `leading' "node_modules/"
+             # path we expect to get `null' from `pathId' for inputs like
+             # "@foo/bar" which have already been converted to their identifier.
+             path;
   in "$node_modules_path/${subdir}";
 
   # NOTE: this expects paths to be stripped beforehand
@@ -162,12 +168,12 @@
   # it's not worth trying to align; instead we simply wipe out existing
   # bins with whatever happens to be listed last.
   # If this causes problems in your project, clean up your dependency list.
-  _mkNmDirAddBinNoDirCmd = coreutils: path: ent: let
+  _mkNmDirAddBinNoDirsCmd = coreutils: path: ent: let
     bin   = getBins ent;
     bd    = getBindir path;
     fd    = getFromdir ent;
     addOne = name: relPath: let
-      from = "${dd}/${relPath}";
+      from = "${fd}/${relPath}";
       to   = "${bd}/${name}";
     in ''${coreutils}/bin/ln -srf "${from}" "${to}";'';
     cmds = builtins.attrValues ( builtins.mapAttrs addOne bin );
@@ -176,12 +182,12 @@
   # Handles either kind.
   _mkNmDirAddBinCmd = coreutils: path: ent: let
     ab = if ( getBins ent ) ? __DIR__ then _mkNmDirAddBinWithDirCmd
-                                      else _mkNmDirAddBinNoDirCmd;
+                                      else _mkNmDirAddBinNoDirsCmd;
   in ab coreutils path ent;
 
 # ---------------------------------------------------------------------------- #
 
-  mkNmDirCmdWith = {
+  _mkNmDirCmdWith = {
     tree
   # A function taking `from' and `to' as arguments, which should produce a shell
   # command that "adds" ( copies/links ) module FROM source directory TO
@@ -190,7 +196,7 @@
   # NOTE: Use absolute paths to utilities, this command may be nested as a
   # hook in other derivations and you are NOT guaranteed to have `stdenv'
   # default path available - not even `coreutils'.
-  , addCmd ? from: to: _mkNmDirCopyCmd lndir from to
+  , addCmd ? from: to: _mkNmDirLinkCmd lndir from to
   # Only handle top level `node_modules/.bin` dir.
   # This is what you want if  you're only using isolated Nix builders.
   # If you're creating an install script for use outside of Nix and you want
@@ -230,65 +236,80 @@
     # Create directories in groups of 5 at time using `mkdir'.
     # We cannot just dump all of them on the CLI because we'll blow it out; but
     # this essentially behaves like `xargs' to avoid long line limit.
-    mkdirs = let
-      moduleDirnames = builtins.attrNames tree';
-      binDirs =
-        if haveBin == {} then [] else
-        if ignoreSubBins then "$node_moduels_path/.bin" else
-        ( lib.unique ( map getBindir ( builtins.attrNames haveBin ) ) );
-      dirs = builtins.sort ( a: b: a < b ) ( moduleDirnames ++ binDirs );
+    mkdirs = dirs: let
+      dirs' = builtins.sort ( a: b: a < b ) ( lib.unique dirs );
       # Use a `fold' to group dirs in 5s.
       chunk = acc: dir: let
         nl  = {
           i = 0;
-          cmd = "${acc.cmd};\n" + ''${coreutils}/bin/mkdir -p "${dir}"'';
+          cmd = "${acc.cmd};\n" + ''  ${coreutils}/bin/mkdir -p "${dir}"'';
         };
         cnt = { i = acc.i + 1; cmd = ''${acc.cmd} "${dir}"''; };
       in if 5 <= acc.i then nl else cnt;
-      start = { i = 0; cmd = "\n${coreutils}/bin/mkdir -p"; };
-    in ( builtins.foldl' chunk start dirs ).cmd + ";\n\n";
+      start = { i = 0; cmd = "  ${coreutils}/bin/mkdir -p"; };
+    in ( builtins.foldl' chunk start dirs' ).cmd + ";";
+
+    addModDirs = let
+      nmp = p: "$node_modules_path/${p}";
+    in mkdirs ( map nmp ( builtins.attrNames tree' ) );
 
     # Run `addCmd' over each module and dump it to the script.
     addMods = let
-      addOne = path: ent: addCmd ( getFromdir ent ) ( getToDir ent );
+      addOne = path: ent: addCmd ( getFromdir ent ) ( getTodir path ent );
       cmds = builtins.attrValues ( builtins.mapAttrs addOne tree' );
-    in builtins.concatStringsSep "\n" cmds;
+    in builtins.concatStringsSep "\n  " cmds;
+
+    addBinDirs =
+      if haveBin == {} then "" else
+      if ignoreSubBins then ["$node_moduels_path/.bin"] else
+      map getBindir ( builtins.attrNames haveBin );
 
     addBins = let
-      cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd tree' );
-    in builtins.concatStringsSep "\n" cmds;
+      cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );
+    in builtins.concatStringsSep "\n  " cmds;
+
+    preHookDef = lib.optionalString ( args ? preNmDir ) ''
+      preNmDir() {
+        echo "installNodeModules: Running 'preNmDir' hook" >&2;
+        ${preNmDir}
+      }
+      : "''${preNmDirHook=preNmDir}";
+    '';
+    postHookDef = lib.optionalString ( args ? postNmDir ) ''
+      postNmDir() {
+        echo "installNodeModules: Running 'postNmDir' hook" >&2;
+        ${postNmDir}
+      }
+      : "''${postNmDirHook=postNmDir}";
+    '';
+    addBinsDef = lib.optionalString ( haveBin != {} ) ''
+      addNodeModulesBins() {
+      ${addBinDirs}
+        ${addBins}
+      }
+    '';
 
   in ''
-    # Set `node_modules/' install path if unset.
-    # The user can still override this in `preNmDir'.
-    : "''${node_modules_path:=$PWD/node_modules}";
-
-    createNodeModulesDirs() {
-      ${mkdirs}
-    }
-
+    ${preHookDef}
+    ${postHookDef}
+    ${addBinsDef}
     addNodeModules() {
+    ${addModDirs}
       ${addMods}
     }
-
-    addNodeModulesBins() {
-      ${addBins}
-    }
-
     installNodeModules() {
-      echo "installNodeModules: Running 'preNmDir' hook" >&2;
-      eval "${preNmDir}"
-
+      # Set `node_modules/' install path if unset.
+      # The user can still override this in `preNmDir'.
+      : "''${node_modules_path:=$PWD/node_modules}";
+      eval "''${preNmDirHook:-:}";
       echo "Installing Node Modules to '$node_modules_path'" >&2;
-
-      createNodeModulesDirs;
       addNodeModules;
-      addNodeModulesBins;
-
-      echo "installNodeModules: Running 'postNmDir' hook" >&2;
-      eval "${postNmDir}"
+      ${lib.optionalString ( haveBin != {} ) "addNodeModulesBins;"}
+      eval "''${postNmDirHook:-:}";
     }
   '';
+
+  mkNmDirCmdWith = lib.callPackageWith globalArgs _mkNmDirCmdWith;
 
 
 # ---------------------------------------------------------------------------- #
@@ -298,7 +319,7 @@ in {
     _mkNmDirCopyCmd
     _mkNmDirLinkCmd
     _mkNmDirAddBinWithDirCmd
-    _mkNmDirAddBinNoDirCmd
+    _mkNmDirAddBinNoDirsCmd
     _mkNmDirAddBinCmd
     mkNmDirCmdWith
   ;
