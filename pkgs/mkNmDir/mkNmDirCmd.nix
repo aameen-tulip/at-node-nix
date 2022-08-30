@@ -150,7 +150,7 @@
 # ---------------------------------------------------------------------------- #
 
   # Link a dir of binaries to bindir.
-  addBinHandleDir = coreutils: path: ent: let
+  _mkNmDirAddBinWithDirCmd = coreutils: path: ent: let
     bin = getBins ent;
     from = assert ( builtins.attrNames bin ) == ["__DIR__"];
            "${getFromdir ent}/${bin.__DIR__}";
@@ -162,7 +162,7 @@
   # it's not worth trying to align; instead we simply wipe out existing
   # bins with whatever happens to be listed last.
   # If this causes problems in your project, clean up your dependency list.
-  addBinAttrs = coreutils: path: ent: let
+  _mkNmDirAddBinNoDirCmd = coreutils: path: ent: let
     bin   = getBins ent;
     bd    = getBindir path;
     fd    = getFromdir ent;
@@ -174,8 +174,9 @@
   in builtins.concatStringsSep "\n" cmds;
 
   # Handles either kind.
-  addBinStd = coreutils: path: ent: let
-    ab = if ( getBins ent ) ? __DIR__ then addBinHandleDir else addBinAttrs;
+  _mkNmDirAddBinCmd = coreutils: path: ent: let
+    ab = if ( getBins ent ) ? __DIR__ then _mkNmDirAddBinWithDirCmd
+                                      else _mkNmDirAddBinNoDirCmd;
   in ab coreutils path ent;
 
 # ---------------------------------------------------------------------------- #
@@ -208,7 +209,8 @@
   # This is exposed in case you need to do something wonky like create wrapper
   # scripts; but I think it's unlikely that you'll need to.
   , addBinCmd ? path: ent:
-      if handleBindir then addBinStd coreutils else addBinAttrs coreutils
+      if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
+                      else _mkNmDirAddBinNoDirsCmd coreutils path ent
   # Hooks
   , preNmDir  ? ""
   , postNmDir ? ""
@@ -258,6 +260,7 @@
 
   in ''
     # Set `node_modules/' install path if unset.
+    # The user can still override this in `preNmDir'.
     : "''${node_modules_path:=$PWD/node_modules}";
 
     createNodeModulesDirs() {
@@ -273,12 +276,16 @@
     }
 
     installNodeModules() {
+      echo "installNodeModules: Running 'preNmDir' hook" >&2;
       eval "${preNmDir}"
+
+      echo "Installing Node Modules to '$node_modules_path'" >&2;
 
       createNodeModulesDirs;
       addNodeModules;
       addNodeModulesBins;
 
+      echo "installNodeModules: Running 'postNmDir' hook" >&2;
       eval "${postNmDir}"
     }
   '';
@@ -290,6 +297,9 @@ in {
   inherit
     _mkNmDirCopyCmd
     _mkNmDirLinkCmd
+    _mkNmDirAddBinWithDirCmd
+    _mkNmDirAddBinNoDirCmd
+    _mkNmDirAddBinCmd
     mkNmDirCmdWith
   ;
 }
