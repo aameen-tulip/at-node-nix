@@ -294,24 +294,19 @@
     # Start with the default serializer's output.
     dft = metaEntSerialDefault self;
     # Drop values which are assumed to be false when unspecified.
-    hide = removeAttrs dft [
+    hides = [
       "hasBin"
       "hasBuild"
       "hasInstallScript"
-      "gypfile"
-    ];
-    keepTrue = lib.filterAttrs ( _: x: x == true ) ( builtins.intersectAttrs {
-      hasBin = true;
-      hasBuild = true;
-      hasPrepare = true;
-    } dft );
-    inst' = ( lib.optionalAttrs ( self.hasInstallScript or false ) {
-      inherit (self) hasInstallScript;
-    } // ( lib.optionalAttrs ( self ? gypfile ) {
-      inherit (self) gypfile;
-    } ) );
+    # When `hasInstallScript == true' we always preserve `gypfile', otherwise
+    # we always drop it.
+    ] ++ ( lib.optional ( ! ( self.hasInstallScript or false ) ) "gypfile" );
+    hide = removeAttrs dft hides;
+    keepTrue = let
+      cond = k: v: ( builtins.elem k hides ) && ( v == true );
+    in lib.filterAttrs cond dft;
   in assert metaEntWasPlock self;
-     hide // keepTrue // inst';
+     hide // keepTrue;
 
 
 # ---------------------------------------------------------------------------- #
@@ -508,7 +503,7 @@
       in lib.fixedPoints.extends addMeta members;
     in if builtins.isFunction members then membersRFromFn else
        assert builtins.isAttrs members;
-       membersRFromFn;
+       membersRFromAS;
     extras = let
       __entries = self: removeAttrs self ( extInfoExtras ++ [
         "__meta" "__pscope" "__unkey" "__mapEnts" "_type"
