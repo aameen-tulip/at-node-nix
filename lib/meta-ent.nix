@@ -86,12 +86,12 @@
     pjsDir = if plent.pkey == "" then "" else
              if plent.link or false then "/${plent.resolved}" else
              "/${plent.pkey}";
-    pjsPath = "${pjsDir}/package.json";
+    pjsPath = "${plent.lockDir}${pjsDir}/package.json";
     tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
     pjs     = x.entries.pjs or ( lib.importJSON' "${pjsDir}/package.json" );
     fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      sourceInfo.path = plent.resolved;
-      entries.pjs = pjs // { inherit pjsDir; };
+      sourceInfo.path    = "${plent.lockDir}${pjsDir}";
+      entries.pjs        = pjs // { inherit pjsDir; };
     };
     isLocal     = ( entSubtype == "path" ) || ( entSubtype == "symlink" );
     isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
