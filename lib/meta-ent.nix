@@ -242,16 +242,18 @@
       };
     in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
 
-    ents = lib.mapAttrsToList mkOne plock.packages;
     mergeOne = a: b: let
-    in ( a // b ) // {
-      entries.plock = let
-        links = ( a.entries.plock.links or [] ) ++
-                ( b.entries.plock.links or [] );
-      in a.entries.plock // b.entries.plock // {
-        pkeys = a.entries.plock.pkeys ++ b.entries.plock.pkeys;
-      } // ( lib.optionalAttrs ( links != [] ) { inherit links; } );
-    };
+      links = ( a.entries.plock.links or [] ) ++
+              ( b.entries.plock.links or [] );
+      # This is just in case the linked entry is before the real entry.
+      pkeys = ( a.entries.plock.pkeys or [] ) ++
+              ( b.entries.plock.pkeys or [] );
+      stage1 = lib.recursiveUpdate a b;
+      plock  = stage1.entries.plock // ( {
+        inherit pkeys;
+      } // ( lib.optionalAttrs ( links != [] ) { inherit links; } ) );
+    in stage1 // { entries = stage1.entries // { inherit plock; }; };
+
     mergeInstances = key: instances: let
       merged = builtins.foldl' mergeOne ( builtins.head instances )
                                         ( builtins.tail instances );
@@ -259,9 +261,13 @@
         builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
                                   merged;
       me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
+                              ( builtins.head merged.entries.plock.pkeys )
                               ( builtins.deepSeq ectx merged );
     in me;
+
+    ents = lib.mapAttrsToList mkOne plock.packages;
     metaEntries = builtins.zipAttrsWith mergeInstances ents;
+
     members = metaEntries // {
       __meta = {
         __serial = false;
