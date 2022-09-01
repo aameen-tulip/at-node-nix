@@ -102,20 +102,24 @@
              path;
   in "$node_modules_path/${subdir}";
 
-  # NOTE: this expects paths to be stripped beforehand
   # Get bindir where a path's bins should be installed.
   # This will be the "parent" `node_modules/.bin' dir; for example:
   #   "@foo/bar/node_modules/@baz/quux"
   #   -->
   #   "$node_modules_path/@foo/bar/node_modules/.bin".
+  # NOTE: this expects paths to be stripped beforehand.
   # NOTE: In my humble opinion, installing bins to anything other than the top
-  # level `node_modules/' directory makes is a waste of effort for our builders.
+  # level `node_modules/' directory is a waste of effort for our builders.
   # In NPM and Yarn these bins are created because `[pre|post]install' scripts
-  # and "recursive builds" ( workspaces ) need them.
-  # Because our Nix builders run install and build scripts in isolation these
-  # aren't useful though.
+  # and "recursive builds" ( workspaces ).
+  # Our Nix builders run install and build scripts in isolation these aren't
+  # necessary in the context of the build being executed.
   # `mkNmDirCmd' has a flag `ignoreSubBins' which will skip those subdirs.
   # With that in mind, this function is only called if we are creating subdirs.
+  # There are of course wonky edge cases where someone may be trying to do
+  # something evil with `resolve()' and `exec' using relative paths; but that's
+  # note something we're going to deal with out of the box ( those edge cases
+  # would break with global installs in other package managers as well ).
   getBindir = path: let
     parent  = lib.libplock.parentPath path;
   in if builtins.elem parent ["" null] then "$node_modules_path/.bin" else
@@ -288,28 +292,84 @@
         ${addBins}
       }
     '';
+  # We must return an attrset for `lib.makeOverridable' to be effective.
+  # Since we have an attrset I'm going to tack on some `passthru' and `meta'
+  # like you might see on a derivation ( `drvAttrs' ); but none of that
+  # is essential ( possibly useful in overrides ).
+  in {
+    cmd = ''
+      ${preHookDef}
+      ${postHookDef}
+      ${addBinsDef}
+      addNodeModules() {
+      ${addModDirs}
+        ${addMods}
+      }
+      installNodeModules() {
+        # Set `node_modules/' install path if unset.
+        # The user can still override this in `preNmDir'.
+        : "''${node_modules_path:=$PWD/node_modules}";
+        eval "''${preNmDirHook:-:}";
+        echo "Installing Node Modules to '$node_modules_path'" >&2;
+        addNodeModules;
+        ${lib.optionalString ( haveBin != {} ) "addNodeModulesBins;"}
+        eval "''${postNmDirHook:-:}";
+      }
+    '';
+    meta = {
+      inherit handleBindir ignoreSubBins;
+    };
+    passthru = {
+      inherit tree addCmd addBinCmd preNmDir postNmDir coreutils lndir;
+    };
+  };
 
-  in ''
-    ${preHookDef}
-    ${postHookDef}
-    ${addBinsDef}
-    addNodeModules() {
-    ${addModDirs}
-      ${addMods}
-    }
-    installNodeModules() {
-      # Set `node_modules/' install path if unset.
-      # The user can still override this in `preNmDir'.
-      : "''${node_modules_path:=$PWD/node_modules}";
-      eval "''${preNmDirHook:-:}";
-      echo "Installing Node Modules to '$node_modules_path'" >&2;
-      addNodeModules;
-      ${lib.optionalString ( haveBin != {} ) "addNodeModulesBins;"}
-      eval "''${postNmDirHook:-:}";
-    }
-  '';
+  # Exported form that allows the function result to be overridden; we don't
+  # produce a derivation here though so we drop `overrideDerivation' from the
+  # resulting attrset.
+  # Defining `__functionArgs' is what allows users to run `callPackage' on this
+  # function and have it "do what they mean" despite the wrapper.
+  mkNmDirCmdWith = {
+    __functionArgs = lib.functionArgs _mkNmDirCmdWith;
+    __functor = self: args: let
+      nmd = lib.callPackageWith globalArgs _mkNmDirCmdWith args;
+    in removeAttrs nmd ["overrideDerivation"];
+  };
 
-  mkNmDirCmdWith = lib.callPackageWith globalArgs _mkNmDirCmdWith;
+
+# ---------------------------------------------------------------------------- #
+
+  # Create a `node_modules/' directly using symlinks to store paths.
+  # Directories themselves are not linked, only regular files; this helps limit
+  # issues cause by Node.js and other tools' efforts to resolve absolute paths
+  # during resolution - but it can still cause problems with oddballs like
+  # `jest', `tsc', and other tools with bespoke resolution implementations
+  # ( because they know SO much better than `Node.js' maintainers... ).
+  mkNmDirLinkCmd = {
+    tree
+  , ignoreSubBins ? false
+  , handleBindir  ? true
+  , preNmDir      ? ""
+  , postNmDir     ? ""
+  , coreutils     ? globalArgs.coreutils
+  , lndir         ? globalArgs.lndir
+  , ...
+  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirLinkCmd coreutils; } // args );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Create a `node_modules/' directly by copying store paths.
+  mkNmDirCopyCmd = {
+    tree
+  , ignoreSubBins ? false
+  , handleBindir  ? true
+  , preNmDir      ? ""
+  , postNmDir     ? ""
+  , coreutils     ? globalArgs.coreutils
+  , lndir         ? globalArgs.lndir
+  , ...
+  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirCopyCmd coreutils; } // args );
 
 
 # ---------------------------------------------------------------------------- #
@@ -322,6 +382,8 @@ in {
     _mkNmDirAddBinNoDirsCmd
     _mkNmDirAddBinCmd
     mkNmDirCmdWith
+    mkNmDirCopyCmd
+    mkNmDirLinkCmd
   ;
 }
 

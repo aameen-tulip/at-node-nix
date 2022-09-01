@@ -9,10 +9,14 @@
     # XXX: I'm not crazy about possibly polluting `lib' with the config.
     callLibs = file: import file { lib = final; };
   in {
-    # This one's the oddball.
-    # This means `libcfg' cannot call functions from other libs defined here.
-    libcfg      = import ./config.nix { inherit (prev) lib; };
-    flocoConfig = final.libcfg.mkFlocoConfig flocoConfig;
+
+    # This only depends on `nixpkgs.lib' so using the one from `ak-nix' is fine.
+    # We are just doing a try run here anyway.
+    flocoConfig = ( import ./config.nix {
+      inherit (globalAttrs) lib;
+    } ).mkFlocoConfig ( globalAttrs.flocoConfig or {} );
+    # Call it recursively this time ( not that it really matters )
+    libcfg = callLibs ./config.nix;
 
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
     libparse   = callLibs ./parse.nix;

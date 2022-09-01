@@ -28,8 +28,8 @@
   # any other package information.
   # This helps us fetch the "real" entry so we can look up metadata.
   realEntry = plock: path: let
-    e = plock.packages."${path}";
-    entry = if e.link or false then plock.packages."${e.resolved}" else e;
+    e = plock.packages.${path};
+    entry = if e.link or false then plock.packages.${e.resolved} else e;
   in assert supportsPlV3 plock;
      entry;
 
