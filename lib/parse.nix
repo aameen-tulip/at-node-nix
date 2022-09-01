@@ -192,7 +192,6 @@ in {
     nameInfo'
     nameInfo
     isGitRev
-    getPjsScopeDir
   ;
 }
 
