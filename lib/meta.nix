@@ -260,8 +260,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: make `entFromType' use this to type-check in `metaEntCore'.
-  metaEntryFromTypes = [
+  # FIXME: make `entFromtype' use this to type-check in `metaEntCore'.
+  metaEntryFromtypes = [
     "package.json"
     "package-lock.json"      # Detect version
     "package-lock.json(v1)"
@@ -276,8 +276,8 @@
     "raw"                    # Fallback/Default for manual entries
   ];
 
-  metaEntWasPlock = { entryFromType ? "raw", ... }:
-    builtins.elem entryFromType [
+  metaEntWasPlock = { entFromtype ? "raw", ... }:
+    builtins.elem entFromtype [
       "package-lock.json"
       "package-lock.json(v1)"
       "package-lock.json(v2)"
@@ -300,9 +300,11 @@
       "hasInstallScript"
       "gypfile"
     ];
-    keepTrue = lib.filterAttrs ( _: x: x == true ) {
-      inherit (self) hasBin hasBuild hasPrepare;
-    };
+    keepTrue = lib.filterAttrs ( _: x: x == true ) ( builtins.intersectAttrs {
+      hasBin = true;
+      hasBuild = true;
+      hasPrepare = true;
+    } dft );
     inst' = ( lib.optionalAttrs ( self.hasInstallScript or false ) {
       inherit (self) hasInstallScript;
     } // ( lib.optionalAttrs ( self ? gypfile ) {
@@ -318,10 +320,10 @@
     "_type" "__pscope"
   ];
 
-  # Maps `entFromType' to default serializers.
+  # Maps `entFromtype' to default serializers.
   # Largely these hide additional fields which can be easily inferred using
-  # `entFromType`.
-  metaEntSerialsByFromType = {
+  # `entFromtype`.
+  metaEntSerialByFromtype = {
     "package-lock.json"     = metaEntPlSerial;
     "package-lock.json(v1)" = metaEntPlSerial;
     "package-lock.json(v2)" = metaEntPlSerial;
@@ -329,8 +331,8 @@
     _default                = metaEntSerialDefault;
   };
 
-  metaEntSerial = self:
-    metaEntSerialByType.${self.entryFromType} or metaEntSerialByType._default;
+  metaEntSerial = { entFromtype ? "_default", ... } @ self:
+    metaEntSerialByFromtype.${entFromtype} self;
 
 
 # ---------------------------------------------------------------------------- #
@@ -394,7 +396,7 @@
       module    = "${names.bname}-module-${version}";
       global    = "${names.bname}-${version}";
     } // ( lib.optionalAttrs scoped { scope = lib.yank "@([^/]+)/.*" ident; } );
-  in { inherit scope names; };
+  in { inherit scoped names; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -414,7 +416,7 @@
     key         ? args.ident + "/" + args.version
   , ident       ? dirOf args.key
   , version     ? baseNameOf args.key
-  , entFromType ? "raw"
+  , entFromtype ? "raw"
   } @ args: mkExtInfo' {
     __serial  = metaEntSerial;
     # Ignore extra fields, and similar to `__serial' recur `__entries' calls.
@@ -426,7 +428,7 @@
     in builtins.mapAttrs subEnts scrub;
   } {
     _type = "metaEnt";
-    inherit key ident version entFromType;
+    inherit key ident version entFromtype;
     # We don't hard code this in the serializer in case the user actually does
     # want to serialize their `entries', allowing them the ability to override.
     entries.__serial = false;
@@ -446,7 +448,7 @@
                 core.__add ( metaEntNames core );
   in withNames;
 
-  mkMetaEnt = mkMetaEnt {};
+  mkMetaEnt = mkMetaEnt' {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -510,6 +512,7 @@
     extras = let
       __entries = self: removeAttrs self ( extInfoExtras ++ [
         "__meta" "__pscope" "__unkey" "__mapEnts" "_type"
+        "__maybeApplyEnt"
       ] );
     in {
       __serial  = self: removeAttrs ( serialDefault self ) ["_type" "__pscope"];
@@ -522,11 +525,11 @@
       # FIXME: possible hide this behind a conditional for REPL only.
       __unkey = unkeyAttrs __entries;
       # Apply a function to all entries.
-      __mapEnts = fn: self.__new ( builtins.mapAttrs fn self.__entries );
+      __mapEnts = self: fn: self.__new ( builtins.mapAttrs fn self.__entries );
       # Apply function to entry if it exists, otherwise do nothing.
       # This may seem superfulous but in practice this is an incredibly common
       # pattern when trying to override meta-data.
-      __maybeApplyEnt = fn: field:
+      __maybeApplyEnt = self: fn: field:
         if ! ( self.__entries ? ${field} ) then self else
           self.__update { ${field} = fn self.${field}; };
     };
@@ -558,6 +561,24 @@
 
 # ---------------------------------------------------------------------------- #
 
+  genMetaEntAdd = cond: fn: ent:
+    if cond ent then ent.__add ( fn ent ) else ent;
+
+  genMetaEntUp = cond: fn: ent:
+    if cond ent then ent.__update ( fn ent ) else ent;
+
+  genMetaEntExtend = cond: fn: ent:
+    if cond ent then ent.__extend ( fn ent ) else ent;
+
+  genMetaEntRules = name: cond: fn: {
+    "metaEntAdd${name}"    = genMetaEntAdd cond fn;
+    "metaEntUp${name}"     = genMetaEntUp cond fn;
+    "metaEntExtend${name}" = genMetaEntExtend cond fn;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   # Base Serializers
   inherit
@@ -573,10 +594,10 @@ in {
   ;
   # Meta Entries
   inherit
-    metaEntryFromTypes
+    metaEntryFromtypes
     metaEntSerialDefault
     metaEntSerial
-    metaEntExtenWithNames
+    metaEntExtendWithNames
     metaEntNames
     mkMetaEntCore
     mkMetaEnt'
@@ -593,5 +614,12 @@ in {
   inherit
     unkeyAttrs
     extInfoExtras
+  ;
+
+  inherit
+    genMetaEntAdd
+    genMetaEntUp
+    genMetaEntExtend
+    genMetaEntRules
   ;
 }

@@ -46,7 +46,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-  entryFromTypes = [
+  entFromtypes = [
     "package.json"
     "package-lock.json"      # Detect version
     "package-lock.json(v1)"
@@ -326,17 +326,6 @@
 
     # We're ready to roll y'all!
   in withNodeModulesDirs.__extend prepareOv;
-
-
-/* -------------------------------------------------------------------------- */
-
-  mkPkgEntry = {
-    ident
-  , version
-  , key           ? ident + "/" + version
-  , entryFromType ? null
-  } @ fields: let
-  in {};
 
 
 /* -------------------------------------------------------------------------- */
