@@ -82,7 +82,7 @@
 # ---------------------------------------------------------------------------- #
 
   metaEntFromPlockSubtype = x: let
-    plent  = x.entries.plent or x;
+    plent  = x.entries.plock or x;
     pjsDir = if plent.pkey == "" then "" else
              if plent.link or false then "/${plent.resolved}" else
              "/${plent.pkey}";
@@ -127,16 +127,27 @@
   in if builtins.isString x then core else forAttrs;
 
   inherit (
-    genMetaEntRules "PlockSubtype" metaEntWasPlock metaEntFromPlockSubtype
-  ) metaEntAddPlockSubtype
-    metaEntUpPlockSubtype
-    metaEntExtendPlockSubtype
+    genMetaEntRules "FromPlockSubtype" metaEntWasPlock metaEntFromPlockSubtype
+  ) metaEntAddFromPlockSubtype
+    metaEntUpFromPlockSubtype
+    metaEntExtendFromPlockSubtype
+    metaEntMergeFromPlockSubtype
   ;
 
 
 # ---------------------------------------------------------------------------- #
 
-  metaEntFromPlockV3 = { lockDir, lockfileVersion ? 3 }: pkey: {
+  # Three args.
+  # First holds "global" settings while the second is the actual plock entry.
+  # Second and Third are the "path" and "entry" from `<PLOCK>.packages', and
+  # the intention is that you use `builtins.mapAttrs' to process the lock.
+  metaEntFromPlockV3 = {
+    lockDir
+  , lockfileVersion ? 3
+  , flocoConfig     ? lib.flocoConfig
+  }:
+  # `mapAttrs' args:
+  pkey: {
     ident            ? plent.name or ( lib.libplock.pathId pkey )
   , version
   , hasInstallScript ? false
@@ -154,14 +165,118 @@
       entFromtype = "package-lock.json(v${toString lockfileVersion})";
       entries = {
         __serial = false;
-        plent = plent // { inherit pkey lockDir; };
+        plock = plent // { inherit pkey lockDir; };
       };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } ) );
-    sub = let
-      st = lib.recursiveUpdate ( metaEntFromPlockSubtype meta.__entries )
-                               meta.__entries;
-    in meta.__update st;
-  in sub;
+    sub = lib.libmeta.metaEntMergeFromPlockSubtype meta;
+    ex = let
+      ovs = flocoConfig.metaEntOverlays or [];
+      ov  = if builtins.isList ovs then lib.composeManExtensions ovs else ovs;
+    in if ( ovs != [] ) then sub.__extend ov else sub;
+  in ex;
+
+
+/* -------------------------------------------------------------------------- */
+
+  metaSetRootTreesForPlockV3 = { plock , flocoConfig ? lib.flocoConfig }: let
+    ident   = plock.name or plock.packages."".name;
+    version = plock.version or plock.packages."".version;
+  in {
+    rootKey = "${ident}/${version}";
+    trees.prod = lib.libtree.idealTreePlockV3 {
+      inherit plock flocoConfig;
+      dev = false;
+    };
+    trees.dev = lib.libtree.idealTreePlockV3 { inherit plock flocoConfig; };
+  };
+
+  inherit (
+    genMetaEntRules "RootTreesForPlockV3" lib.libplock.supportsPlV3 ( e: {
+      __meta = metaSetRootTreesForPlockV3 e;
+    } ) )
+      metaSetAddPlockSubtype
+      metaSetUpPlockSubtype
+      metaSetExtendPlockSubtype
+      metaSetMergePlockSubtype
+  ;
+
+
+/* -------------------------------------------------------------------------- */
+
+  metaSetFromPlockV3 = {
+    plock       ? lib.importJSON' lockPath
+  , pjs         ? lib.importJSON' pjsPath
+  , lockDir     ? dirOf lockPath
+  , lockPath    ? "${lockDir}/package-lock.json"
+  , pjsPath     ? "${lockDir}/package.json"
+  , flocoConfig ? lib.flocoConfig
+  , ...
+  } @ args: assert lib.libplock.supportsPlV3 plock; let
+    inherit (plock) lockfileVersion;
+
+    mkOne = path: ent: let
+      ident   = ent.ident or ent.name or ( lib.libplock.pathId path );
+      version = ( lib.libplock.realEntry plock path ).version;
+      key     = "${ident}/${version}";
+      # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
+      # that will be processed by `metaEntFromPlockV3'.
+      # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
+      # handled by `metaEntFromPlockV3', and remaining fields are stashed in
+      # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
+      # to `metaEntMergeFromPlockSubtype' for further processing.
+      # The `*PlockSubtype' routine creates `sourceInfo', and will also process
+      # `entries.pjs' if it is provided ( or for local paths in the lock )
+      # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
+      # find the `package.json' on its own; you only need to inject it if you
+      # are trying to override.
+      simpleArgs = {
+        inherit ident version key;
+        entries.plock = ent // { pkeys = [path]; };
+      };
+      # This gets merged with the real key.
+      # We mark `linkFrom' and `linkTo' to avoid loss of detail.
+      linkedArgs = {
+        inherit ident version key;
+        entries.plock = ( removeAttrs ent ["resolved" "link"]) // {
+          links = [{ from = ent.resolved; to = path; }];
+        };
+      };
+    in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
+
+    ents = lib.mapAttrsToList mkOne plock.packages;
+    mergeOne = a: b: let
+    in ( a // b ) // {
+      entries.plock = let
+        links = ( a.entries.plock.links or [] ) ++
+                ( b.entries.plock.links or [] );
+      in a.entries.plock // b.entries.plock // {
+        pkeys = a.entries.plock.pkeys ++ b.entries.plock.pkeys;
+      } // ( lib.optionalAttrs ( links != [] ) { inherit links; } );
+    };
+    mergeInstances = key: instances: let
+      merged = builtins.foldl' mergeOne ( builtins.head instances )
+                                        ( builtins.tail instances );
+      ectx =
+        builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
+                                  merged;
+      me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
+                              ( builtins.deepSeq ectx merged );
+    in me;
+    metaEntries = builtins.zipAttrsWith mergeInstances ents;
+    members = metaEntries // {
+      __meta = {
+        __serial = false;
+        rootKey = "${plock.name}/${plock.version}";
+        inherit pjs plock lockDir;
+        fromType = "package-lock.json(v${toString lockfileVersion})";
+      };
+    };
+    base = lib.libmeta.mkMetaSet members;
+    ex = let
+      ovs = flocoConfig.metaSetOverlays or [];
+      ov  = if builtins.isList ovs then lib.composeManExtensions ovs else ovs;
+    in if ( ovs != [] ) then base.__extend ov else base;
+  in ex;
 
 
 /* -------------------------------------------------------------------------- */
@@ -173,7 +288,7 @@
   , metaEntOverlays ? []  # Applied to individual packages in `metaSet'
   , metaSetOverlays ? []  # Applied to `metaSet'
   , ...
-  } @ args: assert lib.libplock.supportsPlockV3; let
+  } @ args: assert lib.libplock.supportsPlV3; let
     ents = let
       pins = lib.libplock.pinVersionsFromLockV2 plock;
       metaEnts = let
@@ -200,7 +315,7 @@
         hasRootPkg = ( plock ? name ) && ( plock ? version );
         rootKey = "${plock.name}/${plock.version}";
       in {
-        setFromtype = assert lib.libplock.supportsPlockV3 plock;
+        setFromtype = assert lib.libplock.supportsPlV3 plock;
           "package-lock.json(v${toString plock.lockfileVersion})";
         inherit plock lockDir lockPath metaSetOverlays metaEntOverlays;
       } // ( lib.optionalAttrs hasRootPkg { inherit rootKey;} );
@@ -213,6 +328,8 @@
 in {
   inherit
     metaEntFromPlockV3
+    metaSetFromPlockV3
+
     metaEntriesFromPlockV2
 
     metaEntPlockGapsFromPjs
@@ -221,9 +338,10 @@ in {
     metaEntExtendPlockGapsFromPjs
 
     metaEntFromPlockSubtype
-    metaEntAddPlockSubtype
-    metaEntUpPlockSubtype
-    metaEntExtendPlockSubtype
+    metaEntAddFromPlockSubtype
+    metaEntUpFromPlockSubtype
+    metaEntExtendFromPlockSubtype
+    metaEntMergeFromPlockSubtype
   ;
 }
 

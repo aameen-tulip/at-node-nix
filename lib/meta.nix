@@ -565,10 +565,38 @@
   genMetaEntExtend = cond: fn: ent:
     if cond ent then ent.__extend ( fn ent ) else ent;
 
+  genMetaEntMerge = cond: fn: ent: let
+    m = lib.recursiveUpdate ( fn ent.__entries ) ( ent.__entries );
+  in if cond ent then ent.__update m else ent;
+
   genMetaEntRules = name: cond: fn: {
-    "metaEntAdd${name}"    = genMetaEntAdd cond fn;
-    "metaEntUp${name}"     = genMetaEntUp cond fn;
+    "metaEntAdd${name}"    = genMetaEntAdd    cond fn;
+    "metaEntUp${name}"     = genMetaEntUp     cond fn;
     "metaEntExtend${name}" = genMetaEntExtend cond fn;
+    "metaEntMerge${name}"  = genMetaEntMerge  cond fn;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  genMetaSetAdd = cond: fn: set:
+    if cond set then set.__add ( fn set ) else set;
+
+  genMetaSetUp = cond: fn: set:
+    if cond set then set.__update ( fn set ) else set;
+
+  genMetaSetExtend = cond: fn: set:
+    if cond set then set.__extend ( fn set ) else set;
+
+  genMetaSetMerge = cond: fn: set: let
+    m = lib.recursiveUpdate ( fn set.__setries ) ( set.__setries );
+  in if cond set then set.__update m else set;
+
+  genMetaSetRules = name: cond: fn: {
+    "metaSetAdd${name}"    = genMetaSetAdd    cond fn;
+    "metaSetUp${name}"     = genMetaSetUp     cond fn;
+    "metaSetExtend${name}" = genMetaSetExtend cond fn;
+    "metaSetMerge${name}"  = genMetaSetMerge  cond fn;
   };
 
 
@@ -615,6 +643,13 @@ in {
     genMetaEntAdd
     genMetaEntUp
     genMetaEntExtend
+    genMetaEntMerge
     genMetaEntRules
+
+    genMetaSetAdd
+    genMetaSetUp
+    genMetaSetExtend
+    genMetaSetMerge
+    genMetaSetRules
   ;
 }
