@@ -82,16 +82,17 @@
 # ---------------------------------------------------------------------------- #
 
   metaEntFromPlockSubtype = x: let
-    plent  = x.entries.plock or x;
-    pjsDir = if plent.pkey == "" then "" else
-             if plent.link or false then "/${plent.resolved}" else
-             "/${plent.pkey}";
-    pjsPath = "${plent.lockDir}${pjsDir}/package.json";
+    plent   = x.entries.plock or x;
+    lockDir = plent.lockDir;
+    pjsDir  = if plent.pkey == "" then lockDir else
+              if plent.link or false then "${lockDir}/${plent.resolved}" else
+               "${lockDir}/${plent.pkey}";
+    pjsPath = "${pjsDir}/package.json";
     tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
-    pjs     = x.entries.pjs or ( lib.importJSON' "${pjsDir}/package.json" );
+    pjs     = x.entries.pjs or ( lib.importJSON' pjsPath );
     fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      sourceInfo.path    = "${plent.lockDir}${pjsDir}";
-      entries.pjs        = pjs // { inherit pjsDir; };
+      sourceInfo.path = pjsDir;
+      entries.pjs     = pjs // { inherit pjsDir; };
     };
     isLocal     = ( entSubtype == "path" ) || ( entSubtype == "symlink" );
     isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
@@ -124,7 +125,8 @@
       # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
       { sourceInfo = lib.libfetch.plockEntryHashAttr plent; }
     ];
-  in if builtins.isString x then core else forAttrs;
+    ec = builtins.addErrorContext "metaEntFromPlockSubtype:${plent.ident}:";
+  in if builtins.isString x then core else ec forAttrs;
 
   inherit (
     genMetaEntRules "FromPlockSubtype" metaEntWasPlock metaEntFromPlockSubtype
