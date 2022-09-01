@@ -158,9 +158,8 @@
     # FIXME: I'm not in love with this `depInfo'.
     # there's a draft sitting in ./depinfo.nix
     depInfo = lib.libpkginfo.normalizedDepsAll plent;
-    meta = let
-      core = lib.libmeta.mkMetaEntCore { inherit key ident version; };
-    in core.__update ( {
+    meta = lib.libmeta.mkMetaEnt ( {
+      inherit key ident version;
       inherit hasInstallScript hasBin depInfo;
       entFromtype = "package-lock.json(v${toString lockfileVersion})";
       entries = {

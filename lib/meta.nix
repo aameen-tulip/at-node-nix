@@ -436,11 +436,20 @@
   mkMetaEnt' = {
     recNames ? false  # Add `names' by extension allowing easy renaming later
   , ...
-  } @ opts: members: let
-    core = mkMetaEntCore members;
+  } @ opts:
+  { ident   ? members.name or dirOf members.key
+  , version ? baseNameOf members.key
+  , key     ? "${ident}/${version}"
+  , ...
+  } @ members: let
+    args =
+      builtins.intersectAttrs ( lib.functionArgs mkMetaEntCore )
+                              ( { inherit ident version key; } // members );
+    core = mkMetaEntCore args;
+    base = core.__update members;
     # Add `names' either as a flat field or recursively.
-    withNames = if recNames then core.__extend metaEntExtendWithNames else
-                core.__add ( metaEntNames core );
+    withNames = if recNames then base.__extend metaEntExtendWithNames else
+                base.__add ( metaEntNames core );
   in withNames;
 
   mkMetaEnt = mkMetaEnt' {};
