@@ -49,12 +49,14 @@
 
   # Returns null for inconclusive;
   entHasBuild = ent: let
-    entrySubtype = ent.entrySubtype or ( lib.libfetch.typeOfEntry ent );
-    isTb         = ! ( builtins.elem entrySubtype ["path" "symlink" "git"] );
+    entSubtype = ent.sourceInfo.entSubtype or
+                 ent.sourceInfo.type or
+                 ( lib.libfetch.typeOfEntry ent );
+    isTb         = ! ( builtins.elem entSubtype ["path" "symlink" "git"] );
     fromPjs = if ent ? entries.pjs
               then hasBuildFromScripts ent.entries.pjs.scripts
               else null;
-    fromSubtype  = if entrySubtype == null then null else ( ! isTb ) && fromPjs;
+    fromSubtype  = if entSubtype == null then null else ( ! isTb ) && fromPjs;
   in ent.hasBuild or fromSubtype;
 
 
@@ -95,26 +97,34 @@
     isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
     isTb        = ( entSubtype == "registry-tarball" ) ||
                   ( entSubtype == "source-tarball" );
-    entSubtype = if builtins.isString x then x else
-                 x.entrySubtype or ( lib.libfetch.typeOfEntry plent );
+    entSubtype =
+      if builtins.isString x then x else
+      x.sourceInfo.entSubtype or ( lib.libfetch.typeOfEntry plent );
     core = {
-      inherit entSubtype;
-      sourceInfo.type =
-        if isLocal then "path" else if isTb then "tarball" else "git";
+      sourceInfo = {
+        type = if isLocal then "path" else if isTb then "tarball" else "git";
+        inherit entSubtype;
+      };
     };
     conds = let
       mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
     in builtins.foldl' mergeCond core [
-      { c = isTb;               v.hasBuild = false;                   }
-      { c = plent ? integrity;  v.hash = plent.integrity;             }
-      { c = isLocal && tryPjs;  v = fromPjs;                          }
-      { c = ! isLocal;          v.url = plent.resolved;               }
+      { c = isTb;               v.hasBuild = false;                        }
+      { c = isLocal && tryPjs;  v = fromPjs;                               }
+      { c = ! isLocal;          v.sourceInfo.url = plent.resolved;         }
       {
         c = isLocal && ( plent.hasInstallScript or false );
         v = builtins.pathExists "${pjsDir}/binding.gyp";
       }
+      # This is NOT redundant alongside the `plockEntryHashAttrs' call.
+      { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity;       }
     ];
-  in core // ( lib.optionalAttrs ( builtins.isAttrs x ) conds );
+    forAttrs = builtins.foldl' lib.recursiveUpdate core [
+      conds
+      # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
+      { sourceInfo = lib.libfetch.plockEntryHashAttr plent; }
+    ];
+  in if builtins.isString x then core else forAttrs;
 
   inherit (
     genMetaEntRules "PlockSubtype" metaEntWasPlock metaEntFromPlockSubtype
@@ -127,7 +137,7 @@
 # ---------------------------------------------------------------------------- #
 
   metaEntFromPlockV3 = { lockDir, lockfileVersion ? 3 }: pkey: {
-    ident            ? plent.name or ( lib.libpath.pathId pkey )
+    ident            ? plent.name or ( lib.libplock.pathId pkey )
   , version
   , hasInstallScript ? false
   , hasBin           ? ( plent.bin or {} ) != {}
@@ -136,7 +146,7 @@
     key = ident + "/" + version;
     depInfo = lib.libpkginfo.normalizedDepsAll plent;
     meta = let
-      core = lib.libmeta.mkMetaEntCore { inherit ident version; };
+      core = lib.libmeta.mkMetaEntCore { inherit key ident version; };
     in core.__update ( {
       inherit hasInstallScript hasBin depInfo;
       entFromtype = "package-lock.json(v${toString lockfileVersion})";
@@ -145,7 +155,11 @@
         plent = plent // { inherit pkey lockDir; };
       };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } ) );
-  in meta;
+    sub = let
+      st = lib.recursiveUpdate ( metaEntFromPlockSubtype meta.__entries )
+                               meta.__entries;
+    in meta.__update st;
+  in sub;
 
 
 /* -------------------------------------------------------------------------- */

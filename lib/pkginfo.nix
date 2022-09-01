@@ -388,7 +388,7 @@
   # need to perform resolution; they are not very useful for package sets
   # based on lock files - unless you are composing multiple locks.
   addNormalizedDepsToMeta = { version, entries, ... } @ meta: let
-    fromEnt = entries.pl2ent or entries.pjs or entries.manifest or
+    fromEnt = entries.plockent or entries.pjs or entries.manifest or
       entries.packument.versions.${version} or
       ( throw ( "(addNormalizedDepsToMeta) " +
                 "Cannot find an entry to lookup dependencies" ) );

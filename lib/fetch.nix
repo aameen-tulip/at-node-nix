@@ -279,22 +279,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: Finish this
-  sourceInfo = members: let
-    extras = {
-      __serial = self: removeAttrs self ( lib.libmeta.extInfoExtras ++ [
-        "fetchArgs" "fromtype" "outPath" "_type"
-      ] );
-    };
-  in lib.libmeta.mkExtInfo' extras ( {
-    _type              = "sourceInfo";
-    fromType           = "raw";
-    fetchArgs.__serial = false;
-  } // members );
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     typeOfEntry
