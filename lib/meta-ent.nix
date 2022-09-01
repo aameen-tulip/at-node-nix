@@ -144,6 +144,8 @@
   , ...
   } @ plent: let
     key = ident + "/" + version;
+    # FIXME: I'm not in love with this `depInfo'.
+    # there's a draft sitting in ./depinfo.nix
     depInfo = lib.libpkginfo.normalizedDepsAll plent;
     meta = let
       core = lib.libmeta.mkMetaEntCore { inherit key ident version; };
