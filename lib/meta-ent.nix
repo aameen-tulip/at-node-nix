@@ -146,27 +146,36 @@
   , lockfileVersion ? 3
   , flocoConfig     ? lib.flocoConfig
   }:
-  # `mapAttrs' args:
-  pkey: {
-    ident            ? plent.name or ( lib.libplock.pathId pkey )
+  # `mapAttrs' args. ( `pkey' and `args' ).
+  # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
+  # skeleton with the `plent' stashed in `args.entries.plock'.
+  pkey:
+  {
+    ident   ? args.name or ( lib.libplock.pathId pkey )
   , version
-  , hasInstallScript ? false
-  , hasBin           ? ( plent.bin or {} ) != {}
   , ...
-  } @ plent: let
+  } @ args: let
+    plent = if args ? entries.plock then args.entries.plock else args;
     key = ident + "/" + version;
+    hasBin = ( plent.bin or {} ) != {};
     # FIXME: I'm not in love with this `depInfo'.
     # there's a draft sitting in ./depinfo.nix
     depInfo = lib.libpkginfo.normalizedDepsAll plent;
-    meta = lib.libmeta.mkMetaEnt ( {
+    baseFields = {
       inherit key ident version;
-      inherit hasInstallScript hasBin depInfo;
+      inherit depInfo hasBin;
+      hasInstallScript = plent.hasInstallScript or false;
       entFromtype = "package-lock.json(v${toString lockfileVersion})";
       entries = {
         __serial = false;
-        plock = plent // { inherit pkey lockDir; };
+        plock = assert ! ( plent ? entries );
+                plent // { inherit pkey lockDir; };
       };
-    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } ) );
+    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } );
+    # Merge with original arguments unless they were a raw package-lock entry.
+    argFields = if ! ( args ? entries ) then baseFields else
+                lib.recursiveUpdate baseFields args;
+    meta = lib.libmeta.mkMetaEnt argFields;
     sub = lib.libmeta.metaEntMergeFromPlockSubtype meta;
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
