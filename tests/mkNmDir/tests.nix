@@ -26,7 +26,7 @@
   treeD   = lib.idealTreePlockV3 { inherit lockDir; };
   treeP   = lib.idealTreePlockV3 { inherit lockDir; dev = false; };
 
-  flocoConfig = lib.mkFlocoConfig {};
+  flocoConfig   = lib.mkFlocoConfig {};
   flocoFetch    = lib.mkFlocoFetcher {};
   flocoFetchCwd = lib.mkFlocoFetcher { cwd = lockDir; };
 
@@ -34,12 +34,12 @@
 
   tests = {
 
-    testLinkFromTree = {
+    testLinkFromPlTree = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };
 
-    testCopyFromTree = {
+    testCopyFromPlTree = {
       expr = builtins.isString ( mkNmDirCopyCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };

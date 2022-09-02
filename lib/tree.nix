@@ -89,11 +89,16 @@
 
     # Get a package identifier from a `package-lock.json(v3)' entry.
     getIdent = dir: {
-      ident ? plent.name or ( lib.libplock.pathId dir )
+      #ident ? plent.name or ( lib.libplock.pathId dir )
+      ident ? plent.name or ( lib.lookupRelPathIdentV3 plock dir )
     , ...
     } @ plent: ident;
     # Get a `(pkg|meta)Set' key from a `package-lock.json(v3)' entry.
-    getKey = dir: { version, ident ? getIdent dir plent, ... } @ plent:
+    getKey = dir: {
+      version ? ( lib.libplock.realEntry plock dir ).version
+    , ident   ? getIdent dir plent
+    , ...
+    } @ plent:
       "${ident}/${version}";
     # Collect a list of paths that need to be dropped as a result of
     # `optionalDependencies' filtering ( using `sysCond' ) as well as any

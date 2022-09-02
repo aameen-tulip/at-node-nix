@@ -72,6 +72,7 @@
       resolveDepForPlockV3
       pinVersionsFromPlockV1
       pinVersionsFromPlockV3
+      lookupRelPathIdentV3
     ;
 
     inherit (final.libreg)
@@ -98,6 +99,7 @@
       genMetaEntUp
       genMetaEntExtend
       genMetaEntRules
+      metaSetFromPlockV3
     ;
 
     inherit (final.libtree)

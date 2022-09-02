@@ -41,6 +41,27 @@
     if ( x ? plock ) && ( x ? path ) then subdirsOfPathPlockV3' x else
     path: subdirsOfPathPlockV3 { plock = x; inherit path; };
 
+  # Used to lookup idents for symlinks.
+  # For example if a `node_modules/foo' links to `../foo', the plent
+  # for the real dir has a `pkey' of "../foo" with no `name' field.
+  # The `libplock.pathId' routine cannot scrape the name when processing
+  # that path during its first pass so we need to go look it up.`
+  lookupRelPathIdentV3 = plock: pkey: let
+    isM = _: { resolved ? null, link ? false, ... }:
+          link && ( resolved == pkey );
+    m = lib.filterAttrs isM plock.packages;
+    gn = path: v: v // { ident = v.name or ( lib.libplock.pathId path ); };
+    matches = lib.mapAttrsToList gn m;
+    len = builtins.length matches;
+    ec  = builtins.addErrorContext "lookupRelPathIdentV3:${pkey}";
+    te  = x: if 0 < len then x else
+             throw "ERROR: Could not find linked module for path: ${pkey}";
+    fromPath = let fpi = pathId pkey; in if pkey == "" then plock.name else
+                                      if fpi != null then fpi else null;
+    fromRel  = ( builtins.head matches ).ident;
+    rsl      = if fromPath != null then fromPath else te fromRel;
+  in ec rsl;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -275,6 +296,7 @@ in {
     pinVersionsFromPlockV1
     pinVersionsFromPlockV3
     subdirsOfPathPlockV3
+    lookupRelPathIdentV3
   ;
 }
 
