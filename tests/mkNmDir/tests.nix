@@ -25,6 +25,8 @@
   # FIXME: These end up being identical.
   treeD   = lib.idealTreePlockV3 { inherit lockDir; };
   treeP   = lib.idealTreePlockV3 { inherit lockDir; dev = false; };
+  msTreeD = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeD;
+  msTreeP = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeP;
 
   flocoConfig   = lib.mkFlocoConfig {};
   flocoFetch    = lib.mkFlocoFetcher {};
@@ -62,6 +64,16 @@
 
     testCopyFromMS = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
+      expected = true;
+    };
+
+    testLinkFromITP = {
+      expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
+      expected = true;
+    };
+
+    testCopyFromITP = {
+      expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
       expected = true;
     };
 

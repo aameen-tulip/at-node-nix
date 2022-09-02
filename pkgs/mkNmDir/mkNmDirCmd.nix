@@ -270,7 +270,7 @@
     addBinDirs =
       if haveBin == {} then "" else
       if ignoreSubBins then ["$node_moduels_path/.bin"] else
-      map getBindir ( builtins.attrNames haveBin );
+      lib.concatMapStringsSep "\n" getBindir ( builtins.attrNames haveBin );
 
     addBins = let
       cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );

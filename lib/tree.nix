@@ -38,9 +38,13 @@
   # NOTE: This function does not require that `metaSet' be passed.
   # If it is omitted we'll detect `__rootKey' from `plock'.
   idealTreePlockV3 = {
-    plock ? args.__meta.plock or metaSet.__meta.plock
+    plock  ? args.__meta.plock or
+             ( if metaSet != null then metaSet.__meta.plock
+               else lib.importJSON' "${lockDir}/package-lock.json" )
+  , lockDir ? throw "You must provide an arg for me to find your package lock"
   # XXX: `metaSet' is optional when you provide `plock'.
-  , metaSet ? if args ? __meta.setFromtype then args else null
+  , metaSet ? if ( args ? _type ) && ( args._type == "metaSet" ) then args
+                                                                 else null
   # Used to avoid dependency cycles with the root package.
   # NOTE: If you REALLY don't want `rootKey' to be omitted set this to `null'.
   # In theory we could leave this entry but in practice you'll almost never find
