@@ -70,13 +70,11 @@
 
   outputs = { self, nixpkgs, nix, utils, ak-nix, pacote-src, ... }: let
 
-    inherit (builtins) getFlake;
-    inherit (utils.lib) eachDefaultSystemMap mkApp;
-
-    pkgsForSys = system:
-      nixpkgs.legacyPackages.${system};
-
+    inherit (utils.lib) eachDefaultSystemMap;
+    pkgsForSys = system: nixpkgs.legacyPackages.${system};
     lib = import ./lib { inherit (ak-nix) lib; };
+
+# ---------------------------------------------------------------------------- #
 
   in {  # Real Outputs
 
@@ -162,16 +160,20 @@
 
     };
 
+# ---------------------------------------------------------------------------- #
+
+    # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
+    overlays.default = lib.composeManyExtensions [
+      ak-nix.overlays.default
+      self.overlays.pacote
+      self.overlays.at-node-nix
+    ];
+
 
 # ---------------------------------------------------------------------------- #
 
     packages = eachDefaultSystemMap ( system: let
-      pkgsFor = let
-        ovs = lib.composeManyExtensions [
-          self.overlays.pacote
-          self.overlays.at-node-nix
-        ];
-      in nixpkgs.legacyPackages.${system}.extend ovs;
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
 
       inherit (pkgsFor) pacote;
@@ -192,7 +194,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-
+    legacyPackages = eachDefaultSystemMap ( system:
+      ( nixpkgs.legacyPackages system ).extend self.overlays.default
+    );
 
 # ---------------------------------------------------------------------------- #
 
