@@ -1,0 +1,10 @@
+{
+  "name": "proj2",
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "dependencies": {
+    "lodash": "github:lodash/lodash",
+    "projd": "file:../projd",
+    "typescript": "^4.8.2"
+  }
+}

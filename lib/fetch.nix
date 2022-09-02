@@ -411,7 +411,8 @@
     cwd' = if ( plent ? lockDir ) && ( builtins.elem type ["path" "symlink"])
            then { __thunk.cwd = plent.lockDir; } else {};
     fetcher = ( fetcherForType fetchers type' ) // cwd';
-  in fetcher args;
+    args' = if sourceInfo != {} then sourceInfo else plent;
+  in fetcher args';
 
 
 # ---------------------------------------------------------------------------- #

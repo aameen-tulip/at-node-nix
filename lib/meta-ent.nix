@@ -213,6 +213,18 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # Used to lookup idents for symlinks.
+  # For example if a `node_modules/foo' links to `../foo', the plent
+  # for the real dir has a `pkey' of "../foo" with no `name' field.
+  # The `libplock.pathId' routine cannot scrape the name when processing
+  # that path during its first pass so we need to go look it up.`
+  lookupRelPathIdentV3 = plock: pkey: let
+    isM = _: { resolved ? null, link ? false, ... }:
+          link && ( resolved == pkey );
+    m = lib.filterAttrs isM plock.packages;
+    gn = path: v: v // { ident = v.name or ( lib.libplock.pathId path ); };
+  in ( builtins.head ( lib.mapAttrsToList gn m ) ).ident;
+
   metaSetFromPlockV3 = {
     plock       ? lib.importJSON' lockPath
   , pjs         ? lib.importJSON' pjsPath
@@ -225,7 +237,11 @@
     inherit (plock) lockfileVersion;
 
     mkOne = path: ent: let
-      ident   = ent.ident or ent.name or ( lib.libplock.pathId path );
+      ident   = let
+        # If entry is a link to an out of tree dir we will miss it using this
+        # basic lookup but it handles the vast majority of deps.
+        subs = ent.ident or ent.name or ( lib.libplock.pathId path );
+      in if subs == null then lookupRelPathIdentV3 plock path else subs;
       version = ( lib.libplock.realEntry plock path ).version;
       key     = "${ident}/${version}";
       # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
@@ -345,6 +361,8 @@ in {
   inherit
     metaEntFromPlockV3
     metaSetFromPlockV3
+
+    lookupRelPathIdentV3
 
     metaEntriesFromPlockV2
 
