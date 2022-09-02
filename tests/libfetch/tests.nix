@@ -8,13 +8,12 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaSet = lib.libmeta.metaSetFromPlockV3 {
-    lockDir = toString ./data/proj2;
-  };
-  proj2  = metaSet."proj2/1.0.0";
-  lodash = metaSet."lodash/5.0.0";
-  ts     = metaSet."typescript/4.8.2";
-  projd  = metaSet."projd/1.0.0";
+  lockDir = toString ./data/proj2;
+  metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  proj2   = metaSet."proj2/1.0.0";
+  lodash  = metaSet."lodash/5.0.0";
+  ts      = metaSet."typescript/4.8.2";
+  projd   = metaSet."projd/1.0.0";
 
 
 # ---------------------------------------------------------------------------- #
@@ -39,6 +38,20 @@
         git  = true;
         tar  = true;
         link = true;
+      };
+    };
+
+    testCwdFlocoFetcher = {
+      expr = let
+        flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
+        mapFetch = builtins.mapAttrs ( _: flocoFetcher );
+      in builtins.mapAttrs ( _: v: builtins.deepSeq v true ) {
+        plents = mapFetch metaSet.__meta.plock.packages;
+        msents = mapFetch metaSet.__entries;
+      };
+      expected = {
+        plents = true;
+        msents = true;
       };
     };
 

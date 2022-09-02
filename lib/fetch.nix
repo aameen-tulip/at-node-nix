@@ -291,6 +291,11 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Wrappers for builtin fetchers so that routines like `callPackages',
+  # `lib.functionArgs', and `lib.makeOverridable' with work with them.
+  # This is particularly important for `callPackage' with `builtins.fetchTree'.
+  # Since these are not system dependant they
+
   callWith = {
     __functionArgs
   , __thunk ? {}
@@ -301,6 +306,11 @@
     args' = builtins.intersectAttrs __functionArgs ( __thunk // args );
   in lib.makeOverridable __fetcher args';
 
+  # Wraps `fetchurlDrv'.
+  # Since it isn't technically a builtin this wrapper is really just for
+  # consistency with the other wrappers.
+  # FIXME: the naming against `builtins.fetchurl' and `builtins.fetchTarball'
+  # is pretty confusing; this really ought to be called `fetchurlDrvW'.
   fetchurlW = {
     #__functionArgs = hashFields // { name = true; url = false; };
     __functionArgs = lib.functionArgs lib.fetchurlDrv;
@@ -332,10 +342,19 @@
     in callWith self args';
   };
 
+  # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
+  # You can always wipe out or redefine that filter.
+  # When using this with relative paths you need to set `cwd' to an absolute
+  # path before calling:
+  #   ( lib.pathW // { __thunk.cwd = toString ./../../foo; }  ) "./baz"
+  #   or
+  #   let fetchFromFoo = lib.pathW // { __thunk.cwd = toString ./../../foo; };
+  #   in builtins.mapAttrs
   pathW = {
     __functionArgs = {
       name      = true;
-      path      = false;
+      path      = true;
+      resolved  = true;
       filter    = true;
       recursive = true;
       sha256    = true;
@@ -347,9 +366,9 @@
       in ( type == "directory" -> ( bname != "node_modules" ) );
     };
     __fetcher = args: { outPath = builtins.path ( removeAttrs args ["cwd"] ); };
-    __functor = self: args: let
-      args' = if lib.libpath.isAbspath args.path then args else {
-        path = "${args.cwd}/${args.path}";
+    __functor = self: { path ? args.resolved or "", ... } @ args: let
+      args' = if lib.libpath.isAbspath path then args else {
+        path = "${args.cwd or self.__thunk.cwd}/${path}";
       };
     in callWith self args';
   };
@@ -399,20 +418,30 @@
   , dirFetcher     ? flocoConfig.fetchers.dirFetcher     or lib.libfetch.pathW
   , linkFetcher    ? flocoConfig.fetchers.linkFetcher    or lib.libfetch.pathW
   , flocoConfig    ? lib.flocoConfig
+  , cwd            ? throw "You must set cwd for relative path fetching"
   } @ cargs: args: let
     fetchers = {
       inherit tarballFetcher urlFetcher gitFetcher dirFetcher linkFetcher;
     };
     sourceInfo = if args ? entSubtype then args else args.sourceInfo or {};
     plent = args.entries.plock or args;
-    type = args.entSubtype or sourceInfo.entSubtype or
-           args.type or sourceInfo.type or ( typeOfEntry plent );
-    type' = if type == "tarball" then "registry-tarball" else type;
-    cwd' = if ( plent ? lockDir ) && ( builtins.elem type ["path" "symlink"])
-           then { __thunk.cwd = plent.lockDir; } else {};
-    fetcher = ( fetcherForType fetchers type' ) // cwd';
+    atype = args.type or sourceInfo.type or null;
+    type  = if atype != null then atype else
+            if builtins.elem entSubtype ["registry-tarball" "source-tarball"]
+            then "tarball" else entSubtype;
+    entSubtype = let
+      fromArgs = args.entSubtype or sourceInfo.entSubtype or null;
+      type'    = if atype == "tarball" then "registry-tarball" else atype;
+      guess    = typeOfEntry plent;
+      fromT    = if atype != null then type' else guess;
+    in if fromArgs != null then fromArgs else fromT;
+    cwd' = if ! ( builtins.elem type ["path" "symlink"] ) then {} else
+      if ( args ? cwd ) || ( cargs ? cwd )
+      then { __thunk.cwd = args.cwd or cargs.cwd; }
+      else if ( plent ? lockDir ) then { __thunk.cwd = plent.lockDir; } else {};
+    fetcher = ( fetcherForType fetchers entSubtype ) // cwd';
     args' = if sourceInfo != {} then sourceInfo else plent;
-  in fetcher args';
+  in fetcher ( { inherit type; } // args' );
 
 
 # ---------------------------------------------------------------------------- #
