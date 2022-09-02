@@ -350,8 +350,6 @@ in {
     metaEntFromPlockV3
     metaSetFromPlockV3
 
-    lookupRelPathIdentV3
-
     metaEntriesFromPlockV2
 
     metaEntPlockGapsFromPjs
