@@ -9,10 +9,14 @@
     # XXX: I'm not crazy about possibly polluting `lib' with the config.
     callLibs = file: import file { lib = final; };
   in {
-    # This one's the oddball.
-    # This means `libcfg' cannot call functions from other libs defined here.
-    libcfg      = import ./config.nix { inherit (prev) lib; };
-    flocoConfig = final.libcfg.mkFlocoConfig flocoConfig;
+
+    # This only depends on `nixpkgs.lib' so using the one from `ak-nix' is fine.
+    # We are just doing a try run here anyway.
+    flocoConfig = ( import ./config.nix {
+      inherit (globalAttrs) lib;
+    } ).mkFlocoConfig ( globalAttrs.flocoConfig or {} );
+    # Call it recursively this time ( not that it really matters )
+    libcfg = callLibs ./config.nix;
 
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
     libparse   = callLibs ./parse.nix;
@@ -22,11 +26,16 @@
     libattrs   = prev.libattrs // ( callLibs ./attrsets.nix );
     libplock   = callLibs ./pkg-lock.nix;
     libreg     = callLibs ./registry.nix;
-    libmeta    = callLibs ./meta.nix;
     libtree    = callLibs ./tree.nix;
-    # TODO: handle merge of fetch.nix ( partial ), nm-scope.nix ( maybe ),
-    #       and `libmeta-pl2' ( needs small alignment with `meta.nix' ).
     libsys     = callLibs ./system.nix;
+    libfetch   = callLibs ./fetch.nix;
+    libmeta    = ( callLibs ./meta.nix ) // ( callLibs ./meta-ent.nix );
+
+    inherit (final.libfetch)
+      fetchurlW fetchGitW fetchTreeW pathW
+      mkFlocoFetcher
+    ;
+    fetchurlDrvW = final.libfetch.fetchurlW;
 
     inherit (final.libparse)
       tryParseIdent
@@ -83,10 +92,14 @@
       extInfoExtras
       mkExtInfo'
       mkExtInfo
-      metaEntryFromTypes
+      metaEntryFromtypes
       mkMetaEnt'
       mkMetaEnt
       mkMetaSet
+      genMetaEntAdd
+      genMetaEntUp
+      genMetaEntExtend
+      genMetaEntRules
     ;
 
     inherit (final.libtree)
@@ -106,4 +119,5 @@
     ;
 
   } );
+
 in lib'

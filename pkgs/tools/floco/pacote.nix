@@ -1,15 +1,16 @@
-{ nixpkgs ? builtins.getFlake "nixpkgs"
-, system ? builtins.currentSystem
-, pacote ? ( builtins.getFlake  (
-               toString ../../../pkgs/development/node-packages/pacote
-           ) ).packages.${system}.pacote
-, pkgs   ? nixpkgs.legacyPackages.${system}
-}: let
+# ============================================================================ #
+#
+#
+#
+# ---------------------------------------------------------------------------- #
+
+{ pacote, runCommandNoCC }: let
+
+# ---------------------------------------------------------------------------- #
 
   inherit (builtins) elem concatStringsSep;
 
-
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # cmd ::= resolve | manifest | packument | tarball | extract
   pacotecli = cmd: flags @ { spec, dest ? null, ... }: let
@@ -36,7 +37,7 @@
 
     stdoutTo = if elem cmd ["tarball" "extract"] then "$manifest" else "$out";
 
-  in ( pkgs.runCommandNoCC name {
+  in ( runCommandNoCC name {
     # `tarball' and `extract' dump `{ integrity, resolved, from }' to `stdout'.
     # Capturing these in `$meta' is useful for now, but once we can reliably
     # predict the `resolved' and `from' fields it would write for a URI, we
@@ -60,7 +61,7 @@
   '' ) ) // { inherit pacote spec pacoteFlags; };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   defaultFallbacks = {
     dependencies = {};
@@ -83,6 +84,9 @@
     ## };
   };
 
+
+# ---------------------------------------------------------------------------- #
+
   # Fetch a manifest
   # NOTE: this is basically only useful to generate info for local builds.
   # If you want this info from a registry package use their endpoint to avoid
@@ -104,6 +108,12 @@
   # you could use to determine `hasInstallScript'.
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
 in { inherit pacotecli pacote-manifest; }
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

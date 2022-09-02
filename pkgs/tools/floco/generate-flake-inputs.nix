@@ -22,7 +22,7 @@ let
       ;
     };
     process = f: let
-      js = lib.importJSON "${src}/${f}";
+      js = lib.importJSON' "${src}/${f}";
       fi = flakeInputFromManifestTarball ( js // { withToString = true; } );
     in _trace f toString fi;
     manifests = builtins.attrNames ( builtins.readDir src );

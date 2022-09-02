@@ -29,10 +29,14 @@
     metaSetOverlays         = [];
     pkgEntOverlays          = [];
     pkgSetOverlays          = [];
-    # FIXME: probably remove `fetcher'.
+    # It's only possible to put these here because they are platform agnostic.
+    # If you use system dependant fetchers override this.
     fetchers = {
-      preferBuiltins  = true;
-      preferFetchTree = false;
+      tarballFetcher = lib.libfetch.fetchTreeW;
+      urlFetcher     = lib.libfetch.fetchurlW;
+      gitFetcher     = lib.libfetch.fetchGitW;
+      dirFetcher     = lib.libfetch.pathW;
+      linkFetcher    = lib.libfetch.pathW;
     };
   };
 

@@ -6,7 +6,7 @@
 , evalScripts
 , genericInstall
 , runBuild
-, linkModules
+, mkNmDir
 , linkFarm
 , stdenv
 , xcbuild
@@ -46,7 +46,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-  entryFromTypes = [
+  entFromtypes = [
     "package.json"
     "package-lock.json"      # Detect version
     "package-lock.json(v1)"
@@ -269,14 +269,16 @@
     # waiting to be passed the `final' ( "self" ) object to be realised.
     injectNodeModulesDirsOv = final: prev: let
       injectDepsFor = key: plent: let
-        nodeModulesDir = linkModules {
-          modules = let depKeys = plent.meta.runtimeDepKeys;
-          in map ( k: final.${k}.module.outPath ) depKeys;
-        };
-        nodeModulesDir-dev = linkModules {
-          modules = let depKeys = plent.meta.devDepKeys;
-          in map ( k: final.${k}.module.outPath ) depKeys;
-        };
+        nodeModulesDir = /* FIXME */ mkNmDir {};
+        #nodeModulesDir = linkModules {
+        #  modules = let depKeys = plent.meta.runtimeDepKeys;
+        #  in map ( k: final.${k}.module.outPath ) depKeys;
+        #};
+        nodeModulesDir-dev = /* FIXME */ mkNmDir {};
+        #nodeModulesDir-dev = linkModules {
+        #  modules = let depKeys = plent.meta.devDepKeys;
+        #  in map ( k: final.${k}.module.outPath ) depKeys;
+        #};
         mdd = lib.optionalAttrs ( plent.meta.hasBuild or false ) {
           inherit nodeModulesDir-dev;
         };
@@ -328,17 +330,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-  mkPkgEntry = {
-    ident
-  , version
-  , key           ? ident + "/" + version
-  , entryFromType ? null
-  } @ fields: let
-  in {};
-
-
-/* -------------------------------------------------------------------------- */
-
 # FIXME: This is only exposed right now for testing.
 # This file is only partially complete.
 in {
@@ -349,4 +340,8 @@ in {
 }
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

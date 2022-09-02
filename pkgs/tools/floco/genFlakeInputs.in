@@ -1,0 +1,58 @@
+#!@BASH@
+# -*- mode: sh; sh-shell: bash; -*-
+# ============================================================================ #
+#
+# Generate flake inputs from a `package.json' file.
+# Registry tarballs, git repos, and paths will be mapped to flake URIs.
+#
+# ---------------------------------------------------------------------------- #
+
+help() {
+  echo "Generate flake inputs from package.json"               >&2;
+  echo "USAGE: genFlakeInputs [PJS-PATH] [(-o|--out) OUTFILE]" >&2;
+  echo ""                                                      >&2;
+  echo "when PJS-PATH is not provided, use package.json"       >&2;
+  echo "when OUTFILE is not provided, write to STDOUT"         >&2;
+}
+
+
+# ---------------------------------------------------------------------------- #
+
+generate() {
+  @NIX@  \
+    --extra-experimental-features 'flakes nix-command'           \
+    eval --impure --raw --expr "
+      import @GEN_FLAKE_INPUTS_NIX@ {
+        # Don't actually write text.
+        # This passes the string unmodified.
+        writeText = _: d: d;
+        enableTraces = false;
+        dir = \"$1\";
+      }";
+}
+
+
+# ---------------------------------------------------------------------------- #
+
+: "${OUTFILE:=&1}";
+: "${PJS:=$PWD/package.json}";
+
+while test "$#" -gt 0; do
+  case "$1" in
+    -h|--help) help; exit 0; ;;
+    -o|--out)  OUTFILE="$2"; shift; ;;
+    *)         PJS="$( @REALPATH@ $1; )"; ;;
+  esac
+  shift;
+done
+
+# NOTE: '>' must touch the expansion because '>&1' must not have a space.
+eval "generate $PJS >$OUTFILE";
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #
+# vim: set filetype=sh :

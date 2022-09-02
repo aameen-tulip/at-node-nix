@@ -137,7 +137,7 @@
     name = scopeDir + ids.pname;
   in { inherit name scopeDir; } // ids;
 
-  nameInfo = nameInfo' false str;
+  nameInfo = nameInfo' false;
 
 # ---------------------------------------------------------------------------- #
 
@@ -192,7 +192,6 @@ in {
     nameInfo'
     nameInfo
     isGitRev
-    getPjsScopeDir
   ;
 }
 

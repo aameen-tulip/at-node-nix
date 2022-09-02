@@ -63,306 +63,122 @@
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.ak-nix.inputs.utils.follows = "/utils";
 
+  inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
+  inputs.pacote-src.flake = false;
+
 # ============================================================================ #
 
-  outputs = { self, nixpkgs, nix, utils, ak-nix }: let
-    inherit (builtins) getFlake;
-    inherit (utils.lib) eachDefaultSystemMap mkApp;
+  outputs = { self, nixpkgs, nix, utils, ak-nix, pacote-src, ... }: let
 
+    inherit (utils.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-
     lib = import ./lib { inherit (ak-nix) lib; };
 
-    pacoteFlake = let
-      raw = import ./pkgs/development/node-packages/pacote/flake.nix;
-      lock = lib.importJSON ./pkgs/development/node-packages/pacote/flake.lock;
-      final = raw // ( raw.outputs {
-        inherit nixpkgs utils;
-        self = final;
-        pacote-src = builtins.fetchTree lock.nodes.pacote-src.locked;
-      } );
-    in final;
+# ---------------------------------------------------------------------------- #
 
-    pacotecli = system: ( import ./pkgs/tools/floco/pacote.nix {
-      inherit nixpkgs system;
-      inherit (pacoteFlake.packages.${system}) pacote;
-    } ).pacotecli;
-
-  in {
+  in {  # Real Outputs
 
     inherit lib;
+    flocoFetch = lib.makeOverridable lib.mkFlocoFetcher {
+      flocoConfig = lib.libcfg.mkFlocoConfig {};
+    };
 
-    overlays.at-node-nix = final: prev: let
-      pkgsFor = import nixpkgs { inherit (final) system; overlays = [
-        ak-nix.overlays.default
-      ]; };
-    in {
+# ---------------------------------------------------------------------------- #
 
-      lib = import ./lib { lib = pkgsFor.lib; };
+    # NPM's `fetcher' and `packer'.
+    # We use this to pack tarballs just to ease any headaches with file perms.
+    # NOTE: This is just a CLI tool and the `nodejs' version isn't really
+    # important to other members of the package set.
+    # Avoid overriding the `nodejs' version just because you are building other
+    # packages which require a specific `nodejs' version.
+    overlays.pacote = final: prev: let
+      callPackage =
+        lib.callPackageWith ( ( pkgsForSys prev.system ) // final );
+      callPackages =
+        lib.callPackagesWith ( ( pkgsForSys prev.system ) // final );
 
-      pacotecli = pacotecli final.system;
-
-      linkModules = { modules ? [] }:
-        pkgsFor.callPackage ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit (pkgsFor) runCommandNoCC;
-          lndir = pkgsFor.xorg.lndir;
-        } { inherit modules; };
-
-      buildGyp = import ./pkgs/build-support/buildGyp.nix {
-        inherit (final) lib;
-        inherit (pkgsFor) stdenv xcbuild jq nodejs;
-      };
-
-      evalScripts = import ./pkgs/build-support/evalScripts.nix {
-        inherit (final) lib;
-        inherit (pkgsFor) stdenv jq nodejs;
-      };
-
-      runInstallScripts = args: let
-        installed = final.evalScripts ( {
-          runScripts  = ["preinstall" "install" "postinstall"];
-          skipMissing = true;
-        } // args );
-        warnMsg = "WARNING: " +
-         "attempting to run installation scripts on a package which " +
-         "uses `node-gyp' - you likely want to use `buildGyp' instead.";
-        maybeWarn = x:
-          if ( args.gypfile or args.meta.gypfile or false ) then
-            ( builtins.trace warnMsg x ) else x;
-      in maybeWarn installed;
-
-      inherit ( import ./pkgs/build-support/mkNodeTarball.nix {
-        inherit (pkgsFor) linkFarm linkToPath untar tar;
-        inherit (final) lib pacotecli;
-      } )
-        packNodeTarballAsIs
-        unpackNodeTarball
-        linkAsNodeModule'
-        linkAsNodeModule
-        linkBins
-        linkAsGlobal
-        mkNodeTarball
-      ;
-
-      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
-        inherit (final) lib evalScripts buildGyp nodejs linkModules;
-        inherit (final) runBuild genericInstall;
-        inherit (pkgsFor) stdenv jq xcbuild linkFarm;
-        inherit (final._fetcher) typeOfEntry;
-        fetchurl = final.lib.fetchurlDrv;  # For tarballs without unpacking
-        doFetch = final._fetcher.fetcher {
-          cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
-          preferBuiltins = true;
+      nodeEnv =
+        callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
+          libtool =
+            if final.stdenv.isDarwin then final.darwin.cctools else null;
         };
-      };
-
-      genericInstall = import ./pkgs/build-support/genericInstall.nix {
-        inherit (final) lib buildGyp evalScripts nodejs;
-        inherit (pkgsFor) stdenv jq xcbuild;
-      };
-
-      runBuild = import ./pkgs/build-support/runBuild.nix {
-        inherit (final) lib evalScripts nodejs;
-        inherit (pkgsFor) stdenv jq;
-      };
-
-
-      inherit ( import ./pkgs/build-support/fetcher.nix {
-        inherit (final) lib;
-        inherit (pkgsFor) fetchurl fetchgit fetchzip;
-      } )
-        per2fetchArgs
-        typeOfEntry
+      pacotePkgs =
+        callPackage ./pkgs/development/node-packages/pacote/node-packages.nix {
+          inherit nodeEnv;
+          src = pacote-src;
+        };
+    in {
+      pacote = pacotePkgs.package;
+      inherit (callPackages ./pkgs/tools/floco/pacote.nix {})
+        pacotecli pacote-manifest
       ;
-
-      inherit ( import ./pkgs/build-support/plock-to-node-modules-dir.nix {
-        inherit (final) lib linkModules mkNodeTarball;
-        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
-      } )
-        plockEntryFetchUnpack
-        plock2nmFocus
-        plock2nm
-      ;
-
-      yml2json = import ./pkgs/build-support/yml-to-json.nix {
-        inherit (pkgsFor) yq runCommandNoCC;
-      };
-
-      yarnLock = import ./pkgs/build-support/yarn-lock.nix {
-        inherit (pkgsFor) fetchurl yarn writeText;
-        inherit (final) lib yml2json;
-      };
-
-      genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
-        inherit (pkgsFor) writeText;
-        inherit (final) lib;
-        enableTraces = false;
-      };
-
-      snapDerivation = import ./pkgs/make-derivation-simple.nix {
-        inherit (pkgsFor) bash coreutils;
-        inherit (final.stdenv) system;
-      };
-
     };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
-    nodeutils = ( eachDefaultSystemMap ( system: let
-      _mkNodeTarball = import ./pkgs/build-support/mkNodeTarball.nix {
-        inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) linkFarm;
-        inherit (ak-nix.trivial.${system}) linkToPath untar tar;
-        pacotecli = pacotecli system;
-      };
-
-      _fetcher = import ./pkgs/build-support/fetcher.nix {
-        inherit lib;
-        inherit (nixpkgs.legacyPackages.${system})
-          fetchurl
-          fetchgit
-          fetchzip
-        ;
-      };
-
-      snapDerivation = import ./pkgs/make-derivation-simple.nix {
-        inherit (nixpkgs.legacyPackages.${system}) bash coreutils;
-        inherit system;
-      };
-
-      linkModules = { modules ? [] }:
-        import ./pkgs/build-support/link-node-modules-dir.nix {
-          inherit (nixpkgs.legacyPackages.${system}) runCommandNoCC;
-          lndir = nixpkgs.legacyPackages.${system}.xorg.lndir;
-        } { inherit modules; };
-
-      # FIXME: this interface for handling `nodejs' input is hideous
-      buildGyp = import ./pkgs/build-support/buildGyp.nix {
-        inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv xcbuild jq;
-        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
-      };
-
-      # FIXME: this interface for handling `nodejs' input is hideous
-      evalScripts = import ./pkgs/build-support/evalScripts.nix {
-        inherit lib;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv jq;
-        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
-      };
-
-      runInstallScripts = args: let
-        installed = evalScripts ( {
-          runScripts  = ["preinstall" "install" "postinstall"];
-          skipMissing = true;
-        } // args );
-        warnMsg = "WARNING: " +
-         "attempting to run installation scripts on a package which " +
-         "uses `node-gyp' - you likely want to use `buildGyp' instead.";
-        maybeWarn = x:
-          if ( args.gypfile or args.meta.gypfile or false ) then
-            ( builtins.trace warnMsg x ) else x;
-      in maybeWarn installed;
-
-      # FIXME: this interface for handling `nodejs' input is hideous
-      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
-        inherit lib evalScripts buildGyp linkModules genericInstall;
-        inherit runBuild;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv jq xcbuild linkFarm;
-        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
-        inherit (_fetcher) typeOfEntry;
-        fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
-        doFetch = _fetcher.fetcher {
-          cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
-          preferBuiltins = true;
-        };
-      };
-
-      # FIXME: this interface for handling `nodejs' input is hideous
-      genericInstall = import ./pkgs/build-support/genericInstall.nix {
-        inherit lib buildGyp evalScripts;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv jq xcbuild;
-        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
-      };
-
-      # FIXME: this interface for handling `nodejs' input is hideous
-      runBuild = import ./pkgs/build-support/runBuild.nix {
-        inherit lib evalScripts;
-        inherit (nixpkgs.legacyPackages.${system}) stdenv jq;
-        nodejs = nixpkgs.legacyPackages.${system}.nodejs-14_x;
-      };
-
-      _plock2nm = import ./pkgs/build-support/plock-to-node-modules-dir.nix {
-        inherit lib linkModules;
-        inherit (_mkNodeTarball) mkNodeTarball;
-        fetcher = builtins.fetchTree; # FIXME: Write a real fetcher
-      };
+    overlays.at-node-nix = final: prev: let
+      pkgsFor = let
+        ovs = lib.composeManyExtendsions [
+          self.overlays.pacote
+          ak-nix.overlays.default
+        ];
+      in ( pkgsForSys prev.system ).extend ovs;
+      callPackageWith  = autoArgs:
+        lib.callPackageWith  ( pkgsFor // final // autoArgs );
+      callPackagesWith = autoArgs:
+        lib.callPackagesWith ( pkgsFor // final // autoArgs );
+      callPackage  = callPackageWith {};
+      callPackages = callPackagesWith {};
     in {
 
-      pacotecli = pacotecli system;
-      inherit
-        linkModules
-        snapDerivation
-        buildGyp
-        evalScripts
-        runInstallScripts
-        genericInstall
-        runBuild
-      ;
+      lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
 
-      # FIXME: this interface for handling `nodejs' input is hideous
-      inherit (_node-pkg-set)
-        pkgEntFromPlockV2
-        pkgSetFromPlockV2
-      ;
+      snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
+      buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
+      evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
+      genericInstall = callPackage ./pkgs/build-support/genericInstall.nix;
+      runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
 
-      inherit (_mkNodeTarball)
-        packNodeTarballAsIs
-        unpackNodeTarball
-        linkAsNodeModule'
-        linkAsNodeModule
-        linkBins
-        linkAsGlobal
-        mkNodeTarball
-      ;
+      # Takes `source' ( original ) and `prepared' ( "built" ) as args.
+      # Either `name' ( meta.names.tarball ) or `meta' are also required.
+      mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
-      inherit (_fetcher)
-        per2fetchArgs
-        typeOfEntry
-      ;
+      flocoFetch = callPackage lib.libfetch.mkFlocoFetcher {};
 
-      inherit (_plock2nm)
-        plockEntryFetchUnpack
-        plock2nmFocus
-        plock2nm
-      ;
-
-      yml2json = import ./pkgs/build-support/yml-to-json.nix {
-        inherit (nixpkgs.legacyPackages.${system}) yq runCommandNoCC;
+      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
+        inherit (final) lib evalScripts buildGyp nodejs;
+        inherit (final) runBuild genericInstall;
+        inherit (pkgsFor) stdenv jq xcbuild linkFarm;
+        fetchurl = final.lib.fetchurlDrv;  # For tarballs without unpacking
+        doFetch = final.flocoFetch;
       };
-  
-      yarnLock = import ./pkgs/build-support/yarn-lock.nix {
-        inherit (nixpkgs.legacyPackages.${system}) fetchurl yarn writeText;
-        inherit (self.nodeutils.${system}) yml2json;
-        inherit lib;
-      };
-  
-      genFlakeInputs = import ./pkgs/tools/floco/generate-flake-inputs.nix {
-        inherit (nixpkgs.legacyPackages.${system}) writeText;
-        inherit lib;
-        enableTraces = true;
-      };
-  
-    } ) ) // { __functor = nodeutilsSelf: system: nodeutilsSelf.${system}; };
+
+      # Pass `dir' as an arg.
+      genFlakeInputs =
+        callPackage ./pkgs/tools/floco/generate-flake-inputs.nix {
+          enableTraces = false;
+        };
+
+    };
+
+# ---------------------------------------------------------------------------- #
+
+    # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
+    overlays.default = lib.composeManyExtensions [
+      ak-nix.overlays.default
+      self.overlays.pacote
+      self.overlays.at-node-nix
+    ];
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
     packages = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system};
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
 
-      inherit (pacoteFlake.packages.${system}) pacote;
+      inherit (pkgsFor) pacote;
 
       tests = ( import ./tests {
         inherit nixpkgs system lib ak-nix pkgsFor;
@@ -371,47 +187,20 @@
         fetchurl = lib.fetchurlDrv;
       } ).checkDrv;
 
-      # I am aware of how goofy this is.
-      # I am aware that I could use `prefetch' - this is more convenient
-      # considering this isn't a permament fixture.
-      genFlakeInputs = pkgsFor.writeShellScript "genFlakeInputs" ''
-        _runnit() {
-          ${pkgsFor.nix}/bin/nix                                \
-            --extra-experimental-features 'flakes nix-command'  \
-            eval --impure --raw --expr "
-              import ${toString ./pkgs/tools/floco/generate-flake-inputs.nix} {
-                writeText = _: d: d;
-                enableTraces = false;
-                dir = \"$1\";
-              }";
-        }
-        _abspath() {
-          ${pkgsFor.coreutils}/bin/realpath "$1";
-        }
-        if test "$1" = "-o" || test "$1" = "--out"; then
-          _runnit "$( _abspath "$2"; )" > "$2";
-        else
-          _runnit "$( _abspath "$1"; )";
-        fi
-      '';
+      # NOTE: This is a wrapper over the function.
+      genFlakeInputs =
+        pkgsFor.callPackage ./pkgs/tools/floco/genFlakeInputs.nix {};
 
     } );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
-    apps = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system};
-    in {
-      # Yeah, we're recursively calling Nix.
-      genFlakeInputs = {
-        type = "app";
-        program = self.packages.${system}.genFlakeInputs.outPath;
-      };
-    } );
+    legacyPackages = eachDefaultSystemMap ( system:
+      ( nixpkgs.legacyPackages.${system} ).extend self.overlays.default
+    );
 
-
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   };  /* End outputs */
 }
