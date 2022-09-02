@@ -1,3 +1,5 @@
+# ============================================================================ #
+#
 # Adds sane defaults for building misc derivations 'round these parts.
 # These defaults are largely aimed for the convenience of local/iterative dev.
 # These are NOT what you want a `flake.nix' to fall-back onto - because you
@@ -5,6 +7,9 @@
 #
 # From a `flake.nix' you want to explicitly pass in every argument to ensure
 # no "impure" procedures like `currentSystem', `getEnv', `getFlake', etc run.
+#
+# ---------------------------------------------------------------------------- #
+
 { nixpkgs ? builtins.getFlake "nixpkgs"
 , system  ? builtins.currentSystem
 , pkgs    ? import nixpkgs { inherit system config; }
@@ -14,6 +19,9 @@
 , nodejs  ? pkgs.nodejs-14_x
 , ...
 }: let
+
+# ---------------------------------------------------------------------------- #
+
   # This is placed outside of scope to prevent overrides.
   # Don't override its `bash' and `coreutils' args.
   snapDerivation = import ./make-derivation-simple.nix {
@@ -27,7 +35,19 @@
   # Don't override them.
   trivial = ak-nix.trivial.${system};
   # This inherit block is largely for the benefit of the reader.
-  inherit (trivial) runLn linkOut linkToPath runTar untar tar;
+  inherit (trivial)
+    runLn
+    linkOut
+    linkToPath
+    runTar
+    untar
+    tar
+    untarSanPerms
+    copyOut
+  ;
+
+
+  #patch-shebangs = pkgs.callPackage ./build-support/patch-shebangs.nix {};
 
   pacote =
     ( import ./development/node-packages/pacote { inherit pkgs; } ).package;
@@ -38,7 +58,7 @@
 
   buildGyp = import ./build-support/buildGyp.nix {
     inherit lib nodejs;
-    inherit (pkgs) stdenv xcbuild jq;
+    inherit (pkgs) stdenv xcbuild jq pkg-config;
   };
 
   _mkNodeTarball = import ./build-support/mkNodeTarball.nix {
@@ -79,7 +99,11 @@
     inherit (pkgs) stdenv jq;
   };
 
+
+# ---------------------------------------------------------------------------- #
+
 in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: let
+
   callPackage  = lib.callPackageWith final;
   callPackages = lib.callPackagesWith final;
 
@@ -90,6 +114,9 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: let
       preferBuiltins = true;
     };
   };
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     snapDerivation
@@ -120,16 +147,7 @@ in {
     linkAsGlobal
     mkNodeTarball
   ;
-  inherit (_fetcher)
-    typeOfEntry
-    per2fetchArgs
-    peg2fetchArgs
-    pel2fetchArgs
-    pkp2fetchArgs
-    pke2fetchArgs    # This is the router.
-    defaultFetchers
-    fetcher
-  ;
+  inherit (_fetcher) defaultFetchers getPreferredFetchers fetcher;
 
   inherit (_node-pkg-set)
     pkgEntFromPlockV2
@@ -139,3 +157,9 @@ in {
   mkNmDir = callPackage ./mkNmDir.nix;
 
 } )
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #

@@ -12,11 +12,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1661471168,
-        "narHash": "sha256-ABoQqQTDyRpBEJ//Mop/B080OCx1XwTu0rGzCSKj72Q=",
+        "lastModified": 1661903882,
+        "narHash": "sha256-uuJBMp4QgyChXxNSLJH4Pg0a2ERrw16ja3zAqxnMPpQ=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "7ea95801195ee41fb96ba9460526f478ef88d71a",
+        "rev": "f8d7bc2f7a1b25e217ff80dcd03e1adc3a40cba1",
         "type": "github"
       },
       "original": {
@@ -112,11 +112,11 @@
         "nixpkgs-regression": "nixpkgs-regression_2"
       },
       "locked": {
-        "lastModified": 1661423409,
-        "narHash": "sha256-3zLi3n4jJjR1S7Q7RrqB8pptxBmM8ZpECA6AkXIJnv8=",
+        "lastModified": 1662041237,
+        "narHash": "sha256-DXtkfK9gzV4YkywRZEmaCHEkccDYwaZRd1tc3f+FlFw=",
         "owner": "NixOS",
         "repo": "nix",
-        "rev": "0b25446f2e20233a32b67796eb776a2193866627",
+        "rev": "4823067247471aebdc24dceb21e13ee3d5411cb8",
         "type": "github"
       },
       "original": {
@@ -128,11 +128,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1655390681,
-        "narHash": "sha256-SXGZ7jJWsySMlNEpbxi8nq3QYDbtcAl+QHwsXlWq2g0=",
+        "lastModified": 1661353537,
+        "narHash": "sha256-1E2IGPajOsrkR49mM5h55OtYnU0dGyre6gl60NXKITE=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "29769d2a1390d294469bcc6518f17931953545e1",
+        "rev": "0e304ff0d9db453a4b230e9386418fd974d5804a",
         "type": "github"
       },
       "original": {
@@ -172,11 +172,29 @@
         "type": "github"
       }
     },
+    "pacote-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1651673723,
+        "narHash": "sha256-97nFOX7qGmxtbvht+yrq6K7qcL7ooLLGF5ga5zJAwpw=",
+        "owner": "npm",
+        "repo": "pacote",
+        "rev": "8f94b28f3c21bc6a59c4537a4ee9fdb93385dc78",
+        "type": "github"
+      },
+      "original": {
+        "owner": "npm",
+        "ref": "v13.3.0",
+        "repo": "pacote",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "ak-nix": "ak-nix",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs",
+        "pacote-src": "pacote-src",
         "utils": "utils"
       }
     },

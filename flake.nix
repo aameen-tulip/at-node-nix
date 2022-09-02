@@ -63,52 +63,85 @@
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
   inputs.ak-nix.inputs.utils.follows = "/utils";
 
+  inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
+  inputs.pacote-src.flake = false;
+
 # ============================================================================ #
 
-  outputs = { self, nixpkgs, nix, utils, ak-nix }: let
+  outputs = { self, nixpkgs, nix, utils, ak-nix, pacote-src, ... }: let
+
     inherit (builtins) getFlake;
     inherit (utils.lib) eachDefaultSystemMap mkApp;
 
-    pkgsForSys = system: nixpkgs.legacyPackages.${system};
+    pkgsForSys = system:
+      nixpkgs.legacyPackages.${system};
 
     lib = import ./lib { inherit (ak-nix) lib; };
 
-    pacoteFlake = let
-      raw = import ./pkgs/development/node-packages/pacote/flake.nix;
-      lock = lib.importJSON ./pkgs/development/node-packages/pacote/flake.lock;
-      final = raw // ( raw.outputs {
-        inherit nixpkgs utils;
-        self = final;
-        pacote-src = builtins.fetchTree lock.nodes.pacote-src.locked;
-      } );
-    in final;
-
-    pacotecli = system: ( import ./pkgs/tools/floco/pacote.nix {
-      inherit nixpkgs system;
-      inherit (pacoteFlake.packages.${system}) pacote;
-    } ).pacotecli;
-
-  in {
+  in {  # Real Outputs
 
     inherit lib;
 
+# ---------------------------------------------------------------------------- #
+
+    # NPM's `fetcher' and `packer'.
+    # We use this to pack tarballs just to ease any headaches with file perms.
+    # NOTE: This is just a CLI tool and the `nodejs' version isn't really
+    # important to other members of the package set.
+    # Avoid overriding the `nodejs' version just because you are building other
+    # packages which require a specific `nodejs' version.
+    overlays.pacote = final: prev: let
+      callPackage =
+        lib.callPackageWith ( ( pkgsForSys prev.system ) // final );
+      callPackages =
+        lib.callPackagesWith ( ( pkgsForSys prev.system ) // final );
+
+      nodeEnv =
+        callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
+          libtool =
+            if final.stdenv.isDarwin then final.darwin.cctools else null;
+        };
+      pacotePkgs =
+        callPackage ./pkgs/development/node-packages/pacote/node-packages.nix {
+          inherit nodeEnv;
+          src = pacote-src;
+        };
+    in {
+      pacote = pacotePkgs.package;
+      inherit (callPackages ./pkgs/tools/floco/pacote.nix {})
+        pacotecli pacote-manifest
+      ;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
     overlays.at-node-nix = final: prev: let
-      pkgsFor = nixpkgs.legacyPackages.${prev.system}.extend
-                  ak-nix.overlays.default;
-      callPackageWith  = autoArgs: lib.callPackageWith  ( final // autoArgs );
-      callPackagesWith = autoArgs: lib.callPackagesWith ( final // autoArgs );
+      pkgsFor = let
+        ovs = lib.composeManyExtendsions [
+          self.overlays.pacote
+          ak-nix.overlays.default
+        ];
+      in ( pkgsForSys prev.system ).extend ovs;
+      callPackageWith  = autoArgs:
+        lib.callPackageWith  ( pkgsFor // final // autoArgs );
+      callPackagesWith = autoArgs:
+        lib.callPackagesWith ( pkgsFor // final // autoArgs );
       callPackage  = callPackageWith {};
       callPackages = callPackagesWith {};
     in {
 
-      lib = import ./lib { lib = pkgsFor.lib; };
+      lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
 
-      pacotecli      = pacotecli final.system;
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
       evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
       genericInstall = callPackage ./pkgs/build-support/genericInstall.nix;
       runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
+
+      # Takes `source' ( original ) and `prepared' ( "built" ) as args.
+      # Either `name' ( meta.names.tarball ) or `meta' are also required.
+      mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
       _node-pkg-set = import ./pkgs/node-pkg-set.nix {
         inherit (final) lib evalScripts buildGyp nodejs;
@@ -130,13 +163,18 @@
     };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
     packages = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system};
+      pkgsFor = let
+        ovs = lib.composeManyExtensions [
+          self.overlays.pacote
+          self.overlays.at-node-nix
+        ];
+      in nixpkgs.legacyPackages.${system}.extend ovs;
     in {
 
-      inherit (pacoteFlake.packages.${system}) pacote;
+      inherit (pkgsFor) pacote;
 
       tests = ( import ./tests {
         inherit nixpkgs system lib ak-nix pkgsFor;
@@ -152,7 +190,11 @@
     } );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
+
+
+
+# ---------------------------------------------------------------------------- #
 
   };  /* End outputs */
 }
