@@ -181,7 +181,7 @@
     sub = lib.libmeta.metaEntMergeFromPlockSubtype meta;
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
-      ov  = if builtins.isList ovs then lib.composeManExtensions ovs else ovs;
+      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
     in if ( ovs != [] ) then sub.__extend ov else sub;
   in ex;
 
