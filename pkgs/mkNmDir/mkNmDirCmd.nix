@@ -231,9 +231,13 @@
   } @ args: let
 
     tree' = let
+      # Symlinks to external directories are copied to their destination.
+      # We do not want out of tree projects to crash in sandboxed builds.
+      dropExt = lib.filterAttrs ( k: _: lib.hasPrefix "node_modules/" k )
+                                tree;
       doStrip = lib.hasPrefix "node_modules/"
-                              ( builtins.head ( builtins.attrNames tree ) );
-    in if doStrip then stripLeadingNmDirs tree else tree;
+                              ( builtins.head ( builtins.attrNames dropExt ) );
+    in if doStrip then stripLeadingNmDirs dropExt else dropExt;
 
     haveBin = lib.filterAttrs ( hasBin { inherit ignoreSubBins; } ) tree';
 
@@ -320,7 +324,11 @@
       inherit handleBindir ignoreSubBins;
     };
     passthru = {
-      inherit tree addCmd addBinCmd preNmDir postNmDir coreutils lndir;
+      inherit addCmd addBinCmd preNmDir postNmDir coreutils lndir;
+      # Original input tree.
+      fullTree = tree;
+      # Filtered and stripped of `node_modules/' prefixes.
+      tree = tree';
     };
   };
 

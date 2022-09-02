@@ -10,13 +10,12 @@
 { nixpkgs     ? builtins.getFlake "nixpkgs"
 , system      ? builtins.currentSystem
 , pkgsFor     ? nixpkgs.legacyPackages.${system}
-, fetchurl    ? lib.fetchurlDrv
 , writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
-, lib         ? import ../lib { inherit (ak-nix) lib; }
-, annPkgs     ? builtins.getFlake ( toString ../. ).legacyPackages.${system}
+, lib         ? import ../../lib { inherit (ak-nix) lib; }
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
+, annPkgs ? ( builtins.getFlake ( toString ../.. ) ).legacyPackages.${system}
 , ...
 } @ args: let
 
@@ -25,7 +24,6 @@
   # Used to import test files.
   autoArgs = {
     inherit lib;
-    inherit fetchurl;  # `dependency-closure.nix' for testing plv1 fetchers.
     inherit (annPkgs)
       _mkNmDirCopyCmd
       _mkNmDirLinkCmd
@@ -46,12 +44,7 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./libplock
-    ./libpkginfo
-    ./libsys
-    ./librange
-    ./libfetch
-    ./mkNmDir
+    ./tests.nix
   ];
 
 # ---------------------------------------------------------------------------- #
@@ -60,7 +53,7 @@
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "all-tests";
+    name = "mkNmDir-tests";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {

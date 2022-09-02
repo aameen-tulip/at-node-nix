@@ -160,6 +160,18 @@
           enableTraces = false;
         };
 
+      inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
+        inherit (pkgsFor.xorg) lndir;
+      })
+        _mkNmDirCopyCmd
+        _mkNmDirLinkCmd
+        _mkNmDirAddBinWithDirCmd
+        _mkNmDirAddBinNoDirsCmd
+        _mkNmDirAddBinCmd
+        mkNmDirCmdWith
+        mkNmDirCopyCmd
+        mkNmDirLinkCmd
+      ;
     };
 
 # ---------------------------------------------------------------------------- #
@@ -185,6 +197,7 @@
         inherit (pkgsFor) writeText;
         enableTraces = true;
         fetchurl = lib.fetchurlDrv;
+        annPkgs  = self.legacyPackages.${system};
       } ).checkDrv;
 
       # NOTE: This is a wrapper over the function.
