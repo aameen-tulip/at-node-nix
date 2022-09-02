@@ -411,6 +411,27 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # A wrapper for your wrapper.
+  # This pulls fetchers from your `flocoConfig', and routes inputs to the
+  # proper fetcher.
+  # Largely relies on `entSubtype', `entries.plock', and `sourceInfo' data.
+  # You likely want to create a fetcher for each `lockDir'/`metaSet'; but it
+  # will check `entries.plock.lockDir' as a fallback.
+  #
+  # The following examples will handle `cwd' properly for "dir"/path and
+  # "link"/symlink fetchers:
+  #   let
+  #     lockDir      = toString ../../foo;
+  #     plock        = lib.importJSON' "${lockDir}/package-lock.json";
+  #     flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
+  #   in builtins.mapAttrs ( _: flocoFetcher ) plock.packages
+  #
+  # With `metaSet' it'll figure out `cwd' from the `entries.plock' attrs.
+  #   let
+  #     flocoFetcher = lib.mkFlocoFetcher {};
+  #     metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; }
+  #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
+  #
   mkFlocoFetcher = {
     tarballFetcher ? flocoConfig.fetchers.tarballFetcher or lib.libfetch.fetchTreeW
   , urlFetcher     ? flocoConfig.fetchers.urlFetcher     or lib.libfetch.fetchurlW
