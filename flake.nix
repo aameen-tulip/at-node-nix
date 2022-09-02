@@ -119,7 +119,7 @@
 
     overlays.at-node-nix = final: prev: let
       pkgsFor = let
-        ovs = lib.composeManyExtendsions [
+        ovs = lib.composeManyExtensions [
           self.overlays.pacote
           ak-nix.overlays.default
         ];

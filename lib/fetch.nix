@@ -408,11 +408,10 @@
     type = args.entSubtype or sourceInfo.entSubtype or
            args.type or sourceInfo.type or ( typeOfEntry plent );
     type' = if type == "tarball" then "registry-tarball" else type;
-    fetcher = fetcherForType fetchers type';
-    cwd' = if plent ? lockDir then { __thunk.cwd = plent.lockDir; } else {};
-  in if type == "path" || type == "symlink" then ( fetcher // cwd' )
-                                            else fetcher;
-
+    cwd' = if ( plent ? lockDir ) && ( builtins.elem type ["path" "symlink"])
+           then { __thunk.cwd = plent.lockDir; } else {};
+    fetcher = ( fetcherForType fetchers type' ) // cwd';
+  in fetcher args;
 
 
 # ---------------------------------------------------------------------------- #

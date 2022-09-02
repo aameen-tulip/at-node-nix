@@ -10,11 +10,9 @@
     callLibs = file: import file { lib = final; };
   in {
 
-    # This only depends on `nixpkgs.lib' so using the one from `ak-nix' is fine.
-    # We are just doing a try run here anyway.
-    flocoConfig = ( import ./config.nix {
-      inherit (globalAttrs) lib;
-    } ).mkFlocoConfig ( globalAttrs.flocoConfig or {} );
+    flocoConfig = (
+      callLibs ./config.nix
+    ).mkFlocoConfig ( globalAttrs.flocoConfig or {} );
     # Call it recursively this time ( not that it really matters )
     libcfg = callLibs ./config.nix;
 
