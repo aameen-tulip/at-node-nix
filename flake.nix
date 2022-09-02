@@ -79,6 +79,9 @@
   in {  # Real Outputs
 
     inherit lib;
+    flocoFetch = lib.makeOverridable lib.mkFlocoFetcher {
+      flocoConfig = lib.libcfg.mkFlocoConfig {};
+    };
 
 # ---------------------------------------------------------------------------- #
 
@@ -141,15 +144,14 @@
       # Either `name' ( meta.names.tarball ) or `meta' are also required.
       mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
+      flocoFetch = callPackage lib.libfetch.mkFlocoFetcher {};
+
       _node-pkg-set = import ./pkgs/node-pkg-set.nix {
         inherit (final) lib evalScripts buildGyp nodejs;
         inherit (final) runBuild genericInstall;
         inherit (pkgsFor) stdenv jq xcbuild linkFarm;
         fetchurl = final.lib.fetchurlDrv;  # For tarballs without unpacking
-        doFetch = final._fetcher.fetcher {
-          cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
-          preferBuiltins = true;
-        };
+        doFetch = final.flocoFetch;
       };
 
       # Pass `dir' as an arg.

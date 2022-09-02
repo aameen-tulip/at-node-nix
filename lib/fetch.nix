@@ -70,6 +70,15 @@
 
 # ---------------------------------------------------------------------------- #
 
+  hashFields = {
+    sha1      = true;
+    sha256    = true;
+    sha512    = true;
+    integrity = true;
+    hash      = true;
+    narHash   = true;
+  };
+
   # XXX: I'm unsure of whether or not this works with v1 locks.
   plockEntryHashAttr = entry: let
     integrity2Sha = integrity: let
@@ -97,7 +106,7 @@
   # Ideally you would pre-fetch to define the derivation, then use
   # `nix-store --dump-db ...' or serialize this info with `toJSON' to stash the
   # info to optimize/purify future runs.
-  plock2TbFetchArgs' = impure: { resolved, ... } @ entry: let
+  plock2TbFetchArgs' = impure: { resolved ? entry.url, ... } @ entry: let
     prefetched = if ( ! impure ) then {} else fetchTree bfr;
     nha = plockEntryHashAttr entry;
     # nixpkgs.fetchurl
@@ -139,7 +148,7 @@
 # ---------------------------------------------------------------------------- #
 
   # Git
-  plock2GitFetchArgs' = impure: { resolved, ... } @ entry: let
+  plock2GitFetchArgs' = impure: { resolved ? entry.url, ... } @ entry: let
     # I'm pretty sure you can pass this "as is" to `fetchTree'.
     # I'm also pretty sure that Eelco implemented `fetchTree' and Flake refs
     # based on NPM's URIs to support Node.js at Target - the commonality is
@@ -149,6 +158,8 @@
     #   2: owner
     #   3: repo
     #   4: rev
+    #
+    # git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c
     murl = builtins.match "(git+[^:]+)://([^/:]+)[/:]([^/]+)/([^#]+)#(.*)"
                           resolved;
     protocol = builtins.head murl;
@@ -213,8 +224,9 @@
     cwd ? ( if impure then builtins.getEnv "PWD" else
           throw ( "(plock2PathFetchArgs) Cannot " +
                   "determine CWD to resolve path URIs" ) )
-  , key # relative path
-  }: let
+  , key ? args.pkey or args.resolved or args.path  # "key" is a relative path
+  , ...
+  } @ args: let
     cwd' = assert lib.libpath.isAbspath cwd;
       builtins.head ( builtins.match "(.*[^/])/?" cwd );
     abs = if ( lib.libpath.isAbspath key ) then key else
@@ -279,6 +291,132 @@
 
 # ---------------------------------------------------------------------------- #
 
+  callWith = {
+    __functionArgs
+  , __thunk ? {}
+  , __fetcher
+  #, __functor
+  , ...
+  } @ self: args: let
+    args' = builtins.intersectAttrs __functionArgs ( __thunk // args );
+  in lib.makeOverridable __fetcher args';
+
+  fetchurlW = {
+    #__functionArgs = hashFields // { name = true; url = false; };
+    __functionArgs = lib.functionArgs lib.fetchurlDrv;
+    __thunk   = { unpack = false; };
+    __fetcher = lib.fetchurlDrv;
+    __functor = self: args: let
+      args' = args // ( plock2TbFetchArgs args ).lib.fetchurlDrv;
+    in callWith self args';
+  };
+
+  fetchGitW = {
+    __functionArgs = {
+      url     = false;
+      name    = true;
+      rev     = true;
+      ref     = true;
+      allRefs = true;
+      shallow = true;
+    };
+    __thunk   = {
+      ref        = "HEAD";
+      submodules = false;
+      shallow    = false;
+      allRefs    = true;
+    };
+    __fetcher = builtins.fetchGit;
+    __functor = self: args: let
+      args' = args // ( plock2GitFetchArgs args ).builtins.fetchGit;
+    in callWith self args';
+  };
+
+  pathW = {
+    __functionArgs = {
+      name      = true;
+      path      = false;
+      filter    = true;
+      recursive = true;
+      sha256    = true;
+      cwd       = false;
+    };
+    __thunk = {
+      filter = name: type: let
+        bname = baseNameOf name;
+      in ( type == "directory" -> ( bname != "node_modules" ) );
+    };
+    __fetcher = args: { outPath = builtins.path ( removeAttrs args ["cwd"] ); };
+    __functor = self: args: let
+      args' = if lib.libpath.isAbspath args.path then args else {
+        path = "${args.cwd}/${args.path}";
+      };
+    in callWith self args';
+  };
+
+  fetchTreeW = {
+    __functionArgs = {
+      # Common
+      type    = false;
+      narHash = true;
+      name    = true;
+      # `fetchTarball' mode
+      url     = true;
+      # `fetchGit' mode
+      rev     = true;
+      ref     = true;
+      allRefs = true;
+      shallow = true;
+      # `path' mode
+      path    = true;
+    };
+    # Copy the thunk from other fetchers.
+    __thunk = fetchGitW.__thunk;
+    __fetcher = builtins.fetchTree;
+    __functor = self: { type, ... } @ args: let
+      fa' =
+        if type == "path" then { path = false; } else
+        if type == "git"  then fetchGitW.__functionArgs else
+        if type == "tarball" then { url = false; } else
+        throw "Unrecognized `fetchTree' type: ${type}";
+      fc = { type = false; narHash = true; };
+      args' = args // ( {
+        path    = plock2PathFetchArgs ( removeAttrs args ["type"] );
+        tarball = plock2TbFetchArgs   ( removeAttrs args ["type"] );
+        git     = plock2GitFetchArgs  ( removeAttrs args ["type"] );
+      } ).${type}.builtins.fetchTree;
+      # Make `__functionArgs' reflect the right args for filtering by type.
+    in callWith ( self // { __functionArgs = fc // fa'; } ) args';
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  mkFlocoFetcher = {
+    tarballFetcher ? flocoConfig.fetchers.tarballFetcher or lib.libfetch.fetchTreeW
+  , urlFetcher     ? flocoConfig.fetchers.urlFetcher     or lib.libfetch.fetchurlW
+  , gitFetcher     ? flocoConfig.fetchers.gitFetcher     or lib.libfetch.fetchGitW
+  , dirFetcher     ? flocoConfig.fetchers.dirFetcher     or lib.libfetch.pathW
+  , linkFetcher    ? flocoConfig.fetchers.linkFetcher    or lib.libfetch.pathW
+  , flocoConfig    ? lib.flocoConfig
+  } @ cargs: args: let
+    fetchers = {
+      inherit tarballFetcher urlFetcher gitFetcher dirFetcher linkFetcher;
+    };
+    sourceInfo = if args ? entSubtype then args else args.sourceInfo or {};
+    plent = args.entries.plock or args;
+    type = args.entSubtype or sourceInfo.entSubtype or
+           args.type or sourceInfo.type or ( typeOfEntry plent );
+    type' = if type == "tarball" then "registry-tarball" else type;
+    fetcher = fetcherForType fetchers type';
+    cwd' = if plent ? lockDir then { __thunk.cwd = plent.lockDir; } else {};
+  in if type == "path" || type == "symlink" then ( fetcher // cwd' )
+                                            else fetcher;
+
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     typeOfEntry
@@ -290,6 +428,9 @@ in {
     plock2PathFetchArgs'  plock2PathFetchArgs
     plock2LinkFetchArgs'  plock2LinkFetchArgs
     plock2EntryFetchArgs' plock2EntryFetchArgs
+
+    fetchurlW fetchGitW fetchTreeW pathW
+    mkFlocoFetcher
   ;
 }
 

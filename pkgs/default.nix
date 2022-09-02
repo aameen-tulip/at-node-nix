@@ -66,11 +66,6 @@
     inherit (pkgs) linkFarm;
   };
 
-  _fetcher = import ./build-support/fetcher.nix {
-    inherit lib;
-    inherit (pkgs) fetchurl fetchgit fetchzip;
-  };
-
   evalScripts = import ./build-support/evalScripts.nix {
     inherit lib nodejs;
     inherit (pkgs) stdenv jq;
@@ -107,12 +102,11 @@ in ( pkgs.extend ak-nix.overlays.default ).extend ( final: prev: let
   callPackage  = lib.callPackageWith final;
   callPackages = lib.callPackagesWith final;
 
+  flocoFetch = callPackage lib.libfetch.mkFlocoFetcher {};
+
   _node-pkg-set = callPackages ./node-pkg-set.nix {
     fetchurl = lib.fetchurlDrv;  # For tarballs without unpacking
-    doFetch = _fetcher.fetcher {
-      cwd = throw "Override `cwd' to use local fetchers";  # defer to call-site
-      preferBuiltins = true;
-    };
+    doFetch = final.flocoFetch;
   };
 
 # ---------------------------------------------------------------------------- #
@@ -129,6 +123,7 @@ in {
     runInstallScripts
     genericInstall
     runBuild
+    flocoFetch
   ;
   inherit (trivial)
     runLn
@@ -147,7 +142,6 @@ in {
     linkAsGlobal
     mkNodeTarball
   ;
-  inherit (_fetcher) defaultFetchers getPreferredFetchers fetcher;
 
   inherit (_node-pkg-set)
     pkgEntFromPlockV2
