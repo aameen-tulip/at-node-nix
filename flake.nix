@@ -195,7 +195,7 @@
 # ---------------------------------------------------------------------------- #
 
     legacyPackages = eachDefaultSystemMap ( system:
-      ( nixpkgs.legacyPackages system ).extend self.overlays.default
+      ( nixpkgs.legacyPackages.${system} ).extend self.overlays.default
     );
 
 # ---------------------------------------------------------------------------- #
