@@ -309,17 +309,34 @@
   # Wraps `fetchurlDrv'.
   # Since it isn't technically a builtin this wrapper is really just for
   # consistency with the other wrappers.
-  # FIXME: the naming against `builtins.fetchurl' and `builtins.fetchTarball'
-  # is pretty confusing; this really ought to be called `fetchurlDrvW'.
-  fetchurlW = {
+  # FIXME: `builtins.fetchTree' doesn't actually work in pure mode even with
+  # the wrapper.
+  # You can't avoid unpacking in a platform dependant way in pure mode.
+  fetchurlDrvW = {
     #__functionArgs = hashFields // { name = true; url = false; };
-    __functionArgs = lib.functionArgs lib.fetchurlDrv;
-    __thunk   = { unpack = false; };
+    __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
+      unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
+    };
+    __thunk   = { unpack = false; unpackAfter = false; };
     __fetcher = lib.fetchurlDrv;
     __functor = self: args: let
-      args' = args // ( plock2TbFetchArgs args ).lib.fetchurlDrv;
-    in callWith self args';
+      args' = let
+        rargs = removeAttrs args ["unpackAfter"];
+      in rargs // ( plock2TbFetchArgs rargs ).lib.fetchurlDrv;
+      # Hide `unpackAfter' for real call.
+      fetched = callWith ( self // {
+        __functionArgs = removeAttrs self.__functionArgs ["unpackAfter"];
+      } ) args';
+      upa = builtins.fetchTarball { url = fetched.outPath; };
+      unpackedFull = upa // { passthru.tarball = fetched; };
+      doUnpackAfter = args.unpackAfter or self.__thunk.unpackAfter;
+    in if doUnpackAfter then unpackedFull else fetched;
   };
+
+  # FIXME: see note.
+  #fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = true; };
+  # NOTE: You need to unpack this still!
+  fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = false; };
 
   fetchGitW = {
     __functionArgs = {
@@ -396,8 +413,10 @@
       fa' =
         if type == "path" then { path = false; } else
         if type == "git"  then fetchGitW.__functionArgs else
-        if type == "tarball" then { url = false; } else
-        throw "Unrecognized `fetchTree' type: ${type}";
+        if type == "tarball" then {
+          url     = false;
+          narHash = lib.flocoConfig.enableImpureFetchers;
+        } else throw "Unrecognized `fetchTree' type: ${type}";
       fc = { type = false; narHash = true; };
       args' = args // ( {
         path    = plock2PathFetchArgs ( removeAttrs args ["type"] );
@@ -433,8 +452,8 @@
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
   mkFlocoFetcher = {
-    tarballFetcher ? flocoConfig.fetchers.tarballFetcher or lib.libfetch.fetchTreeW
-  , urlFetcher     ? flocoConfig.fetchers.urlFetcher     or lib.libfetch.fetchurlW
+    tarballFetcher ? flocoConfig.fetchers.tarballFetcher or ( if flocoConfig.enableImpureFetchers then lib.libfetch.fetchTreeW else lib.libfetch.fetchurlUnpackDrvW )
+  , urlFetcher     ? flocoConfig.fetchers.urlFetcher     or lib.libfetch.fetchurlDrvW
   , gitFetcher     ? flocoConfig.fetchers.gitFetcher     or lib.libfetch.fetchGitW
   , dirFetcher     ? flocoConfig.fetchers.dirFetcher     or lib.libfetch.pathW
   , linkFetcher    ? flocoConfig.fetchers.linkFetcher    or lib.libfetch.pathW
@@ -479,7 +498,7 @@ in {
     plock2LinkFetchArgs'  plock2LinkFetchArgs
     plock2EntryFetchArgs' plock2EntryFetchArgs
 
-    fetchurlW fetchGitW fetchTreeW pathW
+    fetchurlDrvW fetchGitW fetchTreeW pathW  fetchurlUnpackDrvW
     mkFlocoFetcher
   ;
 }

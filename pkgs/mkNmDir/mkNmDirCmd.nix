@@ -191,6 +191,10 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # This will read an optional argument `copy = true|false' defaulting
+  # to symlinks.
+  # This is to make it less of a headache in the event you want to override a
+  # symlinked command to be copying.
   _mkNmDirCmdWith = {
     tree
   # A function taking `from' and `to' as arguments, which should produce a shell
@@ -200,7 +204,10 @@
   # NOTE: Use absolute paths to utilities, this command may be nested as a
   # hook in other derivations and you are NOT guaranteed to have `stdenv'
   # default path available - not even `coreutils'.
-  , addCmd ? from: to: _mkNmDirLinkCmd lndir from to
+  , addCmd ? from: to:
+    ( if ( args ? copy ) && ( args.copy == true )
+      then _mkNmDirCopyCmd coreutils else _mkNmDirLinkCmd lndir
+    ) from to
   # Only handle top level `node_modules/.bin` dir.
   # This is what you want if  you're only using isolated Nix builders.
   # If you're creating an install script for use outside of Nix and you want
@@ -228,7 +235,9 @@
   , coreutils ? globalArgs.coreutils
   , lndir     ? globalArgs.lndir
   , ...
-  } @ args: let
+  } @ args:
+  # You can't use the `copy' arg AND explicitly set `addCmd'.
+  assert ( args ? copy ) -> ! ( args.addCmd ); let
 
     tree' = let
       # Symlinks to external directories are copied to their destination.
@@ -338,7 +347,7 @@
   # Defining `__functionArgs' is what allows users to run `callPackage' on this
   # function and have it "do what they mean" despite the wrapper.
   mkNmDirCmdWith = {
-    __functionArgs = lib.functionArgs _mkNmDirCmdWith;
+    __functionArgs = ( lib.functionArgs _mkNmDirCmdWith ) // { copy = true; };
     __functor = self: args: let
       nmd = lib.callPackageWith globalArgs _mkNmDirCmdWith args;
     in removeAttrs nmd ["overrideDerivation"];

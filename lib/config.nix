@@ -32,11 +32,13 @@
     # It's only possible to put these here because they are platform agnostic.
     # If you use system dependant fetchers override this.
     fetchers = {
-      tarballFetcher = lib.libfetch.fetchTreeW;
-      urlFetcher     = lib.libfetch.fetchurlW;
+      urlFetcher     = lib.libfetch.fetchurlDrvW;
       gitFetcher     = lib.libfetch.fetchGitW;
       dirFetcher     = lib.libfetch.pathW;
       linkFetcher    = lib.libfetch.pathW;
+      tarballFetcher =
+        if lib.inPureEvalMode then lib.libfetch.fetchurlUnpackDrvW else
+        lib.libfetch.fetchTreeW;
     };
   };
 

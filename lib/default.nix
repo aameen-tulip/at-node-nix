@@ -30,10 +30,9 @@
     libmeta    = ( callLibs ./meta.nix ) // ( callLibs ./meta-ent.nix );
 
     inherit (final.libfetch)
-      fetchurlW fetchGitW fetchTreeW pathW
+      fetchurlDrvW fetchGitW fetchTreeW pathW
       mkFlocoFetcher
     ;
-    fetchurlDrvW = final.libfetch.fetchurlW;
 
     inherit (final.libparse)
       tryParseIdent
