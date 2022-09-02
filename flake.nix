@@ -135,6 +135,8 @@
       lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
+      # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
+      unpackSafe     = callPackage ./pkgs/build-support/unpackSafe.nix;
       buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
       evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
       genericInstall = callPackage ./pkgs/build-support/genericInstall.nix;

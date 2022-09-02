@@ -309,9 +309,12 @@
   # Wraps `fetchurlDrv'.
   # Since it isn't technically a builtin this wrapper is really just for
   # consistency with the other wrappers.
-  # FIXME: `builtins.fetchTree' doesn't actually work in pure mode even with
-  # the wrapper.
-  # You can't avoid unpacking in a platform dependant way in pure mode.
+  # NOTE: You can't avoid unpacking in a platform dependant way in pure mode;
+  # with that in mind the best we can do is fetch the tarball and pass a message
+  # for builders to handle later.
+  # We add the field `needsUpack = true' in pure mode.
+  # In practice the best thing to do is to override this fetcher in pure mode
+  # in your config.
   fetchurlDrvW = {
     #__functionArgs = hashFields // { name = true; url = false; };
     __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
@@ -333,10 +336,11 @@
     in if doUnpackAfter then unpackedFull else fetched;
   };
 
-  # FIXME: see note.
-  #fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = true; };
-  # NOTE: You need to unpack this still!
-  fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = false; };
+  fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = true; };
+  fetchurlNoteUnpackDrvW = fetchurlDrvW // {
+    __functor = self: args:
+      ( fetchurlDrvW.__functor self args ) // { needsUnpack = true; };
+  };
 
   fetchGitW = {
     __functionArgs = {
@@ -452,16 +456,30 @@
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
   mkFlocoFetcher = {
-    tarballFetcher ? flocoConfig.fetchers.tarballFetcher or ( if flocoConfig.enableImpureFetchers then lib.libfetch.fetchTreeW else lib.libfetch.fetchurlUnpackDrvW )
-  , urlFetcher     ? flocoConfig.fetchers.urlFetcher     or lib.libfetch.fetchurlDrvW
-  , gitFetcher     ? flocoConfig.fetchers.gitFetcher     or lib.libfetch.fetchGitW
-  , dirFetcher     ? flocoConfig.fetchers.dirFetcher     or lib.libfetch.pathW
-  , linkFetcher    ? flocoConfig.fetchers.linkFetcher    or lib.libfetch.pathW
-  , flocoConfig    ? lib.flocoConfig
+    tarballFetcher ? if enableImpureFetchers then tarballFetcherImpure
+                                             else tarballFetcherPure
+  , tarballFetcherPure   ? fetchers.tarballFetcherPure
+  , tarballFetcherImpure ? fetchers.tarballFetcherImpure
+  , urlFetcher  ? fetchers.urlFetcher
+  , gitFetcher  ? fetchers.gitFetcher
+  , dirFetcher  ? fetchers.dirFetcher
+  , linkFetcher ? fetchers.linkFetcher
+  , fetchers    ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
+                                      ( flocoConfig.fetchers or {} )
+  , flocoConfig ? lib.flocoConfig
+  , enableImpureFetchers ? flocoConfig.enableImpureFetchers
   , cwd            ? throw "You must set cwd for relative path fetching"
   } @ cargs: args: let
     fetchers = {
-      inherit tarballFetcher urlFetcher gitFetcher dirFetcher linkFetcher;
+      # We don't carry pure/impure past argument handling because we're actually
+      # going to fetch.
+      inherit
+        urlFetcher
+        gitFetcher
+        dirFetcher
+        linkFetcher
+        tarballFetcher
+      ;
     };
     sourceInfo = if args ? entSubtype then args else args.sourceInfo or {};
     plent = args.entries.plock or args;
@@ -498,7 +516,8 @@ in {
     plock2LinkFetchArgs'  plock2LinkFetchArgs
     plock2EntryFetchArgs' plock2EntryFetchArgs
 
-    fetchurlDrvW fetchGitW fetchTreeW pathW  fetchurlUnpackDrvW
+    fetchGitW fetchTreeW pathW
+    fetchurlDrvW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
     mkFlocoFetcher
   ;
 }
