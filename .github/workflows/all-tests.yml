@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SYSTEM: x86_64-linux
+      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
     steps:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: cachix/install-nix-action@d64e0553100205688c0fb2fa16edb0fc8663c590
@@ -45,6 +46,15 @@ jobs:
             timeout = 0
       - name: Setup
         run: |
+          mkdir -p /home/runner/.ssh;
+          ssh-keyscan github.com >> /home/runner/.ssh/known_hosts;
+          ssh-keygen -N '' -f /home/runner/.ssh/id_rsa;
+          chmod 600 /home/runner/.ssh/id_rsa;
+          ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null;
+          ssh-add /home/runner/.ssh/id_rsa;
+          git config --global user.email "actions@github.com";
+          git config --global user.name "GitHub actions";
+
           echo "# ============================================================================ #" >&2;
           { printf '    bash   version: '; bash   --version|head -n1; } >&2;
           { printf '    nix    version: '; nix    --version; } >&2;
