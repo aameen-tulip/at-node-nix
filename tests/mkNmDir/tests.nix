@@ -34,7 +34,23 @@
 
   sourceTree = builtins.mapAttrs ( p: flocoFetchCwd ) plock.packages;
 
+  plockBig = lib.importJSON' ( toString ../libplock/data/plv2-it.json );
+
   tests = {
+
+    testAllBindirs = {
+      expr = let
+        gnm = path: _: let
+          m = lib.yank "(.*node_modules)/.*" path;
+        in if ( m == null ) || ( m == "node_modules" )
+           then "$node_modules_path"
+           else "$node_modules_path/${lib.yank "node_modules/(.*)" m}";
+      in lib.unique ( lib.mapAttrsToList gnm plockBig.packages );
+      expected = [
+        "$node_modules_path"
+        "$node_modules_path/pretty-format/node_modules"
+      ];
+    };
 
     testLinkFromPlTree = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;

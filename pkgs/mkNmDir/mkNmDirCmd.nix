@@ -75,8 +75,8 @@
   # Helpers to extract fields from tree entries.
 
   hasBin = {
-    ignoreSubBins ? false
-  , assumeHasBin   ? true
+    ignoreSubBins  ? false
+  , assumeHasBin   ? false
   }: path: ent: let
     forDepth = let
       split   = builtins.split "node_modules" path;
@@ -96,9 +96,11 @@
   in if isStr then forStr else forEnt;
 
   # Return the `bin' attrset for an entry.
-  # XXX: FIlter using `hasBin' first.
-  getBins = ent: ent.bin or ent.meta.bin or
-                 ( throw "(mkNmDir:getBins) No bin attr in entry." );
+  # XXX: Filter using `hasBin' first.
+  getBins = ent:
+    ent.bin or
+    ent.meta.bin or
+    ( throw "(mkNmDir:getBins) No bin attr in entry." );
 
   getFromdir = ent:
     if builtins.isString ent then assert lib.isStorePath ent; ent else
@@ -224,7 +226,7 @@
   # NOTE: We do not process `directories.bin' - you need to normalize your tree
   # fields using `libpkginfo' before calling this.
   , handleBindir ? true
-  , assumeHasBin    ? true
+  , assumeHasBin ? false
   # Same deal as `addCmd' but for handling bin links.
   # This is exposed in case you need to do something wonky like create wrapper
   # scripts; but I think it's unlikely that you'll need to.
@@ -283,9 +285,19 @@
     in builtins.concatStringsSep "\n  " cmds;
 
     addBinDirs = let
-      dirs = if ignoreSubBins then ["$node_moduels_path/.bin"] else
-             map getBindir ( builtins.attrNames haveBin );
-    in if haveBin == {} then "" else mkdirs dirs;
+      haveInMeta = map getBindir ( builtins.attrNames haveBin );
+      topDir    = ["$node_moduels_path/.bin"];
+      allDirs = let
+        gnm = path: _: let
+          m  = lib.yank "(.*node_modules)/.*" path;
+          sc = lib.yank "node_modules/(.*)" m;
+        in if m == null then "$node_modules_path"
+                        else "$node_modules_path/${sc}";
+      in lib.unique ( lib.mapAttrsToList gnm tree' );
+      dirs = if ignoreSubBins then topDir  else
+             if assumeHasBin  then allDirs else
+             haveInMeta;
+    in mkdirs dirs;
 
     addBins = let
       cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );
@@ -371,13 +383,18 @@
   mkNmDirLinkCmd = {
     tree
   , ignoreSubBins ? false
+  , assumeHasBin  ? false
   , handleBindir  ? true
   , preNmDir      ? ""
   , postNmDir     ? ""
   , coreutils     ? globalArgs.coreutils
   , lndir         ? globalArgs.lndir
   , ...
-  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirLinkCmd lndir; } // args );
+  } @ args: mkNmDirCmdWith ( {
+    inherit ignoreSubBins assumeHasBin handleBindir preNmDir postNmDir;
+    inherit coreutils lndir;
+    addCmd = _mkNmDirLinkCmd lndir;
+  } // args );
 
 
 # ---------------------------------------------------------------------------- #
@@ -386,13 +403,18 @@
   mkNmDirCopyCmd = {
     tree
   , ignoreSubBins ? false
+  , assumeHasBin  ? false
   , handleBindir  ? true
   , preNmDir      ? ""
   , postNmDir     ? ""
   , coreutils     ? globalArgs.coreutils
   , lndir         ? globalArgs.lndir
   , ...
-  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirCopyCmd coreutils; } // args );
+  } @ args: mkNmDirCmdWith ( {
+    inherit ignoreSubBins assumeHasBin handleBindir preNmDir postNmDir;
+    inherit coreutils lndir;
+    addCmd = _mkNmDirCopyCmd coreutils;
+  } // args );
 
 
 # ---------------------------------------------------------------------------- #
