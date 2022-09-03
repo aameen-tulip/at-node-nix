@@ -377,7 +377,7 @@
   , coreutils     ? globalArgs.coreutils
   , lndir         ? globalArgs.lndir
   , ...
-  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirLinkCmd coreutils; } // args );
+  } @ args: mkNmDirCmdWith ( { addCmd = _mkNmDirLinkCmd lndir; } // args );
 
 
 # ---------------------------------------------------------------------------- #
