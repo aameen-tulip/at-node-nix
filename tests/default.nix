@@ -14,7 +14,7 @@
 , writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
 , lib         ? import ../lib { inherit (ak-nix) lib; }
-, annPkgs     ? builtins.getFlake ( toString ../. ).legacyPackages.${system}
+, annPkgs     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
