@@ -48,12 +48,12 @@ jobs:
         run: |
           mkdir -p /home/runner/.ssh;
           ssh-keyscan github.com >> /home/runner/.ssh/known_hosts;
-          ssh-keygen -N '' -f /home/runner/.ssh/id_rsa;
+          echo "${{ secrets.AAMEEN_SSH_KEY }}" > /home/runner/.ssh/id_rsa;
           chmod 600 /home/runner/.ssh/id_rsa;
           ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null;
           ssh-add /home/runner/.ssh/id_rsa;
-          git config --global user.email "actions@github.com";
-          git config --global user.name "GitHub actions";
+          git config --global user.email "alex.ameen@tulip.co";
+          git config --global user.name "Alex Ameen";
 
           echo "# ============================================================================ #" >&2;
           { printf '    bash   version: '; bash   --version|head -n1; } >&2;
