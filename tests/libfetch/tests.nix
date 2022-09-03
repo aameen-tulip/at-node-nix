@@ -29,6 +29,8 @@
         flocoFetcher = lib.mkFlocoFetcher {};
       in builtins.mapAttrs ( _: v: v ? outPath ) {
         dir  = flocoFetcher proj2;
+        # NOTE: `fetchGit' requires extra setup in GitHub Actions.
+        # I skip this one during CI test runs because I haven't set up SSH yet.
         git  = flocoFetcher lodash;
         tar  = flocoFetcher ts;
         link = flocoFetcher projd;

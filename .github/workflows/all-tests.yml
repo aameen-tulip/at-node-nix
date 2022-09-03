@@ -4,7 +4,7 @@ on:
     branches:
       -  main
     paths:
-      - .github/workflows/all-test.yml
+      - .github/workflows/all-tests.yml
       - flake.nix
       - lib/default.nix
       - lib/**
@@ -12,7 +12,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - .github/workflows/all-test.yml
+      - .github/workflows/all-tests.yml
       - flake.nix
       - lib/default.nix
       - lib/**
