@@ -4,8 +4,6 @@
 
 Node.js Nix expressions
 
-[[All Tests][https://github.com/aameen-tulip/at-node-nix/actions/workflows/all-tests.yml/badge.svg)](https://github.com/aameen-tulip/at-node-nix/actions/workflows/all-tests.yml]]
-
 * About
 The purpose of this flake is to provide you with useful utilities for building
 Node.js+Nix projects in whatever context or toolkit you choose.
