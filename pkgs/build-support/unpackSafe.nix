@@ -6,23 +6,41 @@
 # All it does differently that regular `tar' is create directories before
 # unpacking to prevent them from being clobbered.
 #
-{ name    ? throw "Let untarSanPerms set the name"
+{ name    ? meta.name.src or throw "Let untarSanPerms set the name"
 , tarball ? args.outPath or args.src
 , meta    ? {}
-#, setBinPerms   ? true   # FIXME
+, setBinPerms   ? true
 #, patchShebangs ? false  # FIXME
 , untarSanPerms
+, jq
 , ...
-} @ args: untarSanPerms ( {
+} @ args: let
+  addBinPerms =
+    if ! ( ( args.meta.hasBin or true ) || setBinPerms ) then {} else {
+      postTar = ''
+        PATH="$PATH:${jq}/bin";
+        for f in $( jq -r '( .bin // {} )[]' "$out/package.json"; ); do
+          test -z "$f" && break;
+          chmod -R +rw "$out/''${f%/*}";
+          chmod +wxr "$out/$f";
+        done
+        for d in $( jq -r '.directories.bin // ""' "$out/package.json"; ); do
+          test -z "$f" && break;
+          chmod -R +wrx "$out/$d"
+        done
+      '';
+    };
+in untarSanPerms ( {
   inherit tarball;
   tarFlags = [
     "--no-same-owner"
+    "--no-same-permissions"
     "--delay-directory-restore"
-    #"--no-same-permissions"
     "--no-overwrite-dir"
   ];
   extraDrvAttrs.allowSubstitutes = false;
   extraAttrs.meta = args.meta or {};
-} // ( lib.optionalAttrs (
+} // ( if (
   ( args.name or args.meta.names.tarball or null ) != null
-) { name = args.name or args.meta.names.tarball; } ) )
+) then { name = args.name or args.meta.names.tarball; } else {} ) //
+  addBinPerms )

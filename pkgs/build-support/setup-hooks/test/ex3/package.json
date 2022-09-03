@@ -1,0 +1,16 @@
+{
+  "name": "ex3",
+  "description": "bindir style",
+  "version": "1.0.0",
+  "author": "Alex Ameen <alex.ameen@tulip.co>",
+  "license": "GPL3",
+  "main": "app/main.js",
+  "scripts": {
+    "install": "echo hi"
+  },
+  "directories": {
+    "bin": "scripts"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

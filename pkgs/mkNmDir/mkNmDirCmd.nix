@@ -74,12 +74,26 @@
 
   # Helpers to extract fields from tree entries.
 
-  hasBin = { ignoreSubBins ? false }: path: ent: let
-    split   = builtins.split "node_modules" path;
-    nmDepth = builtins.length ( builtins.filter builtins.isList split );
-  in ( ! builtins.isString ent ) &&
-     ( ignoreSubBins -> ( nmDepth < 2 ) ) &&
-     ( ent.meta.hasBin or ( ( ent.bin or ent.meta.bin or {} ) != {} ) );
+  hasBin = {
+    ignoreSubBins ? false
+  , assumeHasBin   ? true
+  }: path: ent: let
+    forDepth = let
+      split   = builtins.split "node_modules" path;
+      nmDepth = builtins.length ( builtins.filter builtins.isList split );
+    in ignoreSubBins -> ( nmDepth < 2 );
+    _isEnt = x:
+      ( ( x._type or null ) == "metaEnt" ) || ( x ? ident ) ||
+      ( x ? entries ) || ( x ? hasBin ) || ( x ? bin );
+    isEnt = ( _isEnt ent ) || ( ( ent ? meta ) && ( _isEnt ent.meta ) );
+    isStr = ( builtins.isString ent ) || ( ! isEnt );
+    forStr = assumeHasBin;
+    forEnt = let
+      realEnt  = if ent ? meta then ent else {};
+      meta = realEnt.meta or ent;
+    in ( realEnt.hasBin or meta.hasBin ) ||
+       ( ( realEnt.bin or meta.bin or {} ) != {} );
+  in if isStr then forStr else forEnt;
 
   # Return the `bin' attrset for an entry.
   # XXX: FIlter using `hasBin' first.
@@ -89,18 +103,6 @@
   getFromdir = ent:
     if builtins.isString ent then assert lib.isStorePath ent; ent else
     ent.outPath or ent.prepared.outPath;
-
-  getTodir = path: ent: let
-    fromEnt = if builtins.isString ent then null else
-              ent.ident or ent.name or ent.meta.ident or ent.meta.name or null;
-    fromPath = lib.libplock.pathId path;
-    subdir = if fromEnt != null then fromEnt else
-             if fromPath != null then fromPath else
-             # Since we have already stripped the `leading' "node_modules/"
-             # path we expect to get `null' from `pathId' for inputs like
-             # "@foo/bar" which have already been converted to their identifier.
-             path;
-  in "$node_modules_path/${subdir}";
 
   # Get bindir where a path's bins should be installed.
   # This will be the "parent" `node_modules/.bin' dir; for example:
@@ -154,7 +156,7 @@
     ''${lndir}/bin/lndir -silent "${from}" "${to}";'';
 
   _mkNmDirCopyCmd = coreutils: from: to:
-    ''${coreutils}/bin/cp -r --reflink=auto -T "${from}" "${to}";'';
+    ''${coreutils}/bin/cp -r --no-preserve=mode --reflink=auto -T "${from}" "${to}";'';
 
 
 # ---------------------------------------------------------------------------- #
@@ -222,6 +224,7 @@
   # NOTE: We do not process `directories.bin' - you need to normalize your tree
   # fields using `libpkginfo' before calling this.
   , handleBindir ? true
+  , assumeHasBin    ? true
   # Same deal as `addCmd' but for handling bin links.
   # This is exposed in case you need to do something wonky like create wrapper
   # scripts; but I think it's unlikely that you'll need to.
@@ -248,7 +251,9 @@
                               ( builtins.head ( builtins.attrNames dropExt ) );
     in if doStrip then stripLeadingNmDirs dropExt else dropExt;
 
-    haveBin = lib.filterAttrs ( hasBin { inherit ignoreSubBins; } ) tree';
+    haveBin = lib.filterAttrs ( hasBin {
+      inherit assumeHasBin ignoreSubBins;
+    } ) tree';
 
     # Create directories in groups of 5 at time using `mkdir'.
     # We cannot just dump all of them on the CLI because we'll blow it out; but
@@ -272,14 +277,15 @@
 
     # Run `addCmd' over each module and dump it to the script.
     addMods = let
-      addOne = path: ent: addCmd ( getFromdir ent ) ( getTodir path ent );
+      addOne = path: ent:
+        addCmd ( getFromdir ent ) "$node_modules_path/${path}";
       cmds = builtins.attrValues ( builtins.mapAttrs addOne tree' );
     in builtins.concatStringsSep "\n  " cmds;
 
-    addBinDirs =
-      if haveBin == {} then "" else
-      if ignoreSubBins then ["$node_moduels_path/.bin"] else
-      lib.concatMapStringsSep "\n" getBindir ( builtins.attrNames haveBin );
+    addBinDirs = let
+      dirs = if ignoreSubBins then ["$node_moduels_path/.bin"] else
+             map getBindir ( builtins.attrNames haveBin );
+    in if haveBin == {} then "" else mkdirs dirs;
 
     addBins = let
       cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );

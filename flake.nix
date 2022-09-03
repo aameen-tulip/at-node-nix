@@ -142,11 +142,30 @@
       genericInstall = callPackage ./pkgs/build-support/genericInstall.nix;
       runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
 
+      # Most likely this will get populated by `stdenv'
+      npmSys = lib.getNpmSys { system = final.system; };
+      flocoConfig = final.lib.mkFlocoConfig {};
+      flocoFetch  = callPackage lib.libfetch.mkFlocoFetcher {};
+      # Override this with your preferred unpacking routine.
+      # This is just a relatively safe default.
+      flocoUnpack = {
+        name    ? meta.names.source
+      , tarball ? args.outPath
+      , meta
+      } @ args: let
+        source = final.unpackSafe args;
+      in { inherit tarball source meta; outPath = source.outPath; };
+        #final.pacotecli "extract" { spec = tarball; };
+
+      mkSourceTree = callPackage ./pkgs/mkNmDir/mkSourceTree.nix;
+      # { mkNmDir*, tree ( from `mkSourceTree' ) }
+      mkSourceTreeDrv = callPackageWith {
+        mkNmDir = final.mkNmDirLinkCmd;
+      } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
+
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.
       # Either `name' ( meta.names.tarball ) or `meta' are also required.
       mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
-
-      flocoFetch = callPackage lib.libfetch.mkFlocoFetcher {};
 
       _node-pkg-set = import ./pkgs/node-pkg-set.nix {
         inherit (final) lib evalScripts buildGyp nodejs;

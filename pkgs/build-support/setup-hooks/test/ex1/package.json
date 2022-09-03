@@ -1,0 +1,16 @@
+{
+  "name": "ex1",
+  "description": "conventional 'bin' style with attrs",
+  "version": "1.0.0",
+  "author": "Alex Ameen <alex.ameen@tulip.co>",
+  "license": "GPL3",
+  "main": "app/main.js",
+  "scripts": {
+    "install": "echo hi"
+  },
+  "bin": {
+    "foo": "bin/bar.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@test/ex2",
+  "description": "bin string style ( scoped )",
+  "version": "1.0.0",
+  "author": "Alex Ameen <alex.ameen@tulip.co>",
+  "license": "GPL3",
+  "main": "app/main.js",
+  "bin": "bin/bar.js",
+  "dependencies": {},
+  "devDependencies": {}
+}
