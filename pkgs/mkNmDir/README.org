@@ -201,10 +201,10 @@ let
       ${setPerms}
     '';
     prep = ent:
-      if ent.meta.hasBuild then buildPkgEnt ent else
+      if ent.meta.hasBuild         then buildPkgEnt   ent else
       if ent.meta.hasInstallScript then installPkgEnt ent else
-      if ent.meta.hasBin then setBinPerms ent else ent;
-  in prep ) metaSet;
+      if ent.meta.hasBin           then setBinPerms   ent else ent;
+  in prep ) metaSet.__entries;
   nmd = mkNmDirPlockV3 {
     # Packages will be pulled from here when their "key" ( "<IDENT>/<VERSION>" )
     # matches an attribute in the set.
