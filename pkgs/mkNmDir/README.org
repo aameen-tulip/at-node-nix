@@ -1,0 +1,106 @@
+#+TITLE: node_modules directory builders
+
+
+* Builders
+** mkNmDirCmdWith
+Base definition from which all others are built.
+
+** mkSourceTree and mkSourceTreeDrv
+Minimal builder that fetches sources from am =package-lock.json(v2/3)= using =flocoFetch=.
+
+None of these are processed by =libmeta= or similar helpers which are designed more for creating package sets with builds.
+
+Faster and a bit easier to understand, but you'll need to manually run builds past that.
+
+The =mkSourceTree= form produces a script as a string, the =mkSourceTreeDrv= form writes that script to an executable script.
+
+** mkNmDirPlockV3
+- Attrs: { nmDirCmd = { cmd, passthru, meta  }; nmDirCmds = { devCopy, devLink, prodCopy, prodLink }; }
+  + =nmDirCmd=, and subattrs in =nmDirCmds= are all return values from a ~mkNmDirCmd*~ call.
+  + I have only enumerated the fields in the first =nmDirCmd= member.
+- Functor Args: { tree, addBinCmd?, addCmd?, assumeHasBin?, copy?, coreutils?, dev?, handleBindir?, ignoreSubBins?, lndir?, postNmDir?, preNmDir? }
+
+*** Example Invocations:
+- ~mkNmDirPlockV3 { pkgSet = ...; }~
+  + Uses prepared modules defined in a `pkgSet' collection.
+    These are referenced by key using `lib.idealTreePlockV3'.
+- ~mkNmDirPlockV3 { metaSet = ...; }~
+  + Fetches sources from `<metaEnt>.sourceInfo' fields. Nothing is "built" or patched.
+- ~mkNmDirPlockV3 { lockDir = ...; }~ and ~mkNmDirPlockV3 { plock = ...; flocoFetch = ...; }~
+  + Fetches sources from `<metaEnt>.sourceInfo' fields. Nothing is "built" or patched.
+  + This option is ideal if you're trying to modify `package-lock.json' manually.
+
+*** Overview
+This is the "magic" ~package-lock.json(v2/3)~ -> ~node_modules/~ builder.
+It's built on top of lower level functions that allow for fine grained
+control of how the directory tree is built, what inputs are used, etc;
+but this form is your "grab a ~node_modules/~ dir off the shelf" routine
+that tries to do the right thing for a ~package-lock.json(v2/3)~.
+
+The resulting attrset is a /functor/, which just means its an attrset that
+can modify itself.
+
+So out of the box it can become a string, or if you check in subattrs you'll
+find ~myNmd.nmDirCmds.{devLink,devCopy,prodLink,prodCopy}.cmd~ attrs that
+lazily generate other styles of copy or tree.
+
+Additionally if you treat it as a function passing args meant for ~mkNmDir*~
+routines, it will change the settings for the default builder.
+
+The default builder is used for the ~toString~ magic, and is stashed under
+~myNmd.nmDirCmd~ for you to reference.
+Passing args does NOT modify the 4 "common" builders stashed under `nmDirCmds'
+so you can rely on those being there, and if you want you can add more.
+
+*** Example
+~tests/pkg-set/tests.nix~ has a usage example but it's pretty simple.
+This goofy example script shows different usages.
+
+#+BEGIN_SRC nix
+let
+  nmd = mkNmDirPlockV3 { inherit metaSet; copy = false; dev = true; };
+  installAnyScript = pkgsFor.writeText "install-nm" ''
+    # Automatically converts to a string for current settings.
+    installDevLink() {
+      cat <<'EOF'|bash
+        ${nmd}
+        installNodeModules;
+      EOF
+    }
+    # I
+    installDevCopy() {
+      cat <<'EOF'|bash
+        ${nmd.nmDirCmds.devCopy.cmd}
+        installNodeModules;
+      EOF
+    }
+    installProdLink() {
+      cat <<'EOF'|bash
+        ${nmd { dev = false; }}
+        installNodeModules;
+      EOF
+    }
+    installProdCopy() {
+      cat <<'EOF'|bash
+        ${nmd { dev = false; copy = true; }}
+        installNodeModules;
+      EOF
+    }
+    case "$*" in
+      --link\ *\ --dev|--dev\ *\ --link)    installDevLink; ;;
+      --copy\ *\ --dev|--dev\ *\ --copy)    installDevCopy; ;;
+      --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
+      --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
+    esac
+    install
+  '';
+in installAnyScript
+#+END_SRC
+
+
+NOTE:
+I didn't test this example's nesting inside of functions; but it
+illustrates the point.
+
+If you actually want to do the thing about you may need to write 4 scripts
+to files, and then have this "hub" script call them by absolute path.

@@ -1,4 +1,5 @@
-# mkNmDirPlockV3 { lockDir || plock, flocoFetch ( set CWD ) }
+#
+# mkNmDirPlockV3 { lockDir | plock | metaSet | pkgSet }
 #
 # This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
 # It's built on top of lower level functions that allow for fine grained
@@ -11,52 +12,16 @@
 # So out of the box it can become a string, or if you check in subattrs you'll
 # find `myNmd.nmDirCmds.{devLink,devCopy,prodLink,prodCopy}.cmd' attrs that
 # lazily generate other styles of copy or tree.
+#
 # Additionally if you treat it as a function passing args meant for `mkNmDir*'
 # routines, it will change the settings for the default builder.
 # The default builder is used for the `toString' magic, and is stashed under
 # `myNmd.nmDirCmd' for you to reference.
+#
 # Passing args does NOT modify the 4 "common" builders stashed under `nmDirCmds'
 # so you can rely on those being there, and if you want you can add more.
 #
-# `tests/pkg-set/tests.nix' has a usage example but it's pretty simple.
-# This goofy example script shows different usages.
-# let
-#   nmd = mkNmDirPlockV3 { inherit metaSet; copy = false; dev = true; };
-#   installAnyScript = pkgsFor.writeText "install-nm" ''
-#     # Automatically converts to a string for current settings.
-#     installDevLink() {
-#       cat <<'EOF'|bash
-#         ${nmd}
-#       EOF
-#     }
-#     # I
-#     installDevCopy() {
-#       cat <<'EOF'|bash
-#         ${nmd.nmDirCmds.devCopy.cmd}
-#       EOF
-#     }
-#     installProdLink() {
-#       cat <<'EOF'|bash
-#         ${nmd { dev = false; }}
-#       EOF
-#     }
-#     installProdCopy() {
-#       cat <<'EOF'|bash
-#         ${nmd { dev = false; copy = true; }}
-#       EOF
-#     }
-#     case "$*" in
-#       --link\ *\ --dev|--dev\ *\ --link)    installDevLink; ;;
-#       --copy\ *\ --dev|--dev\ *\ --copy)    installDevCopy; ;;
-#       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
-#       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
-#     esac
-#   '';
-# in installAnyScript
-# NOTE: I didn't test this example's nesting inside of functions; but it
-# illustrates the point.
-# If you actually want to do the thing about you may need to write 4 scripts
-# to files, and then have this "hub" script call them by absolute path.
+# NOTE: see full docs in `./README.org'.
 #
 { lib
 # You default
