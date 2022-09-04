@@ -53,6 +53,10 @@
 #     esac
 #   '';
 # in installAnyScript
+# NOTE: I didn't test this example's nesting inside of functions; but it
+# illustrates the point.
+# If you actually want to do the thing about you may need to write 4 scripts
+# to files, and then have this "hub" script call them by absolute path.
 #
 { lib
 # You default
