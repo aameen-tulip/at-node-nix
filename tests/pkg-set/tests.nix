@@ -20,6 +20,7 @@
     buildPkgEnt
     installPkgEnt
     mkNmDirLinkCmd
+    mkNmDirPlockV3
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -60,11 +61,8 @@
 
     # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let
-      # Create a package set of plain source files.
-      # We just want to check that the `nmDirCmd' is run.
-      pkgSet = builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries;
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = pkgSet.${metaSet.__meta.rootKey};
+      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.idealTreePlockV3 {
@@ -101,12 +99,9 @@
 # ---------------------------------------------------------------------------- #
 
     # Run a simple install that just creates a file `farewell.txt' with `echo'.
-    _testInstallPkgEntSimple = let
-      # Create a package set of plain source files.
-      # We just want to check that the `nmDirCmd' is run.
-      pkgSet = builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries;
+    testInstallPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = pkgSet.${metaSet.__meta.rootKey};
+      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.idealTreePlockV3 {
@@ -138,6 +133,17 @@
        # so they get added to the output path.
        "${keepNm}/node_modules/memfs/package.json"
       ];
+      expected = true;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    _testMkNmDirPkgSetPlV3 = let
+      nmDirCmd = mkNmDirPlockV3 { inherit metaSet; };
+    in {
+      inherit nmDirCmd metaSet;
+      expr     = builtins.isString "${nmDirCmd}";
       expected = true;
     };
 

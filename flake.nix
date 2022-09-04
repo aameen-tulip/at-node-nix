@@ -207,6 +207,7 @@
         mkNmDirCopyCmd
         mkNmDirLinkCmd
       ;
+      mkNmDirPlockV3 = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
     };
 
 # ---------------------------------------------------------------------------- #

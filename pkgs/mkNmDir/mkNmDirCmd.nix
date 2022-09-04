@@ -246,7 +246,7 @@
   , ...
   } @ args:
   # You can't use the `copy' arg AND explicitly set `addCmd'.
-  assert ( args ? copy ) -> ! ( args.addCmd ); let
+  assert ( args ? copy ) -> ! ( args ? addCmd ); let
 
     tree' = let
       # Symlinks to external directories are copied to their destination.
@@ -363,16 +363,13 @@
     };
   };
 
-  # Exported form that allows the function result to be overridden; we don't
-  # produce a derivation here though so we drop `overrideDerivation' from the
-  # resulting attrset.
   # Defining `__functionArgs' is what allows users to run `callPackage' on this
   # function and have it "do what they mean" despite the wrapper.
   mkNmDirCmdWith = {
     __functionArgs = ( lib.functionArgs _mkNmDirCmdWith ) // { copy = true; };
     __functor = self: args: let
       nmd = lib.callPackageWith globalArgs _mkNmDirCmdWith args;
-    in removeAttrs nmd ["overrideDerivation"];
+    in nmd;
   };
 
 
