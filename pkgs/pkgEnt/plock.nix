@@ -117,6 +117,7 @@
   #     cp -Tr -- "${pkgs.bar}" "$node_modules_path/@foo/bar";
   #   ''
   , nmDirCmd
+  # If we have a local path we're building, also run the `prepare' script.
   , runScripts ? ["prebuild" "build" "postbuild"] ++
                  ( lib.optional ( meta.sourceInfo.type == "path" ) "prepare" )
   , evalScripts
@@ -129,9 +130,21 @@
       inherit name version src meta jq nodejs stdenv;
       inherit nmDirCmd runScripts;
       dontConfigure = true;
-    } // ( removeAttrs args ["evalScripts" "source"] );
+    } // ( removeAttrs args [
+      "evalScripts"
+      # Drop `pkgEnt' fields, but allow other args to be passed through to
+      # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
+      "source"
+      "tarball"
+      "installed"
+      "prepared"
+      "passthru"
+      "bin"
+      "global"
+      "module"
+      "key"
+    ] );
   in evalScripts args';
-
 
 
 # ---------------------------------------------------------------------------- #

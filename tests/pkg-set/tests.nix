@@ -57,28 +57,40 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let
-      pkgSet   = builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries;
+      # Create a package set of plain source files.
+      # We just want to check that the `nmDirCmd' is run.
+      pkgSet = builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries;
+      # The `pkgEnt' for the lock we've parsed.
       rootEnt  = pkgSet.${metaSet.__meta.rootKey};
+      # Get our ideal tree, filtering out packages that are incompatible with
+      # out system.
       tree = lib.idealTreePlockV3 {
         inherit metaSet;
         dev    = true;
         npmSys = lib.getNpmSys { inherit system; };
       };
+      # Using the filtered tree, pull contents from our package set.
+      # We are just going to install our deps as raw sources here.
       srcTree =
         builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+      # Run the build routine for the root package.
       built = buildPkgEnt ( rootEnt // {
         nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
           tree         = srcTree;
           handleBindir = false;
+          # Helps sanity check that our modules were installed.
           postNmDir    = "ls $node_modules_path/../**;";
         };
-        src = rootEnt.source;
       } );
     in {
+      # Make sure that the file `greeting.txt' was created.
+      # Also check that our `node_modules/' were installed to the expected path.
       expr = builtins.all builtins.pathExists [
        "${built}/greeting.txt"
-       # Prevent `node_modules/' from being deleted so they get output.
+       # Prevent `node_modules/' from being deleted during the install phase
+       # so they get added to the output path.
        "${built.override { preInstall = ":"; }}/node_modules/chalk/package.json"
       ];
       expected = true;
