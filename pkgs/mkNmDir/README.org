@@ -5,6 +5,134 @@
 ** mkNmDirCmdWith
 Base definition from which all others are built.
 
+Copies or links all modules from Nix store to path indicated by =$node_modules=.
+
+*** Overview
+Given an NM tree represented as an attrset of ~{ <NM-PATH> = PKG; }~ entries, produce a shell script which builds a =node_modules/= directory.
+
+The =PKG= value can be a =pkgEnt= attrset, or an attset with the fields =outPath= and ( if required ) =bin= ( normalized, see example below ), or in its simplest form a store path ( string, =outPath= of a prepared module ).
+
+NOTE: =outPath= will be copied/linked "as is", so do any building/node-gyp stuff first; in particular ensure that =bin= scripts have proper permissions and are patched using =patch-shebangs= or =patchShebangs=.
+
+It is recommended that you use this routine using input from =libtree= which is designed specifically for this purpose; but you are free to hack together any tree you'd like with various types of inputs.
+
+A single leading ~node_modules/~ path is ignored when creating the tree to make passing from a =package-lock.json(v2/3)= easy; if you omit this prefix you must do it for all entries because othewise we have to do a ton of conditional regex on every path.
+
+Use ~node_modules/foo/node_modules/bar~ for everything, or use ~foo/node_modules/bar~ for everything; do not mix them!
+
+*** =addCmd= and =addBinCmd= Arguments
+These arguments are functions with the prototype ~from: to: <STRING>~ which produce shell code used to add modules/bins to the ~$node_modules_path/${to}/~ directory, taken from the =from= directory or possibly paths ( in the case of bins ).
+
+You can create your own routines to override these to have them do whatever you want.
+A notable usage for these which I hope to implement in the future is just to call an arbitrary shell function that can be set in a setup hook; but that is currently left as an exercise for the reader.
+
+*** Example
+An example tree with several types of =PKG= values:
+
+#+BEGIN_SRC nix
+  tree = {
+    # Just a store path.
+    "node_modules/foo" = "/nix/store/XXXX...-foo";
+    # `fetchTree' output has an `outPath' field so this works too
+    "node_modules/@bar/bar-core" = builtins.fetchTree { ... };
+
+    # Nested deps
+    "node_modules/@bar/bar-core/node_modules/@bar/bar-utils" =
+      builtins.fetchTree { ... };
+
+    # With bins
+    "node_modules/@blub/quux" = {
+      outPath = builtins.fetchTree { ... };
+      bin.quux        = "./bin/main.js";
+      bin.quux-client = "./client/bin/client.js";
+    };
+
+    # local path with "normalized" bindir ( encoded as `__DIR__' ).
+    # See `libpkginfo' for more info about `__DIR__'.
+    "node_modules/@blub/quux-cli-extras" =
+      outPath = ( builtins.path {
+        path = ./custom-quux-cli;
+        filter = name: type: ( baseNameOf name ) != "node_modules";
+      } ).outPath;
+      # Points to `./custom-quux-cli/bin'. Pay attention to the quotes.
+      bin.__DIR__ = "./bin";
+    };
+
+    # From a `pkgEnt' ( see `mkNmDirFromWithSet' as well )
+    "node_modules/@my-pkgs/my-ent" = myPkgSet."@my-pkgs/my-ent/0.0.1";
+
+    # A nested dependency yanked from a `pkgSet' with an override.
+    "node_modules/bar/node_modules/baz" =
+      myPkgSet."baz/1.0.0".prepared.override { runScripts = ["my-script"]; };
+  };
+#+END_SRC
+
+See additional examples in ~tests/mkNmDir/tests.nix~.
+
+*** Declaration
+Defined in ~pkgs/mkNmDir/mkNmDirCmd.nix~.
+
+#+BEGIN_SRC nix
+  # This will read an optional argument `copy = true|false' defaulting
+  # to symlinks.
+  # This is to make it less of a headache in the event you want to override a
+  # symlinked command to be copying.
+  _mkNmDirCmdWith = {
+    tree
+  # A function taking `from' and `to' as arguments, which should produce a shell
+  # command that "adds" ( copies/links ) module FROM source directory TO
+  # module directory.
+  # See examples above.
+  # NOTE: Use absolute paths to utilities, this command may be nested as a
+  # hook in other derivations and you are NOT guaranteed to have `stdenv'
+  # default path available - not even `coreutils'.
+  , addCmd ? from: to:
+    ( if ( args ? copy ) && ( args.copy == true )
+      then _mkNmDirCopyCmd coreutils else _mkNmDirLinkCmd lndir
+    ) from to
+  # Only handle top level `node_modules/.bin` dir.
+  # This is what you want if  you're only using isolated Nix builders.
+  # If you're creating an install script for use outside of Nix and you want
+  # `npm rebuild' and similar commands to work you need those subdirs though.
+  , ignoreSubBins ? false
+  # For `package.json' inputs in pure eval mode, we may not know exactly which
+  # bins need to be linked yet; so we have to perform additional checking and
+  # globbing at runtime.
+  # `package-lock.json' inputs don't need to check, and we can skip a lot of IO
+  # by setting this to false, indicating that your `tree' never contains
+  # `bin.__DIR__' entries.
+  # NOTE: We do not process `directories.bin' - you need to normalize your tree
+  # fields using `libpkginfo' before calling this.
+  , handleBindir ? true
+  , assumeHasBin ? false
+  # Same deal as `addCmd' but for handling bin links.
+  # This is exposed in case you need to do something wonky like create wrapper
+  # scripts; but I think it's unlikely that you'll need to.
+  , addBinCmd ? path: ent:
+      if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
+                      else _mkNmDirAddBinNoDirsCmd coreutils path ent
+  # Hooks
+  , preNmDir  ? ""
+  , postNmDir ? ""
+  # Input Drvs
+  , coreutils ? globalArgs.coreutils
+  , lndir     ? globalArgs.lndir
+  , ...
+  } @ args:
+  # You can't use the `copy' arg AND explicitly set `addCmd'.
+  assert ( args ? copy ) -> ! ( args ? addCmd ); let ... in ...;
+#+END_SRC
+
+** mkNmDirLinkCmd
+Calls =mkNmDirCmdWith= in "link" mode.
+
+Symlinks all modules from Nix store to path indicated by =$node_modules=.
+
+** mkNmDirCopyCmd
+Calls =mkNmDirCmdWith= in "copy" mode.
+
+Copies all modules from Nix store to path indicated by =$node_modules=.
+
 ** mkSourceTree and mkSourceTreeDrv
 Minimal builder that fetches sources from am =package-lock.json(v2/3)= using =flocoFetch=.
 
