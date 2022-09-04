@@ -188,9 +188,9 @@ At the top I've included a trivial build pipeline; while your own configuration 
 #+BEGIN_SRC nix
 with ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
 let
-  metaSet = lib.libmeta.mkMetaSetPlockV3 { lockDir = toString ./.; };
+  metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; };
   pkgSet = builtins.mapAttrs ( path: metaEnt: let
-    basePkgEnt = mkPkgEntSource plent;
+    basePkgEnt = mkPkgEntSource metaEnt;
     doBins = runCommandNoCC basePkgEnt.meta.names.prepared {
       src = basePkgEnt.source;
       # The version on `node-js' that we can't `patchShebangs' to use.
