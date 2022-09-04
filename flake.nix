@@ -155,12 +155,13 @@
       # Override this with your preferred unpacking routine.
       # This is just a relatively safe default.
       flocoUnpack = {
-        name    ? meta.names.source
+        name    ? args.meta.names.source
       , tarball ? args.outPath
-      , meta
+      , ...
       } @ args: let
         source = final.unpackSafe args;
-      in { inherit tarball source meta; outPath = source.outPath; };
+        meta' = lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
+      in { inherit tarball source; outPath = source.outPath; } // meta';
         #final.pacotecli "extract" { spec = tarball; };
 
       # Default NmDir builder prefers symlinks
