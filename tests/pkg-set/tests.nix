@@ -65,18 +65,22 @@
         dev    = true;
         npmSys = lib.getNpmSys { inherit system; };
       };
-      srcTree = builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
-      nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
-        tree         = srcTree;
-        handleBindir = false;
-        postNmDir    = "ls $node_modules_path/../**;";
-      };
+      srcTree =
+        builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
       built = buildPkgEnt ( rootEnt // {
-        inherit nmDirCmd;
+        nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
+          tree         = srcTree;
+          handleBindir = false;
+          postNmDir    = "ls $node_modules_path/../**;";
+        };
         src = rootEnt.source;
       } );
     in {
-      expr     = builtins.pathExists "${built}/greeting.txt";
+      expr = builtins.all builtins.pathExists [
+       "${built}/greeting.txt"
+       # Prevent `node_modules/' from being deleted so they get output.
+       "${built.override { preInstall = ":"; }}/node_modules/chalk/package.json"
+      ];
       expected = true;
     };
 
