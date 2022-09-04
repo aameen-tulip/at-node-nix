@@ -21,47 +21,7 @@
 # Use `node_modules/foo/node_modules/bar' for everything,
 # or use `foo/node_modules/bar' for everything; do not mix them!
 #
-#
-# ---------------------------------------------------------------------------- #
-#
-# An example tree with several types of `PKG' values:
-#
-#   tree = {
-#     # Just a store path.
-#     "node_modules/foo" = "/nix/store/XXXX...-foo";
-#     # `fetchTree' output has an `outPath' field so this works too
-#     "node_modules/@bar/bar-core" = builtins.fetchTree { ... };
-#
-#     # Nested deps
-#     "node_modules/@bar/bar-core/node_modules/@bar/bar-utils" =
-#       builtins.fetchTree { ... };
-#
-#     # With bins
-#     "node_modules/@blub/quux" = {
-#       outPath = builtins.fetchTree { ... };
-#       bin.quux        = "./bin/main.js";
-#       bin.quux-client = "./client/bin/client.js";
-#     };
-#
-#     # local path with "normalized" bindir ( encoded as `__DIR__' ).
-#     # See `libpkginfo' for more info about `__DIR__'.
-#     "node_modules/@blub/quux-cli-extras" =
-#       outPath = ( builtins.path {
-#         path = ./custom-quux-cli;
-#         filter = name: type: ( baseNameOf name ) != "node_modules";
-#       } ).outPath;
-#       # Points to `./custom-quux-cli/bin'. Pay attention to the quotes.
-#       bin.__DIR__ = "./bin";
-#     };
-#
-#     # From a `pkgEnt' ( see `mkNmDirFromWithSet' as well )
-#     "node_modules/@my-pkgs/my-ent" = myPkgSet."@my-pkgs/my-ent/0.0.1";
-#
-#     # A nested dependency yanked from a `pkgSet' with an override.
-#     "node_modules/bar/node_modules/baz" =
-#       myPkgSet."baz/1.0.0".prepared.override { runScripts = ["my-script"]; };
-#   };
-#
+# NOTE: See additional documentation in `./README.org'.
 #
 # ---------------------------------------------------------------------------- #
 { lib

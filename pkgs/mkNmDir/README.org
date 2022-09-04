@@ -183,10 +183,36 @@ so you can rely on those being there, and if you want you can add more.
 *** Example
 ~tests/pkg-set/tests.nix~ has a usage example but it's pretty simple.
 This goofy example script shows different usages.
+At the top I've included a trivial build pipeline; while your own configuration may conflict with some of these exact calls, it's a good guide.
 
 #+BEGIN_SRC nix
+with ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
 let
-  nmd = mkNmDirPlockV3 { lockDir = toString ./.; copy = false; dev = true; };
+  metaSet = lib.libmeta.mkMetaSetPlockV3 { lockDir = toString ./.; };
+  pkgSet = builtins.mapAttrs ( path: plent: let
+    basePkgEnt = mkPkgEntSource plent;
+    setBinPerms = ent: let
+      setPerms = genSetBinPermissionsHook {
+        inherit (ent) meta;
+        usePatchShebangsScript = true;
+      };
+    in runCommandNoCC ent.meta.names.prepared {} ''
+      cp -r "${ent.source}" "$out";
+      ${setPerms}
+    '';
+    prep = ent:
+      if ent.meta.hasBuild then buildPkgEnt ent else
+      if ent.meta.hasInstallScript then installPkgEnt ent else
+      if ent.meta.hasBin then setBinPerms ent else ent;
+  in prep ) metaSet;
+  nmd = mkNmDirPlockV3 {
+    # Packages will be pulled from here when their "key" ( "<IDENT>/<VERSION>" )
+    # matches an attribute in the set.
+    inherit pkgSet;
+    # Default settings. These are wiped out if you pass args again.
+    copy = false;  # Symlink
+    dev  = true;   # Include dev modules
+  };
   installAnyScript = pkgsFor.writeText "install-nm" ''
     # Automatically converts to a string for current settings.
     installDevLink() {
@@ -195,25 +221,29 @@ let
         installNodeModules;
       EOF
     }
-    # I
+    # Referring to a stashed command
     installDevCopy() {
       cat <<'EOF'|bash
         ${nmd.nmDirCmds.devCopy.cmd}
         installNodeModules;
       EOF
     }
+    # Generating a new command
     installProdLink() {
       cat <<'EOF'|bash
-        ${nmd { dev = false; }}
+        ${nmd { dev = false; postNm = "echo 'Howdy';" }}
         installNodeModules;
       EOF
     }
     installProdCopy() {
       cat <<'EOF'|bash
-        ${nmd { dev = false; copy = true; }}
+        ${nmd { dev = false; copy = true; ignoreSubBins = true; }}
         installNodeModules;
       EOF
     }
+    # Install modules to the current working directory.
+    export node_modules_path="$PWD/node_modules";
+
     case "$*" in
       --link\ *\ --dev|--dev\ *\ --link)    installDevLink; ;;
       --copy\ *\ --dev|--dev\ *\ --copy)    installDevCopy; ;;
@@ -224,10 +254,4 @@ let
 in installAnyScript
 #+END_SRC
 
-
-NOTE:
-I didn't test this example's nesting inside of functions; but it
-illustrates the point.
-
-If you actually want to do the thing about you may need to write 4 scripts
-to files, and then have this "hub" script call them by absolute path.
+NOTE: The script above is very naive, it would include a large amount of redundant code; but it's here to illustrate basic usage. If you actually want to create a script like the one above it makes much more sense to make a simple wrapper around ~nix eval --raw --expr '...'|sh;~ to dump scripts.
