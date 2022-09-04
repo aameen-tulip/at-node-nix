@@ -177,7 +177,7 @@ routines, it will change the settings for the default builder.
 
 The default builder is used for the ~toString~ magic, and is stashed under
 ~myNmd.nmDirCmd~ for you to reference.
-Passing args does NOT modify the 4 "common" builders stashed under `nmDirCmds'
+Passing args does NOT modify the 4 "common" builders stashed under =nmDirCmds=
 so you can rely on those being there, and if you want you can add more.
 
 *** Example
@@ -186,7 +186,7 @@ This goofy example script shows different usages.
 
 #+BEGIN_SRC nix
 let
-  nmd = mkNmDirPlockV3 { inherit metaSet; copy = false; dev = true; };
+  nmd = mkNmDirPlockV3 { lockDir = toString ./.; copy = false; dev = true; };
   installAnyScript = pkgsFor.writeText "install-nm" ''
     # Automatically converts to a string for current settings.
     installDevLink() {
@@ -220,7 +220,6 @@ let
       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
     esac
-    install
   '';
 in installAnyScript
 #+END_SRC
