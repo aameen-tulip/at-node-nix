@@ -1,12 +1,16 @@
 { lib
-, typeOfEntry
-, doFetch      # A configured `fetcher' from `./build-support/fetcher.nix'.
-, fetchurl    ? lib.fetchurlDrv
+
 , buildGyp
 , evalScripts
 , genericInstall
 , runBuild
+
 , mkNmDir
+
+, flocoConfig
+, flocoUnpack
+, flocoFetch
+
 , linkFarm
 , stdenv
 , xcbuild

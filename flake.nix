@@ -146,6 +146,12 @@
       npmSys = lib.getNpmSys { system = final.system; };
       flocoConfig = final.lib.mkFlocoConfig {};
       flocoFetch  = callPackage lib.libfetch.mkFlocoFetcher {};
+      # FIXME: thes expected args here don't align well with `flocoFetch'.
+      # You have to do this currently:
+      #   tsMeta = metaSet."typescript/4.7.4";
+      #   # Using `fetchurlNoteUnpackDrvW'
+      #   fetchedTs = flocoFetch tsMeta;
+      #   unpacked = flocoUnpack { meta = tsMeta; tarball = fetchedTs; };
       # Override this with your preferred unpacking routine.
       # This is just a relatively safe default.
       flocoUnpack = {
@@ -157,23 +163,18 @@
       in { inherit tarball source meta; outPath = source.outPath; };
         #final.pacotecli "extract" { spec = tarball; };
 
+      # Default NmDir builder prefers symlinks
+      mkNmDir = final.mkNmDirLinkCmd;
+
       mkSourceTree = callPackage ./pkgs/mkNmDir/mkSourceTree.nix;
       # { mkNmDir*, tree ( from `mkSourceTree' ) }
-      mkSourceTreeDrv = callPackageWith {
-        mkNmDir = final.mkNmDirLinkCmd;
-      } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
+      mkSourceTreeDrv = callPackageWith {} ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
 
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.
       # Either `name' ( meta.names.tarball ) or `meta' are also required.
       mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
-      _node-pkg-set = import ./pkgs/node-pkg-set.nix {
-        inherit (final) lib evalScripts buildGyp nodejs;
-        inherit (final) runBuild genericInstall;
-        inherit (pkgsFor) stdenv jq xcbuild linkFarm;
-        fetchurl = final.lib.fetchurlDrv;  # For tarballs without unpacking
-        doFetch = final.flocoFetch;
-      };
+      _node-pkg-set = callPackages ./pkgs/node-pkg-set.nix {};
 
       # Pass `dir' as an arg.
       genFlakeInputs =

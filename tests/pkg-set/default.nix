@@ -7,20 +7,18 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ nixpkgs     ? builtins.getFlake "nixpkgs"
-, system      ? builtins.currentSystem
-, pkgsFor     ? nixpkgs.legacyPackages.${system}
-, writeText   ? pkgsFor.writeText
-, ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
-, lib         ? import ../lib { inherit (ak-nix) lib; }
-, annPkgs     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
+{ lib       ? pkgsFor.lib
+, system    ? builtins.currentSystem
+, pkgsFor   ? ( builtins.getFlake ( toString ../.. ) ).legacyPackages.${system}
+, writeText ? pkgsFor.writeText
 
-, flocoUnpack ? annPkgs.flocoUnpack
-, flocoConfig ? annPkgs.flocoConfig
-, flocoFetch  ? annPkgs.flocoFetch
+# Configured/Util
+, flocoUnpack ? pkgsFor.flocoUnpack
+, flocoConfig ? pkgsFor.flocoConfig
+, flocoFetch  ? lib.mkFlocoFetcher { inherit flocoConfig; }
 
-, keepFailed  ? false  # Useful if you run the test explicitly.
-, doTrace     ? true   # We want this disabled for `nix flake check'
+, keepFailed ? false  # Useful if you run the test explicitly.
+, doTrace    ? true   # We want this disabled for `nix flake check'
 , ...
 } @ args: let
 
@@ -28,26 +26,18 @@
 
   # Used to import test files.
   autoArgs = {
-    inherit lib;
-    inherit (annPkgs)
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
+    inherit lib system flocoConfig flocoFetch pkgsFor flocoUnpack;
+    inherit (pkgsFor)
+      _mkNmDirCopyCmd _mkNmDirLinkCmd
+      _mkNmDirAddBinWithDirCmd _mkNmDirAddBinNoDirsCmd _mkNmDirAddBinCmd
+      mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
 
-      mkSourceTree
-      mkSourceTreeDrv
+      mkSourceTree mkSourceTreeDrv
       mkTarballFromLocal
 
       # FIXME
       _node-pkg-set
     ;
-    inherit flocoUnpack flocoConfig flocoFetch;
-    pkgsFor = annPkgs;
   } // args;
 
   tests = let
@@ -58,13 +48,7 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./libplock
-    ./libpkginfo
-    ./libsys
-    ./librange
-    ./libfetch
-    ./mkNmDir
-    ./pkg-set
+    ./tests.nix
   ];
 
 # ---------------------------------------------------------------------------- #
@@ -73,7 +57,7 @@
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "all-tests";
+    name = "pkg-set-tests";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {

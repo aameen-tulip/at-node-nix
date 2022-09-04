@@ -65,6 +65,8 @@
     if type == "git"              then nodeFetchers.gitFetcher      else
     if type == "registry-tarball" then nodeFetchers.tarballFetcher  else
     if type == "source-tarball"   then nodeFetchers.tarballFetcher  else
+    if type == "tarball"          then nodeFetchers.tarballFetcher  else
+    if type == "url"              then nodeFetchers.urlFetcher      else
     throw "(fetcherForType) Unrecognized entry type: ${type}";
 
 
