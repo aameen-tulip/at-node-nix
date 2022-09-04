@@ -174,6 +174,7 @@
 
       inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
         mkPkgEntSource
+        buildPkgEnt
       ;
 
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.

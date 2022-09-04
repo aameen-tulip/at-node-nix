@@ -25,8 +25,8 @@
 # additional steps to match the `node2nix' install structure before adding
 # to that package set.
 
-{
-  name    ? meta.names.installed or "${baseNameOf ident}-inst-${version}"
+{ lib
+, name    ? meta.names.installed or "${baseNameOf ident}-inst-${version}"
 , ident   ? meta.ident
 , version ? meta.version
 , src
@@ -45,24 +45,23 @@
 # honestly I never seen a `postInstall' that didn't call `node'.
 , nodejs
 , jq
+, stdenv
 , ...
 } @ args:
-
-# You need to explicitly set at least one of these to verity that you really
-# don't want to install any modules.
-# If you're seeing this in the debug backtrace: good luck! Love y'all <3
-assert ( args ? nmDirCmd ) || ( ( args ? nodeModules ) && ( args ? mkNmDir ) );
 let
-  mkDrvArgs = removeAttrs attrs [
+  mkDrvArgs = removeAttrs args [
     "ident"
     "runScripts" "skipMissing"
-    "nmDirCmd" "nodejs" "jq"
+    "nmDirCmd" "nodejs" "jq" "stdenv" "lib"
+    "override" "overrideDerivation"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
   ];
 in stdenv.mkDerivation ( {
 
-  inherit name nkNmDirCmd;
+  inherit name;
+  nmDirCmd = if builtins.isString nmDirCmd then nmDirCmd else
+    nmDirCmd.cmd + "\ninstallNodeModules;\n";
 
   nativeBuildInputs = ( args.nativeBuildInputs or [] ) ++ [jq] ++
                       ( lib.optional ( nodejs != null ) nodejs );
@@ -90,7 +89,9 @@ in stdenv.mkDerivation ( {
 
   # You can override this
   preInstall = ''
-    rm -f -- ./node_modules;
+    if test -n "''${node_modules_path:-}"; then
+      rm -rf -- "$node_modules_path";
+    fi
   '';
 
   installPhase = lib.withHooks "install" ''
@@ -103,7 +104,7 @@ in stdenv.mkDerivation ( {
   #
   #'';
 
-  passthru = ( attrs.passthru or {} ) // { inherit src nodejs mkNmDirCmd; };
+  passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
 } // mkDrvArgs )
 
 # XXX: Certain `postInstall' scripts might actually need to be

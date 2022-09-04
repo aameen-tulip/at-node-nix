@@ -104,7 +104,11 @@
 
   getFromdir = ent:
     if builtins.isString ent then assert lib.isStorePath ent; ent else
-    ent.outPath or ent.prepared.outPath;
+    ent.outPath or
+    ent.prepared.outPath or
+    ent.installed.outPath or
+    ent.built.outPath or
+    ent.source.outPath;
 
   # Get bindir where a path's bins should be installed.
   # This will be the "parent" `node_modules/.bin' dir; for example:

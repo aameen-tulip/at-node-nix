@@ -309,6 +309,7 @@ in {
     subdirsOfPathPlockV3
     lookupRelPathIdentV3
   ;
+  pinnableFields = pinFields;
 }
 
 # ---------------------------------------------------------------------------- #

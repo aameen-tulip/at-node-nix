@@ -17,6 +17,8 @@
 
   inherit (pkgsFor)
     mkPkgEntSource
+    buildPkgEnt
+    mkNmDirLinkCmd
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -50,6 +52,32 @@
         srcValid = true;
         tbValid  = true;
       };
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testBuildPkgEntSimple = let
+      pkgSet   = builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries;
+      rootEnt  = pkgSet.${metaSet.__meta.rootKey};
+      tree = lib.idealTreePlockV3 {
+        inherit metaSet;
+        dev    = true;
+        npmSys = lib.getNpmSys { inherit system; };
+      };
+      srcTree = builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+      nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
+        tree         = srcTree;
+        handleBindir = false;
+        postNmDir    = "ls $node_modules_path/../**;";
+      };
+      built = buildPkgEnt ( rootEnt // {
+        inherit nmDirCmd;
+        src = rootEnt.source;
+      } );
+    in {
+      expr     = builtins.pathExists "${built}/greeting.txt";
+      expected = true;
     };
 
 

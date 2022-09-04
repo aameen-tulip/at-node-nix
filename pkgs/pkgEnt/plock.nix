@@ -102,13 +102,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  genMkNmDirFn = { meta }: let
-  in
-
-
-
-# ---------------------------------------------------------------------------- #
-
   buildPkgEnt = {
     src     ? source
   , name    ? meta.names.built
@@ -123,27 +116,21 @@
   #     mkdir -p "$node_modules_path/@foo/bar";
   #     cp -Tr -- "${pkgs.bar}" "$node_modules_path/@foo/bar";
   #   ''
-  , mkNmDirCmd
+  , nmDirCmd
   , runScripts ? ["prebuild" "build" "postbuild"] ++
-                 ( lib.optional ( meta.sourceInfo.type == "path" )
-                                ["prepare"] )
-
+                 ( lib.optional ( meta.sourceInfo.type == "path" ) "prepare" )
   , evalScripts
   , jq
   , nodejs
   , stdenv
   , ...
   } @ args: let
-
-    callWith = {
-      inherit name version src;
-    } // args;
-
-    built = runBuild {
-      inherit src name ident version meta nodejs jq stdenv lndir;
-      nodeModules
-    }
-  in built //
+    args' = {
+      inherit name version src meta jq nodejs stdenv;
+      inherit nmDirCmd runScripts;
+      dontConfigure = true;
+    } // ( removeAttrs args ["evalScripts" "source"] );
+  in evalScripts args';
 
 
 
@@ -151,6 +138,7 @@
 
 in {
   mkPkgEntSource = lib.callPackageWith globalArgs mkPkgEntSource;
+  buildPkgEnt    = lib.callPackageWith globalArgs buildPkgEnt;
 }
 
 
