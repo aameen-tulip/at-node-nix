@@ -128,6 +128,14 @@ test_pjsBinPaths() {
 
 # --------------------------------------------------------------------------- #
 
+test_installModule() {
+  installModule "$EX1" "$PWD/nm1/node_modules";
+  return 0;
+}
+
+
+# --------------------------------------------------------------------------- #
+
 runTest test_pjsBasename;
 runTest test_pjsHasScript;
 runTest test_pjsRunScript;
@@ -139,6 +147,8 @@ runTest test_pjsHasAnyBin;
 
 runTest test_pjsBinPairs;
 runTest test_pjsBinPaths;
+
+runTest test_installModule;
 
 
 # --------------------------------------------------------------------------- #

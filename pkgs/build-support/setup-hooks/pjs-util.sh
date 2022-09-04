@@ -83,7 +83,7 @@ pjsBinPairs() {
           "${1:-package.json}";
     fi
   elif pjsHasBindir "$1"; then
-    pdir="${1:+${1%/*}}";
+    pdir="${1:+${1%/package*.json}}";
     pdir="${pdir:=.}";
     bdir="$( $JQ -r '.directories.bin' "${1:-package.json}"; )";
     $FIND "$pdir/$bdir" -maxdepth 1 -type f -printf "%f $bdir/%f\n"  \
@@ -97,10 +97,10 @@ pjsBinPaths() {
     if pjsHasBinString "$1"; then
       $JQ -r '.bin' "${1:-package.json}";
     else
-      $JQ -r '.bin|keys' "${1:-package.json}";
+      $JQ -r '.bin|keys[]' "${1:-package.json}";
     fi
   elif pjsHasBindir "$1"; then
-    pdir="${1:+${1%/*}}";
+#    pdir="${1:+${1%/package.json}}";
     pdir="${pdir:=.}";
     bdir="$( $JQ -r '.directories.bin' "${1:-package.json}"; )";
     $FIND "$pdir/$bdir" -maxdepth 1 -type f -print;
@@ -120,6 +120,83 @@ pjsSetBinPerms() {
 pjsPatchShebangs() {
   test "${dontPatchShebangs:-0}" -ne 1 && return 0;
   $PATCH_SHEBANGS $( pjsBinPaths "$1"; );
+}
+
+
+# --------------------------------------------------------------------------- #
+
+defaultAddMod() {
+  test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  $MKDIR -p "$2";
+  $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
+}
+
+defaultAddBin() {
+  test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  echo $MKDIR -p "${2%/*}";
+  $MKDIR -p "${2%/*}";
+  $LN -srf -- "$1" "$2";
+}
+
+
+# --------------------------------------------------------------------------- #
+
+# installModule [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
+# installModule NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
+installModule() {
+  local pdir nmdir _ADD_MOD _ADD_BIN;
+  if test -n "${node_modules_path:-}"; then
+    pdir="${1:+${1%/package*.json}}";
+    pdir="${pdir:=$PWD}";
+    nmdir="$node_modules_path";
+  elif test "$#" -eq 1; then
+    pdir="$PWD";
+    nmdir="${1:-node_modules}";
+  elif test "$#" -eq 2; then
+    pdir="${1:+${1%/package*.json}}";
+    pdir="${pdir:=$PWD}";
+    nmdir="$2";
+  else
+    nmdir="$1";
+    shift;
+    for p in "$@"; do
+      installModule "$p" "$nmdir";
+    done
+    return 0;
+  fi
+  idir="$nmdir/$( $JQ -r '.name' "$pdir/package.json"; )";
+  if test -z "${_ADD_MOD:=${ADD_MOD:-}}"; then
+    if declare -F addMod; then
+      _ADD_MOD=addMod;
+    else
+      _ADD_MOD=defaultAddMod;
+    fi
+  fi
+  eval "( $_ADD_MOD "$pdir" "$idir"; )";
+
+  if pjsHasAnyBin "$pdir/package.json"; then
+    if test -z "${_ADD_BIN:=${ADD_BIN:-}}"; then
+      if declare -F addBin; then
+        _ADD_BIN=addBin;
+      else
+        _ADD_BIN=defaultAddBin;
+      fi
+    fi
+    _IFS="$IFS";
+    IFS=$'\n';
+    for bp in $( cd "$idir" >/dev/null; pjsBinPairs "$PWD/package.json"; ); do
+      f="${bp##* }";
+      t="${bp%% *}";
+      if test -n "${f%%/*}"; then
+        bf="${idir}/$f"
+      fi
+      if test -n "${t%%/*}"; then
+        bt="${idir}/../.bin/$t"
+      fi
+      IFS="$_IFS";
+      eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
+    done
+  fi
 }
 
 
