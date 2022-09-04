@@ -1,4 +1,59 @@
-# mkSourceTree { lockDir || plock, flocoFetch ( set CWD ) }
+# mkNmDirPlockV3 { lockDir || plock, flocoFetch ( set CWD ) }
+#
+# This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
+# It's built on top of lower level functions that allow for fine grained
+# control of how the directory tree is built, what inputs are used, etc;
+# but this form is your "grab a `node_modules/' dir off the shelf" routine
+# that tries to do the right thing for a `package-lock.json(v2/3)'.
+#
+# The resulting attrset is a "functor", which just means its an attrset that
+# can modify itself.
+# So out of the box it can become a string, or if you check in subattrs you'll
+# find `myNmd.nmDirCmds.{devLink,devCopy,prodLink,prodCopy}.cmd' attrs that
+# lazily generate other styles of copy or tree.
+# Additionally if you treat it as a function passing args meant for `mkNmDir*'
+# routines, it will change the settings for the default builder.
+# The default builder is used for the `toString' magic, and is stashed under
+# `myNmd.nmDirCmd' for you to reference.
+# Passing args does NOT modify the 4 "common" builders stashed under `nmDirCmds'
+# so you can rely on those being there, and if you want you can add more.
+#
+# `tests/pkg-set/tests.nix' has a usage example but it's pretty simple.
+# This goofy example script shows different usages.
+# let
+#   nmd = mkNmDirPlockV3 { inherit metaSet; copy = false; dev = true; };
+#   installAnyScript = pkgsFor.writeText "install-nm" ''
+#     # Automatically converts to a string for current settings.
+#     installDevLink() {
+#       cat <<'EOF'|bash
+#         ${nmd}
+#       EOF
+#     }
+#     # I
+#     installDevCopy() {
+#       cat <<'EOF'|bash
+#         ${nmd.nmDirCmds.devCopy.cmd}
+#       EOF
+#     }
+#     installProdLink() {
+#       cat <<'EOF'|bash
+#         ${nmd { dev = false; }}
+#       EOF
+#     }
+#     installProdCopy() {
+#       cat <<'EOF'|bash
+#         ${nmd { dev = false; copy = true; }}
+#       EOF
+#     }
+#     case "$*" in
+#       --link\ *\ --dev|--dev\ *\ --link)    installDevLink; ;;
+#       --copy\ *\ --dev|--dev\ *\ --copy)    installDevCopy; ;;
+#       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
+#       --link\ *\ --prod|--prod\ *\ --link)  installProdLink; ;;
+#     esac
+#   '';
+# in installAnyScript
+#
 { lib
 # You default
 , mkNmDirCmdWith
@@ -59,7 +114,7 @@ in {
   # Build a new NM dir with custom args.
   __functor = self: args: self // { nmDirCmd = mkNm args; };
   __functionArgs = let
-    base = lib.functionArgs mkNmDirCmdWith;
-    clean = removeAttrs base ["override" "overrideDerivation"];
-  in clean // { dev = true; };
+      base = lib.functionArgs mkNmDirCmdWith;
+      clean = removeAttrs base ["override" "overrideDerivation"];
+    in clean // { dev = true; };
 }
