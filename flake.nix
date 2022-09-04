@@ -134,6 +134,7 @@
 
       lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
 
+      patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
       unpackSafe     = callPackage ./pkgs/build-support/unpackSafe.nix;

@@ -11,6 +11,8 @@
 , flocoUnpack
 , flocoFetch
 
+, genSetBinPermissionsHook ? import ./genSetBinPermsCmd { inherit patch-shebangs lib; }
+, patch-shebangs
 , linkFarm
 , stdenv
 , xcbuild
