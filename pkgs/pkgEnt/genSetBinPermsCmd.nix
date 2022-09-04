@@ -14,10 +14,14 @@
 
   genSetBinPermissionsHook = {
     meta
-  , relDir            ? "$out"
-  , dontPatchShebangs ? false
+  , relDir                 ? "$out"
+  , dontPatchShebangs      ? false
+  , usePatchShebangsScript ? false
   , patch-shebangs
   }: let
+    PATCH_SHEBANGS = if usePathShebangsScript
+                     then "${patch-shebangs}/bin/patch-shebangs"
+                     else "patchShebangs";
     from = let m = builtins.match "(.*)/" relDir; in
             if m == null then relDir else m;
     binPaths = map ( p: "${from}/${p}" ) ( builtins.attrValues meta.bin );
@@ -25,7 +29,7 @@
       if meta.bin ? __DIR__ then "${from}/${meta.bin.__DIR__}/*" else
       builtins.concatStringsSep " " binPaths;
   in "chmod +x ${targets}\n" + ( lib.optionalString ( ! dontPatchShebangs ) ''
-    ${patch-shebangs}/bin/patch-shebangs -- ${targets}
+     ${PATCH_SHEBANGS} -- ${targets}
   '' );
 
 in lib.callPackageWith { inherit patch-shebangs; } genSetBinPermissionsHook

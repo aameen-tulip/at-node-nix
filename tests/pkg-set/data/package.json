@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "echo hi > greeting.txt"
+    "build": "echo hi > greeting.txt",
+    "install": "echo bye > farewell.txt"
   },
   "dependencies": {
     "memfs": "^3.4.0"

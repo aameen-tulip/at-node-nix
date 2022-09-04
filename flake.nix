@@ -132,6 +132,8 @@
       callPackages = callPackagesWith {};
     in {
 
+      nodejs = prev.nodejs-14_x;
+
       lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
 
       patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
@@ -140,8 +142,11 @@
       unpackSafe     = callPackage ./pkgs/build-support/unpackSafe.nix;
       buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
       evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
-      genericInstall = callPackage ./pkgs/build-support/genericInstall.nix;
       runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
+      # FIXME: this still uses the old gross function factory thing
+      genericInstall = callPackage ./pkgs/build-support/genericInstall.nix {
+        impure = final.flocoConfig.enableImpureMeta;
+      };
 
       # Most likely this will get populated by `stdenv'
       npmSys = lib.getNpmSys { system = final.system; };
@@ -175,6 +180,7 @@
       inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
         mkPkgEntSource
         buildPkgEnt
+        installPkgEnt
       ;
 
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.

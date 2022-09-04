@@ -127,8 +127,7 @@
   , ...
   } @ args: let
     args' = {
-      inherit name version src meta jq nodejs stdenv;
-      inherit nmDirCmd runScripts;
+      inherit name version src runScripts;
       dontConfigure = true;
     } // ( removeAttrs args [
       "evalScripts"
@@ -149,10 +148,62 @@
 
 # ---------------------------------------------------------------------------- #
 
-in {
-  mkPkgEntSource = lib.callPackageWith globalArgs mkPkgEntSource;
-  buildPkgEnt    = lib.callPackageWith globalArgs buildPkgEnt;
-}
+  installPkgEnt = {
+    src     ? built
+  , name    ? meta.names.installed
+  , ident   ? meta.ident
+  , version ? meta.version
+  , built   ? source
+  , source  ? throw "You gotta give me something to work with here"
+  , meta
+  # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
+  # This can be an arbitary snippet of shell code.
+  # The env var `node_modules_path' should be used to refer to the install dir.
+  #   mkNmDirHook = ''
+  #     mkdir -p "$node_modules_path/@foo/bar";
+  #     cp -Tr -- "${pkgs.bar}" "$node_modules_path/@foo/bar";
+  #   ''
+  , nmDirCmd
+  # If we have a local path we're building, also run the `prepare' script.
+  , runScripts     ? ["preinstall" "install" "postinstall"]
+  , genericInstall
+  , python         ? nodejs.python
+  , node-gyp       ? nodejs.pkgs.node-gyp
+  , xcbuild
+  , jq
+  , nodejs
+  , stdenv
+  , flocoConfig
+  , ...
+  } @ args: let
+    args' = {
+      inherit name version src python node-gyp runScripts;
+    } // ( removeAttrs args [
+      "genericInstall"
+      # Drop `pkgEnt' fields, but allow other args to be passed through to
+      # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
+      "source"
+      "tarball"
+      "installed"
+      "prepared"
+      "passthru"
+      "bin"
+      "global"
+      "module"
+      "key"
+    ] );
+  in genericInstall args';
+
+
+# ---------------------------------------------------------------------------- #
+
+  outputs = {
+    mkPkgEntSource = lib.callPackageWith globalArgs mkPkgEntSource;
+    buildPkgEnt    = lib.callPackageWith globalArgs buildPkgEnt;
+    installPkgEnt  = lib.callPackageWith globalArgs installPkgEnt;
+  };
+
+in outputs
 
 
 # ---------------------------------------------------------------------------- #
