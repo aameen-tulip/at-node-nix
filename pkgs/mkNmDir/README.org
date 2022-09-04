@@ -134,7 +134,7 @@ Calls =mkNmDirCmdWith= in "copy" mode.
 Copies all modules from Nix store to path indicated by =$node_modules=.
 
 ** mkSourceTree and mkSourceTreeDrv
-Minimal builder that fetches sources from am =package-lock.json(v2/3)= using =flocoFetch=.
+Minimal builder that fetches sources from a =package-lock.json(v2/3)= using =flocoFetch=.
 
 None of these are processed by =libmeta= or similar helpers which are designed more for creating package sets with builds.
 
