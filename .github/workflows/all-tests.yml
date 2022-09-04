@@ -9,6 +9,7 @@ on:
       - lib/default.nix
       - lib/**
       - tests/**
+      - pkgs/**
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -17,6 +18,7 @@ on:
       - lib/default.nix
       - lib/**
       - tests/**
+      - pkgs/**
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
