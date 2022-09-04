@@ -168,7 +168,11 @@
 
       mkSourceTree = callPackage ./pkgs/mkNmDir/mkSourceTree.nix;
       # { mkNmDir*, tree ( from `mkSourceTree' ) }
-      mkSourceTreeDrv = callPackageWith {} ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
+      mkSourceTreeDrv = callPackage ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
+
+      inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
+        mkPkgEntSource
+      ;
 
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.
       # Either `name' ( meta.names.tarball ) or `meta' are also required.

@@ -16,8 +16,7 @@
 , xcbuild
 , nodejs
 , jq
-, ...
-} @ globalAttrs: let
+} @ globalArgs: let
 
 # ---------------------------------------------------------------------------- #
 #
@@ -83,7 +82,8 @@
     };
     # FIXME: use `names.tarball' if you can.
     forTbs = let
-      tbUrl    = flocoFetch ( sourceInfo // { type = "url"; } );
+      tbUrl    = flocoFetch ( ( removeAttrs sourceInfo ["entSubtype"] )
+                              // { type = "url"; } );
       fetched  = flocoFetch sourceInfo;
       unpacked = assert ( fetched.needsUnpack or false ); flocoUnpack {
         name    = names.src;
@@ -105,9 +105,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  inherit
-    mkPkgEntSource
-  ;
+  mkPkgEntSource = lib.callPackageWith globalArgs mkPkgEntSource;
 }
 
 
