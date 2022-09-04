@@ -324,7 +324,7 @@
     addBinsDef = lib.optionalString ( haveBin != {} ) ''
       addNodeModulesBins() {
       ${addBinDirs}
-      {addBins}
+      ${addBins}
       }
     '';
   # We must return an attrset for `lib.makeOverridable' to be effective.
