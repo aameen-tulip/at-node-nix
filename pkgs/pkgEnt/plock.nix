@@ -1,9 +1,8 @@
 { lib
 
-, buildGyp
 , evalScripts
+, buildGyp
 , genericInstall
-, runBuild
 
 , mkNmDir
 
@@ -11,7 +10,9 @@
 , flocoUnpack
 , flocoFetch
 
-, genSetBinPermissionsHook ? import ./genSetBinPermsCmd { inherit patch-shebangs lib; }
+, genSetBinPermissionsHook ? import ./genSetBinPermsCmd.nix {
+  inherit patch-shebangs lib;
+}
 , patch-shebangs
 , linkFarm
 , stdenv
@@ -101,6 +102,48 @@
 
 # ---------------------------------------------------------------------------- #
 
+  genMkNmDirFn = { meta }: let
+  in
+
+
+
+# ---------------------------------------------------------------------------- #
+
+  buildPkgEnt = {
+    src     ? source
+  , name    ? meta.names.built
+  , ident   ? meta.ident
+  , version ? meta.version
+  , source  ? throw "You gotta give me something to work with here"
+  , meta
+  # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
+  # This can be an arbitary snippet of shell code.
+  # The env var `node_modules_path' should be used to refer to the install dir.
+  #   mkNmDirHook = ''
+  #     mkdir -p "$node_modules_path/@foo/bar";
+  #     cp -Tr -- "${pkgs.bar}" "$node_modules_path/@foo/bar";
+  #   ''
+  , mkNmDirCmd
+  , runScripts ? ["prebuild" "build" "postbuild"] ++
+                 ( lib.optional ( meta.sourceInfo.type == "path" )
+                                ["prepare"] )
+
+  , evalScripts
+  , jq
+  , nodejs
+  , stdenv
+  , ...
+  } @ args: let
+
+    callWith = {
+      inherit name version src;
+    } // args;
+
+    built = runBuild {
+      inherit src name ident version meta nodejs jq stdenv lndir;
+      nodeModules
+    }
+  in built //
 
 
 

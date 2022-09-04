@@ -237,23 +237,31 @@
   # packages with install scripts, builds, or prepare routines to be rerun.
   # By minimizing the derivation environments we avoid rebuilds that should have
   # no effect on a package.
+  # NOTE: I had to path this recently to account for hoisted modules.
+  # In retrospect this was goofy that I botched that, I know how they work...
+  # I used a naive regex to avoid deep recursion; but since I anticipate that
+  # this is going to be slow now it might be work trying.
   pinVersionsFromPlockV3 = plock: let
+
     pinPath = { scopes, ents } @ acc: path: let
       e = plock.packages.${path};
+      # Our `node_modules' dir.
+      myNm = if path == "" then "node_modules" else "${path}/node_modules";
       # Get versions of subdirs and add to current scope.
       # This wipes out packages with the same ident in the same way that the
       # Node resolution algorithm does.
-      depIds = builtins.attrNames ( ( e.dependencies or {} )    //
-                                    ( e.devDependencies or {} ) //
-                                    ( e.optionalDependencies or {} ) );
-      getVS = scope': ident: let
-        fs = if path == "" then "" else "${path}/";
-      in scope' // {
-        ${ident} = ( realEntry plock "${fs}node_modules/${ident}" ).version;
-      };
-      # Fetch parent scope and extend it with our subdirs.
-      parentScope = if path == "" then {} else scopes.${parentPath path};
-      newScope    = builtins.foldl' getVS parentScope depIds;
+      newScope = let
+        # Fetch parent scope and extend it with our subdirs.
+        parentScope = if path == "" then {} else scopes.${parentPath path};
+        maybeAddToScope = scope': path: let
+          subId = lib.yank "${myNm}/((@[^/]*/)?[^/]*)" path;
+          keep  = subId != null;
+          re    = realEntry plock path;
+          addv  = lib.optionalAttrs keep { ${subId} = re.version; };
+        in scope' // addv;
+        paths = builtins.attrNames plock.packages;
+      in builtins.foldl' maybeAddToScope parentScope paths;
+
       # Pin our dependency fields with actual versions.
       pinned = let
         fields     = builtins.intersectAttrs pinFields e;
@@ -276,7 +284,10 @@
        # entries and want to preserve the old values.
        packages = let
          paths  = builtins.attrNames plock.packages;
-         pinned = builtins.foldl' pinPath { scopes = {}; ents = {}; } paths;
+         pinned = builtins.foldl' pinPath {
+           scopes = {};
+           ents   = {};
+         } paths;
        in plock.packages // pinned.ents;
      };
 
