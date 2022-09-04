@@ -172,7 +172,7 @@
     bin = getBins ent;
     from = assert ( builtins.attrNames bin ) == ["__DIR__"];
            "${getFromdir ent}/${bin.__DIR__}";
-  in ''${coreutils}/bin/ln -srf "${from}"/* -t "${getBindir path}/";'';
+  in "  " + ''${coreutils}/bin/ln -srf "${from}"/* -t "${getBindir path}/";'';
 
   # XXX: NPM has a bug, or at least an unspecificied edge case about how to
   #      handle conflicting bin names.
@@ -187,7 +187,7 @@
     addOne = name: relPath: let
       from = "${fd}/${relPath}";
       to   = "${bd}/${name}";
-    in ''${coreutils}/bin/ln -srf "${from}" "${to}";'';
+    in "  " + ''${coreutils}/bin/ln -srf "${from}" "${to}";'';
     cmds = builtins.attrValues ( builtins.mapAttrs addOne bin );
   in builtins.concatStringsSep "\n" cmds;
 
@@ -270,7 +270,7 @@
       chunk = acc: dir: let
         nl  = {
           i = 0;
-          cmd = "${acc.cmd};\n" + ''  ${coreutils}/bin/mkdir -p "${dir}"'';
+          cmd = "${acc.cmd};\n  " + ''${coreutils}/bin/mkdir -p "${dir}"'';
         };
         cnt = { i = acc.i + 1; cmd = ''${acc.cmd} "${dir}"''; };
       in if 5 <= acc.i then nl else cnt;
@@ -305,7 +305,7 @@
 
     addBins = let
       cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );
-    in builtins.concatStringsSep "\n  " cmds;
+    in builtins.concatStringsSep "\n    " cmds;
 
     preHookDef = lib.optionalString ( args ? preNmDir ) ''
       preNmDir() {
@@ -324,7 +324,7 @@
     addBinsDef = lib.optionalString ( haveBin != {} ) ''
       addNodeModulesBins() {
       ${addBinDirs}
-        ${addBins}
+      {addBins}
       }
     '';
   # We must return an attrset for `lib.makeOverridable' to be effective.

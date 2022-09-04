@@ -139,6 +139,11 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
+    # It's built on top of lower level functions that allow for fine grained
+    # control of how the directory tree is built, what inputs are used, etc;
+    # but this form is your "grab a `node_modules/' dir off the shelf" routine
+    # that tries to do the right thing for a `package-lock.json(v2/3)'.
     _testMkNmDirPkgSetPlV3 = let
       nmDirCmd = mkNmDirPlockV3 { inherit metaSet; };
     in {
