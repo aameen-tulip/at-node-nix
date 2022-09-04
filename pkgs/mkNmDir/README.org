@@ -189,22 +189,24 @@ At the top I've included a trivial build pipeline; while your own configuration 
 with ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
 let
   metaSet = lib.libmeta.mkMetaSetPlockV3 { lockDir = toString ./.; };
-  pkgSet = builtins.mapAttrs ( path: plent: let
+  pkgSet = builtins.mapAttrs ( path: metaEnt: let
     basePkgEnt = mkPkgEntSource plent;
-    setBinPerms = ent: let
-      setPerms = genSetBinPermissionsHook {
-        inherit (ent) meta;
-        usePatchShebangsScript = true;
-      };
-    in runCommandNoCC ent.meta.names.prepared {} ''
-      cp -r "${ent.source}" "$out";
-      ${setPerms}
+    doBins = runCommandNoCC basePkgEnt.meta.names.prepared {
+      src = basePkgEnt.source;
+      # The version on `node-js' that we can't `patchShebangs' to use.
+      buildInputs = [nodejs-14_x jq];
+    } ''
+      cp -r -- "$src" "$out";
+      cd "$out";
+      mkdir -p .bin;
+      jq -r '( .bin // {} )|to_entries[]|"ln -sr -- " + .value + "  ../.bin/" + .key'|sh;
+      patchShebangs ../.bin;
     '';
-    prep = ent:
-      if ent.meta.hasBuild then buildPkgEnt ent else
-      if ent.meta.hasInstallScript then installPkgEnt ent else
-      if ent.meta.hasBin then setBinPerms ent else ent;
-  in prep ) metaSet;
+   in if basePkgEnt.meta.hasBuild         then buildPkgEnt   basePkgEnt else
+      if basePkgEnt.meta.hasInstallScript then installPkgEnt basePkgEnt else
+      if basePkgEnt.meta.hasBin           then doBins                   else
+      basePkgEnt
+  ) metaSet.__entries;
   nmd = mkNmDirPlockV3 {
     # Packages will be pulled from here when their "key" ( "<IDENT>/<VERSION>" )
     # matches an attribute in the set.
