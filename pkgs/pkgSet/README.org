@@ -20,14 +20,15 @@ Another snippet below shows the current way to deal with non-root packages that 
   , flocoPackages ? {}
   } @ prev: let
 
-    final = prev // {
-      # Override default of v16 used in Nixpkgs 
-      nodejs = nodejs-14_x;
-
+      # Leave these outside of the set to avoid clashing with Nixpkgs 
       callPackageWith  = autoArgs: pkgsFor.callPackageWith ( final // autoArgs );
       callPackagesWith = autoArgs: pkgsFor.callPackagesWith ( final // autoArgs );
       callPackage      = final.callPackageWith {};
       callPackages     = final.callPackagesWith {};
+
+    final = prev // {
+      # Override default of v16 used in Nixpkgs 
+      nodejs = nodejs-14_x;
 
       metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
       mkNmDir = mkNmDirPlockV3 {
