@@ -49,7 +49,6 @@
 , installPkgEnt
 
 , nodejs  ? pkgsFor.nodejs-14_x
-, jq
 } @ prev: let
 
   final = prev // {
