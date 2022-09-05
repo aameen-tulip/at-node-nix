@@ -33,7 +33,13 @@ The fields marked "TODO" aren't hard to add; I just haven't had a need to use th
 
 ** Example MetaEnt for reference ( our input )
 This is our "input" which we convert to a build.
-This is a good point of reference to kno
+This is a good point of reference to know what's available for builders.
+
+Note that all =metaExt= fields are removed by =mkPkgEntSource= essentially "finalizing" the metadata.
+Metadata should not be modified past that point, at least not in a way that anyone expects to modify builds.
+If you need to modify metadata do it before building ( makes sense ) and if you have to change something regenerate your recipes. 
+
+Users are free to inject additional fields to use with custom builders ( =flocoConfig.meta*Overlays= ) but this is what you get out of the box.
 
 #+BEGIN_SRC nix
   {
@@ -44,6 +50,7 @@ This is a good point of reference to kno
     hasBin = false;
     hasBuild = false;
     hasInstallScript = false;
+    hasTest = false;
     scoped = true;
     sourceInfo = {
       entSubtype = "registry-tarball";
