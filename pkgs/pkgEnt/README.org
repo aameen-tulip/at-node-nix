@@ -22,14 +22,14 @@ All routines will accept =outPath= if it is defined at the top level over any ot
     [installed]  ( `gyp' or `[pre|post]install' )
     prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
     TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
-    [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
+    TODO: [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
     TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
     passthru     ( Holds the fields above + `nodejs', and a few other drvs )
     key          ( `[@SCOPE/]NAME/VERSION' )
     meta         ( package info yanked from locks, manifets, etc - no drvs! )
   }
 #+END_SRC
-
+The fields marked "TODO" aren't hard to add; I just haven't had a need to use them so they aren't defined yet; but they may be useful for interoperability with Nixpkgs' existing =nodePackages= ( uses =node2nix= ), and for creating standalone CLI tools as opposed to modules.
 
 ** Example MetaEnt for reference ( our input )
 This is our "input" which we convert to a build.
