@@ -41,25 +41,26 @@ Another snippet below shows the current way to deal with non-root packages that 
       };
 
       # FIXME: handle subtrees
-      doNmDir = { hasBuild, hasInstallScript, hasTest, ... } @ pkgEnt: let
+      doNmDir = { meta, ... } @ pkgEnt: let
+        needsNm = meta.hasBuild || meta.hasInstallScript || meta.hasTest;
       in pkgEnt // ( lib.optionalAttrs needsNm {
         inherit (final) mkNmDir;
       } );
 
-      doBuild = { hasBuild } @ pkgEnt:
-        pkgEnt // ( lib.optionalAttrs hasBuild {
+      doBuild = { meta, ... } @ pkgEnt:
+        pkgEnt // ( lib.optionalAttrs meta.hasBuild {
           built   = final.buildPkgEnt pkgEnt;
           outPath = build'.built.outPath;
         } );
 
-      doInstall = { hasInstallScript, ... } @ pkgEnt:
-        pkgEnt // ( lib.optionalAttrs hasInstallScript {
+      doInstall = { meta, ... } @ pkgEnt:
+        pkgEnt // ( lib.optionalAttrs meta.hasInstallScript {
           installed = final.installPkgEnt pkgEnt;
           outPath   = installed'.installed.outPath;
         } );
 
-      doTest = { hasTest ? false, ... } @ pkgEnt:
-        pkgEnt // ( lib.optionalAttrs hasTest {
+      doTest = { meta, ... } @ pkgEnt:
+        pkgEnt // ( lib.optionalAttrs meta.hasTest {
           test = final.testPkgEnt pkgEnt;
         } );
 
