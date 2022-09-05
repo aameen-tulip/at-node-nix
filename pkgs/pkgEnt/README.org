@@ -13,7 +13,7 @@ All routines will accept =outPath= if it is defined at the top level over any ot
 
 * Fields
 
-#+BEGIN_SRC nix
+#+BEGIN_SRC text
   {
     [outPath]    alias for most processed stage. ( ends with "prepared" )
     [tarball]
