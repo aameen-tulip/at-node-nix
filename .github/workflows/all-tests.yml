@@ -65,4 +65,7 @@ jobs:
           nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
 
       - name: All Tests
-        run: nix build head#tests -L --show-trace
+        run: |
+          nix build head#tests --show-trace;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          nix build head#tests --show-trace --impure;
