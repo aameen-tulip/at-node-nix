@@ -154,14 +154,6 @@
       npmSys = lib.getNpmSys { system = final.system; };
       flocoConfig = final.lib.mkFlocoConfig {};
       flocoFetch  = callPackage lib.libfetch.mkFlocoFetcher {};
-      # FIXME: thes expected args here don't align well with `flocoFetch'.
-      # You have to do this currently:
-      #   tsMeta = metaSet."typescript/4.7.4";
-      #   # Using `fetchurlNoteUnpackDrvW'
-      #   fetchedTs = flocoFetch tsMeta;
-      #   unpacked = flocoUnpack { meta = tsMeta; tarball = fetchedTs; };
-      # Override this with your preferred unpacking routine.
-      # This is just a relatively safe default.
       flocoUnpack = {
         name    ? args.meta.names.source
       , tarball ? args.outPath
