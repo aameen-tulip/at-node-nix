@@ -97,7 +97,7 @@ Another snippet below shows the current way to deal with non-root packages that 
       pkgSet = builtins.mapAttrs final.mkPkgEnt metaSet.__entries;
 
       # Example of merging ( I recommend using `flocoOverlays' had this file gone that route )
-      flocoPackages = flocoPackages // final.pkgSet
+      flocoPackages = flocoPackages // final.pkgSet;
     };
 
   in final

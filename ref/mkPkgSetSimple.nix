@@ -36,7 +36,6 @@
 # If you just want a recursive attrset then take this as it is.
 #
 # If reading this just helped you understand what an overlay is: High Five!
-
 { lib
 , lockDir
 , flocoConfig
@@ -49,14 +48,18 @@
 , installPkgEnt
 
 , nodejs  ? pkgsFor.nodejs-14_x
+, flocoPackages ? {}
 } @ prev: let
 
-  final = prev // {
+  # Leave these outside of the set to avoid clashing with Nixpkgs
+  callPackageWith  = autoArgs: pkgsFor.callPackageWith ( final // autoArgs );
+  callPackagesWith = autoArgs: pkgsFor.callPackagesWith ( final // autoArgs );
+  callPackage      = final.callPackageWith {};
+  callPackages     = final.callPackagesWith {};
 
-    callPackageWith  = autoArgs: pkgsFor.callPackageWith ( final // autoArgs );
-    callPackagesWith = autoArgs: pkgsFor.callPackagesWith ( final // autoArgs );
-    callPackage      = final.callPackageWith {};
-    callPackages     = final.callPackagesWith {};
+  final = prev // {
+    # Override default of v16 used in Nixpkgs
+    nodejs = nodejs-14_x;
 
     metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
     mkNmDir = mkNmDirPlockV3 {
@@ -69,25 +72,26 @@
     };
 
     # FIXME: handle subtrees
-    doNmDir = { hasBuild, hasInstallScript, hasTest, ... } @ pkgEnt: let
+    doNmDir = { meta, ... } @ pkgEnt: let
+      needsNm = meta.hasBuild || meta.hasInstallScript || meta.hasTest;
     in pkgEnt // ( lib.optionalAttrs needsNm {
       inherit (final) mkNmDir;
     } );
 
-    doBuild = { hasBuild } @ pkgEnt:
-      pkgEnt // ( lib.optionalAttrs hasBuild {
+    doBuild = { meta, ... } @ pkgEnt:
+      pkgEnt // ( lib.optionalAttrs meta.hasBuild {
         built   = final.buildPkgEnt pkgEnt;
         outPath = build'.built.outPath;
       } );
 
-    doInstall = { hasInstallScript, ... } @ pkgEnt:
-      pkgEnt // ( lib.optionalAttrs hasInstallScript {
+    doInstall = { meta, ... } @ pkgEnt:
+      pkgEnt // ( lib.optionalAttrs meta.hasInstallScript {
         installed = final.installPkgEnt pkgEnt;
         outPath   = installed'.installed.outPath;
       } );
 
-    doTest = { hasTest ? false, ... } @ pkgEnt:
-      pkgEnt // ( lib.optionalAttrs hasTest {
+    doTest = { meta, ... } @ pkgEnt:
+      pkgEnt // ( lib.optionalAttrs meta.hasTest {
         test = final.testPkgEnt pkgEnt;
       } );
 
@@ -116,11 +120,15 @@
         # parent dirs to "refocus" a lock.
         mkNmDir = if path == "" then final.mkNmDir else ":";
       };
-      done   = ( doTest ( doInstall ( doBuild ( doNmDir base ) ) ) );
-    in if simple then base else done;
+      done = ( doTest ( doInstall ( doBuild ( doNmDir base ) ) ) );
+    in if simple then base // { prepared = base.source; outPath = base.source; }
+                  else done;
 
-    pkgSet = builtins.mapAttrs mkPkgEnt metaSet.__entries;
+    # Optionally you can merge these or cherry pick from external packages.
+    pkgSet = builtins.mapAttrs final.mkPkgEnt metaSet.__entries;
 
+    # Example of merging ( I recommend using `flocoOverlays' had this file gone that route )
+    flocoPackages = flocoPackages // final.pkgSet;
   };
 
 in final
