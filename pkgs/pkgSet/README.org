@@ -20,11 +20,11 @@ Another snippet below shows the current way to deal with non-root packages that 
   , flocoPackages ? {}
   } @ prev: let
 
-      # Leave these outside of the set to avoid clashing with Nixpkgs 
-      callPackageWith  = autoArgs: pkgsFor.callPackageWith ( final // autoArgs );
-      callPackagesWith = autoArgs: pkgsFor.callPackagesWith ( final // autoArgs );
-      callPackage      = final.callPackageWith {};
-      callPackages     = final.callPackagesWith {};
+    # Leave these outside of the set to avoid clashing with Nixpkgs 
+    callPackageWith  = autoArgs: pkgsFor.callPackageWith ( final // autoArgs );
+    callPackagesWith = autoArgs: pkgsFor.callPackagesWith ( final // autoArgs );
+    callPackage      = final.callPackageWith {};
+    callPackages     = final.callPackagesWith {};
 
     final = prev // {
       # Override default of v16 used in Nixpkgs 
