@@ -41,6 +41,8 @@ If you need to modify metadata do it before building ( makes sense ) and if you 
 
 Users are free to inject additional fields to use with custom builders ( =flocoConfig.meta*Overlays= ) but this is what you get out of the box.
 
+See [[file:../../lib/meta-ent.nix][metaEnt lib]] for more info.
+
 #+BEGIN_SRC nix
   {
     key = "@babel/core/7.18.13";
