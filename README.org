@@ -40,7 +40,7 @@ The purpose of this attrset is to convert =package.json=, =package-lock.json=, =
 ** =pkgEnt= and =pkgSet=
 Derivation collections of package builders created from =meta(Ent|Set)= attrs.
 
-See docs and examples in the [[file:./pkgs/pkgSets/README.org][pkgSets readme]].
+See docs and examples in the [[file:./pkgs/pkgSet/README.org][pkgSets readme]].
 
 * Flake Outputs
 This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the preferred avenue for using these routines.
