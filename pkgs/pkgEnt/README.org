@@ -10,3 +10,49 @@ Most of these routines are built on top of =evalScripts= and =nixpkgs.stdenv.mkD
 
 During the build pipeline there's a fallback behavior for selecting "the most complete" field when =prepared= is not available yet.
 All routines will accept =outPath= if it is defined at the top level over any other field, making it a convenient way to force builds to "do what I mean" in the event that you do not want to pass in arbitrary inputs ( you still need to provide the necessary =meta= arguments in that case ). 
+
+* Fields
+
+#+BEGIN_SRC nix
+  {
+    [outPath]    alias for most processed stage. ( ends with "prepared" )
+    [tarball]
+    source       ( unpacked into "$out" )
+    [built]      ( `build'/`pre[pare|publish]' )
+    [installed]  ( `gyp' or `[pre|post]install' )
+    prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
+    TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
+    [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
+    TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
+    passthru     ( Holds the fields above + `nodejs', and a few other drvs )
+    key          ( `[@SCOPE/]NAME/VERSION' )
+    meta         ( package info yanked from locks, manifets, etc - no drvs! )
+  }
+#+END_SRC
+
+
+** Example MetaEnt for reference ( our input )
+This is our "input" which we convert to a build.
+This is a good point of reference to kno
+
+#+BEGIN_SRC nix
+  {
+    key = "@babel/core/7.18.13";
+    ident = "@babel/core";
+    version = "7.18.13";
+    entFromtype = "package-lock.json(v2)";
+    hasBin = false;
+    hasBuild = false;
+    hasInstallScript = false;
+    scoped = true;
+    sourceInfo = {
+      entSubtype = "registry-tarball";
+      hash = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
+      sha512 = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@babel/core/-/core-7.18.13.tgz";
+    };
+    depInfo = { ... };
+    names = { src = "..."; built = "..."; installed = "..."; prepared = "..."; test = "..."; ... /* See `libmeta' for full list };
+  }
+#+END_SRC
