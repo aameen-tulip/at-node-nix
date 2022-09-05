@@ -29,12 +29,12 @@ The most notable base routines are =__serial= and =__extend=.
 Used to aggregate various types of package metadata into a common collection.
 The purpose of this attrset is to convert =package.json=, =package-lock.json=, =manifest.json=, =blub.json=, or whatever other metadata you've got into a uniform attrs that can later be transformed into derivations or otherwise processed by this code-base's utilities.
 - =metaEntFrom*=: These routines convert metadata focused on a single module/package into =metaEnt=.
-  + =metaEntFromPjs=: Converts =package.json= data to =metaEnt=.
-  + =metaEntFromPlockV2=: Converts a single entry from =package-lock.json= to =metaEnt=.
+  + =metaEntFromPjs=: Converts =package.json= data to =metaEnt=. TODO
+  + =metaEntFromPlockV3=: Converts a single entry from =package-lock.json= to =metaEnt=.
   + You are encouraged to add new transformers.
-- =metaEntriesFrom*=: These routines convert metadata a collection of modules/pacakges ( =metaEnt= ) into a group as =metaSet=.
-  + =metaEntriesFromPjs=: Converts =package.json= workspace to =metaSet=.
-  + =metaEntriesFromPlockV2=: Converts =dependencies= (v1/2) or =packages= (v2/3) fields in =package-lock.json= to =metaSet=.
+- =metaSetFrom*=: These routines convert metadata a collection of modules/pacakges ( =metaEnt= ) into a group as =metaSet=.
+  + =metaSetFromPjs=: Converts =package.json= workspace to =metaSet=. TODO
+  + =metaSetFromPlockV3=: Converts =dependencies= (v1/2) or =packages= (v2/3) fields in =package-lock.json= to =metaSet=.
   + You are encouraged to add new transformers.
 
 ** =pkgEnt= and =pkgSet=
