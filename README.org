@@ -34,7 +34,8 @@ The purpose of this attrset is to convert =package.json=, =package-lock.json=, =
   + You are encouraged to add new transformers.
 - =metaSetFrom*=: These routines convert metadata a collection of modules/pacakges ( =metaEnt= ) into a group as =metaSet=.
   + =metaSetFromPjs=: Converts =package.json= workspace to =metaSet=. TODO
-  + =metaSetFromPlockV3=: Converts =dependencies= (v1/2) or =packages= (v2/3) fields in =package-lock.json= to =metaSet=.
+  + =metaSetFromPlockV1=: Converts =dependencies= (v1/2) fields in =package-lock.json= to =metaSet=.
+  + =metaSetFromPlockV3=: Converts =packages= (v2/3) fields in =package-lock.json= to =metaSet=.
   + You are encouraged to add new transformers.
 
 ** =pkgEnt= and =pkgSet=
