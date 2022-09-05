@@ -43,10 +43,17 @@ Derivation collections of package builders created from =meta(Ent|Set)= attrs.
 * Flake Outputs
 This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the preferred avenue for using these routines.
 
-** =nodeutils= Output
-Additional flake outputs expose several utilities through =nodeutils= for more direct access with limited closures.
-The tradeoff here is that you aren't realistically able to override most functions and derivations "globally", so you might only want to use these in a REPL or a small project.
-Also keep in mind that I'm not going to go out of my way to make override style argument passing "bullet-proof" with these exposures; doing so is tedious and that's literally what overlays are intended for so use the right tool for the job.
+** =legacyPackages.<SYSTEM>= Output
+An extension of Nixpkgs' =legacyPackages= that adds =outputs.overlays.default=. 
+This is a convenient way to use =at-node-nix= routines in your projects without fussing with overlay management.
+
+#+BEGIN_SRC shell
+  nix eval --impure --expr --raw 'let
+    pkgsFor = ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
+    nmdir  = pkgsFor.mkNmDirPlockV3 { lockDir = toString ./.; dev = false; copy = false; };
+  in "${nmdir}; installNodeModules;"|sh;
+  ls ./node_modules/;
+#+END_SRC
 
 ** =lib= Output
 The =lib= output contains routines which are not system dependendant and these never reference derivations, so you can freely access them "purely" even when =system= is unknown.
