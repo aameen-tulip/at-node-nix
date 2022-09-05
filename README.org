@@ -47,13 +47,17 @@ This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the
 An extension of Nixpkgs' =legacyPackages= that adds =outputs.overlays.default=. 
 This is a convenient way to use =at-node-nix= routines in your projects without fussing with overlay management.
 
+For example to symlink unpacked sources from a =package-lock.json(v2/3)= into the current working directory:
 #+BEGIN_SRC shell
   nix eval --impure --expr --raw 'let
     pkgsFor = ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
-    nmdir  = pkgsFor.mkNmDirPlockV3 { lockDir = toString ./.; dev = false; copy = false; };
+    nmdir   = pkgsFor.mkNmDirPlockV3 { lockDir = toString ./.; dev = false; copy = true; };
   in "${nmdir}; installNodeModules;"|sh;
-  ls ./node_modules/;
+  # `.bin/' members are relative symlinks. 
+  ls -ls ./node_modules/**;
+  # Next try `copy = false' to create symlinks with `lndir'. ( writeable dirs, read-only symlinked files ).
 #+END_SRC
+These tarballs will be cached by Nix for reuse.
 
 ** =lib= Output
 The =lib= output contains routines which are not system dependendant and these never reference derivations, so you can freely access them "purely" even when =system= is unknown.
