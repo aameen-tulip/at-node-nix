@@ -10,6 +10,7 @@ Node.js+Nix projects in whatever context or toolkit you choose.
 While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSet= and =metaSet= as abstractions which may be used with any setup - you just need to provide the bindings/implementations for their prototypes.
 
 * Interfaces and Tools
+
 ** =ExtInfo=
 A "class-like" attrset made to be extensible into various forms of meta-data entries and collections.
 I would be remiss to simply call these "class-like" /( Caution: I am about to use pretentious FP terms[fn:1] )/ without highlighting that these are Abstract Data Types[fn:ADT] ( ADTs ) carrying self-referential functors; these are Combinators, not Class-Objects and they are not autognostic and do not represent truly abstract interfaces.
@@ -35,6 +36,9 @@ The purpose of this attrset is to convert =package.json=, =package-lock.json=, =
   + =metaEntriesFromPjs=: Converts =package.json= workspace to =metaSet=.
   + =metaEntriesFromPlockV2=: Converts =dependencies= (v1/2) or =packages= (v2/3) fields in =package-lock.json= to =metaSet=.
   + You are encouraged to add new transformers.
+
+** =pkgEnt= and =pkgSet=
+Derivation collections of package builders created from =meta(Ent|Set)= attrs. 
 
 * Flake Outputs
 This flake provides an overlay which extends =ak-nix= and =nixpkgs= which is the preferred avenue for using these routines.
