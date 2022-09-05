@@ -193,7 +193,7 @@ with ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem
 let
   metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; };
   pkgSet = builtins.mapAttrs ( path: metaEnt: let
-    basePkgEnt = mkPkgEntSource metaEnt;
+    basePkgEnt = ( mkPkgEntSource metaEnt ) // { nmDirCmd = nmd; };
     doBins = runCommandNoCC basePkgEnt.meta.names.prepared {
       src = basePkgEnt.source;
       # The version on `node-js' that we can't `patchShebangs' to use.
