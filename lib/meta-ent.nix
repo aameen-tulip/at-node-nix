@@ -301,6 +301,7 @@
 
 /* -------------------------------------------------------------------------- */
 
+  # DEPRECATED:
   metaEntriesFromPlockV2 = {
     plock           ? lib.importJSON' lockPath
   , lockDir         ? dirOf lockPath
