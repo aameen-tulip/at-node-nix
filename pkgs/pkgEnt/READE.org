@@ -1,0 +1,12 @@
+#+TITLE: Package Builders and =pkgEnt=
+
+* Overview
+These routines convert package metadata into build recipes.
+This works in combination with =mkNmDir*= for derivations that require ~node_modules/~, and these routines should be be called inside of a recursive =let= block or attrset to allow build ordering to be resolved automatically.
+
+Most of these routines are built on top of =evalScripts= and =nixpkgs.stdenv.mkDerivation= are easy to modify for your own purposes.
+
+=pkgEnt= attrs contain fields for each stage of the build pipeline arriving at =prepared= for their conclusion which is the field used by others when consuming a package.
+
+During the build pipeline there's a fallback behavior for selecting "the most complete" field when =prepared= is not available yet.
+All routines will accept =outPath= if it is defined at the top level over any other field, making it a convenient way to force builds to "do what I mean" in the event that you do not want to pass in arbitrary inputs ( you still need to provide the necessary =meta= arguments in that case ). 
