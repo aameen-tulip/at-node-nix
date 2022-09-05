@@ -33,13 +33,13 @@
         #       an SSH key authorized for your repo.
         #       If you fork this repo and it crashes here, setup a key, auth it,
         #       and add it to secrets.
-        git  = flocoFetcher lodash;
+        #git  = flocoFetcher lodash;
         tar  = flocoFetcher ts;
         link = flocoFetcher projd;
       };
       expected = {
         dir  = true;
-        git  = true;
+        #git  = true;
         tar  = true;
         link = true;
       };
