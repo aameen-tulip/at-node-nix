@@ -18,6 +18,8 @@ At bottom this is a good old fashioned recursive attrset, with a few functors th
 It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do; but rolled into a single object with complementary usage.
 
 This is the base that =meta(Ent|Set)= and several other constructs are built on.
+Note that while older routines used =extInfo= for =pkg(Ent|Set)= that usage was deprecated in favor of standard Nixpkgs patterns for easier interop. 
+
 *** Routines
 The most notable base routines are =__serial= and =__extend=.
 - =__serial=: Serialize objects into representations suitable for =builtins.toJSON= to dump to disk.
