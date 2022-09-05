@@ -104,6 +104,9 @@ Defined in ~pkgs/mkNmDir/mkNmDirCmd.nix~.
   # NOTE: We do not process `directories.bin' - you need to normalize your tree
   # fields using `libpkginfo' before calling this.
   , handleBindir ? true
+  # Assume every `*/node_modules/*' needs `.bin/' and run `addBinCmd' forall modules. 
+  # This really exists for use with custom `addBinCmd' routines or incomplete metadata.
+  # If you use `mkSourceTree' you may find it useful to run `fixup'. 
   , assumeHasBin ? false
   # Same deal as `addCmd' but for handling bin links.
   # This is exposed in case you need to do something wonky like create wrapper
@@ -111,7 +114,7 @@ Defined in ~pkgs/mkNmDir/mkNmDirCmd.nix~.
   , addBinCmd ? path: ent:
       if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
                       else _mkNmDirAddBinNoDirsCmd coreutils path ent
-  # Hooks
+  # Hooks. You can add arbitrary shell code to run before/after the main routine. 
   , preNmDir  ? ""
   , postNmDir ? ""
   # Input Drvs
