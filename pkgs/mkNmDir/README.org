@@ -5,7 +5,7 @@
 ** mkNmDirCmdWith
 Base definition from which all others are built.
 
-Copies or links all modules from Nix store to path indicated by =$node_modules=.
+Copies or links all modules from Nix store to path indicated by =$node_modules_path=.
 
 *** Overview
 Given an NM tree represented as an attrset of ~{ <NM-PATH> = PKG; }~ entries, produce a shell script which builds a =node_modules/= directory.
