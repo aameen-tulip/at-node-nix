@@ -24,14 +24,15 @@
 # ---------------------------------------------------------------------------- #
 #
 #  {
+#    [outPath]    alias for most processed stage. ( ends with "prepared" )
 #    [tarball]
 #    source       ( unpacked into "$out" )
 #    [built]      ( `build'/`pre[pare|publish]' )
 #    [installed]  ( `gyp' or `[pre|post]install' )
 #    prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
-#    [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
+#    TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
 #    [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
-#    module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
+#    TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
 #    passthru     ( Holds the fields above + `nodejs', and a few other drvs )
 #    key          ( `[@SCOPE/]NAME/VERSION' )
 #    meta         ( package info yanked from locks, manifets, etc - no drvs! )
@@ -103,10 +104,11 @@
 # ---------------------------------------------------------------------------- #
 
   buildPkgEnt = {
-    src     ? source
+    src     ? outPath
   , name    ? meta.names.built
   , ident   ? meta.ident
   , version ? meta.version
+  , outPath ? source
   , source  ? throw "You gotta give me something to work with here"
   , meta
   # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
@@ -137,6 +139,7 @@
       "tarball"
       "installed"
       "prepared"
+      "outPath"
       "passthru"
       "bin"
       "global"
@@ -149,10 +152,11 @@
 # ---------------------------------------------------------------------------- #
 
   installPkgEnt = {
-    src     ? built
+    src     ? outPath
   , name    ? meta.names.installed
   , ident   ? meta.ident
   , version ? meta.version
+  , outPath ? built
   , built   ? source
   , source  ? throw "You gotta give me something to work with here"
   , meta
@@ -182,10 +186,11 @@
       "genericInstall"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
       # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
-      "source"
       "tarball"
+      "source"
       "installed"
       "prepared"
+      "outPath"
       "passthru"
       "bin"
       "global"
@@ -197,10 +202,54 @@
 
 # ---------------------------------------------------------------------------- #
 
+  testPkgEnt = {
+    src        ? outPath
+  , name       ? meta.names.test
+  , ident      ? meta.ident
+  , version    ? meta.version
+  , outPath    ? prepared
+  , prepared   ? installed
+  , installed  ? built
+  , built      ? source
+  , source     ? throw "You gotta give me something to work with here"
+  , meta
+  , nmDirCmd
+  # If we have a local path we're building, also run the `prepare' script.
+  , runScripts ? ["test"]
+  , evalScripts
+  , jq
+  , nodejs
+  , stdenv
+  , ...
+  } @ args: let
+    args' = {
+      inherit name version src runScripts;
+      dontConfigure = true;
+    } // ( removeAttrs args [
+      "evalScripts"
+      # Drop `pkgEnt' fields, but allow other args to be passed through to
+      # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
+      "outPath"
+      "source"
+      "tarball"
+      "installed"
+      "prepared"
+      "passthru"
+      "bin"
+      "global"
+      "module"
+      "key"
+    ] );
+  in evalScripts args';
+
+
+# ---------------------------------------------------------------------------- #
+
   outputs = {
     mkPkgEntSource = lib.callPackageWith globalArgs mkPkgEntSource;
     buildPkgEnt    = lib.callPackageWith globalArgs buildPkgEnt;
     installPkgEnt  = lib.callPackageWith globalArgs installPkgEnt;
+    testPkgEnt     = lib.callPackageWith globalArgs testPkgEnt;
   };
 
 in outputs
