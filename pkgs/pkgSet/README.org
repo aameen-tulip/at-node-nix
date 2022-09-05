@@ -121,7 +121,7 @@ I have dealt with this in most projects by manually writing a small snippet to d
 Honestly the vast majority of =installScript= run fine without modules as long as you provide =node-gyp= and ocassionally the "NaN" module.
 
 Those that don't work with those on their own usually take only a few minutes to whip up a tree for.
-See the [[file:../../lib/tree.nix][=libtree=]] documentation and [[file:../mkNmDir/README.org][=mkNmDir=]] documentation for more extensive examples, but theres a couple:
+See the [[file:../../lib/tree.nix][libtree]] documentation and [[file:../mkNmDir/README.org][mkNmDir]] documentation for more extensive examples, but theres a couple:
 
 #+BEGIN_SRC nix
 { mkNmDir ? mkSourceTree, pkgSet, pkgsFor, flocoFetch, genericInstall }: let
@@ -143,7 +143,7 @@ in genericInstall {
 }
 #+END_SRC
 
-I am going to whip up some extensions to `libtree' soon to make this automatic
+I am going to whip up some extensions to =libtree= soon to make this automatic
 but for now that's the way it works.
 
 If you have a package with a large number of deps, make a lock:
