@@ -25,6 +25,24 @@
 
 # ---------------------------------------------------------------------------- #
 
+  isSameSystem =
+    ( builtins ? currentSystem ) && ( system == builtins.currentSystem );
+
+  # `optionalAttrsSameSystem'
+  # hide attributes in cross-system mode.
+  optASS = lib.optionalAttrs isSameSystem;
+
+  # Forces builds, but only if `system' matches the current system.
+  readDirIfSameSystem = dir:
+    if isSameSystem then builtins.readDir dir else builtins.deepSeq dir dir;
+
+  pathExistsIfSameSystem = path:
+    if isSameSystem then builtins.pathExists path
+                    else builtins.deepSeq path true;
+
+
+# ---------------------------------------------------------------------------- #
+
   lockDir = toString ./data;
   metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
 
@@ -44,7 +62,7 @@
 
     testMkPkgEntSource = let
       pkgEnt   = mkPkgEntSource tsMeta;
-      srcFiles = builtins.readDir pkgEnt.source.outPath;
+      srcFiles = readDirIfSameSystem pkgEnt.source.outPath;
     in {
       expr = {
         srcValid = ( builtins.tryEval srcFiles ) ? success;
@@ -86,7 +104,7 @@
     in {
       # Make sure that the file `greeting.txt' was created.
       # Also check that our `node_modules/' were installed to the expected path.
-      expr = builtins.all builtins.pathExists [
+      expr = builtins.all pathExistsIfSameSystem [
        "${built}/greeting.txt"
        # Prevent `node_modules/' from being deleted during the install phase
        # so they get added to the output path.
@@ -127,7 +145,7 @@
       inherit installed keepNm;
       # Make sure that the file `greeting.txt' was created.
       # Also check that our `node_modules/' were installed to the expected path.
-      expr = builtins.all builtins.pathExists [
+      expr = builtins.all pathExistsIfSameSystem [
        "${installed}/farewell.txt"
        # Prevent `node_modules/' from being deleted during the install phase
        # so they get added to the output path.
