@@ -118,7 +118,7 @@ If reading this just helped you understand what an overlay is: High Five!
 
 ** Non-Root Install Scripts
 I have dealt with this in most projects by manually writing a small snippet to drop in any directoryies I actually need.
-Honestly the vast majority of =installScript= run fine without modules as long as you provide =node-gyp= ( provided implicitly by =genericInstall= ) and ocassionally the "NaN" module ( you must provide this explicitly, =cp= in a =preConfigure= hook does the trick ).
+Honestly the vast majority of =installScript= run fine without modules as long as you provide =node-gyp= ( provided implicitly by =genericInstall= ) and ocassionally the "NaN" module ( you must provide this explicitly either with =mkNmDir*= or =cp= in a =preConfigure= hook does the trick ).
 
 Those that don't work with those on their own usually take only a few minutes to whip up a tree for.
 See the [[file:../../lib/tree.nix][libtree]] documentation and [[file:../mkNmDir/README.org][mkNmDir]] documentation for more extensive examples, but theres a couple:
