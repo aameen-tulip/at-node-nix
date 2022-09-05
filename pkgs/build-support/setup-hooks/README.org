@@ -1,0 +1,10 @@
+#+TITLE: Setup Hooks
+
+These are shell helper functions that you can use in misc routines.
+Just source them and make sure the required utilities are in =PATH=, if you are in =stdenv= then =jq= is the only one to worry about in most cases. 
+
+
+* =pjs-util.sh=
+Dumps =package.json= metadata, sets bin permissions, and can even run =addCmd*= equivalents.
+
+See their tests for examples. 
