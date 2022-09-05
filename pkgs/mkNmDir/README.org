@@ -129,12 +129,12 @@ Defined in ~pkgs/mkNmDir/mkNmDirCmd.nix~.
 ** mkNmDirLinkCmd
 Calls =mkNmDirCmdWith= in "link" mode.
 
-Symlinks all modules from Nix store to path indicated by =$node_modules=.
+Symlinks all modules from Nix store to path indicated by =$node_modules_path=. 
 
 ** mkNmDirCopyCmd
 Calls =mkNmDirCmdWith= in "copy" mode.
 
-Copies all modules from Nix store to path indicated by =$node_modules=.
+Copies all modules from Nix store to path indicated by =$node_modules_path=.
 
 ** mkSourceTree and mkSourceTreeDrv
 Minimal builder that fetches sources from a =package-lock.json(v2/3)= using =flocoFetch=.
@@ -205,6 +205,8 @@ let
       jq -r '( .bin // {} )|to_entries[]|"ln -sr -- " + .value + "  ../.bin/" + .key'|sh;
       patchShebangs ../.bin;
     '';
+   # NOTE: the calls here to "build" and "install" would not really work. 
+   # See the `pkgEnt' and `pkgSet' docs for real advice on build pipelines. 
    in if basePkgEnt.meta.hasBuild         then buildPkgEnt   basePkgEnt else
       if basePkgEnt.meta.hasInstallScript then installPkgEnt basePkgEnt else
       if basePkgEnt.meta.hasBin           then doBins                   else
