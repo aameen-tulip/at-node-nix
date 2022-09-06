@@ -45,7 +45,8 @@
       };
     };
 
-    testCwdFlocoFetcher = {
+    # Disabled until SSH auth is fixed. 
+    __testCwdFlocoFetcher = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
         mapFetch = builtins.mapAttrs ( _: flocoFetcher );
