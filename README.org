@@ -15,7 +15,7 @@ Flexibile fetchers with =flocoFetch= and =flocoUnpack= make it easy to customize
 
 =mkNmDir*= and =mkSourceTree= ~node_modules/~ tree builders can be written from scratch with a user friendly syntax, parsed from a lock, or generated from =metaSet= dependency info. 
 
-Overlays make patching metadata and builders easy. Composing package sets and overrides follow conventional Nixpkgs patterns.
+Overlays make patching metadata and builders easy. Composing package sets and overrides follow conventional Nixpkgs patterns. These can be integrated into the base build pipeline through =flocoConfig=, or managed manually. Expose these overlays in flakes' =flocoOverlays= to reuse them across projects. 
 
 Libs and utilities are organized such that you can use them in your projects without adopting or learning the whole "framework" - take what you want and skip the rest. 
 
