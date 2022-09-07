@@ -17,7 +17,7 @@ Flexibile fetchers with =flocoFetch= and =flocoUnpack= make it easy to customize
 
 Overlays make patching metadata and builders easy. Composing package sets and overrides follow conventional Nixpkgs patterns.
 
-Libs and utilities are organized such that you can use them in your projects without adopting or learning a "framework" - take what you want and skip the rest. 
+Libs and utilities are organized such that you can use them in your projects without adopting or learning the whole "framework" - take what you want and skip the rest. 
 
 * About
 The purpose of this flake is to provide you with useful utilities for building
