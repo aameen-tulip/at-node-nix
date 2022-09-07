@@ -2,7 +2,22 @@
 #+AUTHOR: Alex Ameen
 #+EMAIL: alex.ameen.tx@gmail.com
 
-Node.js Nix expressions
+Node.js Nix expressions. 
+
+Dynamically convert =package.json=, =package-lock.json=, NPM Registry Manifests, and other forms of package metadata to a common Nix friendly format: =metaEnt= and =metaSet=. 
+Generate build recipes ( derivations ) =pkgEnt=, and collect them in =pkgSets=. 
+
+Build directly from package locks with minimal effort. 
+
+Modular build pipeline supports ~npm run build~, ~npm install~ ( including =node-gyp= ), and ~npm run test~ style targets "out of the box". Customize these and add your own using the =evalScripts= base or =stdenv.mkDerivation=.
+
+Flexibile fetchers with =flocoFetch= and =flocoUnpack= make it easy to customize where your sources and pulled from, how they're processed, and how they're cached. 
+
+~node_modules/~ tree builders can be written from scratch with a user friendly syntax, parsed from a lock, or generated from =metaSet= dependency info. 
+
+Overlays make patching metadata and builders easy. Composing package sets and overrides follow conventional Nixpkgs patterns.
+
+Libs and utilities are organized such that you can use them in your projects without adopting or learning a "framework" - take what you want and skip the rest. 
 
 * About
 The purpose of this flake is to provide you with useful utilities for building
