@@ -1,4 +1,4 @@
-#+TITLE: at-node-nix
+#+TITLE: Floco ( alpha name: at-node-nix )
 #+AUTHOR: Alex Ameen
 #+EMAIL: alex.ameen.tx@gmail.com
 
@@ -23,6 +23,8 @@ Libs and utilities are organized such that you can use them in your projects wit
 The purpose of this flake is to provide you with useful utilities for building
 Node.js+Nix projects in whatever context or toolkit you choose.
 While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSet= and =metaSet= as abstractions which may be used with any setup - you just need to provide the bindings/implementations for their prototypes.
+
+During alpha phase this project was named =at-node-nix=. The released tool will be named "Floco". 
 
 * Interfaces and Tools
 
