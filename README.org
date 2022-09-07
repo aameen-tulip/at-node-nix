@@ -13,7 +13,7 @@ Modular build pipeline supports ~npm run build~, ~npm install~ ( including =node
 
 Flexibile fetchers with =flocoFetch= and =flocoUnpack= make it easy to customize where your sources and pulled from, how they're processed, and how they're cached. 
 
-~node_modules/~ tree builders can be written from scratch with a user friendly syntax, parsed from a lock, or generated from =metaSet= dependency info. 
+=mkNmDir*= and =mkSourceTree= ~node_modules/~ tree builders can be written from scratch with a user friendly syntax, parsed from a lock, or generated from =metaSet= dependency info. 
 
 Overlays make patching metadata and builders easy. Composing package sets and overrides follow conventional Nixpkgs patterns.
 
