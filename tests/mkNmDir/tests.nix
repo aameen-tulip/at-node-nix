@@ -52,13 +52,12 @@
       ];
     };
 
-    # disabled for SSH auth
-    __testLinkFromPlTree = {
+    testLinkFromPlTree = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };
 
-    __testCopyFromPlTree = {
+    testCopyFromPlTree = {
       expr = builtins.isString ( mkNmDirCopyCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };
@@ -74,22 +73,22 @@
       expected = true;
     };
 
-    __testLinkFromMS = {
+    testLinkFromMS = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };
 
-    __testCopyFromMS = {
+    testCopyFromMS = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
       expected = true;
     };
 
-    __testLinkFromITP = {
+    testLinkFromITP = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
       expected = true;
     };
 
-    __testCopyFromITP = {
+    testCopyFromITP = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
       expected = true;
     };
