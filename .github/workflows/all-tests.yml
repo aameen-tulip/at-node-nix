@@ -46,16 +46,18 @@ jobs:
             connect-timeout = 5
             stalled-download-timeout = 90
             timeout = 0
+            
       - name: Setup
         run: |
-          #mkdir -p /home/runner/.ssh;
-          #ssh-keyscan github.com >> /home/runner/.ssh/known_hosts;
-          #echo "${{ secrets.AAMEEN_SSH_KEY }}" > /home/runner/.ssh/id_rsa;
-          #chmod 600 /home/runner/.ssh/id_rsa;
-          #ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null;
-          #ssh-add /home/runner/.ssh/id_rsa;
-          #git config --global user.email "alex.ameen@tulip.co";
-          #git config --global user.name "Alex Ameen";
+          mkdir -p /home/runner/.ssh;
+          ssh-keyscan github.com >> /home/runner/.ssh/known_hosts;
+          echo "${{ secrets.FLOCO_SSH_KEY }}" > /home/runner/.ssh/id_rsa;
+          echo "${{ secrets.FLOCO_SSH_PUBKEY }}" > /home/runner/.ssh/id_rsa.pub;
+          chmod 600 /home/runner/.ssh/id_rsa;
+          ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null;
+          ssh-add /home/runner/.ssh/id_rsa;
+          git config --global user.email "alex.ameen.tx@gmail.com";
+          git config --global user.name "Floco GHA";
 
           echo "# ============================================================================ #" >&2;
           { printf '    bash   version: '; bash   --version|head -n1; } >&2;
