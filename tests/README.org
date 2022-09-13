@@ -60,7 +60,7 @@ waste time here.
   test = {
     *** Read this ***
     # Test names MUST start with "test<NAME>"
-    # Similarly the `expected' and `expr' files must have those exact names.
+    # Similarly the `expected' and `expr' fields must have those exact names.
     testFoo = {
 
       # The expected result.
