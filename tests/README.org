@@ -42,7 +42,7 @@ needlessly reloading the full flake.
   # Runs one test, printing result/expected.
   # This is what I use most frequently during dev.
   nix eval -f . tests.testMkMetaSets;
-#+END_EXAMPLE
+#+END_SRC
 
 
 ** Writing Tests
@@ -56,7 +56,7 @@ The actual tests all live in `tests.nix' files and are good old fashioned
 
 They're unit tests like you've seen in every other language so I won't
 waste time here.
-#+BEGIN_EXAMPLE nix
+#+BEGIN_SRC nix
   test = {
     *** Read this ***
     # Test names MUST start with "test<NAME>"
@@ -73,7 +73,7 @@ waste time here.
     };
 
   }
-#+END_EXAMPLE
+#+END_SRC
 
 The test above is expected to fail, so we'll see it appear in outputs of
 ~nix build .#tests~ or ~nix eval -f . check~.
