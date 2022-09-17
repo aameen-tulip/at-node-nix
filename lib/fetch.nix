@@ -390,7 +390,7 @@
     };
     __fetcher = args: { outPath = builtins.path ( removeAttrs args ["cwd"] ); };
     __functor = self: { path ? args.resolved or "", ... } @ args: let
-      args' = if lib.libpath.isAbspath path then args else {
+      args' = if lib.libpath.isAbspath ( args.outPath or path ) then args else {
         path = "${args.cwd or self.__thunk.cwd}/${path}";
       };
     in callWith self args';

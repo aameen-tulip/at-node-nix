@@ -53,7 +53,7 @@ let
     "ident"
     "runScripts" "skipMissing"
     "nmDirCmd" "nodejs" "jq" "stdenv" "lib"
-    "override" "overrideDerivation"
+    "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
   ];
@@ -105,6 +105,7 @@ in stdenv.mkDerivation ( {
   #'';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
+
 } // mkDrvArgs )
 
 # XXX: Certain `postInstall' scripts might actually need to be

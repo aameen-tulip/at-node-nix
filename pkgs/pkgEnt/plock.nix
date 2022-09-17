@@ -163,7 +163,7 @@
   # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
   # This can be an arbitary snippet of shell code.
   # The env var `node_modules_path' should be used to refer to the install dir.
-  #   mkNmDirHook = ''
+  #   nmDirCmd = ''
   #     mkdir -p "$node_modules_path/@foo/bar";
   #     cp -Tr -- "${pkgs.bar}" "$node_modules_path/@foo/bar";
   #   ''
@@ -188,6 +188,7 @@
       # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
       "tarball"
       "source"
+      "built"
       "installed"
       "prepared"
       "outPath"

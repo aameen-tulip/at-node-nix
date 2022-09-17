@@ -142,10 +142,11 @@
       buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
       evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
       runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
-      # FIXME: this still uses the old gross function factory thing
-      genericInstall = callPackage ./pkgs/build-support/genericInstall.nix {
-        impure = final.flocoConfig.enableImpureMeta;
-      };
+      # FIXME: the alignment with `buildGyp' is bad.
+      genericInstall = callPackageWith {
+        flocoConfig = final.flocoConfig;
+        impure      = final.flocoConfig.enableImpureMeta;
+      } ./pkgs/build-support/genericInstall.nix;
       patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
       genSetBinPermissionsHook =
         callPackage ./pkgs/pkgEnt/genSetBinPermsCmd.nix {};
@@ -175,6 +176,7 @@
         mkPkgEntSource
         buildPkgEnt
         installPkgEnt
+        testPkgEnt
       ;
 
       # Takes `source' ( original ) and `prepared' ( "built" ) as args.
