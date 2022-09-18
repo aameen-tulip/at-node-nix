@@ -373,6 +373,14 @@
   #   or
   #   let fetchFromFoo = lib.pathW // { __thunk.cwd = toString ./../../foo; };
   #   in builtins.mapAttrs
+  #
+  # NOTE: If you pass an attrset with `outPath' or `path.outPath' as your args,
+  # this is essentially an accessor that just returns that `outPath'.
+  # The rationale for this is that it allows users to set `sourceInfo.path' to
+  # a derivation using `sourceInfo.type = "path";' as a way to override sources
+  # in `metaEnt' data ( this still applies `filter' if it is defined ).
+  # If `outPath' is an arg no filtering is applied; the path it taken "as is",
+  # which helps avoid needlessly duplicating store paths.
   pathW = {
     __functionArgs = {
       name      = true;
@@ -381,6 +389,7 @@
       filter    = true;
       recursive = true;
       sha256    = true;
+      outPath   = true;
       cwd       = false;
     };
     __thunk = {
@@ -388,9 +397,16 @@
         bname = baseNameOf name;
       in ( type == "directory" -> ( bname != "node_modules" ) );
     };
-    __fetcher = args: { outPath = builtins.path ( removeAttrs args ["cwd"] ); };
-    __functor = self: { path ? args.resolved or "", ... } @ args: let
-      args' = if lib.libpath.isAbspath ( args.outPath or path ) then args else {
+    __fetcher = args: {
+      outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
+    };
+    __functor = self: {
+      path ? args.resolved or args.outPath or ""
+      , ...
+    } @ args: let
+      # NOTE: `path' may be a set in the case where it is a derivation; so in
+      # order to pass to `builtins.path' we need to make it a string.
+      args' = if lib.libpath.isAbspath ( path.outPath or path ) then args else {
         path = "${args.cwd or self.__thunk.cwd}/${path}";
       };
     in callWith self args';
