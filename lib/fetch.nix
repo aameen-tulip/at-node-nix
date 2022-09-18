@@ -517,7 +517,9 @@
       else if ( plent ? lockDir ) then { __thunk.cwd = plent.lockDir; } else {};
     fetcher = ( fetcherForType fetchers entSubtype ) // cwd';
     args' = if sourceInfo != {} then sourceInfo else plent;
-  in fetcher ( { inherit type; } // args' );
+    fetched = fetcher ( { inherit type; } // args' );
+  # Don't refetch if `outPath' is defined ( basically only happens for flakes ).
+  in if sourceInfo ? outPath then sourceInfo else fetched;
 
 
 # ---------------------------------------------------------------------------- #
