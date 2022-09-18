@@ -217,7 +217,7 @@
       # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
       { sourceInfo = lib.libfetch.plockEntryHashAttr plent; }
     ];
-    ec = builtins.addErrorContext "metaEntFromPlockSubtype:${plent.ident}:";
+    ec = builtins.addErrorContext "metaEntFromPlockSubtype";
   in if builtins.isString x then core else ec forAttrs;
 
   inherit (
