@@ -55,15 +55,13 @@
   #   ""         ==> { scope = null;  scopeDir = ""; }
   #   null       ==> { scope = null;  scopeDir = ""; }
   #   "@/"       ==> error: Invalid scope string: @/
-  normalizePkgScope = str:
-    let smatch = builtins.match "@?([^/@]+)(/[^/@]*)?" ( lib.toLower str );
-    in if ( ( str == null ) || ( str == "" ) )
-       then { scope = null; scopeDir = ""; }
-       else if ( smatch == null ) then ( throw "Invalid scope string: ${str}" )
-       else let scope = builtins.head smatch; in {
-                  inherit scope;
-                  scopeDir = "@${scope}/";
-                };
+  normalizePkgScope = str: let
+    smatch = builtins.match "@?([^/@]+)(/[^/@0-9][^/@]*(/[1-9][^/@]*)?)?" ( lib.toLower str );
+    scope  = builtins.head smatch;
+  in if ( ( str == null ) || ( str == "" ) )
+     then { scope = null; scopeDir = ""; }
+     else if ( smatch == null ) then ( throw "Invalid scope string: ${str}" )
+     else { inherit scope; scopeDir = "@${scope}/"; };
 
 
 # ---------------------------------------------------------------------------- #

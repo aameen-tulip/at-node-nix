@@ -1,21 +1,88 @@
+# ============================================================================ #
+
 { lib }: let
 
+# ---------------------------------------------------------------------------- #
+
   inherit (builtins) unsafeDiscardStringContext readFile fetchurl fromJSON;
+
+  inherit (lib.flocoConfig) registryScopes;
+  dftReg = registryScopes._default;
+
+  # FIXME: the `ident' arg doesn't quite work.
+  _registryForScope = {
+    scope          ? meta.scope or ( lib.yank "@([^/]*)" ( dirOf ident ) )
+  , ident          ? if ( meta ? key ) then ( dirOf meta.key ) else meta.name
+  , meta           ? args.meta or args
+  , registryScopes ? flocoConfig.registryScopes
+  , flocoConfig    ? lib.flocoConfig or lib.libcfg.defaultFlocoConfig
+  , ...
+  } @ args: let
+    sc = if ( scope == "." ) || ( scope == null ) then "_default" else scope;
+  in registryScopes.${sc} or registryScopes._default;
+
+  registryForScope = {
+    __functionArgs = ( lib.functionArgs _registryForScope ) // {
+      name = true;
+      key  = true;
+    };
+    __thunk = let
+      flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
+    in { inherit (flocoConfig) registryScopes; };
+    __functor = self: x: let
+      scopeFromString = ( lib.libpkginfo.normalizePkgScope x ).scope;
+      args = if builtins.isString x then { scope = scopeFromString; } else
+             if builtins.isAttrs x then x else
+             throw "registryForScope: arg must be a string (scope) or attrset";
+    in _registryForScope ( self.__thunk // args );
+    __doc = ''
+      FUNCTOR ( Polymorphic & Thunk & Configured )
+      registryForScope :: (String:<key|ident|scope> | Attrs) -> String
+
+      Ex:  registryForScope "foo"                                  ==> "https://registry.npmjs.org"
+      Ex:  registryForScope { ident = "@foo/bar"; }                ==> "https://registry.npmjs.org"
+      Ex:  registryForScope { flocoConfig = ...; scope = "foo"; }  ==> http://myregistry.com
+
+      Recommended Attr Args: { scope, registryScope }
+      Fallback Attr Args:    { scope <- ident|name|key|meta, registryScope <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
+
+      Uses `lib.flocoConfig.registryScopes' by default.
+      You may also set `__thunk.(registryScopes|flocoConfig)' to specialize this functor to use alternate scope settings.
+
+      When a string argument is passed, the default registry scope list is used, and the string is parsed using `lib.libpkginfo.normalizePkgScope'.
+      NOTE: this means that passing "@foo/bar" OR "foo" uses "foo" as the scope - which might not be what you expect.
+
+      KEYWORDS: functor, configured, thunk, polymorphic, registry, scope
+    '';
+  };
+
+# ---------------------------------------------------------------------------- #
 
   # Fetch a packument from the registry.
   # String string contexts to ensure that the fetched result doesn't root its
   # hash from any arguments.
   # NOTE: I honestly don't know if it would do this, but I'm not going to dig
   #       through the Nix source code to find out right now.
-  fetchPackument = registryUrl: name: let
+  _fetchPackument = registryUrl: name: let
     url = unsafeDiscardStringContext "${registryUrl}/${name}";
   in readFile ( fetchurl url );
+
+  fetchPackument = {
+    __functionArgs = {
+      registryUrl = true;
+      name        = false;
+    };
+    __thunk.registryUrl =  lib.flocoConfig.registryScopes._default;
+    # FIXME
+    __functor = self:
+      _fetchPackument;
+  };
 
   importFetchPackument = registryUrl: name:
     fromJSON ( fetchPackument registryUrl name );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   addPackumentExtras = packument: let
     nid' = lib.libparse.parseIdent packument._id;
@@ -51,7 +118,7 @@
   };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Determine the latest version of a package from its packument info.
   # First we check for `.dist-tags.latest' for a version number, otherwise we
@@ -68,7 +135,7 @@
       throw "Package ${packument._id} lacks a version list";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   getTarInfo = x:
     let dist = x.dist or x.tarball or ( packumentPkgLatestVersion x ).dist;
@@ -79,7 +146,7 @@
     let ti = getTarInfo x; in { url = ti.tarball; hash = ti.integrity; };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   fetchTarInfo = registryUrl: name: version:
     let packument = importFetchPackument registryUrl name;
@@ -108,7 +175,7 @@
       in fetchFetchurlTarballArgs "https://registry.npmjs.org/" pname' version';
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   /**
    * A lazily evaluated extensible packument database.
@@ -171,7 +238,7 @@
   in marked;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # That's right ladies and gentlemen, you've stubmled upon the mythic
   # "Y Combinator" in the wild.
@@ -187,7 +254,7 @@
   # to size.
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
 #  /* FOR TESTING FIXME: REMOVE */
 ##  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
@@ -213,7 +280,7 @@
 ##  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # XXX: YOU STILL NEED TO SET `inputs.<ID>.flake = false' in your `flake.nix'!
   flakeRegistryFromPackuments = registryUrl: name: let
@@ -244,7 +311,7 @@
     flakeRegistryFromPackuments "https://registry.npmjs.org";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   flakeInputFromManifestTarball = manifest @ {
     name       ? null  # We don't use these, but I'm listing them for reference.
@@ -294,7 +361,7 @@
   } // maybeId // maybeNarHash // maybeToString;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Given an input `id' created by `flakeInputFromManifestTarball', return an
   # attrset with all the delicious nuggets of info therein.
@@ -319,7 +386,7 @@
   } // ( if scope == null then {} else { inherit scope; } );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   fetchManifest = registryUrl: name: version: let
     url = unsafeDiscardStringContext "${registryUrl}/${name}/${version}";
@@ -329,7 +396,7 @@
     fromJSON ( fetchManifest registryUrl name version );
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   normalizeManifest = manifest: let
     removes = [
@@ -363,7 +430,7 @@
   in san // { inherit hasInstallScript gypfile; };
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   importCleanManifest = registryUrl: name: version:
     normalizeManifest ( importFetchManifest registryUrl name version );
@@ -371,7 +438,7 @@
   importManifestNpm = importCleanManifest "https://registry.npmjs.org";
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   # Fetch an NPM package using `fetchTree'.
   # FIXME: this is kind of dumb, you'd need to run `prepare'.
@@ -387,9 +454,12 @@
   };
 
 
-/* ------------------------------------------------------------------------- -*/
+# ---------------------------------------------------------------------------- #
 
 in {
+  inherit
+    registryForScope
+  ;
   inherit
     fetchPackument
     importFetchPackument
@@ -425,3 +495,10 @@ in {
     fetchGitNpm
   ;
 }
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #
