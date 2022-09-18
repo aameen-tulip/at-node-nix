@@ -42,8 +42,8 @@
       Ex:  registryForScope { ident = "@foo/bar"; }                ==> "https://registry.npmjs.org"
       Ex:  registryForScope { flocoConfig = ...; scope = "foo"; }  ==> http://myregistry.com
 
-      Recommended Attr Args: { scope, registryScope }
-      Fallback Attr Args:    { scope <- ident|name|key|meta, registryScope <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
+      Recommended Attr Args: { scope, registryScopes }
+      Fallback Attr Args:    { scope <- ident|name|key|meta, registryScopes <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
 
       Uses `lib.flocoConfig.registryScopes' by default.
       You may also set `__thunk.(registryScopes|flocoConfig)' to specialize this functor to use alternate scope settings.
