@@ -57,7 +57,6 @@
   inputs.nix.inputs.nixpkgs.follows = "/nixpkgs";
 
   inputs.utils.url = "github:numtide/flake-utils/master";
-  inputs.utils.inputs.nixpkgs.follows = "/nixpkgs";
 
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
