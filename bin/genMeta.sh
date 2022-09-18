@@ -85,6 +85,7 @@ $NIX eval --impure --raw $FLAKE_REF#lib --apply '
   lib: let
     metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; };
     serial  = metaSet.__serial;
-    extra   = { __meta = { inherit (metaSet.__meta) fromType rootKey; }; };
+    tree    = lib.libtree.idealTreePlockV3 { lockDir = toString ./.; dev = builtins.getEnv "DEV" == "true"; };
+    extra   = { __meta = { inherit (metaSet.__meta) fromType rootKey; } // { inherit tree; }; };
   in lib.librepl.pp ( serial // extra )
 ';
