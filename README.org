@@ -109,7 +109,7 @@ Beyond that the =lib= and several ~pkgs/~ builders were designed for general-pur
 I do advise readers to take a look at them, because they may save you a lot of pain and suffering if you were to try and implement similar routines from scratch.
 
 * Migration Notice
-At time of writing I am migrating large bodies of "battle tested" expressions from the branch =nps-scoped= onto =main=, as well as some routines which are held in a private repository.
+At time of writing I am migrating a large collection of expressions using the =at-node-nix= framework "in the field" into generalized routines; effectively this body of code will comprise the first official release.
 As these routines are merged to =main= I intend to take that opportunity to document them and write test cases.
 
 If you come across what appears to be a dead end or a missing function, please run a quick search on =nps-scoped= or feel free to send me an email at <alex.ameen.tx@gmail.com> or contact me on Matrix <growpotkin1:matrix.org>.
