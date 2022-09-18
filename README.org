@@ -28,6 +28,24 @@ During alpha phase this project was named =at-node-nix=. The released tool will 
 
 * Interfaces and Tools
 
+** =genMeta=
+A script that generates a static =metaSet= file from an Node.js package descriptor.
+This is ideal for published modules whose =package.json= and =package-lock.json= file does not change.
+
+This has been exposed as a flake output as an "app", so ~nix run at-node-nix#genMeta -- @foo/bar@1.0.0;~ will allow you run this script from anywhere.
+
+For example, when developing a project you may run into registry tarballs who have install scripts or =node-gyp= builds with large dependency graphs.
+While =buildGyp= can generally build these modules without any dependencies in its working directory, you'll definitely encounter cases where you need to provide some =dependencies= members for a build to succeed.
+In such a case, you can use ~genMeta @foo/bar@4.2.0 > foo-bar-4.2.0-meta.nix;~ to provide the minimal =metaSet= required to run that install routine with a builder such as =mkPkgEntSource= and =installPkgEnt= along with =mkNmDirCmd*=.
+
+See ~nix run at-node-nix#genMeta -- --help~ for more info.
+
+*** TODO: implement =lib.libmeta.metSetFromSerial=
+At time of writing there =lib.libmeta.metaSetFromSerial= has not been implemented, so you'll need to manually call =lib.libmeta.metaEntFromSerial= and =lib.libmeta.mkMetaSet= to deserialize. This is going to be implemented ASAP.
+
+*** TODO: allow =flocoConfig= to be passed to =genMeta=
+There is not currently a simple avenue for users to pass in a custom =flocoConfig=, but if you need to immediately read the ~<at-node-nix>/bin/genMeta.sh~ and you'll see that it's pretty trivial to do so if you invoke ~nix eval ...;~ manually.
+
 ** =ExtInfo=
 A "class-like" attrset made to be extensible into various forms of meta-data entries and collections; these are truly /functors/, meaning they are abstract data type that can act either as "records" or functions with self-reference ( so... basically but not technically a "classy thing" ).
 

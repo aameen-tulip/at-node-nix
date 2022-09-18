@@ -244,6 +244,11 @@
     apps = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
+      # Generates `metaSet' file from a package descriptor.
+      # Particularly useful for generating flakes for registry tarballs with
+      # install scripts since these rarely need to be dynamically generated.
+      # NOTE: This isn't really recommended for projects that are under active
+      #       development ( because their lockfiles change frequently ).
       genMeta = {
         type = "app";
         program = let
