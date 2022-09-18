@@ -171,16 +171,22 @@ FIXME: write the fucking thing.
     at-node-nix = builtins.getFlake "at-node-nix";
     inherit (at-node-nix) lib;
     pkgsFor = at-node-nix.legacyPackages.${builtins.currentSystem};
+    # Deserialize the `metaSet', somewhat manual until `lib.libmeta.metaSetFromSerial' is implemented.
     metaSet = let
       raw     = import ./meta.nix;
       members = builtins.mapAttrs ( k: e:
           if lib.hasPrefix "__" k then e else lib.libmeta.metaEntFromSerial e
         ) raw;
     in lib.libmeta.mkMetaSet members;
+    # Create a package entry with source/tarball members, and add the install to it.
     # This is a "full" `pkgEnt', which is superfulous for this example; but useful in
-    # real expressions.
+    # real projects so I went the extra mile.
     pkgEnt = let
+      # The `meta.nix' file marked `__meta.rootKey = "@datadog/native-metrics/1.2.0"', but
+      # I avoided hard coding that key here to make it easier to reuse this snippet.
       pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      # The `installPkgEnt' builder is going to yank args from our `metaEnt' and `pkgEnt', and
+      # then call `buildGyp' for us.
       installed = pkgsFor.installPkgEnt ( pkgEntSrc // {
         # We don't care about any other deps for this stage, so just add NaN.
         # Because we have deserialized we don't have info about the original `node_modules/' tree.
@@ -192,8 +198,11 @@ FIXME: write the fucking thing.
           in pkgsFor.flocoFetch metaSet.${nanKey}.sourceInfo;
         };
       } );
+      # Manually extend the `pkgEnt' with our install, and since we're done with this package
+      # we'll also set `prepared' and a top level `outPath' to follow good `pkgEnt' conventions.
+      # Following these conventions is important to help other expressions consume this `pkgEnt'.
     in pkgEntSrc // { inherit installed; inherit (installed) outPath; prepared = installed; };
-  in pkgEnt
+  in pkgEnt.prepared  # Just an alias of the `installed' field which we can build with `nix build --impure -f .;'
 #+END_SRC
 
 So not the prettiest solution; but since we don't have the tree metadata it'll do the trick.
