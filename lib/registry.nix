@@ -341,7 +341,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flakeInputFromManifestTarball = manifest @ {
+  # FIXME: use `lib.generators.toPretty'
+  flakeInputFromManifestTarball = {
     name       ? null  # We don't use these, but I'm listing them for reference.
   , version    ? null
   , dist       ? {}
@@ -364,7 +365,7 @@
     # but I've left it optional in case someone needs it.
   , lookupNar ? true
   , ...  # `engines' and a few other obnoxious fields should get tossed.
-  }: let
+  } @ manifest: let
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
     id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] ( _id );
     maybeId = if withId then { inherit id; } else {};
@@ -427,6 +428,9 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Drop junk fields from manifests, and add explicit handlers for a few fields
+  # that we actually care about.
+  # FIXME: This could probably be shortened using `builtins.intersectAttrs'.
   normalizeManifest = manifest: let
     removes = [
       "_npmOperationalInternal"
@@ -441,7 +445,7 @@
       "author"
       "bugs"
     ];
-      # Subfields
+    # Subfields
     removesDist = [  # dist.<ATTR>
       "signatures"
       "npm-signature"
@@ -450,13 +454,22 @@
     ];
     dist = removeAttrs ( manifest.dist or {} ) removesDist;
     san  = ( removeAttrs manifest removes ) // { inherit dist; };
-    # Missing `install' scripts are automatically added by the registry
+    # Missing `install' scripts are automatically added by the NPM registry
     # for projects with `binding.gyp' in the root.
-    hasInstallScript = ( san ? scripts.install )    ||
-                       ( san ? scripts.preinstall ) ||
-                       ( san ? scripts.postinstall );
+    # This SHOULD be in the manifest already if we pulled from a "standard"
+    # registry, but because I can't find anywhere that actually specifies
+    # whether or not this is always added for all implementations of "NPM style
+    # registries" - I am making this explicit.
+    #
+    # NOTE: This is not "bullet-proof", there's no real spec for registries.
+    # We have no guarantees that the `scripts' or `gypfile' fields will be present.
+    # As a practical matter we're covering NPM, Verdaccio, and GitHub Packages.
+    hasInstallScript = ( san ? scripts.install )      ||
+                       ( san ? scripts.preinstall )   ||
+                       ( san ? scripts.postinstall )  ||
+                       ( san.gypfile or false );
     gypfile = san.gypfile or false;
-  in san // { inherit hasInstallScript gypfile; };
+  in { inherit hasInstallScript gypfile; } // san;
 
 
 # ---------------------------------------------------------------------------- #
