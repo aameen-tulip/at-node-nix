@@ -10,8 +10,8 @@ on:
       - lib/**
       - tests/**
       - pkgs/**
-    paths-ignore:
-      - '**/README*'
+      - '!**/README*'
+      
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -21,8 +21,8 @@ on:
       - lib/**
       - tests/**
       - pkgs/**
-    paths-ignore:
-      - '**/README*'
+      - '!**/README*'
+      
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
