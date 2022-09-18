@@ -63,6 +63,7 @@
     ./libsys
     ./librange
     ./libfetch
+    ./libreg
     ./mkNmDir
     ./pkg-set
   ];
