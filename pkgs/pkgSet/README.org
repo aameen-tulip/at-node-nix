@@ -148,6 +148,52 @@ but for now that's the way it works.
 
 If you have a package with a large number of deps, make a lock:
 #+BEGIN_SRC shell
-  NPM_CONFIG_LOCKFILE_VERSION=2 npm i @foo/bar--package-lock-only;
+  NPM_CONFIG_LOCKFILE_VERSION=3 npm i @foo/bar--package-lock-only --ignore-scripts;
   jq '.packages[""]' > ./package.json;
 #+END_SRC
+
+This is _nearly_ what =genMeta= does to generate =metaSet= files ( see section below ).
+
+*** Generating =metaSet= using =genMeta= script
+Before making this recommendation I want to note: At time of writing, =genMeta= is relatively new and we lack a =lib.libmeta.metaSetFromSerial= routine - but we DO have a =lib.libmeta.metaEntFromSerial= routine ( the actual heavy lifter ). Creating a =metaSet= is as simple as using =builtins.mapAttrs= with =lib.libmeta.metaEntFromSerial= ( filter out any ~__*~ fields first ) and =lib.libmeta.mkMetaSet=; but you'll still be missing info needed by =lib.libtree=. Having said that though, this is currently the least painful way to quickly generate builds for "non-root" installed modules.
+
+With a bit of elbow grease, you can leverage ( or modify ) the script =genMeta= exposed by the top level flake as ~nix run at-node-nix#genMeta -- DESCRIPTOR [FLAGS...]~ to generate the bulk of the metadata you need to define standalone builds for "non-root" installed modules.
+
+This script is going to be extended soon to make this more automatic; but using the short example in the previous section and by taking a quick glance at [[file:../../bin/genMeta.sh][genMeta.sh]] you can easily whip up a build either using a stashed =package-lock.json= + =package.json=, or augmenting the generated =metaSet= with a dump of ~nix eval at-node-nix#lib --apply 'lib: lib.libtree { lockDir = toString ./.; }';~ in the same temporary dir that =genMeta= uses. Again, I'm going to add this soon as a "real" part of the tool-chain, but for now that'll do the trick. FIXME: write the fucking thing.
+
+**** Example using =genMeta= to produce a =node-gyp= build which depends on =NaN=
+#+BEGIN_SRC shell
+  nix run at-node-nix#genMeta -- @datadog/native-metrics@1.2.0 > meta.nix;
+  nix build --impure --expr '
+  let
+    at-node-nix = builtins.getFlake "at-node-nix";
+    inherit (at-node-nix) lib;
+    pkgsFor = at-node-nix.legacyPackages.${builtins.currentSystem};
+    metaSet = let
+      raw     = import ./meta.nix;
+      members = builtins.mapAttrs ( k: e:
+          if lib.hasPrefix "__" k then e else lib.libmeta.metaEntFromSerial e
+        ) raw;
+    in lib.libmeta.mkMetaSet members;
+    # This is a "full" `pkgEnt', which is superfulous for this example; but useful in
+    # real expressions.
+    pkgEnt = let
+      pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      installed = pkgsFor.installPkgEnt ( pkgEntSrc // {
+        # We don't care about any other deps for this stage, so just add NaN.
+        # Because we have deserialized we don't have info about the original `node_modules/' tree.
+        # for that reason we have manually produce the tree ( luckily pretty easy here ).
+        nmDirCmd = pkgsFor.mkNmDirLinkCmd {
+          handleBindir = false;
+          tree."node_modules/nan" = let
+            nanKey = builtins.filter ( lib.hasPrefix "nan/" ) ( builtins.attrNames metaSet.__entries );
+          in pkgsFor.flocoFetch metaSet.${nanKey}.sourceInfo;
+        };
+      } );
+    in pkgEntSrc // { inherit installed; inherit (installed) outPath; prepared = installed; };
+  in pkgEnt
+  ';
+#+END_SRC
+
+So not the prettiest solution; but since we don't have the tree metadata it'll do the trick.
+Having said that we'll almost definitely prefer to dump generated trees for any sizeable dependency graphs.
