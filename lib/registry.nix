@@ -4,8 +4,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  inherit (builtins) unsafeDiscardStringContext readFile fetchurl fromJSON;
-
   inherit (lib.flocoConfig) registryScopes;
   dftReg = registryScopes._default;
 
@@ -63,23 +61,45 @@
   # hash from any arguments.
   # NOTE: I honestly don't know if it would do this, but I'm not going to dig
   #       through the Nix source code to find out right now.
-  _fetchPackument = registryUrl: name: let
-    url = unsafeDiscardStringContext "${registryUrl}/${name}";
-  in readFile ( fetchurl url );
+  _fetchPackument = { registry, ident, ... }: let
+    url = builtins.unsafeDiscardStringContext "${registry}/${ident}";
+  in builtins.readFile ( builtins.fetchurl url );
 
   fetchPackument = {
     __functionArgs = {
-      registryUrl = true;
-      name        = false;
+      flocoConfig    = true;
+      registryScopes = true;
+      registry       = true;
+      name           = true;
+      ident          = true;
+      meta           = true;
+      key            = true;
     };
-    __thunk.registryUrl =  lib.flocoConfig.registryScopes._default;
-    # FIXME
-    __functor = self:
-      _fetchPackument;
+
+    __thunk = let
+      flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
+    in { inherit (flocoConfig) registryScopes; };
+
+    __functor = self: x: let
+      regArgs =
+        if builtins.isAttrs x then self.__thunk // x else
+        self.__thunk // {
+          ident = lib.yank "((@[^/]+/)?[^@/]+)(/[1-9][^/@]*)?" x;
+        };
+      registry = registryForScope regArgs;
+      ident =
+        regArgs.ident or regArgs.meta.ident or regArgs.name or regArgs.meta.name
+        or ( dirOf ( regArgs.key or regArgs.meta.key ) );
+    in _fetchPackument ( { inherit ident registry; } // regArgs );
+
   };
 
-  importFetchPackument = registryUrl: name:
-    fromJSON ( fetchPackument registryUrl name );
+  # Tail calls `builtins.fromJSON' after fetching.
+  importFetchPackument = fetchPackument // {
+    __functor = self: args: let
+      wrapFP = fetchPackument // { inherit (self) __thunk; };
+    in builtins.fromJSON ( wrapFP args );
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -97,7 +117,7 @@
       } ) val.dist;
       fetchWith = {
         fetchurl ? ( { url, ... }: builtins.fetchurl url )
-      }: fetchurl fetchTarballArgs;
+      }: builtins.fetchurl fetchTarballArgs;
     in val // {
       inherit fetchTarballArgs fetchWith;
       inherit (val.dist) tarball;
@@ -389,11 +409,12 @@
 # ---------------------------------------------------------------------------- #
 
   fetchManifest = registryUrl: name: version: let
-    url = unsafeDiscardStringContext "${registryUrl}/${name}/${version}";
-  in readFile ( fetchurl url );
+    url  = "${registryUrl}/${name}/${version}";
+    urlS = builtins.unsafeDiscardStringContext url;
+  in builtins.readFile ( builtins.fetchurl urlS );
 
   importFetchManifest = registryUrl: name: version:
-    fromJSON ( fetchManifest registryUrl name version );
+    builtins.fromJSON ( fetchManifest registryUrl name version );
 
 
 # ---------------------------------------------------------------------------- #
