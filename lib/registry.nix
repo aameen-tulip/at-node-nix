@@ -7,19 +7,25 @@
   inherit (lib.flocoConfig) registryScopes;
   dftReg = registryScopes._default;
 
+# ---------------------------------------------------------------------------- #
+
   # Given a scope, return the registry URL we should use.
   # Uses thunked dictionary to map scopes to registries. 
   _registryForScope = {
-    scope          ? meta.scope or ( lib.yank "@([^/]*)" ( dirOf ident ) )
-  , ident          ? if ( meta ? key ) then ( dirOf meta.key ) else meta.name
-  , meta           ? args.meta or args
+    scope          ? meta.scope or ( lib.yank "@([^/]+)" ( dirOf ident ) )
+  , ident          ? meta.ident or name
+  , name           ? meta.name  or ( dirOf key )
+  , key            ? meta.key
+  , meta           ? {}
   , registryScopes ? flocoConfig.registryScopes
   , flocoConfig    ? lib.flocoConfig or lib.libcfg.defaultFlocoConfig
   , ...
   } @ args: let
-    sc = if ( scope == "." ) || ( scope == null ) then "_default" else scope;
+    stripped = lib.yank "@?([^/]+)/?" scope;
+    sc = if ( scope == "." ) || ( scope == null ) then "_default" else stripped;
   in registryScopes.${sc} or registryScopes._default;
 
+  # See `tests/libreg/tests.nix' for more examples.
   registryForScope = {
     __functionArgs = ( lib.functionArgs _registryForScope ) // {
       name = true;
@@ -32,6 +38,7 @@
       scopeFromString = ( lib.libpkginfo.normalizePkgScope x ).scope;
       args = if builtins.isString x then { scope = scopeFromString; } else
              if builtins.isAttrs x then x else
+             if x == null then { scope = null; } else
              throw "registryForScope: arg must be a string (scope) or attrset";
     in _registryForScope ( self.__thunk // args );
     __doc = ''
