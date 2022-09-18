@@ -207,7 +207,7 @@
       { c = ! isLocal;          v.sourceInfo.url = plent.resolved;         }
       {
         c = isLocal && ( plent.hasInstallScript or false );
-        v = builtins.pathExists "${pjsDir}/binding.gyp";
+        v.gypfile = builtins.pathExists "${pjsDir}/binding.gyp";
       }
       # This is NOT redundant alongside the `plockEntryHashAttrs' call.
       { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity;       }
