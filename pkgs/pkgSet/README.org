@@ -159,12 +159,14 @@ Before making this recommendation I want to note: At time of writing, =genMeta= 
 
 With a bit of elbow grease, you can leverage ( or modify ) the script =genMeta= exposed by the top level flake as ~nix run at-node-nix#genMeta -- DESCRIPTOR [FLAGS...]~ to generate the bulk of the metadata you need to define standalone builds for "non-root" installed modules.
 
-This script is going to be extended soon to make this more automatic; but using the short example in the previous section and by taking a quick glance at [[file:../../bin/genMeta.sh][genMeta.sh]] you can easily whip up a build either using a stashed =package-lock.json= + =package.json=, or augmenting the generated =metaSet= with a dump of ~nix eval at-node-nix#lib --apply 'lib: lib.libtree { lockDir = toString ./.; }';~ in the same temporary dir that =genMeta= uses. Again, I'm going to add this soon as a "real" part of the tool-chain, but for now that'll do the trick. FIXME: write the fucking thing.
+This script is going to be extended soon to make this more automatic; but using the short example in the previous section and by taking a quick glance at [[file:../../bin/genMeta.sh][genMeta.sh]] you can easily whip up a build either using a stashed =package-lock.json= + =package.json=, or augmenting the generated =metaSet= with a dump of ~nix eval at-node-nix#lib --apply 'lib: lib.libtree { lockDir = toString ./.; }';~ in the same temporary dir that =genMeta= uses. Again, I'm going to add this soon as a "real" part of the tool-chain, but for now that'll do the trick.
+
+FIXME: write the fucking thing.
 
 **** Example using =genMeta= to produce a =node-gyp= build which depends on =NaN=
-#+BEGIN_SRC shell
-  nix run at-node-nix#genMeta -- @datadog/native-metrics@1.2.0 > meta.nix;
-  nix build --impure --expr '
+#+BEGIN_SRC nix
+  # Run:  nix run at-node-nix#genMeta -- @datadog/native-metrics@1.2.0 > meta.nix;
+  # Then define this `default.nix' and run `nix build --impure -f .;'
   let
     at-node-nix = builtins.getFlake "at-node-nix";
     inherit (at-node-nix) lib;
@@ -192,7 +194,6 @@ This script is going to be extended soon to make this more automatic; but using 
       } );
     in pkgEntSrc // { inherit installed; inherit (installed) outPath; prepared = installed; };
   in pkgEnt
-  ';
 #+END_SRC
 
 So not the prettiest solution; but since we don't have the tree metadata it'll do the trick.
