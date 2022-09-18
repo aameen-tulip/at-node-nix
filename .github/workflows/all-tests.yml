@@ -10,7 +10,7 @@ on:
       - lib/**
       - tests/**
       - pkgs/**
-      - ! '**/README*'
+      - '!**/README*'
       
   pull_request:
     types: [opened, synchronize, reopened]
@@ -21,7 +21,7 @@ on:
       - lib/**
       - tests/**
       - pkgs/**
-      - ! '**/README*'
+      - '!**/README*'
       
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
