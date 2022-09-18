@@ -1,7 +1,6 @@
 # ============================================================================ #
 #
-# FIXME: Rename and tweak this for V3 explicitly.
-# FIXME: Remove `package.json' references.
+#
 #
 # ---------------------------------------------------------------------------- #
 
@@ -10,6 +9,114 @@
   inherit (lib) genMetaEntRules;
   inherit (lib.libmeta) metaEntWasPlock;
 
+# ---------------------------------------------------------------------------- #
+#
+# Our `metaEnt' and `metaSet' data is extensible, and different forms of input
+# and varying limitations on the use if "impure" and
+# IFD ( "import from derivation" ) effect the availability or complexity of
+# inferring certain fields.
+#
+# With that in mind it's good to know exactly what information we /really/ need
+# to complete certain processes so we can avoid breaking our backs trying to
+# infer information that we aren't actually going to use.
+#
+# Processes:
+#   - Fetch sources
+#     + includes any special "unpacking" routines for tarballs.
+#   - Build module
+#   - Install module
+#   - Prepare module
+#   - Test module
+#     + overlaps with "consume module" and "run bins"
+#   - Run bins
+#   - Consume module
+#   - Publish ( create registry tarball )
+#
+# Process Prerequisites:
+#   - Fetch sources ( define fetchers/unpackers )
+#     + Create `sourceInfo' member ( ideally from `plock' input )
+#     + Handle unpacking if necessary, depending on a user's `flocoConfig' this
+#       may mean performing a dry run of unpacking to see if anything fails.
+#       See `lib.libfetch.fetchurlNoteUnpackDrvW' for details.
+#       - Executing an unpack routine may be deferred to a later build, install,
+#         or prepare process - but it must be identified and marked immediately.
+#   - Build module
+#     + Only required for "local" or `git' projects that are being prepared
+#       "from source".
+#     + Prepare all `runtime', `dev', and qualified `optional' dependencies.
+#       - TODO: Bundled dependencies may require install or preparation.
+#         I am unsure if these are allowed to run `build' routines themselves.
+#         Currently we delete any bundled deps and reinstall them which "works"
+#         but isn't ideal since we are potentially clobbering patches applied
+#         by the consumer.
+#         In fairness, I haven't actually encountered an issue with this in
+#         the field.
+#       - As an optimization you can accept hints from overlays or config files
+#         to eliminate unneeded `runtime' and `optional' dependencies that are
+#         not required for the build.
+#         + This may eliminate cyclical dependencies and eliminate spurious
+#           rebuilds ( or at least help short-circuit them ).
+#         + Similarly if you can identify which `dev' dependencies are used to
+#           build, test, prepare, and publish you can further reduce this list.
+#           - For example `jest' or `semver' and shit like that is almost never
+#             a "real" build dependency - but detecting the cases where it
+#             actually is may require incremental dry runs.
+#     + Infer the "ideal tree" ( `node_modules/' dir ) required to build, and
+#       generate a script ( using `mkNmDirCmd*' ) to create it.
+#       - As an optimization if you're able to identify modules that are
+#         strictly used for `bin' executables, you can exclude them from ideal
+#         tree processing which can potentially simplify conflict resolution,
+#         cycle breaking, and reduce spurious rebuilds.
+#   - Install module
+#     + Required for any projects using `node-gyp', and a small handful which
+#       define custom `[pre|post]install' hooks.
+#     + As an optimization you can identify some `node-gyp-build' installs that
+#       are distributed with pre-built binaries.
+#       - Identifying these requires dry runs, and ultimately the user needs to
+#         run tests to see if the pre-built binaries work for their system.
+#     + As an optimization you can identify projects that abuse
+#       `[pre|post]install' routines to beg for money or spew emojis to the
+#       terminal to be skipped.
+#       - Requires dry runs and SHA diffs against `src' and `installed'.
+#     + Requires `runtime' and qualified `optional' dependencies to be prepared.
+#       - Similar to the "build module" process, we can try to identify which
+#         deps are actually used for the install and which aren't.
+#         + For `node-gyp' builds in particular there is often a drastic
+#           reduction in the required dependency graph.
+#         + In most cases `nan' and `node-gyp-build' are the only legitimate
+#           dependencies I've run into that are needed for these.
+#   - Prepare module
+#     + Requires fetched tarballs at a minimum and may be used to execute a
+#       queued unpack routine ( see note in "Fetch sources" process ).
+#       If a build or install is defined those should also be run first.
+#     + This is a fuzzy one that's a bit of a catch all for getting a module
+#       ready for consumption.
+#     + Some packages explicitly define `[pre|post]prepare' scripts which should
+#       be run for "local" and `git' modules.
+#       - These generally overlap with steps run before "publishing" a module.
+#         There's a wonky history with NPM's script names surrounding
+#         "scripts to run before publishing" that led many legacy projects to
+#         conflict with new usages - NPM manifest data can identify these and
+#         the `engines' field may also help here; but they're rare enough that
+#         we are content to leave them as an edge case that users handle in the
+#         rare cases that they occur ( sorry not sorry y'all NPM doesn't
+#         magically handle these either, they just print a warning ).
+#     + We also use this opportunity to handle any fixup/patching required by
+#       Nix as well in cases where there was no build/install routine where
+#       we had an opportunity to perform those steps.
+#   - Test module
+#     FIXME
+#   - Run bins
+#     FIXME
+#   - Consume module
+#     FIXME
+#   - Publish
+#     FIXME
+#
+#
+# Fields:
+#   FIXME
+#
 # ---------------------------------------------------------------------------- #
 
   getFromEntries = { entries ? {} }: builtins.attrValues entries;
