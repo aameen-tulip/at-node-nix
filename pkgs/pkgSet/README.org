@@ -155,13 +155,8 @@ If you have a package with a large number of deps, make a lock:
 This is _nearly_ what =genMeta= does to generate =metaSet= files ( see section below ).
 
 *** Generating =metaSet= using =genMeta= script
-Before making this recommendation I want to note: At time of writing, =genMeta= is relatively new and we lack a =lib.libmeta.metaSetFromSerial= routine - but we DO have a =lib.libmeta.metaEntFromSerial= routine ( the actual heavy lifter ). Creating a =metaSet= is as simple as using =builtins.mapAttrs= with =lib.libmeta.metaEntFromSerial= ( filter out any ~__*~ fields first ) and =lib.libmeta.mkMetaSet=; but you'll still be missing info needed by =lib.libtree=. Having said that though, this is currently the least painful way to quickly generate builds for "non-root" installed modules.
+FIXME: The example below can now be simplified. =genMeta= now stashes =__meta.tree= which may be passed to =mkNmDirCmd*=. This example will be updated soon, or more likely reframed as an example of manually specifying a limited set of install deps.
 
-With a bit of elbow grease, you can leverage ( or modify ) the script =genMeta= exposed by the top level flake as ~nix run at-node-nix#genMeta -- DESCRIPTOR [FLAGS...]~ to generate the bulk of the metadata you need to define standalone builds for "non-root" installed modules.
-
-This script is going to be extended soon to make this more automatic; but using the short example in the previous section and by taking a quick glance at [[file:../../bin/genMeta.sh][genMeta.sh]] you can easily whip up a build either using a stashed =package-lock.json= + =package.json=, or augmenting the generated =metaSet= with a dump of ~nix eval at-node-nix#lib --apply 'lib: lib.libtree { lockDir = toString ./.; }';~ in the same temporary dir that =genMeta= uses. Again, I'm going to add this soon as a "real" part of the tool-chain, but for now that'll do the trick.
-
-FIXME: write the fucking thing.
 
 **** Example using =genMeta= to produce a =node-gyp= build which depends on =NaN=
 #+BEGIN_SRC nix
