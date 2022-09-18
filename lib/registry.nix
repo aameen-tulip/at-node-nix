@@ -7,7 +7,8 @@
   inherit (lib.flocoConfig) registryScopes;
   dftReg = registryScopes._default;
 
-  # FIXME: the `ident' arg doesn't quite work.
+  # Given a scope, return the registry URL we should use.
+  # Uses thunked dictionary to map scopes to registries. 
   _registryForScope = {
     scope          ? meta.scope or ( lib.yank "@([^/]*)" ( dirOf ident ) )
   , ident          ? if ( meta ? key ) then ( dirOf meta.key ) else meta.name
