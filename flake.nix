@@ -241,6 +241,40 @@
 
 # ---------------------------------------------------------------------------- #
 
+    apps = eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    in {
+      genMeta = {
+        type = "app";
+        program = let
+          script = pkgsFor.runCommandNoCC "genMeta.sh" {
+            NIX    = "${pkgsFor.nix}/bin/nix";
+            MKTEMP = "${pkgsFor.coreutils}/bin/mktemp";
+            CAT    = "${pkgsFor.coreutils}/bin/cat";
+            NPM    = "${pkgsFor.nodejs.pkgs.npm}/bin/npm";
+            PACOTE = "${pkgsFor.pacote}/bin/pacote";
+            JQ     = "${pkgsFor.jq}/bin/jq";
+            nativeBuildInputs = [pkgsFor.makeWrapper];
+          } ''
+            mkdir -p "$out/bin";
+            cp ${builtins.path { path = ./bin/genMeta.sh; } }  \
+               "$out/bin/genMeta";
+            wrapProgram "$out/bin/genMeta"    \
+              --set-default NIX    "$NIX"     \
+              --set-default MKTEMP "$MKTEMP"  \
+              --set-default CAT    "$CAT"     \
+              --set-default NPM    "$NPM"     \
+              --set-default PACOTE "$PACOTE"  \
+              --set-default JQ     "$JQ"      \
+            ;
+          '';
+        in "${script}/bin/genMeta";
+      };
+    } );
+
+
+# ---------------------------------------------------------------------------- #
+
     legacyPackages = eachDefaultSystemMap ( system:
       ( nixpkgs.legacyPackages.${system} ).extend self.overlays.default
     );
