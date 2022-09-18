@@ -259,13 +259,14 @@
             mkdir -p "$out/bin";
             cp ${builtins.path { path = ./bin/genMeta.sh; } }  \
                "$out/bin/genMeta";
-            wrapProgram "$out/bin/genMeta"    \
-              --set-default NIX    "$NIX"     \
-              --set-default MKTEMP "$MKTEMP"  \
-              --set-default CAT    "$CAT"     \
-              --set-default NPM    "$NPM"     \
-              --set-default PACOTE "$PACOTE"  \
-              --set-default JQ     "$JQ"      \
+            wrapProgram "$out/bin/genMeta"                        \
+              --set-default FLAKE_REF ${self.sourceInfo.outPath}  \
+              --set-default NIX       "$NIX"                      \
+              --set-default MKTEMP    "$MKTEMP"                   \
+              --set-default CAT       "$CAT"                      \
+              --set-default NPM       "$NPM"                      \
+              --set-default PACOTE    "$PACOTE"                   \
+              --set-default JQ        "$JQ"                       \
             ;
           '';
         in "${script}/bin/genMeta";

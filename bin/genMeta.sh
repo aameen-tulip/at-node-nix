@@ -11,6 +11,8 @@
 : "${NPM:=$NIX run nixpkgs#nodejs-14_x.pkgs.npm --}";
 : "${JQ:=$NIX run nixpkgs#jq --}";
 
+: "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
+
 usage() {
   {
     echo "Generate a Floco metaSet for an NPM registry tarball";
@@ -24,6 +26,11 @@ usage() {
     echo "OPTIONS";
     echo "  -p,--prod    Drop devDependencies metadata";
     echo "  -d,--dev     Preserve devDependencies metadata";
+    echo "ENVIRONMENT";
+    echo "  FLAKE_REF    Flake URI to use for at-node-nix";
+    echo "               default: github:aameen-tulip/at-node-nix";
+    echo "  The following utilities may be indicated with absolute paths:";
+    echo "  NIX MKTEMP CAT PACOTE NPM JQ";
   }
 }
 
@@ -74,7 +81,7 @@ $JQ                                                                           \
 ' ./package-lock.json > plmin.json;
 mv ./plmin.json ./package-lock.json;
 
-$NIX eval --impure --raw github:aameen-tulip/at-node-nix#lib --apply '
+$NIX eval --impure --raw $FLAKE_REF#lib --apply '
   lib: let
     metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; };
     serial  = metaSet.__serial;
