@@ -200,5 +200,6 @@ FIXME: The example below can now be simplified. =genMeta= now stashes =__meta.tr
   in pkgEnt.prepared  # Just an alias of the `installed' field which we can build with `nix build --impure -f .;'
 #+END_SRC
 
-So not the prettiest solution; but since we don't have the tree metadata it'll do the trick.
-Having said that we'll almost definitely prefer to dump generated trees for any sizeable dependency graphs.
+NOTE: See fixme above example.
+
+Since =genMeta= now stashes our tree information for us, the snippet above serves a bit better as an example of how to use =genMeta= to serialize a lock, and then deserialize it to build a package. The `tree."node_modules/nan" = ...;` line can be replaced with ~tree = builtin.mapAttrs ( _: key: pkgsFor.flocoFetch metaSet.${key}.sourceInfo ) metaSet.__meta.tree;~. In this case I know that none of the deps have builds or installs, and we don't call the =node-gyp-build= binaries, so the unpacked tarballs are "good enough" as they are - this may not be the case in your use case though. Having pointed that out, for this module I'm actually going to prefer the manually written tree, since we only need NaN. The only change I might make is getting the NaN key from my tree instead of filtering to find it in the =metaSet=. 
