@@ -42,10 +42,14 @@
     builtins.any ( hasStageFromScripts stage ) sl;
 
   entHasBuildScript   = hasStageScript "build";
-  entHasInstallScript = hasStageScript "install";
   entHasPrepareScript = hasStageScript "prepare";
   entHasTestScript    = hasStageScript "test";
   entHasPublishScript = hasStageScript "publish";
+
+  entHasInstallScript = ent: let
+    fromScript = hasStageScript "install" ent;
+    fromPlock  = ent.hasInstallScript or false;
+  in if lib.libmeta.metaEntWasPlock ent then fromPlock else fromScript;
 
   # Returns null for inconclusive;
   entHasBuild = ent: let
@@ -77,6 +81,94 @@
     metaEntUpPlockGapsFromPjs
     metaEntExtendPlockGapsFromPjs
   ;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Reconstruct a `metaEnt' from its serialized form.
+  # This performs a small amount of fixup in an effort to support "raw" inputs;
+  # but it is designed for use with `metaEntFrom*' routines that have been
+  # dumped to files.
+  #
+  # If you are "spoofing" a particular type of entry ( ex: `package-lock.json` )
+  # you should refer to the `metaEntFrom*' implementation and real serialized
+  # data to align with it - we do NOT call their actual constructors again and
+  # you cannot rely on any of the impure/inferred values that they normally add.
+  #
+  # XXX: This does not add `entries.*' fields which is important to remember
+  #      particularly for `package-lock.json' entries since you cannot access
+  #      `lockDir', `pkey', or `lockfileVersion' values that are normally
+  #      stashed there - those fields are "really" associated with the `metaSet'
+  #      and the decision to exclude them after serialization is intentional.
+  metaEntFromSerial = {
+    key
+  , ident       ? dirOf key
+  , version     ? baseNameOf key
+  , scoped      ? lib.test "@[^@/]+/[^@/]+" ident
+  , entFromtype ? "raw"
+  , sourceInfo
+  # These are just here to get `builtins.intersectAttrs' to work.
+  , depInfo          ? {}
+  , bin              ? {}
+  , hasBin           ? ( ent.bin or ent.directories.bin or {} ) != {}
+  , hasBuild         ? entHasBuild ent
+  , hasPrepare       ? entHasPrepareScript ent
+  , hasInstallScript ? entHasInstallScript ent
+  , gypfile          ? false
+  , hasTest          ? entHasTestScript    ent
+  , scripts          ? {}
+  , ...
+  } @ ent: let
+    members =
+      { inherit ident version scoped entFromtype; } //
+      ( lib.optionalAttrs ( ent ? bin || ent ? hasBin ) {
+        inherit hasBin;
+      } ) // ent;
+    # Use these fallback fields for certain `entFromtype' values.
+    fieldsForFT = {
+      plock = {
+        inherit
+          bin
+          hasBin
+          hasBuild
+          hasInstallScript
+          depInfo
+        ;
+      };
+      "package.json" = {
+        inherit
+          bin
+          hasBin
+          scripts
+          hasBuild
+          hasPrepare
+          hasInstallScript
+          hasTest
+          depInfo
+        ;
+      };
+      manifest = {
+        # TODO: This list is incomplete. See `libreg' for full list of fields.
+        inherit
+          bin
+          scripts
+          gypfile
+        ;
+      };
+      packument = {
+        # TODO
+      };
+      ylock = {
+        # Fuck this forreal tho.
+        # Probably not going to do this myself.
+      };
+    };
+
+    ftFields = if lib.libmeta.metaEntWasPlock ent then fieldsForFT.plock else
+               if lib.libmeta.metaEntWasYlock ent then fieldsForFT.ylock else
+               ( fieldsForFT.${entFromtype} or {} );
+
+  in lib.libmeta.mkMetaEnt ( members // ftFields );
 
 
 # ---------------------------------------------------------------------------- #
@@ -301,57 +393,12 @@
 
 /* -------------------------------------------------------------------------- */
 
-  # DEPRECATED:
-  metaEntriesFromPlockV2 = {
-    plock           ? lib.importJSON' lockPath
-  , lockDir         ? dirOf lockPath
-  , lockPath        ? "${lockDir}/package-lock.json"
-  , metaEntOverlays ? []  # Applied to individual packages in `metaSet'
-  , metaSetOverlays ? []  # Applied to `metaSet'
-  , ...
-  } @ args: assert lib.libplock.supportsPlV3; let
-    ents = let
-      pins = lib.libplock.pinVersionsFromLockV2 plock;
-      metaEnts = let
-        mkOneEnt = p: e: metaEntFromPlockV3 {
-          inherit lockDir;
-          inherit (plock) lockfileVersion;
-        };
-        wf = builtins.mapAttrs ( metaEntFromPlockV3 lockDir ) plock.packages;
-        addPin = e: e.__extend ( _: prev: {
-          depInfo = ( prev.depInfo or { __serial = false; } ) // pins.${e.key};
-        } );
-        lst = map ( { key, ... } @ value: {
-          name  = key;
-          value = addPin value;
-        } ) ( builtins.attrValues wf );
-      in builtins.listToAttrs lst;
-      entOv = if builtins.isFunction metaEntOverlays then metaEntOverlays else
-              lib.composeManyExtensions metaEntOverlays;
-      withOv = builtins.mapAttrs ( _: e: e.__extend entOv ) metaEnts;
-      final = if metaEntOverlays != [] then withOv else metaEnts;
-    in final;
-    metaSet = let
-      __meta = let
-        hasRootPkg = ( plock ? name ) && ( plock ? version );
-        rootKey = "${plock.name}/${plock.version}";
-      in {
-        setFromtype = assert lib.libplock.supportsPlV3 plock;
-          "package-lock.json(v${toString plock.lockfileVersion})";
-        inherit plock lockDir lockPath metaSetOverlays metaEntOverlays;
-      } // ( lib.optionalAttrs hasRootPkg { inherit rootKey;} );
-    in lib.libmeta.mkMetaSet ( ents // { inherit __meta; } );
-  in metaSet.__extend ( lib.composeManyExtensions metaSetOverlays );
-
-
-/* -------------------------------------------------------------------------- */
-
 in {
   inherit
+    metaEntFromSerial
+
     metaEntFromPlockV3
     metaSetFromPlockV3
-
-    metaEntriesFromPlockV2
 
     metaEntPlockGapsFromPjs
     metaEntAddPlockGapsFromPjs

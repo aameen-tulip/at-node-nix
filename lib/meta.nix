@@ -284,6 +284,14 @@
       "package-lock.json(v3)"
     ];
 
+  metaEntWasYlock = { entFromtype ? "raw", ... }:
+    builtins.elem entFromtype [
+      "yarn.lock"
+      "yarn.lock(v1)"
+      "yarn.lock(v2)"
+      "yarn.lock(v3)"
+    ];
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -323,6 +331,7 @@
     "package-lock.json(v1)" = metaEntPlSerial;
     "package-lock.json(v2)" = metaEntPlSerial;
     "package-lock.json(v3)" = metaEntPlSerial;
+    raw                     = metaEntSerialDefault;
     _default                = metaEntSerialDefault;
   };
 
@@ -636,6 +645,7 @@ in {
     mkMetaEnt
     metaEntIsSimple
     metaEntWasPlock
+    metaEntWasYlock
   ;
   # Meta Sets
   inherit

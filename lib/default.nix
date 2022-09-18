@@ -75,6 +75,7 @@
     ;
 
     inherit (final.libreg)
+      registryForScope
       importFetchPackument
       getFetchurlTarballArgs
       packumenter
@@ -87,17 +88,24 @@
       serialDefault
       serialIgnore
       serialDrop
+
       extInfoExtras
       mkExtInfo'
       mkExtInfo
       metaEntryFromtypes
+
       mkMetaEnt'
       mkMetaEnt
       mkMetaSet
+
       genMetaEntAdd
       genMetaEntUp
       genMetaEntExtend
       genMetaEntRules
+
+      metaEntFromPlockV3
+      metaEntFromSerial
+
       metaSetFromPlockV3
     ;
 
