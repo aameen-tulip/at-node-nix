@@ -103,7 +103,7 @@ The "core" schema below is the strictest minimum that you're guaranteed to have 
 Note that the =extInfo= "functor" members beginning with the prefix "__*" are not listed here.
 
 **** Core
-These fields are guaranteed at a minimum.
+These fields are guaranteed at a minimum as provided by =lib.libmeta.mkMetaEntCore=.
 
 In practice you will almost always have additional fields added by =lib.libmeta.metaEntFrom*= routines though.
 
@@ -118,6 +118,35 @@ In practice you will almost always have additional fields added by =lib.libmeta.
 #+END_SRC
 
 **** Practical
+
+These are the fields you'll get using the default =lib.libmeta.metaEntFrom*= routines.
+They exist to provide information used by =mkPkgEntSource= and =(build|install|test)PkgEnt= routines which drive build pipelines.
+
+#+BEGIN_SRC text
+  {
+    key
+    ident
+    version
+    entFromtype
+    _type
+    scoped           ( bool ; true if `ident' begins with the pattern "@[^/]+/" )
+    names            ( attrs ; fields indicating the names a package should use for various derivations. Ex: `built = "foo-built-1.0.0";' )
+    sourceInfo       ( attrs ; information used by `flocoFetch' to fetch a package. )
+    depInfo          ( attrs ; "normalized" dependency information created from `package.json' or equivalent data )
+    hasBin           ( bool )
+    hasBuild         ( bool )
+    hasInstallScript ( bool )
+    [gypfile]        ( bool ; may appear if `hasInstallScript = true', indicates if the project uses `node-gyp' for its "install" routine )
+    hasTest          ( bool ; true if `scripts.test' is defined )
+    [scripts]        ( attrs ; taken from `package.json' )
+  }
+#+END_SRC
+
+For the fields =sourceInfo= and =depInfo= there are sections below which detail these records.
+
+NOTE: As this project is prepared for release it's likely that some of these fields may change.
+I expect that the values in =depInfo= will be modified, and some fields may become optional.
+See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to date info.
 
 
 *** Example
@@ -179,3 +208,7 @@ In practice you will almost always have additional fields added by =lib.libmeta.
 #+END_SRC
 
 *** Example
+
+** =sourceInfo=
+
+** =depInfo=
