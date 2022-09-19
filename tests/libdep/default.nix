@@ -12,13 +12,7 @@
 , pkgsFor     ? nixpkgs.legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
 , ak-nix      ? builtins.getFlake "github:aakropotkin/ak-nix"
-, lib         ? import ../lib { inherit (ak-nix) lib; }
-, annPkgs     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
-
-, flocoUnpack ? annPkgs.flocoUnpack
-, flocoConfig ? annPkgs.flocoConfig
-, flocoFetch  ? annPkgs.flocoFetch
-
+, lib         ? import ../../lib { inherit (ak-nix) lib; }
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
@@ -27,28 +21,7 @@
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  autoArgs = {
-    inherit lib;
-    inherit (annPkgs)
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
-
-      mkSourceTree
-      mkSourceTreeDrv
-      mkTarballFromLocal
-
-      # FIXME
-      _node-pkg-set
-    ;
-    inherit flocoUnpack flocoConfig flocoFetch;
-    pkgsFor = annPkgs;
-  } // args;
+  autoArgs = { inherit lib; } // args;
 
   tests = let
     testsFrom = file: let
@@ -58,15 +31,7 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./libpkginfo
-    ./libplock
-    ./libfetch
-    ./libsys
-    ./libdep
-    ./mkNmDir
-    ./pkg-set
-    ./libreg
-    ./librange
+    ./tests.nix
   ];
 
 # ---------------------------------------------------------------------------- #
@@ -75,7 +40,7 @@
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "all-tests";
+    name = "libdep-tests";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {

@@ -28,6 +28,7 @@
     libsys     = callLibs ./system.nix;
     libfetch   = callLibs ./fetch.nix;
     libmeta    = ( callLibs ./meta.nix ) // ( callLibs ./meta-ent.nix );
+    libdep     = callLibs ./depinfo.nix;
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW
@@ -123,6 +124,10 @@
       getNpmSys'
       getNpmSys
       pkgSysCond
+    ;
+
+    inherit (final.libdep)
+      depInfoTreeFromPlockV3
     ;
 
   } );
