@@ -6,6 +6,8 @@
 
 { lib }: let
 
+  inherit (lib.libdep) pinnableFields;
+
 # ---------------------------------------------------------------------------- #
 
   # Because `package-lock.json(V2)' supports schemas v1 and v3, these helpers
@@ -88,20 +90,6 @@
       m = lib.yank "(.*[^/])/" s;
     in if m == null then s else m;
   in map stripTrailingSlash sp;
-
-  # Fields that `pinVersionsFromPlockV(1|3)' functions should rewrite.
-  # NOTE: We do not want to rewrite `peerDependencies' since we do not support
-  # `--legacy-peer-deps' in these routines.
-  # Legacy peer deps should be handled before invoking the pin routines by
-  # adding missing peers to a lock in the appropriate dependency fields using
-  # `peerDependenciesMeta' ( see `lib/pkginfo.nix' for these routines ).
-  pinFields = {
-    dependencies         = true;
-    devDependencies      = true;
-    optionalDependencies = true;
-    requires             = true;
-    # XXX: Do not pin peer deps.
-  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -196,7 +184,7 @@
   # Rewrite all `requires' fields with resolved versions using lock entries.
   pinVersionsFromPlockV1 = plock: let
     pinEnt = scope: e: let
-      depAttrs = removeAttrs ( builtins.intersectAttrs pinFields e )
+      depAttrs = removeAttrs ( builtins.intersectAttrs pinnableFields e )
                              ["requires"];
       # Extend parent scope with our subdirs to pass to children.
       newScope = let
@@ -264,7 +252,7 @@
 
       # Pin our dependency fields with actual versions.
       pinned = let
-        fields     = builtins.intersectAttrs pinFields e;
+        fields     = builtins.intersectAttrs pinnableFields e;
         rewriteOne = _: ef: builtins.intersectAttrs ef newScope;
       in e // ( builtins.mapAttrs rewriteOne fields );
       # Skip link entries, we will pin the "real" entry which users will locate
@@ -309,7 +297,6 @@ in {
     subdirsOfPathPlockV3
     lookupRelPathIdentV3
   ;
-  pinnableFields = pinFields;
 }
 
 # ---------------------------------------------------------------------------- #

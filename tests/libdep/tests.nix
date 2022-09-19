@@ -6,7 +6,7 @@
 
 { lib }: let
 
-  inherit (lib)
+  inherit (lib.libdep)
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
   ;
@@ -17,10 +17,26 @@
   lockDir0 = toString ../pkg-set/data;
   plock0   = lib.importJSON "${lockDir0}/package-lock.json";
 
+  # Has symlinks
+  plock1 = {
+    name = "phony";
+    version = "0.0.0";
+    requires = true;
+    lockfileVersion = 3;
+    packages = {
+      "../dir".version = "2.0.0";
+      "../dir".dependencies.foo = "^1.0.0";
+      "".dependencies.bar = "^2.0.0";
+      "node_modules/bar".link = true;
+      "node_modules/bar".resolved = "../dir";
+    };
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
   tests = {
+    inherit lib plock0 plock1;
 
     # Just see if the routine runs clean
     testDepInfoTreeFromPlockV3_0 = {
@@ -28,6 +44,7 @@
       expected = true;
     };
 
+    # Check real info
     testDepInfoTreeFromPlockV3_1 = {
       expr     = ( depInfoTreeFromPlockV3 plock0 )."";
       expected = {
@@ -53,6 +70,14 @@
           dev = true;
         };
       };
+    };
+
+    # Check that symlinks work
+    testDepInfoTreeFromPlockV3_2 = let
+      dt = depInfoTreeFromPlockV3 plock1;
+    in {
+      expr     = dt."../dir";
+      expected = dt."node_modules/bar";
     };
 
   };  # End Tests

@@ -9,14 +9,22 @@
 # ---------------------------------------------------------------------------- #
 
   # Runtime Fields
-  rFields = {
+  rtFields = {
     dependencies         = true;
     optionalDependencies = true;
     requires             = true;
   };
 
-  # Pinnable Fields ( "consumes" fields ).
-  cFields = rFields // { devDependencies = true; };
+  # Pinnable Fields
+  # These are dependencies "consumed" either during a build, install, or at
+  # runtime by a package.
+  # NOTE: We do not want to rewrite `peerDependencies' since we do not support
+  # `--legacy-peer-deps' in these routines.
+  # Legacy peer deps should be handled before invoking the pin routines by
+  # adding missing peers to a lock in the appropriate dependency fields using
+  # `peerDependenciesMeta' ( see `lib/pkginfo.nix' for these routines ).
+  # XXX: Do not pin peer deps.
+  pinFields = rtFields // { devDependencies = true; };
 
   # Bundled Fields
   # NOTE: Both spellings are accepted and treated as equivalent by NPM.
@@ -33,17 +41,17 @@
   };
 
   # All Dep Fields
-  aFields = cFields // bFields // pFields;
+  allDepFields = pinFields // bFields // pFields;
 
 
 # ---------------------------------------------------------------------------- #
 
   joinAttrs = x: builtins.foldl' ( a: b: a // b ) {} ( builtins.attrValues x );
 
-  getRt  = builtins.intersectAttrs rFields;
+  getRt  = builtins.intersectAttrs rtFields;
   joinRt = fs: joinAttrs ( getRt fs );
 
-  getPins  = builtins.intersectAttrs cFields;
+  getPins  = builtins.intersectAttrs pinFields;
   joinPins = fs: joinAttrs ( getPins fs );
 
   getPeer = builtins.intersectAttrs pFields;
@@ -71,7 +79,7 @@
      throw "joinBund: ${msg}";
 
   getAll = fs: let
-    real = builtins.intersectAttrs aFields fs;
+    real = builtins.intersectAttrs allDepFields fs;
   # Fix mispelled `bundle(d)Dependencies' field name.
   in ( removeAttrs real ["bundleDependencies"] ) // ( getBund real );
 
@@ -132,6 +140,11 @@
 
     #pinned  = lib.libplock.pinVersionsFromPlockV3 plock;
 
+  # Given a `package-lock.json(V2/3)', produce `depInfo' entries for each
+  # member of the tree.
+  # Symlinked entries are skipped during the first pass and filled in a second
+  # pass using info from the "real" entry.
+  #
   # NOTE: This returns an attrset representing the package locks'
   # `node_modules/' similar to routines in `lib.libtree'; NOT a `metaSet'.
   # This is important because dependency pins may differ when multiple instances
@@ -142,10 +155,14 @@
   #
   # XXX: Users almost certainly want to call `depInfoSetFromPlockV3' or
   # `fullDepInfoTreeFromPlockV3' rather than this helper.
-  depInfoTreeFromPlockV3 = plock:
-    assert lib.libplock.supportsPlV3 plock;
-    # FIXME: handle symlinks and out of tree paths.
-    builtins.mapAttrs depInfoEntFromPlockV3 plock.packages;
+  depInfoTreeFromPlockV3 = plock: let
+    pass1 = builtins.mapAttrs depInfoEntFromPlockV3 plock.packages;
+    # This resolves entries in exactly the same way as `lib.libplock.realEntry'.
+    fixLink = path: plent:
+      if plent.link or false then pass1.${plent.resolved}
+                             else pass1.${path};
+  in assert lib.libplock.supportsPlV3 plock;
+     builtins.mapAttrs fixLink plock.packages;
 
 
 # ---------------------------------------------------------------------------- #
@@ -155,6 +172,12 @@ in {
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
   ;
+  inherit
+    allDepFields
+  ;
+  runtimeFields  = rtFields;
+  pinnableFields = pinFields;
+  getBundledDeps = joinBund;
 }
 
 # ---------------------------------------------------------------------------- #
