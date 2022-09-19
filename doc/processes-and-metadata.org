@@ -70,16 +70,13 @@ Some of you will appreciate these lighthearted remarks even if you disagree with
  - This is a fuzzy one that's a bit of a catch all for getting a module ready for consumption.
  - Some packages explicitly define =[pre|post]prepare= scripts which should be run for "local" and =git= modules.
    + These generally overlap with steps run before "publishing" a module.
-     There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM manifest data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur ( sorry not sorry y'all NPM doesn't magically handle these either, they just print a warning ).
+     There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM manifest data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur.
  - We also use this opportunity to handle any fixup/patching required by Nix as well in cases where there was no build/install routine where we had an opportunity to perform those steps.
 
 ** Test Module
 - Requires prepared module for the "package being tested" as well as all runtime, dev, and qualified optional dependencies.
 - As an optimization you can limit the list of dependencies required for testing by elimination against those marked as being used only for build, "install", and prepare routines in previous steps.
 - Testing packages with utilities like =jest= often requires members of ~node_modules/*~ to be copied instead of symlinked because the authors of =jest= couldn't be bothered to adhere to the Node.js specificiation for how module resolution works.
-  + I invite you to replace =jest= whenever possible with more sensible tests suites that leverage age old techniques such as ~if ( funk( x ) == 420 ) then console.log( "PASS" ) else console.log( "FAIL" );~ and/or contributing to =jest= upstream so that the tool can properly handle fucking symlinks.
-    Currently it's failure to do so imposes an astronomical impact on the performance of nearly every major JavaScript project used today.
-    FFS you cannot imagine the amount of coal that is burned to power millions of machines copying shit into ~node_modules/*~ for hours on end simply because Node.js and =jest= botched symlink handling - it's criminal and our representatives have an obligation to legislate against this sort of bullshit. /rant
 
 ** Run Bins
 - Requires preparation of the "package being executed" and its runtime deps.
@@ -91,14 +88,14 @@ Some of you will appreciate these lighthearted remarks even if you disagree with
 - Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
 - You can limit the list of runtime deps by dropping packages which are only used during "install" and prepare routines.
 - Forming the "ideal tree" which adds the consumed modules and ( maybe ) its dependendencies to the runtime environment is a task in and of itself.
-  + Because Node.js module resolution is centered around navigating a web of filesystem hierarchies as opposed to more conventional resolution methods such as ~*_PATH~ priorites ( in fairness they tried with =NODE_PATH= but NPM failed to support it in a sane manner ) or dynamic linking.
-    - Bundlers like Webpack are repeating the same mistakes made by "static linking" enthusiasts throughout the 00's and early 10's but it'll be about ~2035 before webshits catch up with the innovations to dynamic linking made in 2015 based on historical patterns.
+  + Because this framework ( currently ) lacks a complete implementation of =semver= parsing, we rely on trees produced by NPM ( generally from ~NPM_CONFIG_LOCKFILE_VERSION=3 npm install --ignore-scripts --package-lock-only;~ ) which are processed by =lib.libtree=.
 
 ** Publish ( Create Registry Tarball )
 - Some packages define a =prepublish= routine; but these are rare.
   + If these are defined we are only concerned with them when consuming =git= dependencies and in niche cases local paths.
 - For our purposes we use this phase to "unpatch" and/or "bundle" ( conventional taxonomy, not NPM taxonomy ) any scripts, exucatbles, or other junk to get a Nix package to be consumable by non-Nix runtimes.
-  + Practically this means "unpatch shebang lines", make sure we haven't hard coded any store paths in TypeScript or Webpack shit, and unpatch =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp= ( I have literally never seen this in the field, but I have to assume there's projects that need this?  ).
+  + Practically this means "unpatch shebang lines", make sure we haven't hard coded any store paths in TypeScript or Webpack shit, and unpatch =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp=.
+    - I have never seen =node-gyp= produce a dynamic library in the field, but I'm guessing that it can?
 
 * Fields:
 FIXME
