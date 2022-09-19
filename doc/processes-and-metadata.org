@@ -56,9 +56,9 @@ With that in mind it's good to know exactly what information we /really/ need to
   + For =node-gyp= builds in particular there is often a drastic reduction in the required dependency graph.
   + In most cases =nan= and =node-gyp-build= are the only legitimate dependencies I've run into that are needed for these.
   + NOTE: we make a diparture from NPM and Yarn's normal handling of dependencies insofar as we run builds, installs, and prepare routines in isolated environments.
-- In theory this should only cause issues with =peerDependencies= in =postinstall= scripts which are very rare; but I want to highlight the potential for issues there.
-- If you encounter trouble it's not difficult to handle those peer dependencies as an edge case; and it's certainly possible to write a generalized routine that uses a toposort to ensure that they're present.
-  However considering how rare these are, the effort involved in implementating such a routine, and the impact it would have on performance in the more common "false positive" case - it's not a high priority for, and I'm comfortable trusting the user to handle these when they occur.
+    - In theory this should only cause issues with =peerDependencies= in =postinstall= scripts which are very rare; but I want to highlight the potential for issues there.
+    - If you encounter trouble it's not difficult to handle those peer dependencies as an edge case; and it's certainly possible to write a generalized routine that uses a toposort to ensure that they're present.
+      However considering how rare these are, the effort involved in implementating such a routine, and the impact it would have on performance in the more common "false positive" case - it's not a high priority for, and I'm comfortable trusting the user to handle these when they occur.
 
 ** Prepare Module
  - Requires fetched tarballs at a minimum and may be used to execute a queued unpack routine ( see note in "Fetch sources" process ).
