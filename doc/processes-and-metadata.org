@@ -93,5 +93,89 @@ With that in mind it's good to know exactly what information we /really/ need to
   + Practically this means "unpatch shebang lines", make sure we haven't hard coded any store paths in TypeScript or Webpack shit, and unpatch =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp=.
     - I have never seen =node-gyp= produce a dynamic library in the field, but I'm guessing that it can?
 
-* Fields:
-FIXME
+* Fields and Records
+** =metaEnt=
+*** Schemas
+While users will likely extend the "base" =metaEnt= record with additonal fields, these are what you'll see "out of the box".
+
+The "core" schema below is the strictest minimum that you're guaranteed to have in any =metaEnt=, but in practice you're more commonly going to be working with a the expanded schema produced by =metaEntFrom*= seen after.
+
+Note that the =extInfo= "functor" members beginning with the prefix "__*" are not listed here.
+
+**** Core
+These fields are guaranteed at a minimum.
+
+In practice you will almost always have additional fields added by =lib.libmeta.metaEntFrom*= routines though.
+
+#+BEGIN_SRC text
+  {
+    key          ( string ; "<IDENT>/<VERSION>" )
+    ident        ( string ; package identifier, being the "name" field from `package.json' )
+    version      ( string )
+    entFromtype  ( string ; enum of ["package.json" "package-lock.json" "yarn.lock" "manifest" "packument" "raw" ...] )
+    _type        ( string ; always equal to "metaEnt". this field is not serialized and is automatically added by `mkMetaEnt' )
+  }
+#+END_SRC
+
+**** Practical
+
+
+*** Example
+#+BEGIN_SRC nix
+  {
+    key              = "@babel/core/7.18.13";
+    ident            = "@babel/core";
+    version          = "7.18.13";
+    entFromtype      = "package-lock.json(v2)";
+    hasBin           = false;
+    hasBuild         = false;
+    hasInstallScript = false;
+    hasTest          = false;
+    scoped           = true;
+    # This package's `sourceInfo' field is for a tarball.
+    # Other types of sources such as "path" or "git" have different fields.
+    sourceInfo = {
+      entSubtype = "registry-tarball";
+      hash       = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
+      sha512     = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
+      type       = "tarball";
+      url        = "https://registry.npmjs.org/@babel/core/-/core-7.18.13.tgz";
+    };
+    depInfo = {
+      "@ampproject/remapping" = { descriptor = "^2.1.0"; runtime  = true; };
+      "phony-dev"             = { descriptor = "^4.2.0"; dev      = true; };
+      "phony-opt"             = { descriptor = "^4.2.0"; optional = true; };
+      "phony-bundled"         = { descriptor = "^4.2.0"; runtime  = true; bundled = true; };
+      "phony-peer"            = { descriptor = "^4.2.0"; peer     = true; };
+      ...
+    };
+    names = {
+      src       = "core-source-17.18.13";
+      built     = "core-built-17.18.13";
+      installed = "core-inst-17.18.13";
+      prepared  = "core-prep-17.18.13";
+      ... /* See `libmeta' for full list */
+    };
+  }
+#+END_SRC
+
+** =pkgEnt=
+*** Schema
+#+BEGIN_SRC text
+  {
+    [outPath]    alias for most processed stage. ( ends with "prepared" )
+    [tarball]
+    source       ( unpacked into "$out" )
+    [built]      ( `build'/`pre[pare|publish]' )
+    [installed]  ( `gyp' or `[pre|post]install' )
+    prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
+    TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
+    TODO: [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
+    TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
+    passthru     ( Holds the fields above + `nodejs', and a few other drvs )
+    key          ( `[@SCOPE/]NAME/VERSION' )
+    meta         ( package info yanked from locks, manifets, etc - no drvs! )
+  }
+#+END_SRC
+
+*** Example

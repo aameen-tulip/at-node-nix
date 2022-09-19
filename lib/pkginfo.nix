@@ -146,7 +146,7 @@
       ib = if builtins.isBool b then b else builtins.elem k b;
       ip = p ? ${k};
       id = d ? ${k};
-      ir = ! ( ip || id );
+      ir = ! ( ip || id );  # FIXME: I'm not 100% this is correct for peers
       mo = lib.optionalAttrs io { optional = true; };
       mb = lib.optionalAttrs ib { bundled = true; };
       mp = lib.optionalAttrs ip { peer = true; };

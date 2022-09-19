@@ -29,6 +29,7 @@ All routines will accept =outPath= if it is defined at the top level over any ot
     meta         ( package info yanked from locks, manifets, etc - no drvs! )
   }
 #+END_SRC
+
 The fields marked "TODO" aren't hard to add; I just haven't had a need to use them so they aren't defined yet; but they may be useful for interoperability with Nixpkgs' existing =nodePackages= ( uses =node2nix= ), and for creating standalone CLI tools as opposed to modules.
 
 ** Example MetaEnt for reference ( our input )
