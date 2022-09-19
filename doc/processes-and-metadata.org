@@ -84,7 +84,7 @@ With that in mind it's good to know exactly what information we /really/ need to
 
 ** Consume Module
 - Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
-- You can limit the list of runtime deps by dropping packages which are only used durin "install" and prepare routines.
+- You can limit the list of runtime deps by dropping packages which are only used during "install" and prepare routines.
 
 ** Publish ( Create Registry Tarball )
 - Some packages define a =prepublish= routine; but these are rare.
