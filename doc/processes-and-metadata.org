@@ -73,7 +73,8 @@ With that in mind it's good to know exactly what information we /really/ need to
 - Requires prepared module for the "package being tested" as well as all runtime, dev, and qualified optional dependencies.
 - As an optimization you can limit the list of dependencies required for testing by elimination against those marked as being used only for build, "install", and prepare routines in previous steps.
 - Testing packages with utilities like =jest= often requires members of ~node_modules/*~ to be copied instead of symlinked because the authors of =jest= couldn't be bothered to adhere to the Node.js specificiation for how module resolution works.
-  + I invite you to replace =jest= whenever possible with more sensible tests suites that leverage age old techniques such as ~if ( funk( x ) == 420 ) then console.log( "PASS" ) else console.log( "FAIL" );~ and/or contributing to =jest= upstream so that the tool to properly handle fucking symlinks because currently it's failure to do so imposes an astronomical impact on the performance of nearly every major JavaScript project used today.
+  + I invite you to replace =jest= whenever possible with more sensible tests suites that leverage age old techniques such as ~if ( funk( x ) == 420 ) then console.log( "PASS" ) else console.log( "FAIL" );~ and/or contributing to =jest= upstream so that the tool can properly handle fucking symlinks.
+    Currently it's failure to do so imposes an astronomical impact on the performance of nearly every major JavaScript project used today.
     FFS you cannot imagine the amount of coal that is burned to power millions of machines copying shit into ~node_modules/*~ for hours on end simply because Node.js and =jest= botched symlink handling - it's criminal and our representatives have an obligation to legislate against this sort of bullshit. /rant
 
 ** Run Bins
