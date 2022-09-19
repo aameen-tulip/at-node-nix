@@ -7,7 +7,7 @@ With that in mind it's good to know exactly what information we /really/ need to
 
 ** Forewarning
 I wrote the last half of this document in "a state" so as you near the end there's numerous sub-bullets that are basically just me talking shit.
-Some of you will appreciate these lighthearted remarks even if you disagree with them; others might take them too seriously and mistake them sincere staetements reflecting the view of the author - in either case you should probably have another drink and keep reading for the educational bits.
+Some of you will appreciate these lighthearted remarks even if you disagree with them; others might take them too seriously and mistake them sincere statements reflecting the views of the author - in either case you should probably have another drink and keep reading for the educational bits.
 
 * Processes
 - Fetch sources
