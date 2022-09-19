@@ -7,7 +7,7 @@ With that in mind it's good to know exactly what information we /really/ need to
 
 ** Forewarning
 I wrote the last half of this document in "a state" so as you near the end there's numerous sub-bullets that are basically just me talking shit.
-Some of you will appreciate these lighthearted remarks even if you disagree with them; others might take them too seriously and mistake them official staetements reflectiong the view of the author - in either case you should probably have another drink and keep reading for the educational bits.
+Some of you will appreciate these lighthearted remarks even if you disagree with them; others might take them too seriously and mistake them sincere staetements reflecting the view of the author - in either case you should probably have another drink and keep reading for the educational bits.
 
 * Processes
 - Fetch sources
@@ -85,7 +85,7 @@ Some of you will appreciate these lighthearted remarks even if you disagree with
 - Requires preparation of the "package being executed" and its runtime deps.
 - Requires the package to be installed using a "global style" ( conventional ~bin/~ and ~lib/~ package installation paths used by sane package management tools ).
   + Runtime deps may need to be installed as "bundled".
-- As an optimization you can wrap executables and set =NODE_PATH= to avoid copying/symlinking a ~node_modules/*~ dir into the package's workind directory.
+- As an optimization you can wrap executables and set =NODE_PATH= to avoid copying/symlinking a ~node_modules/*~ dir into the package's working directory.
 
 ** Consume Module
 - Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
