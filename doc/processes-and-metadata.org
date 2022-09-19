@@ -69,16 +69,28 @@ With that in mind it's good to know exactly what information we /really/ need to
      There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM manifest data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur ( sorry not sorry y'all NPM doesn't magically handle these either, they just print a warning ).
  - We also use this opportunity to handle any fixup/patching required by Nix as well in cases where there was no build/install routine where we had an opportunity to perform those steps.
 
-** Test module
-FIXME
+** Test Module
+- Requires prepared module for the "package being tested" as well as all runtime, dev, and qualified optional dependencies.
+- As an optimization you can limit the list of dependencies required for testing by elimination against those marked as being used only for build, "install", and prepare routines in previous steps.
+- Testing packages with utilities like =jest= often requires members of ~node_modules/*~ to be copied instead of symlinked because the authors of =jest= couldn't be bothered to adhere to the Node.js specificiation for how module resolution works.
+  + I invite you to replace =jest= whenever possible with more sensible tests suites that leverage age old techniques such as ~if ( funk( x ) == 420 ) then console.log( "PASS" ) else console.log( "FAIL" );~ and/or contributing to =jest= to upstream to allow the tool to properly handle fucking symlinks because currently it's failure to do so imposes an astronomical impact on the performance of nearly every major JavaScript project used today.
+    FFS you cannot imagine the amount of coal that is burned to power millions of machines copying shit into ~node_modules/*~ for hours on end simply because Node.js and =jest= botched symlink handling - it's criminal and our representatives have an obligation to legislate against this sort of bullshit. /rant
 
-** Run bins
-FIXME
-** Consume module
-FIXME
+** Run Bins
+- Requires preparation of the "package being executed" and its runtime deps.
+- Requires the package to be installed using a "global style" ( conventional ~bin/~ and ~lib/~ package installation paths used by sane package management tools ).
+  + Runtime deps may need to be installed as "bundled".
+- As an optimization you can wrap executables and set =NODE_PATH= to avoid copying/symlinking a ~node_modules/*~ dir into the package's workind directory.
 
-** Publish
-FIXME
+** Consume Module
+- Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
+- You can limit the list of runtime deps by dropping packages which are only used durin "install" and prepare routines.
+
+** Publish ( Create Registry Tarball )
+- Some packages define a =prepublish= routine; but these are rare.
+  + If these are defined we are only concerned with them when consuming =git= dependencies and in niche cases local paths.
+- For our purposes we use this phase to "unpatch" and/or "bundle" ( conventional taxonomy, not NPM taxonomy ) any scripts, exucatbles, or other junk to get a Nix package to be consumable by non-Nix runtimes.
+  + Practically this means "unpatch shebang lines", make sure we haven't hard coded any store paths in TypeScript or Webpack shit, and unpatch =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp= ( I have literally never seen this in the field, but I have to assume there's projects that need this?  ).
 
 * Fields:
 FIXME
