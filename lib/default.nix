@@ -127,7 +127,9 @@
     ;
 
     inherit (final.libdep)
+      depInfoEntFromPlockV3
       depInfoTreeFromPlockV3
+      depInfoSetFromPlockV3
     ;
 
   } );

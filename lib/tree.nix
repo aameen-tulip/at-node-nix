@@ -73,10 +73,10 @@
   # filter out any pacakges.
   # It is recommended that you pass `npmSys', `hostPlatform', or `system' for us
   # to try and derive.
+  , skipUnsupported ? npmSys != null
   # FIXME: handle `engines'?
   , npmSys ? lib.getNpmSys' args
   # Filter out usupported systems. Use "host" platform.
-  , skipUnsupported ? npmSys != null
   # The user is also free to pass arbitrary conditionals in here if they like.
   # These have the highest priority and will clobber earlier args.
   # The default is almost certainly what you want to use though.

@@ -167,10 +167,35 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Produces a keyed set of `depInfo' records.
+  # No "pinning" is performed.
+  # XXX: Records with multiple instances are presumed to be equal.
+  # With this in mind we're able to skip handling symlinks.
+  depInfoSetFromPlockV3 = plock: let
+    # NOTE: `idealTreePlockV3' wipes out the root entry.
+    keyed = let
+      ideal = lib.libtree.idealTreePlockV3 {
+        inherit plock;
+        skipUnsupported = false;
+      };
+    in { "" = "${plock.name}/${plock.version}"; } // ideal;
+    keyDepInfo = path: let
+      key   = keyed.${path};
+      plent = plock.packages.${path};
+    in lib.optionalAttrs ( ! ( plent.link or false ) ) {
+      ${keyed.${path}} = depInfoEntFromPlockV3 path plent;
+    };
+    paths = builtins.attrNames plock.packages;
+  in builtins.foldl' ( acc: path: acc // ( keyDepInfo path ) ) {} paths;
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
+    depInfoSetFromPlockV3
   ;
   inherit
     allDepFields

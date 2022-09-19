@@ -9,6 +9,7 @@
   inherit (lib.libdep)
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
+    depInfoSetFromPlockV3
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -36,7 +37,10 @@
 # ---------------------------------------------------------------------------- #
 
   tests = {
+
     inherit lib plock0 plock1;
+
+# ---------------------------------------------------------------------------- #
 
     # Just see if the routine runs clean
     testDepInfoTreeFromPlockV3_0 = {
@@ -79,6 +83,32 @@
       expr     = dt."../dir";
       expected = dt."node_modules/bar";
     };
+
+
+# ---------------------------------------------------------------------------- #
+
+    # Check that keying entries as a set matches tree
+    testDepInfoSetFromPlockV3_0 = let
+      dt = depInfoTreeFromPlockV3 plock1;
+      ds = depInfoSetFromPlockV3 plock1;
+      rootKey = "${plock1.name}/${plock1.version}";
+    in {
+      expr     = dt."";
+      expected = ds.${rootKey};
+    };
+
+    # Check that keying entries as a set matches tree on a harder tree
+    testDepInfoSetFromPlockV3_1 = let
+      dt = depInfoTreeFromPlockV3 plock0;
+      ds = depInfoSetFromPlockV3 plock0;
+      rootKey = "${plock0.name}/${plock0.version}";
+    in {
+      expr     = dt."";
+      expected = ds.${rootKey};
+    };
+
+
+# ---------------------------------------------------------------------------- #
 
   };  # End Tests
 
