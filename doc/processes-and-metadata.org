@@ -5,6 +5,10 @@ Our =metaEnt= and =metaSet= data is extensible, and different forms of input and
 
 With that in mind it's good to know exactly what information we /really/ need to complete certain processes so we can avoid breaking our backs trying to infer information that we aren't actually going to use.
 
+** Forewarning
+I wrote the last half of this document in "a state" so as you near the end I there's numerous sub-bullets that are basically just me talking shit.
+Some of you will appreciate these lighthearted remarks even if you disagree with them; others might take them too seriously and mistake them official staetements reflectiong the view of the author - in either case you should probably have another drink and keep reading for the educational bits.
+
 * Processes
 - Fetch sources
   + includes any special "unpacking" routines for tarballs.
@@ -86,6 +90,9 @@ With that in mind it's good to know exactly what information we /really/ need to
 ** Consume Module
 - Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
 - You can limit the list of runtime deps by dropping packages which are only used during "install" and prepare routines.
+- Forming the "ideal tree" which adds the consumed modules and ( maybe ) its dependendencies to the runtime environment is a task in and of itself.
+  + Because Node.js module resolution is centered around navigating a web of filesystem hierarchies as opposed to more conventional resolution methods such as ~*_PATH~ priorites ( in fairness they tried with =NODE_PATH= but NPM failed to support it in a sane manner ) or dynamic linking.
+    - Bundlers like Webpack are repeating the same mistakes made by "static linking" enthusiasts throughout the 00's and early 10's but it'll be about ~2035 before webshits catch up with the innovations to dynamic linking made in 2015 based on historical patterns.
 
 ** Publish ( Create Registry Tarball )
 - Some packages define a =prepublish= routine; but these are rare.
