@@ -10,6 +10,11 @@
 # routines in your build pipeline; and even moreso when augmenting these
 # routines to satisfy the unique needs of your workflow.
 #
+# The metadata routines defined here should be viewed as your "out of the box"
+# standard metadata scrapers - they will make quick work of most projects,
+# particularly published tarballs; but you are sincerely encouraged to
+# add extra fields to suite your own purposes.
+#
 #
 # ---------------------------------------------------------------------------- #
 
