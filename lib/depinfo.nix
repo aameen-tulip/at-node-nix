@@ -190,9 +190,8 @@
   , pinnedLock  ? lib.libplock.pinVersionsFromPlockV3 plock
   , depInfoTree ? depInfoTreeFromPlockV3 plock
   }: let
-    pinEnt = path: let
+    pinEnt = path: di: let
       ps     = joinPins pinnedLock.packages.${path};
-      di     = depInfoTree.${path};
       pinDep = ident: d:
         if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
     in builtins.mapAttrs pinDep di;

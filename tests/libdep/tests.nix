@@ -10,6 +10,8 @@
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
     depInfoSetFromPlockV3
+    pinDepInfoTreeFromPlockV3
+    pinDepInfoSetFromPlockV3
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -103,6 +105,27 @@
     testDepInfoSetFromPlockV3_1 = let
       dt = depInfoTreeFromPlockV3 plock0;
       ds = depInfoSetFromPlockV3 plock0;
+      rootKey = "${plock0.name}/${plock0.version}";
+    in {
+      expr     = dt."";
+      expected = ds.${rootKey};
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testPinDepInfoSetFromPlockV3_0 = let
+      dt = pinDepInfoTreeFromPlockV3 { plock = plock1; };
+      ds = pinDepInfoSetFromPlockV3 { plock = plock1; };
+      rootKey = "${plock1.name}/${plock1.version}";
+    in {
+      expr     = dt."";
+      expected = ds.${rootKey};
+    };
+
+    testPinDepInfoTreeFromPlockV3_1 = let
+      dt = pinDepInfoTreeFromPlockV3 { plock = plock0; };
+      ds = pinDepInfoSetFromPlockV3 { plock = plock0; };
       rootKey = "${plock0.name}/${plock0.version}";
     in {
       expr     = dt."";
