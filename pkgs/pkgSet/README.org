@@ -164,6 +164,7 @@ The serialized =metaSet= will be read back as if it had been created from a =pac
 One important caveat here is that certain fields such at =__meta.(plock|pjs|lockDir)= will not be present ( because they pointed to a temporary directory ) and =metaEnt= records won't have their =entries.(pjs|plock)= fields.
 This is fine because we've already scraped all the info we really care about from them.
 
+
 **** Example using =genMeta= to produce a =node-gyp= build which depends on =NaN=
 
 This is a real example pulled from a project I worked on which required =@datadog/native-metrics@1.2.0= to be built with =node-gyp=; unlike most builds this one actually needed some members of its ~node_modules/~ tree to compile successfully.
@@ -208,3 +209,6 @@ In this case I know that none of the deps have builds or installs, and we don't 
 This may not be the case in your use case; but you can use this technique to chip away at packages that need special build recipes one at a time.
 
 For clarity: you'll use this exact pattern for builds that require non-Node.js =buildInputs= like =libfoo.so= and whatnot; you'll just add them as args to =installPkgEnt= ( which is just a frontend over =stdenv.mkDerivation= ).
+
+***** FIXME: =__meta.tree= has not been pruned for unsupported packages.
+Either update this example or tweak the deserializer.
