@@ -31,6 +31,7 @@
       "".version = "0.0.0";
       "node_modules/bar".link = true;
       "node_modules/bar".resolved = "../dir";
+      "node_modules/foo".version = "1.2.3";
     };
   };
 

@@ -187,9 +187,9 @@
   pinDepInfoTreeFromPlockV3 = {
     plock       ? lib.importJSON "${lockDir}/package-lock.json"
   , lockDir     ? null
+  , pinnedLock  ? lib.libplock.pinVersionsFromPlockV3 plock
   , depInfoTree ? depInfoTreeFromPlockV3 plock
   }: let
-    pinnedLock = lib.libplock.pinVersionsFromPlockV3 plock;
     pinEnt = path: let
       ps     = joinPins pinnedLock.packages.${path};
       di     = depInfoTree.${path};
@@ -202,29 +202,28 @@
 # ---------------------------------------------------------------------------- #
 
   pinDepInfoSetFromPlockV3 = {
-    plock   ? lib.importJSON "${lockDir}/package-lock.json"
-  , lockDir ? null
+    plock      ? lib.importJSON "${lockDir}/package-lock.json"
+  , lockDir    ? null
+  , pinnedLock ? lib.libplock.pinVersionsFromPlockV3 plock
   }: let
-    pinnedLock = lib.libplock.pinVersionsFromPlockV3 plock;
-    pinEnt = path: let
-      ps     = joinPins pinnedLock.packages.${path};
-      plent  = plock.packages.${path};
-      pinDep = ident: d:
-        if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
-    in builtins.mapAttrs pinDep ( depInfoEntFromPlockV3 path plent );
     keyDepInfo = path: let
       key   = lib.libplock.getKeyPlV3 plock path;
       plent = plock.packages.${path};
+      pinnedEnt = let
+        ps     = joinPins pinnedLock.packages.${path};
+        pinDep = ident: d:
+          if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
+      in builtins.mapAttrs pinDep ( depInfoEntFromPlockV3 path plent );
     in lib.optionalAttrs ( ! ( plent.link or false ) ) {
-      ${key} = pinEnt path;
+      ${key} = pinnedEnt;
     };
     paths = builtins.attrNames plock.packages;
   # FIXME: Handle conflicting instances properly
     merge = acc: path: let
       instance = keyDepInfo path;
       existing = builtins.intersectAttrs instance acc;
-      msg = "pinDepInfoSetFromPlockV3: " +
-            "Conflicting instance for ${instance.key}";
+      key = builtins.head ( builtins.attrNames instance );
+      msg = "pinDepInfoSetFromPlockV3: Conflicting instance for ${key}";
     in if ! ( builtins.elem existing [{} instance] ) then throw msg else
        instance // acc;
   in builtins.foldl' merge {} paths;
