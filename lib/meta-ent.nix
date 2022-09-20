@@ -265,12 +265,10 @@
     plent = if args ? entries.plock then args.entries.plock else args;
     key = ident + "/" + version;
     hasBin = ( plent.bin or {} ) != {};
-    # FIXME: I'm not in love with this `depInfo'.
-    # there's a draft sitting in ./depinfo.nix
-    depInfo = lib.libpkginfo.normalizedDepsAll plent;
     baseFields = {
       inherit key ident version;
-      inherit depInfo hasBin;
+      inherit hasBin;
+      depInfo = lib.libdep.depInfoEntFromPlockV3 pkey plent;
       hasInstallScript = plent.hasInstallScript or false;
       entFromtype = "package-lock.json(v${toString lockfileVersion})";
       entries = {

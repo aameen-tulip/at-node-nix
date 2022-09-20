@@ -56,7 +56,6 @@ srcInfo="$( mktemp; )";
 pushd "$dir" >/dev/null;
 trap '_es="$?"; popd >/dev/null; rm -rf "$dir" "$srcInfo"; exit "$_es";'  \
   HUP TERM EXIT INT QUIT;
-
 # We stash the output of `pacote' which contains `sourceInfo' fields.
 $PACOTE extract "$DESCRIPTOR" . --json > "$srcInfo" 2>/dev/null;
 
@@ -81,11 +80,27 @@ $JQ                                                                           \
 ' ./package-lock.json > plmin.json;
 mv ./plmin.json ./package-lock.json;
 
+export DEV DESCRIPTOR;
 $NIX eval --impure --raw $FLAKE_REF#lib --apply '
   lib: let
-    metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; };
+    lockDir = toString ./.;
+    metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
     serial  = metaSet.__serial;
-    tree    = lib.libtree.idealTreePlockV3 { lockDir = toString ./.; dev = builtins.getEnv "DEV" == "true"; };
-    extra   = { __meta = { inherit (metaSet.__meta) fromType rootKey; } // { inherit tree; }; };
-  in lib.librepl.pp ( serial // extra )
+    isDev = builtins.getEnv "DEV" == "true";
+    trees = let
+      mkTree = dev: lib.libtree.idealTreePlockV3 {
+        inherit lockDir dev;
+        skipUnsupported = false;
+      };
+      maybeDev = lib.optionalAttrs isDev {dev = mkTree true; };
+    in { prod = mkTree false; } // maybeDev;
+    __meta  = { inherit (metaSet.__meta) fromType rootKey; inherit trees; };
+    pretty = lib.librepl.pp ( serial // { inherit __meta; } );
+    shellArgs = builtins.concatStringsSep " " [
+      ( if isDev then "--dev" else "--prod" )
+      ( builtins.getEnv "DESCRIPTOR" )
+    ];
+    header = "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
+             "# Regen:  nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
+  in header + pretty + "\n"
 ';

@@ -46,11 +46,10 @@
       isGitRev
     ;
 
+    # FIXME: remove routines made redundant by `libdep'.
     inherit (final.libpkginfo)
       importJSON'
       getDepFields
-      getNormalizedDeps
-      addNormalizedDepsToMeta
     ;
 
     inherit (final.libstr)

@@ -382,6 +382,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # XXX: Deprecated. Use `lib.libdep.depInfo*' routines.
+
   # These are most useful for `package.json' entries where we may actually
   # need to perform resolution; they are not very useful for package sets
   # based on lock files - unless you are composing multiple locks.
