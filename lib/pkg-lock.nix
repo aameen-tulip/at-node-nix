@@ -260,10 +260,25 @@
   # packages with install scripts, builds, or prepare routines to be rerun.
   # By minimizing the derivation environments we avoid rebuilds that should have
   # no effect on a package.
-  # NOTE: I had to path this recently to account for hoisted modules.
+  #
+  # NOTE: I had to patch this recently to account for modules that had been
+  # pushed into parent directories from children.
+  # Originally this was operating under the ( incorrect ) assumption that all
+  # members of a package's `node_modules/' directory would be listed in one of
+  # the relevant `dependencies' fields; but this doesn't account for cases where
+  # child modules had pushed their deps up.
   # In retrospect this was goofy that I botched that, I know how they work...
   # I used a naive regex to avoid deep recursion; but since I anticipate that
   # this is going to be slow now it might be work trying.
+  #
+  # FIXME: use a fixed point to perform recursion and memoize lookups in
+  # the `scope' attrsets; this gives you the lazy lookup behavior that you
+  # actually set out to accomplish while still handling the relevant edge case.
+  # This routine's current scope creation routine is useful for other
+  # applications though and is worth saving as a standalone library function.
+  #
+  # FIXME: another optimization may be to split the path-names first and
+  # possibly use `builtins.groupBy' to get a structure similar to the V1 lock.
   pinVersionsFromPlockV3 = plock: let
 
     pinPath = { scopes, ents } @ acc: path: let
@@ -278,10 +293,13 @@
         parentScope = if path == "" then {} else scopes.${parentPath path};
         maybeAddToScope = scope': path: let
           subId = lib.yank "${myNm}/((@[^/]*/)?[^/]*)" path;
-          keep  = subId != null;
+          # This speeds things up slightly
+          keep  = ( ! ( scopes ? path ) ) && ( subId != null );
           re    = realEntry plock path;
           addv  = lib.optionalAttrs keep { ${subId} = re.version; };
         in scope' // addv;
+        # I fucking hate that I wound up having to use regex here...
+        # This redundantly processes paths up to N^2 times.
         paths = builtins.attrNames plock.packages;
       in builtins.foldl' maybeAddToScope parentScope paths;
 

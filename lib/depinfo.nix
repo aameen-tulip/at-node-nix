@@ -184,15 +184,58 @@
 
 # ---------------------------------------------------------------------------- #
 
+  pinDepInfoTreeFromPlockV3 = {
+    plock       ? lib.importJSON "${lockDir}/package-lock.json"
+  , lockDir     ? null
+  , depInfoTree ? depInfoTreeFromPlockV3 plock
+  }: let
+    pinnedLock = lib.libplock.pinVersionsFromPlockV3 plock;
+    pinEnt = path: let
+      ps     = joinPins pinnedLock.packages.${path};
+      di     = depInfoTree.${path};
+      pinDep = ident: d:
+        if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
+    in builtins.mapAttrs pinDep di;
+  in builtins.mapAttrs pinEnt depInfoTree;
 
 
 # ---------------------------------------------------------------------------- #
+
+  pinDepInfoSetFromPlockV3 = {
+    plock   ? lib.importJSON "${lockDir}/package-lock.json"
+  , lockDir ? null
+  }: let
+    pinnedLock = lib.libplock.pinVersionsFromPlockV3 plock;
+    pinEnt = path: let
+      ps     = joinPins pinnedLock.packages.${path};
+      plent  = plock.packages.${path};
+      pinDep = ident: d:
+        if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
+    in builtins.mapAttrs pinDep ( depInfoEntFromPlockV3 path plent );
+    keyDepInfo = path: let
+      key   = lib.libplock.getKeyPlV3 plock path;
+      plent = plock.packages.${path};
+    in lib.optionalAttrs ( ! ( plent.link or false ) ) {
+      ${key} = pinEnt path;
+    };
+    paths = builtins.attrNames plock.packages;
+  # FIXME: Handle conflicting instances properly
+    merge = acc: path: let
+      instance = keyDepInfo path;
+      existing = builtins.intersectAttrs instance acc;
+      msg = "pinDepInfoSetFromPlockV3: " +
+            "Conflicting instance for ${instance.key}";
+    in if ! ( builtins.elem existing [{} instance] ) then throw msg else
+       instance // acc;
+  in builtins.foldl' merge {} paths;
 
 in {
   inherit
     depInfoEntFromPlockV3
     depInfoTreeFromPlockV3
     depInfoSetFromPlockV3
+    pinDepInfoTreeFromPlockV3
+    pinDepInfoSetFromPlockV3
   ;
   inherit
     allDepFields
