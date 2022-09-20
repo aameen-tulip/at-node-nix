@@ -200,10 +200,23 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Produces a keyed set with pinned depinfo.
+  # NOTE: Unlike `pinDepInfoTreeFromPlockV3' we may encounter conflicting pins
+  # when multiple instances of a package appear in a tree.
+  # This happens when permissive version constraints cause resolution in parent
+  # directories to provide different versions in one subtree vs another.
+  # This is unlikely to occur in small projects but you are almost guaranteed to
+  # encounter this in a project with a large dependency graph.
+  # For large projects you really need to be using `pinDepInfoTreeFromPlockV3'
+  # instead of this routine.
+  # The argument `conflictIsError' allows you to downgrade conflicts to be
+  # warnings printed to stderr instead of a `throw'; but you'd better know what
+  # you're doing.
   pinDepInfoSetFromPlockV3 = {
-    plock      ? lib.importJSON "${lockDir}/package-lock.json"
-  , lockDir    ? null
-  , pinnedLock ? lib.libplock.pinVersionsFromPlockV3 plock
+    plock           ? lib.importJSON "${lockDir}/package-lock.json"
+  , lockDir         ? null
+  , pinnedLock      ? lib.libplock.pinVersionsFromPlockV3 plock
+  , conflictIsError ? true  # `false' prints a warning instead. See note above.
   }: let
     keyDepInfo = path: let
       key   = lib.libplock.getKeyPlV3 plock path;
@@ -213,19 +226,18 @@
         pinDep = ident: d:
           if ps ? ${ident} then d // { pin = ps.${ident}; } else d;
       in builtins.mapAttrs pinDep ( depInfoEntFromPlockV3 path plent );
-    in lib.optionalAttrs ( ! ( plent.link or false ) ) {
-      ${key} = pinnedEnt;
-    };
-    paths = builtins.attrNames plock.packages;
-  # FIXME: Handle conflicting instances properly
+    in if ( plent.link or false ) then {} else { ${key} = pinnedEnt; };
     merge = acc: path: let
       instance = keyDepInfo path;
       existing = builtins.intersectAttrs instance acc;
       key = builtins.head ( builtins.attrNames instance );
+      rsl = instance // acc;
       msg = "pinDepInfoSetFromPlockV3: Conflicting instance for ${key}";
-    in if ! ( builtins.elem existing [{} instance] ) then throw msg else
-       instance // acc;
-  in builtins.foldl' merge {} paths;
+      hasConflict = ! ( builtins.elem existing [{} instance] );
+      handleConflict =
+        if conflictIsError then throw msg else builtins.trace msg rsl;
+    in if hasConflict then handleConflict else rsl;
+  in builtins.foldl' merge {} ( builtins.attrNames plock.packages );
 
 in {
   inherit
