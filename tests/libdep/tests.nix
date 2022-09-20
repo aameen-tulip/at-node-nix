@@ -28,6 +28,7 @@
       "../dir".version = "2.0.0";
       "../dir".dependencies.foo = "^1.0.0";
       "".dependencies.bar = "^2.0.0";
+      "".version = "0.0.0";
       "node_modules/bar".link = true;
       "node_modules/bar".resolved = "../dir";
     };

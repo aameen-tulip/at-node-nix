@@ -65,6 +65,41 @@
   in ec rsl;
 
 
+  # Best effort lookup to get a package identifier associated with a
+  # `packages.*' path for a `package-lock.json(V2/3)'.
+  # While `pathId' usually does the trick on its own, in the case of symlinks
+  # we may have to "reverse index" other lockfile entries to find an identifier.
+  #
+  # This routine will also read any stashed `ident' values from `data' allowing
+  # routines to cache lookups as an optimization ( not required ).
+  # This allows you to process a "tree like" structure which may or may not
+  # contain `ident' fields in its values, where lookups are only performed
+  # as a fallback.
+  getIdentPlV3' = plock: path: data: let
+    plent = plock.packages.${path};
+  in data.ident or data.name or plent.name or
+     ( lookupRelPathIdentV3 plock path );
+
+  # As above, but don't accept data as an arg.
+  getIdentPlV3 = plock: path: let
+    plent = plock.packages.${path};
+  in plent.name or ( lookupRelPathIdentV3 plock path );
+
+
+  # Same deal as `getIdentPlV3' but to lookup keys.
+  getKeyPlV3' = plock: path: data: let
+    plent   = plock.packages.${path};
+    ident   = getIdentPlV3' plock path data;
+    version = data.version or plent.version or ( realEntry plock path ).version;
+  in data.key or "${ident}/${version}";
+
+  getKeyPlV3 = plock: path: let
+    plent   = plock.packages.${path};
+    ident   = plent.name or ( lookupRelPathIdentV3 plock path );
+    version = plent.version or ( realEntry plock path ).version;
+  in "${ident}/${version}";
+
+
 # ---------------------------------------------------------------------------- #
 
   # Schema Indepent Helpers
@@ -296,6 +331,11 @@ in {
     pinVersionsFromPlockV3
     subdirsOfPathPlockV3
     lookupRelPathIdentV3
+
+    getIdentPlV3'
+    getIdentPlV3
+    getKeyPlV3'
+    getKeyPlV3
   ;
 }
 

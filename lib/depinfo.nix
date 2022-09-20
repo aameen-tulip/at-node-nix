@@ -172,21 +172,18 @@
   # XXX: Records with multiple instances are presumed to be equal.
   # With this in mind we're able to skip handling symlinks.
   depInfoSetFromPlockV3 = plock: let
-    # NOTE: `idealTreePlockV3' wipes out the root entry.
-    keyed = let
-      ideal = lib.libtree.idealTreePlockV3 {
-        inherit plock;
-        skipUnsupported = false;
-      };
-    in { "" = "${plock.name}/${plock.version}"; } // ideal;
     keyDepInfo = path: let
-      key   = keyed.${path};
+      key   = lib.libplock.getKeyPlV3 plock path;
       plent = plock.packages.${path};
     in lib.optionalAttrs ( ! ( plent.link or false ) ) {
-      ${keyed.${path}} = depInfoEntFromPlockV3 path plent;
+      ${key} = depInfoEntFromPlockV3 path plent;
     };
     paths = builtins.attrNames plock.packages;
   in builtins.foldl' ( acc: path: acc // ( keyDepInfo path ) ) {} paths;
+
+
+# ---------------------------------------------------------------------------- #
+
 
 
 # ---------------------------------------------------------------------------- #

@@ -92,18 +92,11 @@
   } @ args: let
 
     # Get a package identifier from a `package-lock.json(v3)' entry.
-    getIdent = dir: {
-      #ident ? plent.name or ( lib.libplock.pathId dir )
-      ident ? plent.name or ( lib.lookupRelPathIdentV3 plock dir )
-    , ...
-    } @ plent: ident;
+    # Takes tree like `path: ent:' args, falling back to lockfile lookups.
+    getIdent = lib.libplock.getIdentPlV3' plock;
     # Get a `(pkg|meta)Set' key from a `package-lock.json(v3)' entry.
-    getKey = dir: {
-      version ? ( lib.libplock.realEntry plock dir ).version
-    , ident   ? getIdent dir plent
-    , ...
-    } @ plent:
-      "${ident}/${version}";
+    getKey   = lib.libplock.getKeyPlV3' plock;
+
     # Collect a list of paths that need to be dropped as a result of
     # `optionalDependencies' filtering ( using `sysCond' ) as well as any
     # `ignoed(Keys|Idents)' matches.

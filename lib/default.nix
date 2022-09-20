@@ -73,6 +73,8 @@
       pinVersionsFromPlockV1
       pinVersionsFromPlockV3
       lookupRelPathIdentV3
+      getIdentPlV3
+      getKeyPlV3
     ;
 
     inherit (final.libreg)
