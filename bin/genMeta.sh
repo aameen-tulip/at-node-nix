@@ -100,7 +100,9 @@ $NIX eval --impure --raw $FLAKE_REF#lib --apply '
       ( if isDev then "--dev" else "--prod" )
       ( builtins.getEnv "DESCRIPTOR" )
     ];
-    header = "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
-             "# Regen:  nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
+    header =
+      "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
+      "# Deserialze with:  lib.libmeta.metaSetFromSerial\n" +
+      "# Regen with: nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
   in header + pretty + "\n"
 ';

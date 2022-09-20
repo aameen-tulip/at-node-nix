@@ -186,6 +186,22 @@
 
 # ---------------------------------------------------------------------------- #
 
+  metaSetFromSerial = members: let
+    deserial = name: value: let
+      forEnt  = metaEntFromSerial value;
+      # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
+      forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
+        pjs   = lib.importJSON' "${value.lockDir}/package.json";
+        plock = lib.importJSON' "${value.lockDir}/package-lock.json";
+      } ) // value;
+    in if name == "__meta" then forMeta else
+       if lib.hasPrefix "__" name then value else
+       forEnt;
+  in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
+
+
+# ---------------------------------------------------------------------------- #
+
   metaEntFromPlockSubtype = x: let
     plent   = x.entries.plock or x;
     lockDir = plent.lockDir;
@@ -407,6 +423,7 @@
 in {
   inherit
     metaEntFromSerial
+    metaSetFromSerial
 
     metaEntFromPlockV3
     metaSetFromPlockV3

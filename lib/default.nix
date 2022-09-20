@@ -106,9 +106,10 @@
       genMetaEntRules
 
       metaEntFromPlockV3
-      metaEntFromSerial
-
       metaSetFromPlockV3
+
+      metaEntFromSerial
+      metaSetFromSerial
     ;
 
     inherit (final.libtree)
