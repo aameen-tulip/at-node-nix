@@ -13,10 +13,12 @@
 
 : "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
 
+_es=0;
+
 usage() {
   {
     echo "Generate a Floco metaSet for an NPM registry tarball";
-    echo "USAGE:  genMeta [--dev|-d|--prod|-p] DESCRIPTOR";
+    echo "USAGE:  genMeta [--dev|-d|--prod|-p] [--json] DESCRIPTOR";
     echo "        genMeta @foo/bar";
     echo "        genMeta --dev @foo/bar@1.0.0";
     echo "ARGUMENTS";
@@ -26,6 +28,7 @@ usage() {
     echo "OPTIONS";
     echo "  -p,--prod    Drop devDependencies metadata";
     echo "  -d,--dev     Preserve devDependencies metadata";
+    echo "  --json       Output JSON instead of a Nix expression";
     echo "ENVIRONMENT";
     echo "  FLAKE_REF    Flake URI to use for at-node-nix";
     echo "               default: github:aameen-tulip/at-node-nix";
@@ -36,15 +39,19 @@ usage() {
 
 while test "$#" -gt 0; do
   case "$1" in
-    -d|--dev)  DEV=true;        ;;
-    -p|--prod) DEV=false;       ;;
-    -h|--help) usage; exit 0;   ;;
-    *)         DESCRIPTOR="$1"; ;;
+    -d|--dev)  DEV=true;                   ;;
+    -p|--prod) DEV=false;                  ;;
+    -h|--help) usage; exit 0;              ;;
+    --json)    JSON=true; OUT_TYPE=--json; ;;
+    *)         DESCRIPTOR="$1";            ;;
   esac
   shift;
 done
 
 : "${DEV:=false}";
+: "${JSON:=false}";
+: "${OUT_TYPE=--raw}";
+
 if test -z "${DESCRIPTOR:-}"; then
   echo "You must provide a package descriptor or identifier" >&2;
   usage;
@@ -53,7 +60,7 @@ fi
 
 dir="$( mktemp -d; )";
 srcInfo="$( mktemp; )";
-pushd "$dir" >/dev/null;
+pushd "$dir" >/dev/null || exit 1;
 trap '_es="$?"; popd >/dev/null; rm -rf "$dir" "$srcInfo"; exit "$_es";'  \
   HUP TERM EXIT INT QUIT;
 # We stash the output of `pacote' which contains `sourceInfo' fields.
@@ -77,16 +84,35 @@ $JQ                                                                           \
         |del( .packages[""].devDependencies ) )
     else . end )
   |( .packages[""]|= . + $srcInfo )
+  |( if $gypfile then ( .packages[""]|= . + { gypfile: true } ) else . end )
 ' ./package-lock.json > plmin.json;
 mv ./plmin.json ./package-lock.json;
 
-export DEV DESCRIPTOR;
-$NIX eval --impure --raw $FLAKE_REF#lib --apply '
+# FIXME: Use this to generate all subtrees.
+#needsTree=( $( $JQ -r '
+#  ( .packages|with_entries( select( .value as $v|
+#      ( ( .key != "" ) and (
+#          ( $v.hasInstallScript // false ) or
+#          ( ( $v|has( "scripts" ) ) and ( $v.scripts as $s|(
+#              ( $s|has( "preprepare" ) )  or
+#              ( $s|has( "prepare" ) )     or
+#              ( $s|has( "postprepare" ) ) or
+#              ( $s|has( "build" ) )
+#            ) ) ) ) ) ) )
+#  )|keys[]
+#' ./package-lock.json|sed 's,.*node_modules/\(\(@[^@/]\+/\)\?[^@/]\+\)$,\1,';
+#) );
+#
+#printf '%s\n' "${needsTree[@]}";
+
+export DEV DESCRIPTOR JSON;
+$NIX eval --impure $OUT_TYPE $FLAKE_REF#lib --apply '
   lib: let
     lockDir = toString ./.;
     metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
     serial  = metaSet.__serial;
-    isDev = builtins.getEnv "DEV" == "true";
+    isDev    = builtins.getEnv "DEV" == "true";
+    dumpJSON = builtins.getEnv "JSON" == "true";
     trees = let
       mkTree = dev: lib.libtree.idealTreePlockV3 {
         inherit lockDir dev;
@@ -95,7 +121,7 @@ $NIX eval --impure --raw $FLAKE_REF#lib --apply '
       maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
     in { prod = mkTree false; } // maybeDev;
     __meta  = { inherit (metaSet.__meta) fromType rootKey; inherit trees; };
-    pretty = lib.librepl.pp ( serial // { inherit __meta; } );
+    data   = serial // { inherit __meta; };
     shellArgs = builtins.concatStringsSep " " [
       ( if isDev then "--dev" else "--prod" )
       ( builtins.getEnv "DESCRIPTOR" )
@@ -104,5 +130,6 @@ $NIX eval --impure --raw $FLAKE_REF#lib --apply '
       "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
       "# Deserialze with:  lib.libmeta.metaSetFromSerial\n" +
       "# Regen with: nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
-  in header + pretty + "\n"
+    out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
+  in out
 ';

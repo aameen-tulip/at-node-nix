@@ -292,7 +292,8 @@
         plock = assert ! ( plent ? entries );
                 plent // { inherit pkey lockDir; };
       };
-    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } );
+    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
+      // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } );
     # Merge with original arguments unless they were a raw package-lock entry.
     argFields = if ! ( args ? entries ) then baseFields else
                 lib.recursiveUpdate baseFields args;
