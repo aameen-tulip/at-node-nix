@@ -92,7 +92,7 @@ $NIX eval --impure --raw $FLAKE_REF#lib --apply '
         inherit lockDir dev;
         skipUnsupported = false;
       };
-      maybeDev = lib.optionalAttrs isDev {dev = mkTree true; };
+      maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
     in { prod = mkTree false; } // maybeDev;
     __meta  = { inherit (metaSet.__meta) fromType rootKey; inherit trees; };
     pretty = lib.librepl.pp ( serial // { inherit __meta; } );
