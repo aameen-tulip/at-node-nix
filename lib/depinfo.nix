@@ -138,8 +138,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-    #pinned  = lib.libplock.pinVersionsFromPlockV3 plock;
-
   # Given a `package-lock.json(V2/3)', produce `depInfo' entries for each
   # member of the tree.
   # Symlinked entries are skipped during the first pass and filled in a second
@@ -184,12 +182,19 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Converts dependency pins to `depInfo' fields as an extension of the standard
+  # `depInfo' fields.
+  # This is a useful routine for dynamically modifying or "refocusing" lockfile
+  # trees; but you should proceed with caution before you attempt to add any
+  # pin information to a `metaEnt' ( see note `pinDepInfoSetFromPlockV3' ).
   pinDepInfoTreeFromPlockV3 = {
     plock       ? lib.importJSON "${lockDir}/package-lock.json"
   , lockDir     ? null
   , pinnedLock  ? lib.libplock.pinVersionsFromPlockV3 plock
   , depInfoTree ? depInfoTreeFromPlockV3 plock
   }: let
+    # FIXME: This does some redundant work on the symlink entries.
+    #        Not serious enough to warrant a refactor now though.
     pinEnt = path: di: let
       ps     = joinPins pinnedLock.packages.${path};
       pinDep = ident: d:
@@ -201,6 +206,9 @@
 # ---------------------------------------------------------------------------- #
 
   # Produces a keyed set with pinned depinfo.
+  #
+  # XXX: Do not use this in any "core" routines. See Note below.
+  #
   # NOTE: Unlike `pinDepInfoTreeFromPlockV3' we may encounter conflicting pins
   # when multiple instances of a package appear in a tree.
   # This happens when permissive version constraints cause resolution in parent
