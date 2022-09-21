@@ -78,7 +78,6 @@
 } @ args: let
 
   mkDrvArgs = removeAttrs args [
-    "ident"
     "runScripts" "skipMissing"
     "nmDirCmd" "nodejs" "jq" "stdenv" "lib" "node-gyp" "node-gyp-build" "python"
     "xcbuild"
@@ -86,6 +85,19 @@
     "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
+    # `metaEnt' fields that we might be passed.
+    "sourceInfo"
+    "scoped"
+    "key"
+    "names"
+    "ident"
+    "hasInstallScript"
+    "hasBin"
+    "gypfile"
+    "entries"
+    "entFromtype"
+    "depInfo"
+    "bin"
   ];
 
   # "stringize flags"
