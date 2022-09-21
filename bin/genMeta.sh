@@ -120,7 +120,10 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#lib --apply '
       };
       maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
     in { prod = mkTree false; } // maybeDev;
-    __meta  = { inherit (metaSet.__meta) fromType rootKey; inherit trees; };
+    __meta  = {
+      inherit (metaSet.__meta) fromType rootKey;
+      inherit trees;
+    };
     data   = serial // { inherit __meta; };
     shellArgs = builtins.concatStringsSep " " [
       ( if isDev then "--dev" else "--prod" )

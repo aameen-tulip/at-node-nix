@@ -214,20 +214,25 @@
   metaEntFromPlockSubtype = x: let
     plent   = x.entries.plock or x;
     lockDir = plent.lockDir;
-    pjsDir  = if plent.pkey == "" then lockDir else
-              if plent.link or false then "${lockDir}/${plent.resolved}" else
-               "${lockDir}/${plent.pkey}";
+    pjsDir  =
+      if plent.pkey == "" then lockDir else
+      # Fetch remote trees in impure mode
+      if haveTree && ( ! isLocal ) then
+        "${( ( lib.mkFlocoFetcher {} ) plent )}" else
+      if plent.link or false then "${lockDir}/${plent.resolved}" else
+      "${lockDir}/${plent.pkey}";
     pjsPath = "${pjsDir}/package.json";
     tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
     pjs     = x.entries.pjs or ( lib.importJSON' pjsPath );
     fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      sourceInfo.path = pjsDir;
-      entries.pjs     = pjs // { inherit pjsDir; };
-    };
+      entries.pjs = pjs // ( lib.optionalAttrs isLocal { inherit pjsDir; } );
+    } // ( lib.optionalAttrs isLocal { sourceInfo.path = pjsDir; } );
     isLocal     = ( entSubtype == "path" ) || ( entSubtype == "symlink" );
     isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
     isTb        = ( entSubtype == "registry-tarball" ) ||
                   ( entSubtype == "source-tarball" );
+    haveTree    = isLocal || ( ( ( entSubtype == "git" ) || isTb ) &&
+                               lib.flocoConfig.enableImpureMeta );
     entSubtype =
       if builtins.isString x then x else
       x.sourceInfo.entSubtype or ( lib.libfetch.typeOfEntry plent );
@@ -240,15 +245,15 @@
     conds = let
       mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
     in builtins.foldl' mergeCond core [
-      { c = isTb;               v.hasBuild = false;                        }
-      { c = isLocal && tryPjs;  v = fromPjs;                               }
-      { c = ! isLocal;          v.sourceInfo.url = plent.resolved;         }
+      { c = isTb;               v.hasBuild = false;                }
+      { c = haveTree && tryPjs; v = fromPjs;                       }
+      { c = ! isLocal;          v.sourceInfo.url = plent.resolved; }
       {
-        c = isLocal && ( plent.hasInstallScript or false );
+        c = haveTree && ( plent.hasInstallScript or false );
         v.gypfile = builtins.pathExists "${pjsDir}/binding.gyp";
       }
       # This is NOT redundant alongside the `plockEntryHashAttrs' call.
-      { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity;       }
+      { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity; }
     ];
     forAttrs = builtins.foldl' lib.recursiveUpdate core [
       conds
