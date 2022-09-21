@@ -73,7 +73,9 @@
     fromPjs = if ent ? entries.pjs
               then hasBuildFromScripts ent.entries.pjs.scripts
               else null;
-    fromSubtype  = if entSubtype == null then null else ( ! isTb ) && fromPjs;
+    fromSubtype = if entSubtype == null then null else
+                  if fromPjs == null then null else
+                  ( ! isTb ) && fromPjs;
   in ent.hasBuild or fromSubtype;
 
 
@@ -132,6 +134,7 @@
   , scripts          ? {}
   , ...
   } @ ent: let
+    hasBuild' = lib.optionalAttrs ( hasBuild != null ) { inherit hasBuild; };
     members =
       { inherit ident version scoped entFromtype; } //
       ( lib.optionalAttrs ( ent ? bin || ent ? hasBin ) {
@@ -143,17 +146,16 @@
         inherit
           bin
           hasBin
-          hasBuild
           hasInstallScript
           depInfo
         ;
-      };
+      } // hasBuild' ;  # `hasBuild' will be inconclusive for some `git' deps.
       "package.json" = {
         inherit
           bin
           hasBin
-          scripts
           hasBuild
+          scripts
           hasPrepare
           hasInstallScript
           hasTest
