@@ -346,12 +346,13 @@
 
   fetchGitW = {
     __functionArgs = {
-      url     = false;
-      name    = true;
-      rev     = true;
-      ref     = true;
-      allRefs = true;
-      shallow = true;
+      url        = false;
+      name       = true;
+      rev        = true;
+      ref        = true;
+      allRefs    = true;
+      shallow    = true;
+      submodules = true;
     };
     __thunk   = {
       ref        = "HEAD";
