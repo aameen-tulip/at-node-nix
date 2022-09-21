@@ -551,29 +551,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Determines if a package needs any `nodeModulesDir[-dev]' fields.
-  # If `hasBuild' is not yet set, we will err on the safe side and assume it
-  # has a build.
-  # XXX: It is strongly recommended that you provide a `hasBuild' field.
-  metaEntIsSimple = {
-    hasBuild         ? true
-  , hasInstallScript ? false
-  , hasPrepare       ? false
-  , hasBin           ? false
-  , ...
-  } @ attrs: ! ( hasBuild || hasInstallScript || hasPrepare || hasBin );
-
-  metaSetPartitionSimple = mset: let
-    lst = builtins.attrValues mset.__entries;
-    parted = builtins.partition metaEntIsSimple lst;
-  in {
-    simple       = parted.right;
-    needsModules = parted.wrong;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   genMetaEntAdd = cond: fn: ent:
     if cond ent then ent.__add ( fn ent ) else ent;
 
@@ -643,14 +620,12 @@ in {
     mkMetaEntCore
     mkMetaEnt'
     mkMetaEnt
-    metaEntIsSimple
     metaEntWasPlock
     metaEntWasYlock
   ;
   # Meta Sets
   inherit
     mkMetaSet
-    metaSetPartitionSimple  # by `metaEntIsSimple'
   ;
   # Utils and Misc
   inherit

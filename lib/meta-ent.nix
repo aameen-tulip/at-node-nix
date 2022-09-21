@@ -72,6 +72,7 @@
   # order to read the `scripts' field.
   # FIXME: In impure mode actually go collect that info because `git' deps
   # often do have `scripts.build' routines.
+  # The routine that adds info from plock `sourceInfo' data already does this.
   entHasBuild = ent: let
     entSubtype = ent.sourceInfo.entSubtype or
                  ent.sourceInfo.type or
@@ -320,7 +321,7 @@
   in ex;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   metaSetRootTreesForPlockV3 = { plock , flocoConfig ? lib.flocoConfig }: let
     ident   = plock.name or plock.packages."".name;
@@ -345,7 +346,7 @@
   ;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
 
   metaSetFromPlockV3 = {
     plock       ? lib.importJSON' lockPath
@@ -433,7 +434,33 @@
   in ex;
 
 
-/* -------------------------------------------------------------------------- */
+# ---------------------------------------------------------------------------- #
+
+  # Determines if a package needs any `nodeModulesDir[-dev]' fields.
+  # If `hasBuild' is not yet set, we will err on the safe side and assume it
+  # has a build.
+  # XXX: It is strongly recommended that you provide a `hasBuild' field.
+  # For tarballs we know there's no build, but aside from that we don't
+  # make assumptions here.
+  metaEntIsSimple = {
+    hasBuild         ? ( attrs.sourceInfo.type or null ) != "tarball"
+  , hasInstallScript ? false
+  , hasPrepare       ? false
+  , hasBin           ? false
+  , hasTest          ? false
+  , ...
+  } @ attrs: ! ( hasBuild || hasInstallScript || hasPrepare || hasBin );
+
+  metaSetPartitionSimple = mset: let
+    lst = builtins.attrValues mset.__entries;
+    parted = builtins.partition metaEntIsSimple lst;
+  in {
+    simple       = parted.right;
+    needsModules = parted.wrong;
+  };
+
+
+# ---------------------------------------------------------------------------- #
 
 in {
   inherit
@@ -453,6 +480,9 @@ in {
     metaEntUpFromPlockSubtype
     metaEntExtendFromPlockSubtype
     metaEntMergeFromPlockSubtype
+
+    metaEntIsSimple
+    metaSetPartitionSimple  # by `metaEntIsSimple'
   ;
 }
 
