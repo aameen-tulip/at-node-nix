@@ -65,6 +65,13 @@
   in if lib.libmeta.metaEntWasPlock ent then fromPlock else fromScript;
 
   # Returns null for inconclusive;
+  # NOTE: `git' sources with `package-lock.json' are the ones that you can run
+  # into inconclusive results on the most.
+  # The scrapers from local paths generally attempt to read the `package.json'
+  # files so you have coverage there; but for `git' we don't try to fetch in
+  # order to read the `scripts' field.
+  # FIXME: In impure mode actually go collect that info because `git' deps
+  # often do have `scripts.build' routines.
   entHasBuild = ent: let
     entSubtype = ent.sourceInfo.entSubtype or
                  ent.sourceInfo.type or
