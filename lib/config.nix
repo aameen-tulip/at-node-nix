@@ -8,9 +8,10 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# registryScopes      ::= { scope ::= string, url ::= string }
-# enableImureMeta     ::= bool
-# enableImureFetchers ::= bool
+# registryScopes           ::= { scope ::= string, url ::= string }
+# enableImureMeta          ::= bool
+# enableImureFetchers      ::= bool
+# allowSubstitutedFetchers ::= bool
 # metaEntOverlays     ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
 # metaSetOverlays     ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
 # pkgEntOverlays      ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
@@ -22,13 +23,14 @@
   defaultFlocoConfig = {
     # Used for querying manifests and packuments.
     # Must be an attrset of strings.
-    registryScopes._default = "https://registry.npmjs.org";
-    enableImpureMeta        = false;
-    enableImpureFetchers    = false;
-    metaEntOverlays         = [];
-    metaSetOverlays         = [];
-    pkgEntOverlays          = [];
-    pkgSetOverlays          = [];
+    registryScopes._default  = "https://registry.npmjs.org";
+    enableImpureMeta         = false;
+    enableImpureFetchers     = false;
+    allowSubstitutedFetchers = true;
+    metaEntOverlays          = [];
+    metaSetOverlays          = [];
+    pkgEntOverlays           = [];
+    pkgSetOverlays           = [];
     # It's only possible to put these here because they are platform agnostic.
     # If you use system dependant fetchers override this.
     fetchers = let
@@ -70,9 +72,10 @@
 
   mkFlocoConfig' = {
     registryScopes
-  , enableImpure         ? ! lib.inPureEvalMode
-  , enableImpureMeta     ? enableImpure
-  , enableImpureFetchers ? enableImpure
+  , enableImpure             ? ! lib.inPureEvalMode
+  , enableImpureMeta         ? enableImpure
+  , enableImpureFetchers     ? enableImpure
+  , allowSubstitutedFetchers
   , metaEntOverlays
   , metaSetOverlays
   , pkgEntOverlays

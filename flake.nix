@@ -152,15 +152,23 @@
 
       # Most likely this will get populated by `stdenv'
       npmSys = lib.getNpmSys { system = final.system; };
-      flocoConfig = final.lib.mkFlocoConfig {};
+      flocoConfig = final.lib.mkFlocoConfig {
+        # Prefer fetching from original host rather than substitute if possible.
+        # NOTE: This only applies to fetchers that use derivations.
+        #       Builtins won't be effected by this.
+        allowSubstitutedFetchers =
+          ( builtins.currentSystem or null ) != final.system;
+      };
       flocoFetch  = callPackage lib.libfetch.mkFlocoFetcher {};
       flocoUnpack = {
-        name    ? args.meta.names.source
-      , tarball ? args.outPath
+        name             ? args.meta.names.source
+      , tarball          ? args.outPath
+      , flocoConfig      ? final.flocoConfig
+      , allowSubstitutes ? flocoConfig.allowSubstitutedFetchers
       , ...
       } @ args: let
-        source = final.unpackSafe args;
-        meta' = lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
+        source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
+        meta'  = lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
       in { inherit tarball source; outPath = source.outPath; } // meta';
         #final.pacotecli "extract" { spec = tarball; };
 

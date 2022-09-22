@@ -322,7 +322,11 @@
     __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
     };
-    __thunk   = { unpack = false; unpackAfter = false; };
+    __thunk = {
+      unpack           = false;
+      unpackAfter      = false;
+      allowSubstitutes = true;
+    };
     __fetcher = lib.fetchurlDrv;
     __functor = self: args: let
       args' = let
@@ -485,8 +489,9 @@
   , linkFetcher ? fetchers.linkFetcher
   , fetchers    ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
                                       ( flocoConfig.fetchers or {} )
-  , flocoConfig ? lib.flocoConfig
+  , flocoConfig          ? lib.flocoConfig
   , enableImpureFetchers ? flocoConfig.enableImpureFetchers
+  , allowSubstitutes     ? flocoConfig.allowSubstitutedFetchers or true
   , cwd            ? throw "You must set cwd for relative path fetching"
   } @ cargs: args: let
     fetchers = {

@@ -13,6 +13,8 @@
 #, patchShebangs ? false  # FIXME
 , untarSanPerms
 , jq
+, system
+, allowSubstitutes ? ( builtins.currentSystem or null ) != system
 , ...
 } @ args: let
   addBinPerms =
@@ -38,7 +40,7 @@ in untarSanPerms ( {
     "--delay-directory-restore"
     "--no-overwrite-dir"
   ];
-  extraDrvAttrs.allowSubstitutes = false;
+  extraDrvAttrs.allowSubstitutes = allowSubstitutes;
   extraAttrs.meta = args.meta or {};
 } // ( if (
   ( args.name or args.meta.names.tarball or null ) != null
