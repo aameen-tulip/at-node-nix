@@ -152,15 +152,15 @@
   # First we check for `.dist-tags.latest' for a version number, otherwise we
   # use the last element of the list.
   # Nix sorts keys such that the highest version number will be last.
-  packumentPkgLatestVersion = packument:
-    if packument ? dist-tags.latest
-    then packument.versions.${packument.dist-tags.latest}
-    else let
-      vlist = builtins.attrValues packument.versions;
-      len = builtins.length vlist;
-      last = builtins.elemAt vlist ( len -1 );
-    in if ( 0 < len  ) then last else
-      throw "Package ${packument._id} lacks a version list";
+  packumentPkgLatestVersion' = packument: let
+    vlist = builtins.attrValues packument.versions;
+    len   = builtins.length vlist;
+    last  = builtins.elemAt vlist ( len -1 );
+    maybeLast = if 0 < len then last else
+                throw "Package ${packument._id} lacks a version list";
+    # NOTE: this list is already sorted by the registry
+    lver  = packument.dist-tags.latest or maybeLast;
+  in packument.versions.${lver};
 
 
 # ---------------------------------------------------------------------------- #
