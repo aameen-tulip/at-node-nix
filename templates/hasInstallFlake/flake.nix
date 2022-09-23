@@ -7,7 +7,6 @@
   outputs = {
     self
   , nixpkgs
-  , utils
   , at-node-nix
   # Optionals: Will fall back to reading files in flake's root dir.
   # ? flocoConfig
@@ -22,7 +21,56 @@
   } @ inputs: let
 
 # ---------------------------------------------------------------------------- #
-    
+
+    eachSupportedSystemMap = let
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      forSys = fn: system: { name = system; value = fn system; };
+    in fn: builtins.listToAttrs ( map ( forSys fn ) supportedSystems );
+
+
+# ---------------------------------------------------------------------------- #
+
+  in {  # Begin Outputs
+
+# ---------------------------------------------------------------------------- #
+
+    # Read from inputs if given, otherwise use default.
+    # A partial config may be provided and it will be merged with the defualt.
+    flocoConfig = let
+      inherit (at-node-nix) lib;
+      fromInput = lib.importJSON inputs.flocoConfig.outPath;
+      cfg = if inputs ? flocoConfig
+            then lib.recursiveUpdate lib.libcfg.defaultFlocoConfig fromInput
+            else lib.libcfg.defaultFlocoConfig;
+    in lib.mkFlocoConfig cfg;
+
+
+# ---------------------------------------------------------------------------- #
+
+    # Specialize `lib' using our `flocoConfig' settings.
+    # This only effects a small number of functions, notably fetchers,
+    # registries, and trees.
+    # Additional specialization is performed when `system' is known in `pkgSet'
+    # contexts allowing trees to filter by system, and fetchers to be optimized.
+    lib = at-node-nix.lib.extend ( final: prev: {
+      inherit (self) flocoConfig;
+      flocoFetch = final.mkFlocoFetcher { inherit (final) flocoConfig; };
+    } );
+
+
+# ---------------------------------------------------------------------------- #
+
+    # Metadata used to create our package set.
+    # These entries will also be exposed through `flocoOverlays.metaSet' for
+    # other projects to consume.
+    # This `metaSet' is formed within the context that the "root" entry for any
+    # trees, and any other package specific metadata is within the scope of the
+    # `root' ( e.g. the top level `__meta.(pjs|plock|lockDir|trees|...)' data ).
     metaSet = let
       inherit (self) lib;
       serial =
@@ -30,7 +78,7 @@
         if builtins.pathExists "${toString ./meta.nix}" then
           import ./meta.nix
         else if builtins.pathExists "${toString ./meta.json}" then
-          lib.importJSON ./meta.json
+          lib.importJSON "${toString ./meta.json}"
         else null;
       fromSerial = lib.metaSetFromSerial serial;
       fromPlock = let
@@ -40,120 +88,37 @@
           pjs   = true;
         } inputs;
         args = if inputArgs == {} then localArgs else
-               inputArgs // ( lib.optionalAttrs ( inputs ? source ) {
-                 lockDir = inputs.source.outPath;
-               } );
+              inputArgs // ( lib.optionalAttrs ( inputs ? source ) {
+                lockDir = inputs.source.outPath;
+              } );
       in lib.metaSetFromPlockV3 args;
     in if serial != null then fromSerial else fromPlock;
-
-    inherit (metaSet.__meta) rootKey;
-
-
-# ---------------------------------------------------------------------------- #
-
-    # Danker `flake-utils.eachSystemMap' which will try to pass extra system
-    # specific args such as `pkgsFor', `lib' ( configured for sys ), and
-    # `flocoConfig' if they can be accepted.
-    # This accepts either:
-    #   fn :: string -> any
-    #   fn :: attrs -> any
-    #   fn :: string -> attrs -> any  ( curried )
-    # For both attrs types above `system' does not necessarily need to be an
-    # argument; but it may be.
-    eachSupportedSystemMap = fn: let
-      supportedSystems = [
-        "x86_64-linux"  "x86_64-darwin"
-        "aarch64-linux" "aarch64-darwin"
-      ];
-      sysAutoArgs = system: let
-        flocoConfig = self.flocoConfig // {
-          npmSys = self.lib.getNpmSys' { inherit system; };
-        };
-        lib = self.lib.exend ( final: prev: { inherit flocoConfig; } );
-      in {
-        inherit system flocoConfig lib;
-        pkgsFor = at-node-nix.legacyPackages.${system}.extend ( final: prev: {
-          inherit flocoConfig lib;
-        } );
-      };
-      forSys = system: {
-        name = system;
-        value = let
-          baseFnArgs = lib.functionArgs fn;
-          autoFn     = if baseFnArgs != {} then fn else fn system;
-          canAuto    = ( builtins.isFunction autoFn ) || ( autoFn ? __functor );
-          fnArgs     = lib.functionArgs autoFn;
-          autoArgs   = builtins.intersectAttrs fnArgs ( sysAutoArgs system );
-        in if canAuto then autoFn autoArgs else fn system;
-      };
-    in builtins.listToAttrs ( map forSys supportedSystems );
-
-
-# ---------------------------------------------------------------------------- #
-
-    pkgsForSys = system: (eachSupportedSystemMap system).${system}.pkgsFor;
-    pkgEntFor = system: let
-      pkgsFor = pkgsForSys system;
-      pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${rootKey};
-      installed = pkgsFor.installPkgEnt ( pkgEntSrc // {
-        nmDirCmd = let
-          nan-key = metaSet.__meta.trees.prod."node_modules/nan";
-          nan     = pkgsFor.mkPkgEntSource metaSet.${nan-key};
-        in ''
-          mkdir -p "$node_modules_path";
-          ln -s ${nan.source} "$node_modules_path/nan";
-        '';
-      } );
-    in pkgEntSrc // {
-      inherit installed;
-      inherit (installed) outPath;
-      prepared = installed;
-    };
-
-
-# ---------------------------------------------------------------------------- #
-
-  in {  # Begin Outputs
-
-# ---------------------------------------------------------------------------- #
-
-    lib = at-node-nix.lib.extend ( final: prev: {
-      inherit (self) flocoConfig;
-      flocoFetch = final.libfetch.mkFlocoFetcher {
-        inherit (final) flocoConfig;
-      };
-    } );
-
-# ---------------------------------------------------------------------------- #
-
-    # Read from inputs if given, otherwise use default.
-    # A partial config may be provided and it will be merged with the defualt.
-    flocoConfig = let
-      fromInput = lib.importJSON inputs.flocoConfig.outPath;
-      raw = if inputs ? flocoConfig then fromInput else
-            at-node-nix.lib.libcfg.defaultFlocoConfig;
-      merged =
-        if inputs ? flocoConfig
-        then lib.recursiveUpdate at-node-nix.lib.libcfg.defaultFlocoConfig raw
-        else raw;
-    in at-node-nix.lib.mkFlocoConfig merged;
-
-
-# ---------------------------------------------------------------------------- #
 
     # When exposing a metaSet for overlays, we push the tree info into the
     # root entry, and drop our top level `__meta' and other extensible attrs.
     # Otherwise we'll clobber those fields in a `metaSet' which tries to
     # consumer our info.
     flocoOverlays.metaSet = final: prev: let
+      inherit (metaSet.__meta) rootKey;
       rootEnt = metaSet.${rootKey}.__add { inherit (metaSet.__meta) trees; };
     in metaSet.__entries // { ${rootKey} = rootEnt; };
-    flocoOverlays.pkgSet = eachSupportedSystemMap ( {
-      system
-    , pkgsFor
-    , flocoConfig
-    , lib
-    }: final: prev: let
+
+    # Generate builders for our packages using our `metaSet' data.
+    # FIXME: The template naively assumes that all dependencies are "simple",
+    # and can be consumed from source.
+    # If this is not suitable for your project, add additional build recipes to
+    # the overlay below.
+    flocoOverlays.pkgSet = eachSupportedSystemMap ( system: final: prev: let
+      # Specialize our config using system info.
+      flocoConfig = self.flocoConfig // {
+        npmSys = self.lib.getNpmSys' { inherit system; };
+      };
+      # Regenerate lib with system info.
+      lib = self.lib.extend ( lFinal: lPrev: { inherit flocoConfig; } );
+      pkgsFor = at-node-nix.legacyPackages.${system}.extend ( pFinal: pPrev: {
+        inherit flocoConfig lib;
+      } );
+      inherit (metaSet.__meta) rootKey;
       srcEnts = builtins.mapAttrs ( _: pkgsFor.mkPkgEntSourceEnt )
                                   metaSet.__entries;
     in srcEnts // prev // {
@@ -164,25 +129,19 @@
             pkgSet = final;
           };
         } );
+        prepared = final.${rootKey}.installed;
+        outPath  = final.${rootKey}.prepared.outPath;
       };
-    };
+    } );
 
 
 # ---------------------------------------------------------------------------- #
 
-    # FIXME: define `metaSet' as you've done for `flocoPackages'?
-    inherit metaSet;
-
-    flocoPackages = eachSupportedSystemMap { system }:
-      lib.fix self.flocoOverlays.pkgSet.${system} {};
-
-    packages = eachSupportedSystemMap ( {
-      system
-    , pkgsFor
-    , lib
-    , flocoConfig
-    }: {
-      ${rootKey} = self.flocoPackages.${rootKey};
+    packages = eachSupportedSystemMap ( system: let
+      inherit (metaSet.__meta) rootKey;
+      pkgSet = self.lib.fix self.flocoOverlays.pkgSet.${system} {};
+    in {
+      ${rootKey} = pkgSet.${rootKey};
       default    = self.packages.${system}.${rootKey};
     } );
 

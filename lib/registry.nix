@@ -64,6 +64,48 @@
 
 # ---------------------------------------------------------------------------- #
 
+  isPackument = x: let
+    # Values are for "is field optional".
+    # This wasn't audited on a particularly large data set, but it can be
+    # refined as needed.
+    # Note that GitHub Packages and NPM have differences concerning fallback
+    # values ( `readme' for example ).
+    # I have not checked Verdaccio.
+    knownFields = {
+      _id = false;
+      _rev = true;
+      author = true;
+      bugs = true;
+      contributors = true;
+      description = false;
+      dist-tags = false;
+      homepage = false;
+      keywords = true;
+      license = false;
+      maintainers = true;
+      name = false;
+      readme = true;           # Not on GitHub Packages
+      readmeFilename = true;   # Not on GitHub Packages
+      repository = false;
+      time = false;
+      users = true;
+      versions = false;
+    };
+    indicators = [
+      ( ( x._type or null ) == "packument" )
+      # Make sure we have the required fields
+      ( builtins.all ( f: knownFields.${f} || ( x ? ${f} ) )
+                     ( builtins.attrNames knownFields ) )
+    ];
+    conds = [
+      ( builtins.isAttrs x )
+      ( builtins.any ( b: b == true ) indicators )
+    ];
+  in builtins.all ( b: b == true ) conds;
+
+
+# ---------------------------------------------------------------------------- #
+
   # Fetch a packument from the registry.
   # String string contexts to ensure that the fetched result doesn't root its
   # hash from any arguments.
@@ -74,6 +116,12 @@
   in builtins.readFile ( builtins.fetchurl url );
 
   fetchPackument = {
+    __functionMeta = {
+      argTypes     = ["string" "set"];
+      destructure  = true;
+      terminalArgs = { registry = "string"; ident = "string"; };
+      thunkMembers = { registryScopes = "set"; };
+    };
     __functionArgs = {
       flocoConfig    = true;
       registryScopes = true;
@@ -83,30 +131,27 @@
       meta           = true;
       key            = true;
     };
-
     __thunk = let
       flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
     in { inherit (flocoConfig) registryScopes; };
-
-    __functor = self: x: let
+    __functor = self: arg: let
       regArgs =
-        if builtins.isAttrs x then self.__thunk // x else
+        if builtins.isAttrs arg then self.__thunk // arg else
         self.__thunk // {
-          ident = lib.yank "((@[^/]+/)?[^@/]+)(/[1-9][^/@]*)?" x;
+          ident = lib.yank "((@[^/]+/)?[^@/]+)(/[1-9][^/@]*)?" arg;
         };
       registry = registryForScope regArgs;
       ident =
         regArgs.ident or regArgs.meta.ident or regArgs.name or regArgs.meta.name
         or ( dirOf ( regArgs.key or regArgs.meta.key ) );
     in _fetchPackument ( { inherit ident registry; } // regArgs );
-
   };
 
   # Tail calls `builtins.fromJSON' after fetching.
   importFetchPackument = fetchPackument // {
-    __functor = self: args: let
+    __functor = self: arg: let
       wrapFP = fetchPackument // { inherit (self) __thunk; };
-    in builtins.fromJSON ( wrapFP args );
+    in builtins.fromJSON ( wrapFP arg );
   };
 
 
@@ -139,7 +184,7 @@
     # FIXME:
     versions = builtins.mapAttrs addPerVers ( packument.versions or {} );
     packument' = packument // nid // { inherit versions; };
-    latest = packumentPkgLatestVersion packument';
+    latest = packumentLatestVersion' packument';
   in packument' // {
     latest = if versions != {} then latest else null;
     versions = packument'.versions // { inherit latest; };
@@ -152,7 +197,7 @@
   # First we check for `.dist-tags.latest' for a version number, otherwise we
   # use the last element of the list.
   # Nix sorts keys such that the highest version number will be last.
-  packumentPkgLatestVersion' = packument: let
+  packumentLatestVersion' = packument: let
     vlist = builtins.attrValues packument.versions;
     len   = builtins.length vlist;
     last  = builtins.elemAt vlist ( len -1 );
@@ -162,11 +207,43 @@
     lver  = packument.dist-tags.latest or maybeLast;
   in packument.versions.${lver};
 
+  # Return the latest `<packument>.versions' member if one exists.
+  # Accepts either a packument, or args accepted by `fetchPackument' in which
+  # case it will perform a fetch.
+  # "Is arg a packument" is determined by `lib.libreg.isPackument'.
+  # You can override `importFetchPackument' in the thunk with a custom
+  # fetcher, and you man also specialize the thunk member's `registryScopes'
+  # field just as you would for the `lib.importFetchPackument' functor.
+  packumentLatestVersion = {
+    __functionMeta = {
+      argTypes = ["string" "set"];
+      destructure = true;
+      terminalArgs = { packument = "set"; };
+      thunkMembers = { importFetchPackument = "lambda"; };
+    };
+    __functor = self: arg:
+      self.__innerFunction self ( self.__processArgs self arg );
+    __thunk = { inherit (lib.libreg) importFetchPackument; };
+    __functionArgs = fetchPackument.__functionArgs // {
+      importFetchPackument = true;
+      packument = true;
+    };
+    __processArgs = self: arg: let
+      ifp = arg.importFetchPackument or self.__thunk.importFetchPackument;
+      ifpT = if ! ( builtins.isAttrs ifp ) then ifp else
+             ifp // { __thunk = ifp.__thunk // self.__thunk; };
+      ifpArgs = removeAttrs ( self.__thunk // arg ) ["importFetchPackument"];
+      fallback = if builtins.isString arg then ifpT arg else
+                 if lib.libreg.isPackument arg then arg else ifp ifpArgs;
+    in arg.packument or fallback;
+    __innerFunction = self: packumentLatestVersion';
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
   getTarInfo = x:
-    let dist = x.dist or x.tarball or ( packumentPkgLatestVersion x ).dist;
+    let dist = x.dist or x.tarball or ( packumentLatestVersion x ).dist;
     in { inherit (dist) tarball; integrity = dist.integrity or null; };
 
   # FIXME: You can likely convert `shasum' to a valid hash.
@@ -323,7 +400,7 @@
     };
 
       latest = let
-        v = ( packumentPkgLatestVersion p ).version;
+        v = ( packumentLatestVersion' p ).version;
         v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
       in {
         from = { id = name; type = "indirect"; };
@@ -503,9 +580,10 @@ in {
     registryForScope
   ;
   inherit
+    isPackument
     fetchPackument
     importFetchPackument
-    packumentPkgLatestVersion
+    packumentLatestVersion
   ;
 
   inherit

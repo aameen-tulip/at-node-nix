@@ -95,6 +95,8 @@
       mkExtInfo'
       mkExtInfo
       metaEntryFromtypes
+      metaWasPlock
+      metaWasYlock
 
       mkMetaEnt'
       mkMetaEnt

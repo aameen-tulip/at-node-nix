@@ -21,7 +21,7 @@
 { lib }: let
 
   inherit (lib) genMetaEntRules;
-  inherit (lib.libmeta) metaEntWasPlock;
+  inherit (lib.libmeta) metaWasPlock;
 
 # ---------------------------------------------------------------------------- #
 
@@ -62,7 +62,7 @@
   entHasInstallScript = ent: let
     fromScript = hasStageScript "install" ent;
     fromPlock  = ent.hasInstallScript or false;
-  in if lib.libmeta.metaEntWasPlock ent then fromPlock else fromScript;
+  in if lib.libmeta.metaWasPlock ent then fromPlock else fromScript;
 
   # Returns null for inconclusive;
   # NOTE: `git' sources with `package-lock.json' are the ones that you can run
@@ -99,7 +99,7 @@
   };
 
   inherit (
-    genMetaEntRules "PlockGapsFromPjs" metaEntWasPlock metaEntPlockGapsFromPjs
+    genMetaEntRules "PlockGapsFromPjs" metaWasPlock metaEntPlockGapsFromPjs
   ) metaEntAddPlockGapsFromPjs
     metaEntUpPlockGapsFromPjs
     metaEntExtendPlockGapsFromPjs
@@ -140,6 +140,10 @@
   , gypfile          ? false
   , hasTest          ? entHasTestScript    ent
   , scripts          ? {}
+  , os               ? null
+  , cpu              ? null
+  , engines          ? null
+  , trees            ? {}
   , ...
   } @ ent: let
     hasBuild' = lib.optionalAttrs ( hasBuild != null ) { inherit hasBuild; };
@@ -187,8 +191,8 @@
       };
     };
 
-    ftFields = if lib.libmeta.metaEntWasPlock ent then fieldsForFT.plock else
-               if lib.libmeta.metaEntWasYlock ent then fieldsForFT.ylock else
+    ftFields = if lib.libmeta.metaWasPlock ent then fieldsForFT.plock else
+               if lib.libmeta.metaWasYlock ent then fieldsForFT.ylock else
                ( fieldsForFT.${entFromtype} or {} );
 
   in lib.libmeta.mkMetaEnt ( members // ftFields );
@@ -255,6 +259,7 @@
       }
       # This is NOT redundant alongside the `plockEntryHashAttrs' call.
       { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity; }
+      { c = isLocal;            v.sourceInfo.path = pjsDir; }
     ];
     forAttrs = builtins.foldl' lib.recursiveUpdate core [
       conds
@@ -265,7 +270,7 @@
   in if builtins.isString x then core else ec forAttrs;
 
   inherit (
-    genMetaEntRules "FromPlockSubtype" metaEntWasPlock metaEntFromPlockSubtype
+    genMetaEntRules "FromPlockSubtype" metaWasPlock metaEntFromPlockSubtype
   ) metaEntAddFromPlockSubtype
     metaEntUpFromPlockSubtype
     metaEntExtendFromPlockSubtype

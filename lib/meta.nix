@@ -276,21 +276,44 @@
     "raw"                    # Fallback/Default for manual entries
   ];
 
-  metaEntWasPlock = { entFromtype ? "raw", ... }:
-    builtins.elem entFromtype [
-      "package-lock.json"
-      "package-lock.json(v1)"
-      "package-lock.json(v2)"
-      "package-lock.json(v3)"
-    ];
+  ylockTypes = [
+    "yarn.lock"
+    "yarn.lock(v1)"
+    "yarn.lock(v2)"
+    "yarn.lock(v3)"
+  ];
+  plockTypes = [
+    "package-lock.json"
+    "package-lock.json(v1)"
+    "package-lock.json(v2)"
+    "package-lock.json(v3)"
+  ];
 
-  metaEntWasYlock = { entFromtype ? "raw", ... }:
-    builtins.elem entFromtype [
-      "yarn.lock"
-      "yarn.lock(v1)"
-      "yarn.lock(v2)"
-      "yarn.lock(v3)"
-    ];
+  # Was `x' a `meta(Set|Ent)' created from one of `allowedTypes'?
+  # `allowedTypes' can be specialized.
+  #
+  # The argument parser was isolated so you can replace `__innerFunction' to
+  # replace the predicate used to check against the terminal FromType string.
+  #   ( lib.metaWasPlock // { __innerFunction = self: builtins.isString; } ) ""
+  #   ==> true
+  _metaWasFrom = allowedTypes: {
+    inherit allowedTypes;
+    __functionMeta = {
+      argTypes     = ["string" "set"];
+      destructures = true;
+      terminalArgs = { fromType = "string"; };
+    };
+    __functionArgs = { fromType = true; entFromType = true; __meta = true; };
+    __processArgs = self: arg: let
+      dargs = arg.fromType or arg.__meta.fromType or arg.entFromtype or "raw";
+    in if builtins.isString arg then arg else dargs;
+    __innerFunction = self: targ: builtins.elem targ self.allowedTypes;
+    __functor = self: arg:
+      self.__innerFunction self ( self.__processArgs self arg );
+  };
+
+  metaWasPlock = _metaWasFrom plockTypes;
+  metaWasYlock = _metaWasFrom ylockTypes;
 
 
 # ---------------------------------------------------------------------------- #
@@ -313,7 +336,7 @@
     keepTrue = let
       cond = k: v: ( builtins.elem k hides ) && ( v == true );
     in lib.filterAttrs cond dft;
-  in assert metaEntWasPlock self;
+  in assert metaWasPlock self;
      hide // keepTrue;
 
 
@@ -620,8 +643,8 @@ in {
     mkMetaEntCore
     mkMetaEnt'
     mkMetaEnt
-    metaEntWasPlock
-    metaEntWasYlock
+    metaWasPlock
+    metaWasYlock
   ;
   # Meta Sets
   inherit
