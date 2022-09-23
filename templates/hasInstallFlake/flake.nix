@@ -22,35 +22,32 @@
   } @ inputs: let
 
 # ---------------------------------------------------------------------------- #
+    
+    metaSet = let
+      inherit (self) lib;
+      serial =
+        if inputs ? metaSet then lib.importJSON inputs.metaSet.outPath else
+        if builtins.pathExists "${toString ./meta.nix}" then
+          import ./meta.nix
+        else if builtins.pathExists "${toString ./meta.json}" then
+          lib.importJSON ./meta.json
+        else null;
+      fromSerial = lib.metaSetFromSerial serial;
+      fromPlock = let
+        localArgs = { lockDir = "${input.source or self}"; };
+        inputArgs = builtins.intersectAttrs {
+          plock = true;
+          pjs   = true;
+        } inputs;
+        args = if inputArgs == {} then localArgs else
+               inputArgs // ( lib.optionalAttrs ( inputs ? source ) {
+                 lockDir = inputs.source.outPath;
+               } );
+      in lib.metaSetFromPlockV3 args;
+    in if serial != null then fromSerial else fromPlock;
 
-    # Check for an optional input, using `fallback' if none exists.
-    # If input is a file, import it from JSON to be used as an attrset.
-    # This is most useful for passing in hints, configs, and other metadata.
-    # `flocoConfig' for example may be imported from JSON and merged with the
-    # `defaultFlocoConfig' defined below if `inputs.flocoConfig' is present.
-    # Pay attention to the priority behavior since it can allow you to
-    # use a file, or a flake where `outputs.${field}' or outputs is used as
-    # an attrset.
-    # If these don't exactly fit your use case use it as a reference.
-    getInputAsAttrsOr = field: fallback: let
-      x =
-        inputs.${field}
-        or inputs.${field}.outputs.${field}
-        or inputs.${field}.outputs
-        or fallback;
-      xIsFile = ( builtins.isAttrs x ) && ( x ? outPath ) &&
-                ( ( lib.categorizePath x.outPath ) != "directory" );
-    in if xIsFile then lib.importJSON' ( toString x ) else x;
+    inherit (metaSet.__meta) rootKey;
 
-
-# ---------------------------------------------------------------------------- #
-
-    mkLib = _flocoConfig: at-node-nix.lib.extend ( final: prev: {
-      flocoConfig = _flocoConfig;
-      flocoFetch  = final.libfetch.mkFlocoFetcher {
-        inherit (final) flocoConfig;
-      };
-    } );
 
 # ---------------------------------------------------------------------------- #
 
@@ -63,19 +60,20 @@
     #   fn :: string -> attrs -> any  ( curried )
     # For both attrs types above `system' does not necessarily need to be an
     # argument; but it may be.
-    eachSupportedSystemMap = let
+    eachSupportedSystemMap = fn: let
       supportedSystems = [
         "x86_64-linux"  "x86_64-darwin"
         "aarch64-linux" "aarch64-darwin"
       ];
-      sysAutoArgs = system: {
-        inherit system;
+      sysAutoArgs = system: let
         flocoConfig = self.flocoConfig // {
-          npmSys = at-node-nix.lib.getNpmSys' { inherit system; };
+          npmSys = self.lib.getNpmSys' { inherit system; };
         };
-        lib     = mkLib selfSys.flocoConfig;
+        lib = self.lib.exend ( final: prev: { inherit flocoConfig; } );
+      in {
+        inherit system flocoConfig lib;
         pkgsFor = at-node-nix.legacyPackages.${system}.extend ( final: prev: {
-          inherit (selfSys) flocoConfig lib;
+          inherit flocoConfig lib;
         } );
       };
       forSys = system: {
@@ -93,28 +91,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    metaSet = let
-      wants = {
-        plock     = true;
-        pjs       = true;
-        lockDir   = true;
-        lockPath  = true;
-        pjsPath   = true;
-        manifest  = true;
-        packument = true;
-      };
-      knowns = { /* FIXME */ };
-      fromPlock = lib.libmeta.metaSetFromPlockV3 ( {
-        inherit (self) flocoConfig;
-        inherit plock;
-      } ( lib.optionalAttrs ( pjs != null ) { inherit pjs; } ) );
-    in getInputsAsAttrsOr "metaSet" fallback;
-
-    inherit (metaSet.__meta) rootKey;
-
-
-# ---------------------------------------------------------------------------- #
-
+    pkgsForSys = system: (eachSupportedSystemMap system).${system}.pkgsFor;
     pkgEntFor = system: let
       pkgsFor = pkgsForSys system;
       pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${rootKey};
@@ -140,23 +117,26 @@
 
 # ---------------------------------------------------------------------------- #
 
-    lib = mkLib self.flocoConfig;
+    lib = at-node-nix.lib.extend ( final: prev: {
+      inherit (self) flocoConfig;
+      flocoFetch = final.libfetch.mkFlocoFetcher {
+        inherit (final) flocoConfig;
+      };
+    } );
 
 # ---------------------------------------------------------------------------- #
-
 
     # Read from inputs if given, otherwise use default.
     # A partial config may be provided and it will be merged with the defualt.
     flocoConfig = let
-      raw = getInputAsAttrsOr "flocoConfig"
-                              at-node-nix.lib.libcfg.defaultFlocoConfig;
-      merged = if inputs ? flocoConfig
-               then lib.recursiveUpdate defaultFlocoConfig raw
-               else raw;
+      fromInput = lib.importJSON inputs.flocoConfig.outPath;
+      raw = if inputs ? flocoConfig then fromInput else
+            at-node-nix.lib.libcfg.defaultFlocoConfig;
+      merged =
+        if inputs ? flocoConfig
+        then lib.recursiveUpdate at-node-nix.lib.libcfg.defaultFlocoConfig raw
+        else raw;
     in at-node-nix.lib.mkFlocoConfig merged;
-
-
-# ---------------------------------------------------------------------------- #
 
 
 # ---------------------------------------------------------------------------- #
@@ -168,34 +148,48 @@
     flocoOverlays.metaSet = final: prev: let
       rootEnt = metaSet.${rootKey}.__add { inherit (metaSet.__meta) trees; };
     in metaSet.__entries // { ${rootKey} = rootEnt; };
-    flocoOverlays.pkgSet = final: prev: {
-      ${rootKey} = pkgEntFor prev.system;
+    flocoOverlays.pkgSet = eachSupportedSystemMap ( {
+      system
+    , pkgsFor
+    , flocoConfig
+    , lib
+    }: final: prev: let
+      srcEnts = builtins.mapAttrs ( _: pkgsFor.mkPkgEntSourceEnt )
+                                  metaSet.__entries;
+    in srcEnts // prev // {
+      ${rootKey} = srcEnts.${rootKey} // {
+        installed = pkgsFor.installPkgEnt ( srcEnts.${rootKey} // {
+          nmDirCmd = pkgsFor.mkNmDirPlockV3 {
+            inherit metaSet;
+            pkgSet = final;
+          };
+        } );
+      };
     };
 
 
 # ---------------------------------------------------------------------------- #
 
-    packages = eachDefaultSystemMap ( system: {
-      msgpack = ( pkgEntFor system ).prepared;
-      default = self.packages.${system}.msgpack;
+    # FIXME: define `metaSet' as you've done for `flocoPackages'?
+    inherit metaSet;
+
+    flocoPackages = eachSupportedSystemMap { system }:
+      lib.fix self.flocoOverlays.pkgSet.${system} {};
+
+    packages = eachSupportedSystemMap ( {
+      system
+    , pkgsFor
+    , lib
+    , flocoConfig
+    }: {
+      ${rootKey} = self.flocoPackages.${rootKey};
+      default    = self.packages.${system}.${rootKey};
     } );
 
 
 # ---------------------------------------------------------------------------- #
 
-    apps = eachDefaultSystemMap ( system: let
-      selfFor = self.packages.${system};
-      pkgsFor = pkgsForSys system;
-    in {
-      msgpack2json = {
-        type = "app";
-        program = "${selfFor.msgpack}/bin/msgpack2json";
-      };
-      json2msgpack = {
-        type = "app";
-        program = "${selfFor.msgpack}/bin/json2msgpack";
-      };
-    } );
-
   };
+
+# ---------------------------------------------------------------------------- #
 }
