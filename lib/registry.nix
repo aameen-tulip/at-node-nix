@@ -27,39 +27,51 @@
 
   # See `tests/libreg/tests.nix' for more examples.
   registryForScope = {
+    __functionMeta = {
+      argTypes = ["string" "set"];
+      destructure  = true;
+      terminalArgs = { scope = "string"; };
+      thunkMembers = { registryScopes = "set"; };
+      keywords = [
+        "functor" "configured" "thunk" "polymorphic" "wrapper"
+        "registry" "scope"
+      ];
+      doc = ''
+  FUNCTOR ( Polymorphic & Thunk & Configured )
+  registryForScope :: (String:<key|ident|scope> | Attrs) -> String
+
+  Ex:  registryForScope "foo"                                  ==> "https://registry.npmjs.org"
+  Ex:  registryForScope { ident = "@foo/bar"; }                ==> "https://registry.npmjs.org"
+  Ex:  registryForScope { flocoConfig = ...; scope = "foo"; }  ==> http://myregistry.com
+
+  Recommended Attr Args: { scope, registryScopes }
+  Fallback Attr Args:    { scope <- ident|name|key|meta, registryScopes <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
+
+  Uses `lib.flocoConfig.registryScopes' by default.
+  You may also set `__thunk.(registryScopes|flocoConfig)' to specialize this functor to use alternate scope settings.
+
+  When a string argument is passed, the default registry scope list is used, and the string is parsed using `lib.libpkginfo.normalizePkgScope'.
+  NOTE: this means that passing "@foo/bar" OR "foo" uses "foo" as the scope - which might not be what you expect.
+
+  KEYWORDS: functor, configured, thunk, polymorphic, registry, scope
+'';
+    };
+    __functor = self: arg:
+      self.__innerFunction self ( self.__processArgs self arg );
     __functionArgs = ( lib.functionArgs _registryForScope ) // {
       name = true;
       key  = true;
     };
+    __processArgs = self: arg: let
+      scopeFromString = ( lib.libpkginfo.normalizePkgScope arg ).scope;
+   in if builtins.isString arg then { scope = scopeFromString; } else
+      if builtins.isAttrs arg then arg else
+      if arg == null then { scope = null; } else
+      throw "registryForScope: arg must be a string (scope) or attrset";
     __thunk = let
       flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
     in { inherit (flocoConfig) registryScopes; };
-    __functor = self: x: let
-      scopeFromString = ( lib.libpkginfo.normalizePkgScope x ).scope;
-      args = if builtins.isString x then { scope = scopeFromString; } else
-             if builtins.isAttrs x then x else
-             if x == null then { scope = null; } else
-             throw "registryForScope: arg must be a string (scope) or attrset";
-    in _registryForScope ( self.__thunk // args );
-    __doc = ''
-      FUNCTOR ( Polymorphic & Thunk & Configured )
-      registryForScope :: (String:<key|ident|scope> | Attrs) -> String
-
-      Ex:  registryForScope "foo"                                  ==> "https://registry.npmjs.org"
-      Ex:  registryForScope { ident = "@foo/bar"; }                ==> "https://registry.npmjs.org"
-      Ex:  registryForScope { flocoConfig = ...; scope = "foo"; }  ==> http://myregistry.com
-
-      Recommended Attr Args: { scope, registryScopes }
-      Fallback Attr Args:    { scope <- ident|name|key|meta, registryScopes <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
-
-      Uses `lib.flocoConfig.registryScopes' by default.
-      You may also set `__thunk.(registryScopes|flocoConfig)' to specialize this functor to use alternate scope settings.
-
-      When a string argument is passed, the default registry scope list is used, and the string is parsed using `lib.libpkginfo.normalizePkgScope'.
-      NOTE: this means that passing "@foo/bar" OR "foo" uses "foo" as the scope - which might not be what you expect.
-
-      KEYWORDS: functor, configured, thunk, polymorphic, registry, scope
-    '';
+    __innerFunction = self: _registryForScope;
   };
 
 # ---------------------------------------------------------------------------- #
