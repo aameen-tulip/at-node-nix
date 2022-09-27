@@ -37,7 +37,6 @@
         "registry" "scope"
       ];
       doc = ''
-  FUNCTOR ( Polymorphic & Thunk & Configured )
   registryForScope :: (String:<key|ident|scope> | Attrs) -> String
 
   Ex:  registryForScope "foo"                                  ==> "https://registry.npmjs.org"
@@ -150,6 +149,7 @@
       regArgs =
         if builtins.isAttrs arg then self.__thunk // arg else
         self.__thunk // {
+          scope = lib.yank "@([^/]+).*" arg;
           ident = lib.yank "((@[^/]+/)?[^@/]+)(/[1-9][^/@]*)?" arg;
         };
       registry = registryForScope regArgs;
@@ -294,6 +294,10 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: updates to `importFetchPackument' broke this functor, but
+  # honestly we've learned a lot since this was written and could use it could
+  # benefit from a rewrite to integrate with the new registry/scope handling.
+
   /**
    * A lazily evaluated extensible packument database.
    * Packuments will not be fetched twice.
@@ -330,6 +334,7 @@
     __functor = self: str: self.extend ( self.lookup str );
   } );
 
+
   extendWithLatestDeps' = pr: let
     inherit (builtins) mapAttrs attrNames attrValues foldl' filter;
     depsFor = x: x.latest.dependencies or {};
@@ -365,41 +370,14 @@
 
   packumentClosure = packumentClosure' packumenter;
 
-  # Handle large lists in chunks.
-  # Folding chunks of 100 with `packumentClosure'' seems to work well.
-  # Use `builtins.genList' or `ak-core.lib.{drop,take}N' to cut things down
-  # to size.
-
-
-# ---------------------------------------------------------------------------- #
-
-#  /* FOR TESTING FIXME: REMOVE */
-##  big = lib.importJSON ../test/yarn/lock/big-npm-fetchers.json;
-##  biglist = lib.unique ( map ( x: ( lib.libparse.nameInfo x ).name )
-##                             ( builtins.attrNames big ) );
-##
-##  getChunk = size: list: let
-##    len   = builtins.length list;
-##    n     = lib.min len size;
-##    rest  = if ( len <= size ) then [] else ( lib.drop n list );
-##    chunk = if ( list == [] ) then [] else ( lib.take n list );
-##  in { inherit chunk rest; };
-##
-##  extendChunk = pr: n: let
-##    bigChunk = ( getChunk 100 ( getChunk ( n * 100 ) biglist ).rest ).chunk;
-##    maxN = ( builtins.length biglist ) / 100 + 1;
-##    next = packumentClosure' pr bigChunk;
-##  in if ( n < maxN ) then next else pr;
-##
-##  #pcf = builtins.foldl' ( acc: x: extendChunk acc x ) packumenter
-##  #        ( builtins.genList ( x: x ) ( ( builtins.length biglist ) / 100 ) );
-##
-##  pcf = builtins.foldl' ( acc: x: packumentClosure' acc x ) packumenter biglist;
-
 
 # ---------------------------------------------------------------------------- #
 
   # XXX: YOU STILL NEED TO SET `inputs.<ID>.flake = false' in your `flake.nix'!
+  # NOTE: `ak-nix' carries a flake registry generator routine which may be
+  # preferable here since it can use a common record to output flake inputs,
+  # flake registries, and a custom "fetchTree registry" which is effectively
+  # a `flake.lock' with some added fields.
   flakeRegistryFromPackuments = registryUrl: name: let
     p = importFetchPackument registryUrl name;
     registerVersion = version:
@@ -410,19 +388,18 @@
         url = p.versions.${version}.dist.tarball;
       };
     };
-
-      latest = let
-        v = ( packumentLatestVersion' p ).version;
-        v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
-      in {
-        from = { id = name; type = "indirect"; };
-        to = { id = name + "-" + v'; type = "indirect"; };
-      };
+    latest = let
+      v = ( packumentLatestVersion' p ).version;
+      v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
     in {
-      version = 2;
-      flakes =
-        [latest] ++ ( map registerVersion ( builtins.attrNames p.versions ) );
+      from = { id = name; type = "indirect"; };
+      to = { id = name + "-" + v'; type = "indirect"; };
     };
+  in {
+    version = 2;
+    flakes =
+      [latest] ++ ( map registerVersion ( builtins.attrNames p.versions ) );
+  };
 
   flakeRegistryFromNpm =
     flakeRegistryFromPackuments "https://registry.npmjs.org";
@@ -481,6 +458,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: Make this name parser part of `metaEnt.names'.
+  #
   # Given an input `id' created by `flakeInputFromManifestTarball', return an
   # attrset with all the delicious nuggets of info therein.
   # Notably this makes it easy to convert to the `node2nix' names, which is
@@ -520,13 +499,14 @@
   # Drop junk fields from manifests, and add explicit handlers for a few fields
   # that we actually care about.
   # FIXME: This could probably be shortened using `builtins.intersectAttrs'.
+  # FIXME: Create a `metaEnt' from this.
   normalizeManifest = manifest: let
     removes = [
       "_npmOperationalInternal"
       "maintainers"
       "_npmUser"
       "contributors"
-      "engines"
+      #"engines"   # XXX: we want this field
       "homepage"
       "license"
       "icon"

@@ -56,20 +56,17 @@
   inputs.nix.url = "github:NixOS/nix/master";
   inputs.nix.inputs.nixpkgs.follows = "/nixpkgs";
 
-  inputs.utils.url = "github:numtide/flake-utils/master";
-
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
-  inputs.ak-nix.inputs.utils.follows = "/utils";
 
   inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
 
 # ============================================================================ #
 
-  outputs = { self, nixpkgs, nix, utils, ak-nix, pacote-src, ... }: let
+  outputs = { self, nixpkgs, nix, ak-nix, pacote-src, ... }: let
 
-    inherit (utils.lib) eachDefaultSystemMap;
+    inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
     lib = import ./lib { inherit (ak-nix) lib; };
 
@@ -91,11 +88,8 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackage =
-        lib.callPackageWith ( ( pkgsForSys prev.system ) // final );
-      callPackages =
-        lib.callPackagesWith ( ( pkgsForSys prev.system ) // final );
-
+      callPackage  = lib.callPackageWith final;
+      callPackages = lib.callPackagesWith final;
       nodeEnv =
         callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
           libtool =
@@ -124,7 +118,7 @@
         ];
       in ( pkgsForSys prev.system ).extend ovs;
       callPackageWith  = autoArgs:
-        lib.callPackageWith  ( pkgsFor // final // autoArgs );
+        lib.callPackageWith ( pkgsFor // final // autoArgs );
       callPackagesWith = autoArgs:
         lib.callPackagesWith ( pkgsFor // final // autoArgs );
       callPackage  = callPackageWith {};
@@ -133,7 +127,7 @@
 
       nodejs = prev.nodejs-14_x;
 
-      lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
+      lib = import ./lib { lib = prev.lib or ak-nix.lib; };
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
