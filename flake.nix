@@ -133,7 +133,7 @@
 
       nodejs = prev.nodejs-14_x;
 
-      lib = import ./lib { lib = prev.lib or pkgsFor.lib; };
+      lib = import ./lib { lib = prev.lib or ak-nix.lib; };
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
