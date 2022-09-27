@@ -344,10 +344,10 @@
     genMetaEntRules "RootTreesForPlockV3" lib.libplock.supportsPlV3 ( e: {
       __meta = metaSetRootTreesForPlockV3 e;
     } ) )
-      metaSetAddRootTreesForPlockV3
-      metaSetUpRootTreesForPlockV3
-      metaSetExtendRootTreesForPlockV3
-      metaSetMergeRootTreesForPlockV3
+      metaEntAddRootTreesForPlockV3
+      metaEntUpRootTreesForPlockV3
+      metaEntExtendRootTreesForPlockV3
+      metaEntMergeRootTreesForPlockV3
   ;
 
 
@@ -486,10 +486,10 @@ in {
     metaEntExtendFromPlockSubtype
     metaEntMergeFromPlockSubtype
 
-    metaSetAddRootTreesForPlockV3
-    metaSetUpRootTreesForPlockV3
-    metaSetExtendRootTreesForPlockV3
-    metaSetMergeRootTreesForPlockV3
+    metaEntAddRootTreesForPlockV3
+    metaEntUpRootTreesForPlockV3
+    metaEntExtendRootTreesForPlockV3
+    metaEntMergeRootTreesForPlockV3
 
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'
