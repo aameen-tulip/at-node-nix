@@ -607,7 +607,7 @@
     if cond set then set.__extend ( fn set ) else set;
 
   genMetaSetMerge = cond: fn: set: let
-    m = lib.recursiveUpdate ( fn set.__setries ) ( set.__setries );
+    m = lib.recursiveUpdate ( fn set.__entries ) ( set.__entries );
   in if cond set then set.__update m else set;
 
   genMetaSetRules = name: cond: fn: {
@@ -616,6 +616,48 @@
     "metaSetExtend${name}" = genMetaSetExtend cond fn;
     "metaSetMerge${name}"  = genMetaSetMerge  cond fn;
   };
+
+
+# ---------------------------------------------------------------------------- #
+
+  isMeta = x: let
+    byTypeF  = builtins.elem ( x._type or null ) ["metaEnt" "metaSet"];
+    byFields = ( builtins.isAttrs x ) && ( x ? __extend ) && ( x ? __entries );
+  in byTypeF || byFields;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Merge `metaExt' objects ( of the same type preferably ) by recursively
+  # updating attrsets, and recursively merging child `metaExt' members.
+  # NOTE: This will not pick up `<metaExt>.<attrSet>.<metaExt>' "grandchild"
+  # records in it's recursion; those get merged using `recursiveUpdate'.
+  metaExtsMerge = a: b: let
+    typeCheck = v: let
+      tf = lib.throwIfNot ( ( a._type or null ) == ( b._type or null ) )
+           "metaExtMerge: both arguments must be of meta `_type'";
+      generic = lib.throwIfNot ( ( isMeta a ) && ( isMeta b ) )
+                "metaExtMerge: both argument must be `metaExt' attrsets";
+    in generic ( tf v );
+    # Tries various ways of merging common attrs such that `b' "updates" `a'.
+    # This is "best effort", not bullet-proof - if  you need something more
+    # exact that this write your own damn merger.
+    mergeF = af: bf: let
+      aM        = isMeta af;
+      bM        = isMeta bf;
+      bothAttrs = ( builtins.isAttrs af ) && ( builtins.isAttrs bf );
+    in if aM && bM then metaExtsMerge af bf else
+       if aM then af.__update ( lib.recursiveUpdate af.__entries bf ) else
+       if bM then bf.__update ( lib.recursiveUpdate af bf.__entries ) else
+       if bothAttrs then lib.recursiveUpdate af bf else bf;
+    # This on it's own is likely a useful helper.
+    asOverlay = final: prev: let
+      common = builtins.intersectAttrs prev b.__entries;
+      keys = builtins.attrNames common;
+      proc = acc: key: acc // { ${key} = mergeF prev.${key} b.${key}; };
+      m    = builtins.foldl' proc {} keys;
+    in b.__entries // m;
+  in typeCheck ( a.__extend asOverlay );
 
 
 # ---------------------------------------------------------------------------- #
@@ -668,5 +710,10 @@ in {
     genMetaSetExtend
     genMetaSetMerge
     genMetaSetRules
+  ;
+
+  inherit
+    isMeta
+    metaExtsMerge
   ;
 }
