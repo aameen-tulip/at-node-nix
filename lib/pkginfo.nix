@@ -11,17 +11,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # This wipes out any C style comments in JSON files that were written by
-  # sub-humans that cannot abide by simple file format specifications.
-  # Later this function will be revised to schedule chron jobs which send
-  # daily emails to offending projects' authors - recommending various
-  # re-education programs they may enroll in.
-  importJSON' = file: let inherit (builtins) fromJSON readFile; in
-    fromJSON ( lib.libstr.removeSlashSlashComments ( readFile file ) );
-
-
-# ---------------------------------------------------------------------------- #
-
   # Split a `package.json' name field into "scope" ( if any ) and the
   # package name, yielding a set with the original name, "bname", and scope.
   # Ex:
@@ -162,7 +151,7 @@
 
   # Given a path to a project dir or `package.json', return list of ws paths.
   readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
-    workspacePackages ( dirOf pjp ) ( importJSON' pjp );
+    workspacePackages ( dirOf pjp ) ( lib.importJSON' pjp );
 
   # Make workspace paths absolute.
   normalizeWorkspaces = dir: pjs:
@@ -188,7 +177,7 @@
   pkgJsonFromPath = p: let
     pjs = pkgJsonForPath p;
   in assert builtins.pathExists pjs;
-     importJSON' pjs;
+     lib.importJSON' pjs;
 
 
 # ---------------------------------------------------------------------------- #
@@ -232,7 +221,7 @@
        throw "Could not find package.json in subdirs";
     fromPath = let
       pjp = "${lib.coercePath x}/package.json";
-    in if ( builtins.pathExists pjp ) then ( importJSON' pjp )
+    in if ( builtins.pathExists pjp ) then ( lib.importJSON' pjp )
                                       else pjsInSubdirs;
   in if lib.isCoercibleToPath x then fromPath else if isAttrs x then x else
      throw "Cannot get package.json from type: ${typeOf x}";
@@ -314,18 +303,19 @@
 
 in {
   inherit
-    importJSON'
     mkPkgInfo
     pkgJsonHasBin
     rewriteDescriptors
     hasInstallScript
   ;
+
   # `package.json' locators
   inherit
     pkgJsonForPath
     pkgJsonFromPath
     getPkgJson
   ;
+
   # Names
   inherit
     parsePkgJsonNameField
@@ -334,6 +324,7 @@ in {
     asLocalTarballName
     asNpmRegistryTarballName
   ;
+
   # Workspaces
   inherit
     workspacePackages

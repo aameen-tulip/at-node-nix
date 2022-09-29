@@ -20,7 +20,6 @@
     libparse   = callLibs ./parse.nix;
     librange   = callLibs ./ranges.nix;
     libpkginfo = callLibs ./pkginfo.nix;
-    libstr     = prev.libstr // ( callLibs ./strings.nix );
     libattrs   = prev.libattrs // ( callLibs ./attrsets.nix );
     libplock   = callLibs ./pkg-lock.nix;
     libreg     = callLibs ./registry.nix;
@@ -44,20 +43,6 @@
       parseLocator
       nameInfo
       isGitRev
-    ;
-
-    # FIXME: remove routines made redundant by `libdep'.
-    inherit (final.libpkginfo)
-      importJSON'
-      getDepFields
-    ;
-
-    inherit (final.libstr)
-      lines
-      readLines
-      test
-      charN
-      trim
     ;
 
     inherit (final.libattrs)
