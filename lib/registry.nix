@@ -404,10 +404,6 @@
   flakeRegistryFromNpm =
     flakeRegistryFromPackuments "https://registry.npmjs.org";
 
-  trFlakeId = str: let
-    dropLeading = lib.yank "[/@.]?([^/@.].*)" str;
-  in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] dropLeading;
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -600,7 +596,6 @@ in {
     flakeRegistryFromPackuments
     flakeRegistryFromNpm
     flakeInputFromManifestTarball
-    trFlakeId
   ;
 
   inherit

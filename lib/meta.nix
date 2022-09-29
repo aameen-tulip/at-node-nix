@@ -391,6 +391,16 @@
       bin       = "${final.names.bname}-bin-${prev.version}";
       module    = "${final.names.bname}-module-${prev.version}";
       global    = "${final.names.bname}-${prev.version}";
+      # Short "(<SCOPE>--)?<BNAME>"
+      flake-id-s = let
+        sp = if final.scoped then "${final.names.scope}--" else "";
+        r  = "${sp}${final.names.bname}";
+      in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] r;
+      # Long "(<SCOPE>--)?<BNAME>--<VERSION>"
+      flake-id-l = let
+        r = "${final.names.flake-id-s}--${prev.version}";
+      in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] r;
+      flake-ref = { id = final.names.flake-id-s; ref = prev.version; };
     } // ( lib.optionalAttrs final.scoped {
       scope = lib.yank "@([^/]+)/.*" prev.ident;
     } );
@@ -401,29 +411,9 @@
   # NOTE: This was largely added to avoid a specific instance of infinite
   # recursion that crops up when attempting merge packages which use aliases
   # such as `npm:<IDENT>'; the recursive form is still far more flexible though.
-  metaEntNames = { ident, version, ... } @ me: let
-    scoped = ( builtins.substring 0 1 ident ) == "@";
-    names = {
-      __serial = false;
-      bname = baseNameOf ident;
-      scopeDir = if scoped then "${dirOf ident}/" else "";
-      node2nix =
-        ( if scoped then "_at_${names.scope}_slash_" else "" ) +
-        "${names.bname}-${version}";
-      registryTarball = "${names.bname}-${version}.tgz";
-      localTarball =
-        ( if scoped then "${names.scope}-" else "" ) + names.registryTarball;
-      genName   = cat: "${names.bname}-${cat}-${version}";
-      tarball   = names.registryTarball;
-      src       = "${names.bname}-source-${version}";
-      built     = "${names.bname}-built-${version}";
-      installed = "${names.bname}-inst-${version}";
-      prepared  = "${names.bname}-prep-${version}";
-      bin       = "${names.bname}-bin-${version}";
-      module    = "${names.bname}-module-${version}";
-      global    = "${names.bname}-${version}";
-    } // ( lib.optionalAttrs scoped { scope = lib.yank "@([^/]+)/.*" ident; } );
-  in { inherit scoped names; };
+  metaEntNames = { ident ? me.name, version, ... } @ me: let
+    r = lib.extends metaEntExtendWithNames ( final: { inherit ident; } // me );
+  in { inherit (lib.fix r) scoped names; };
 
 
 # ---------------------------------------------------------------------------- #
