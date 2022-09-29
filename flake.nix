@@ -186,12 +186,6 @@
 
       _node-pkg-set = callPackages ./pkgs/node-pkg-set.nix {};
 
-      # Pass `dir' as an arg.
-      genFlakeInputs =
-        callPackage ./pkgs/tools/floco/generate-flake-inputs.nix {
-          enableTraces = false;
-        };
-
       inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
         inherit (pkgsFor.xorg) lndir;
       })
@@ -232,10 +226,6 @@
         fetchurl = lib.fetchurlDrv;
         annPkgs  = self.legacyPackages.${system};
       } ).checkDrv;
-
-      # NOTE: This is a wrapper over the function.
-      genFlakeInputs =
-        pkgsFor.callPackage ./pkgs/tools/floco/genFlakeInputs.nix {};
 
     } );
 

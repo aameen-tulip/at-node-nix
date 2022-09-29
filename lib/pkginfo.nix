@@ -108,76 +108,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  allDepFields = [
-    "dependencies"
-    "devDependencies"
-    "optionalDependencies"
-    "peerDependencies"
-  ];
-  depMetaFields = [
-    "bundledDependencies"   # true (all) | false (none) | list of idents
-    "bundleDependencies"    # alternative spelling... because sure why not
-    "peerDependenciesMeta"  # attrs of `<IDENT> = { ... }'
-  ];
-
-  allDependencies = x:
-    ( x.optionalDependencies or {} ) // ( x.peerDependencies or {} ) //
-    ( x.devDependencies      or {} ) // ( x.dependencies     or {} );
-
-# ---------------------------------------------------------------------------- #
-
-  getDepFields = depFields: x:
-    assert builtins.all ( k: builtins.elem k allDepFields ) depFields;
-    builtins.foldl' ( acc: k: acc // ( x.${k} or {} ) ) {} depFields;
-
-
-# ---------------------------------------------------------------------------- #
-
-  normalizedDepFields = depFields: x: let
-    a  = x.dependencies or {};
-    p  = x.peerDependencies or {};
-    d  = x.devDependencies or {};
-    o  = x.optionalDependencies or {};
-    # This accepts two spellings... ffs.
-    b  = x.bundledDependencies or x.bundleDependencies or false;
-    pm = x.peerDependenciesMeta or {};
-    markDeps = k: v: let
-      io = pm.${k}.optional or ( o ? ${k} );
-      ib = if builtins.isBool b then b else builtins.elem k b;
-      ip = p ? ${k};
-      id = d ? ${k};
-      ir = ! ( ip || id );  # FIXME: I'm not 100% this is correct for peers
-      mo = lib.optionalAttrs io { optional = true; };
-      mb = lib.optionalAttrs ib { bundled = true; };
-      mp = lib.optionalAttrs ip { peer = true; };
-      md = lib.optionalAttrs id { dev = true; };
-      mr = lib.optionalAttrs ir { runtime = true; };
-    in { descriptor = v; } // mo // mb // mp // md // mr;
-  in builtins.mapAttrs markDeps ( getDepFields depFields x );
-
-  normalizedDepsAll = normalizedDepFields allDepFields;
-
-
-# ---------------------------------------------------------------------------- #
-
-  getNormalizedDeps = {
-    optional ? false
-  , peer     ? false
-  , dev      ? true
-  }: x: let
-    md = if dev then ["devDependencies"] else [];
-    mo = if optional then ["optionalDependencies"] else [];
-    mp = if peer then ["peerDependencies"] else [];
-    fields = ["dependencies"] ++ md ++ mo ++ mp;
-    norm = normalizedDepFields fields x;
-    fo = v: ! optional -> ! ( v.optional or false );
-    fp = v: ! peer -> ! ( v.peer or false );
-    filt = k: v: ( fo v ) && ( fp v );
-  in lib.filterAttrs filt norm;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Matches "/foo/*/bar", "/foo/*", "*".
   # But NOT "/foo/\*/bar".
   # NOTE: In `.nix' files, "\*" ==> "*", so the "escaped" glob in the example
@@ -382,35 +312,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # XXX: Deprecated. Use `lib.libdep.depInfo*' routines.
-
-  # These are most useful for `package.json' entries where we may actually
-  # need to perform resolution; they are not very useful for package sets
-  # based on lock files - unless you are composing multiple locks.
-  addNormalizedDepsToMeta = { version, entries, ... } @ meta: let
-    fromEnt = entries.plockent or entries.pjs or entries.manifest or
-      entries.packument.versions.${version} or
-      ( throw ( "(addNormalizedDepsToMeta) " +
-                "Cannot find an entry to lookup dependencies" ) );
-    norm = lib.libpkginfo.normalizedDepsAll fromEnt;
-    updated = lib.recursiveUpdate meta.depInfo norm;
-    # XXX: At time of writing `*DepPins' are the only other kinds of fields in
-    # the `depInfo' attrset, and those fields should not be serialzed.
-    # With that in mind, we can simply set `__serial' to our normalized ents.
-    # If `depInfo' is extended in the future, this should be extended to avoid
-    # throwing away other fields which may want to be serialized.
-    __serial = norm;
-    depInfoEnts = if meta ? depInfo then updated else norm;
-    depInfo = depInfoEnts // { inherit __serial; };
-    injectDepInfo = if meta ? __update then meta.__update else ( b: meta // b );
-  in injectDepInfo { inherit depInfo; };
-
-  addNormalizedDepsToEnt = { meta, ... } @ ent:
-    ent.__update { meta = addNormalizedDepsToMeta meta; };
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     importJSON'
@@ -438,18 +339,6 @@ in {
     workspacePackages
     readWorkspacePackages
     normalizeWorkspaces
-  ;
-  # Deps
-  inherit
-    allDepFields
-    depMetaFields
-    allDependencies
-    getDepFields
-    normalizedDepFields
-    normalizedDepsAll
-    getNormalizedDeps
-    addNormalizedDepsToMeta
-    addNormalizedDepsToEnt
   ;
 
   readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );

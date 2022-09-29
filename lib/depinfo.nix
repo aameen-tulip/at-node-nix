@@ -46,13 +46,11 @@
 
 # ---------------------------------------------------------------------------- #
 
-  joinAttrs = x: builtins.foldl' ( a: b: a // b ) {} ( builtins.attrValues x );
-
   getRt  = builtins.intersectAttrs rtFields;
-  joinRt = fs: joinAttrs ( getRt fs );
+  joinRt = fs: lib.joinAttrs ( getRt fs );
 
   getPins  = builtins.intersectAttrs pinFields;
-  joinPins = fs: joinAttrs ( getPins fs );
+  joinPins = fs: lib.joinAttrs ( getPins fs );
 
   getPeer = builtins.intersectAttrs pFields;
 
@@ -126,7 +124,7 @@
       # only field present in those attrs.
       pm = let
         as    = plent.peerDependenciesMeta or {};
-        names = builtins.attrNames ( joinAttrs as );
+        names = builtins.attrNames ( lib.joinAttrs as );
       in assert ( names == [] ) || ( names == ["optional"] );
          as;
     in pm // od;
@@ -246,6 +244,9 @@
         if conflictIsError then throw msg else builtins.trace msg rsl;
     in if hasConflict then handleConflict else rsl;
   in builtins.foldl' merge {} ( builtins.attrNames plock.packages );
+
+
+# ---------------------------------------------------------------------------- #
 
 in {
   inherit
