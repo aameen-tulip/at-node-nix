@@ -5,14 +5,15 @@
         "nix": "nix",
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "yants-src": "yants-src"
       },
       "locked": {
-        "lastModified": 1664432372,
-        "narHash": "sha256-YfBlo8JDfad1ZWm1rZO6f6TmrLyz2eXDjXCTwrpxtMQ=",
+        "lastModified": 1664434101,
+        "narHash": "sha256-F/ccqjXpctwmh9fmFrCZgCrowlFo0sP+m+gvkgrTbBs=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "105684ce4f699e0561ef9d5fc6584842ff559f73",
+        "rev": "d9518039c99373e5a94a8c6e1be80cac90ffa84a",
         "type": "github"
       },
       "original": {
@@ -169,6 +170,18 @@
         "nix": "nix_2",
         "nixpkgs": "nixpkgs",
         "pacote-src": "pacote-src"
+      }
+    },
+    "yants-src": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-nqHIq2oAnKicNhNA4Ew6hov34gimTLUOjhg+e0e1SI0=",
+        "type": "file",
+        "url": "https://code.tvl.fyi/plain/nix/yants/default.nix"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://code.tvl.fyi/plain/nix/yants/default.nix"
       }
     }
   },
