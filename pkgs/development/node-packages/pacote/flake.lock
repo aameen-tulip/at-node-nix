@@ -48,9 +48,8 @@
         "type": "github"
       },
       "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
+        "id": "utils",
+        "type": "indirect"
       }
     }
   },
