@@ -28,6 +28,7 @@
     libfetch   = callLibs ./fetch.nix;
     libmeta    = ( callLibs ./meta.nix ) // ( callLibs ./meta-ent.nix );
     libdep     = callLibs ./depinfo.nix;
+    ytypes     = ( prev.ytypes or {} ) // ( callLibs ../types/npm-lock.nix );
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW
