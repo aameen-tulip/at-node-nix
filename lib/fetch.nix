@@ -72,24 +72,27 @@
 
 # ---------------------------------------------------------------------------- #
 
-  hashFields = {
-    sha1      = true;
-    sha256    = true;
-    sha512    = true;
-    integrity = true;
-    hash      = true;
-    narHash   = true;
-  };
 
   # XXX: I'm unsure of whether or not this works with v1 locks.
-  plockEntryHashAttr = entry: let
-    integrity2Sha = integrity: let
-      m = builtins.match "(sha(512|256|1))-(.*)" integrity;
-      shaSet = { ${builtins.head m} = builtins.elemAt m 2; };
-    in if m == null then { hash = integrity; } else shaSet;
-    fromInteg = integrity2Sha entry.integrity;
-  in if entry ? integrity then fromInteg else
-     if entry ? sha1      then { inherit (entry) sha1; } else {};
+  plockEntryHashAttr = {
+    __innerFunction = entry: let
+      integrity2Sha = integrity: let
+        m = builtins.match "(sha(512|256|1))-(.*)" integrity;
+        shaSet = { ${builtins.head m} = builtins.elemAt m 2; };
+      in if m == null then { hash = integrity; } else shaSet;
+      fromInteg = integrity2Sha entry.integrity;
+    in if entry ? integrity then fromInteg else
+       if entry ? sha1      then { inherit (entry) sha1; } else {};
+    __functor = self: self.__innerFunction;
+    __functionArgs = {
+      sha1      = true;
+      sha256    = true;
+      sha512    = true;
+      integrity = true;
+      hash      = true;
+      narHash   = true;
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
