@@ -22,19 +22,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-  # Return true if an input is a flake, or false otherwise.
-  # This relies on the fact that non-flake inputs lack `sourceInfo' fields.
-  # NOTE: This is necessary because you cannot check `inputs.foo.flake' in
-  #       the body of an `outputs = { self, ... }: { ... };' block.
-  inputIsFlake = x: ( builtins.isAttrs x ) && ( x ? sourceInfo );
-
-
-/* -------------------------------------------------------------------------- */
-
-
-
-/* -------------------------------------------------------------------------- */
-
 in {
   inherit
     pushDownNames
