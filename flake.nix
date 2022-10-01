@@ -125,6 +125,12 @@
       callPackages = callPackagesWith {};
     in {
 
+      # FIXME: This needs to get resolved is a cleaner way.
+      # Nixpkgs has a major breaking change to `meta' fields that puts me in
+      # a nasty spot... since I have a shitload of custom `meta' fields.
+      config = prev.config // { checkMeta = false; };
+      # XXX: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
       nodejs = prev.nodejs-14_x;
 
       lib = import ./lib { lib = prev.lib or ak-nix.lib; };
