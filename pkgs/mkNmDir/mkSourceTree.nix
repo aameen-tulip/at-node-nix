@@ -71,7 +71,7 @@
       outPath         = fetched.outPath;
       passthru.source = fetched;
     };
-  in if fetched.needsUnpack then forNeedsUnpack else forUnpacked;
+  in if core.meta.needsUnpack then forNeedsUnpack else forUnpacked;
   keyed = lib.callPackageWith args lib.idealTreePlockV3 {
     inherit npmSys plock skipUnsupported dev;
   };
