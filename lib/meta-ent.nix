@@ -328,31 +328,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaSetRootTreesForPlockV3 = { plock , flocoConfig ? lib.flocoConfig }: let
-    ident   = plock.name or plock.packages."".name;
-    version = plock.version or plock.packages."".version;
-  in {
-    rootKey = "${ident}/${version}";
-    trees.prod = lib.libtree.idealTreePlockV3 {
-      inherit plock flocoConfig;
-      dev = false;
-    };
-    trees.dev = lib.libtree.idealTreePlockV3 { inherit plock flocoConfig; };
-  };
-
-  inherit (
-    genMetaEntRules "RootTreesForPlockV3" lib.libplock.supportsPlV3 ( e: {
-      __meta = metaSetRootTreesForPlockV3 e;
-    } ) )
-      metaEntAddRootTreesForPlockV3
-      metaEntUpRootTreesForPlockV3
-      metaEntExtendRootTreesForPlockV3
-      metaEntMergeRootTreesForPlockV3
-  ;
-
-
-# ---------------------------------------------------------------------------- #
-
   metaSetFromPlockV3 = {
     plock       ? lib.importJSON' lockPath
   , pjs         ? lib.importJSON' pjsPath
@@ -485,11 +460,6 @@ in {
     metaEntUpFromPlockSubtype
     metaEntExtendFromPlockSubtype
     metaEntMergeFromPlockSubtype
-
-    metaEntAddRootTreesForPlockV3
-    metaEntUpRootTreesForPlockV3
-    metaEntExtendRootTreesForPlockV3
-    metaEntMergeRootTreesForPlockV3
 
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'

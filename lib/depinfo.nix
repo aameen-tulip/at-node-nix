@@ -6,6 +6,8 @@
 
 { lib }: let
 
+  yt = lib.libyants;
+
 # ---------------------------------------------------------------------------- #
 
   # Runtime Fields
@@ -167,15 +169,17 @@
   # No "pinning" is performed.
   # XXX: Records with multiple instances are presumed to be equal.
   # With this in mind we're able to skip handling symlinks.
-  depInfoSetFromPlockV3 = plock: let
-    keyDepInfo = path: let
-      key   = lib.libplock.getKeyPlV3 plock path;
-      plent = plock.packages.${path};
-    in lib.optionalAttrs ( ! ( plent.link or false ) ) {
-      ${key} = depInfoEntFromPlockV3 path plent;
-    };
-    paths = builtins.attrNames plock.packages;
-  in builtins.foldl' ( acc: path: acc // ( keyDepInfo path ) ) {} paths;
+  depInfoSetFromPlockV3 = let
+    inner = { plock }: let
+      keyDepInfo = path: let
+        key   = lib.libplock.getKeyPlV3 plock path;
+        plent = plock.packages.${path};
+      in lib.optionalAttrs ( ! ( plent.link or false ) ) {
+        ${key} = depInfoEntFromPlockV3 path plent;
+      };
+      paths = builtins.attrNames plock.packages;
+    in builtins.foldl' ( acc: path: acc // ( keyDepInfo path ) ) {} paths;
+  in lib.setFunctionArgs inner { plock = false; };
 
 
 # ---------------------------------------------------------------------------- #

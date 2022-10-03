@@ -314,6 +314,9 @@
 
   metaWasPlock = _metaWasFrom plockTypes;
   metaWasYlock = _metaWasFrom ylockTypes;
+  metaSupportsPlV3 = _metaWasFrom [
+    "package-lock.json(v2)" "package-lock.json(v3)"
+  ];
 
 
 # ---------------------------------------------------------------------------- #
@@ -677,6 +680,7 @@ in {
     mkMetaEnt
     metaWasPlock
     metaWasYlock
+    metaSupportsPlV3
   ;
   # Meta Sets
   inherit
