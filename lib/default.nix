@@ -6,29 +6,42 @@
 # ---------------------------------------------------------------------------- #
 
   lib' = lib.extend ( final: prev: let
-    # XXX: I'm not crazy about possibly polluting `lib' with the config.
-    callLibs = file: import file { lib = final; };
+
+    callLibWith = { lib ? final, ... } @ autoArgs: x: let
+      f = if prev.isFunction x then x else import x;
+      args = builtins.intersectAttrs ( builtins.functionArgs f )
+                                      ( { inherit lib; } // autoArgs );
+    in f args;
+    callLib = callLibWith {};
+    callLibsWith = autoArgs: lst:
+      builtins.foldl' ( acc: x: acc // ( callLibWith autoArgs x ) ) {} lst;
+    callLibs = callLibsWith {};
+
+
+# ---------------------------------------------------------------------------- #
   in {
 
     flocoConfig = (
-      callLibs ./config.nix
+      callLib ./config.nix
     ).mkFlocoConfig ( globalAttrs.flocoConfig or {} );
     # Call it recursively this time ( not that it really matters )
-    libcfg = callLibs ./config.nix;
+    libcfg = callLib ./config.nix;
 
     # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
-    libparse   = callLibs ./parse.nix;
-    librange   = callLibs ./ranges.nix;
-    libpkginfo = callLibs ./pkginfo.nix;
-    libattrs   = prev.libattrs // ( callLibs ./attrsets.nix );
-    libplock   = callLibs ./pkg-lock.nix;
-    libreg     = callLibs ./registry.nix;
-    libtree    = callLibs ./tree.nix;
-    libsys     = callLibs ./system.nix;
-    libfetch   = callLibs ./fetch.nix;
-    libmeta    = ( callLibs ./meta.nix ) // ( callLibs ./meta-ent.nix );
-    libdep     = callLibs ./depinfo.nix;
-    ytypes     = ( prev.ytypes or {} ) // ( callLibs ../types/npm-lock.nix );
+    libparse   = callLib  ./parse.nix;
+    librange   = callLib  ./ranges.nix;
+    libpkginfo = callLib  ./pkginfo.nix;
+    libattrs   = prev.libattrs // ( callLib  ./attrsets.nix );
+    libplock   = callLib  ./pkg-lock.nix;
+    libreg     = callLib  ./registry.nix;
+    libtree    = callLib  ./tree.nix;
+    libsys     = callLib  ./system.nix;
+    libfetch   = callLib  ./fetch.nix;
+    libmeta    = callLibs [./meta.nix ./meta-ent.nix];
+    libdep     = callLib  ./depinfo.nix;
+    ytypes     = builtins.foldl' ( a: b: a // b ) ( prev.ytypes or {} ) [
+      ( callLib ../types/npm-lock.nix )
+    ];
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW

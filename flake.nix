@@ -72,16 +72,7 @@
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib {
-      lib = let
-        ak-rime = ak-nix.lib.extend rime.overlays.lib;
-      in ak-nix.lib // {
-        inherit (ak-rime) ytypes;
-        liburi = ak-rime.liburi // ak-rime.parser // {
-          inherit (ak-rime) regexps;
-        };
-      };
-    };
+    lib = import ./lib { inherit (rime) lib; };
 
 # ---------------------------------------------------------------------------- #
 
