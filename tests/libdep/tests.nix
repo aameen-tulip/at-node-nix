@@ -48,13 +48,14 @@
 
     # Just see if the routine runs clean
     testDepInfoTreeFromPlockV3_0 = {
-      expr     = builtins.deepSeq ( depInfoTreeFromPlockV3 plock0 ) true;
+      expr = builtins.deepSeq ( depInfoTreeFromPlockV3 { plock = plock0; } )
+                              true;
       expected = true;
     };
 
     # Check real info
     testDepInfoTreeFromPlockV3_1 = {
-      expr     = ( depInfoTreeFromPlockV3 plock0 )."";
+      expr     = ( depInfoTreeFromPlockV3 { plock = plock0; } )."";
       expected = {
         "@types/jest" = {
           descriptor = "^27.5.1";
@@ -82,7 +83,7 @@
 
     # Check that symlinks work
     testDepInfoTreeFromPlockV3_2 = let
-      dt = depInfoTreeFromPlockV3 plock1;
+      dt = depInfoTreeFromPlockV3 { plock = plock1; };
     in {
       expr     = dt."../dir";
       expected = dt."node_modules/bar";
@@ -93,8 +94,8 @@
 
     # Check that keying entries as a set matches tree
     testDepInfoSetFromPlockV3_0 = let
-      dt = depInfoTreeFromPlockV3 plock1;
-      ds = depInfoSetFromPlockV3 plock1;
+      dt = depInfoTreeFromPlockV3 { plock = plock1; };
+      ds = depInfoSetFromPlockV3 { plock = plock1; };
       rootKey = "${plock1.name}/${plock1.version}";
     in {
       expr     = dt."";
@@ -103,8 +104,8 @@
 
     # Check that keying entries as a set matches tree on a harder tree
     testDepInfoSetFromPlockV3_1 = let
-      dt = depInfoTreeFromPlockV3 plock0;
-      ds = depInfoSetFromPlockV3 plock0;
+      dt = depInfoTreeFromPlockV3 { plock = plock0; };
+      ds = depInfoSetFromPlockV3 { plock = plock0; };
       rootKey = "${plock0.name}/${plock0.version}";
     in {
       expr     = dt."";

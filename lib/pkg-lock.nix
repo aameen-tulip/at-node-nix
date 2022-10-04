@@ -217,7 +217,7 @@
 
   # (V1)
   # Rewrite all `requires' fields with resolved versions using lock entries.
-  pinVersionsFromPlockV1 = plock: let
+  pinVersionsFromPlockV1 = { plock }: let
     pinEnt = scope: e: let
       depAttrs = removeAttrs ( builtins.intersectAttrs pinnableFields e )
                              ["requires"];
@@ -279,7 +279,7 @@
   #
   # FIXME: another optimization may be to split the path-names first and
   # possibly use `builtins.groupBy' to get a structure similar to the V1 lock.
-  pinVersionsFromPlockV3 = plock: let
+  pinVersionsFromPlockV3 = { plock }: let
 
     pinPath = { scopes, ents } @ acc: path: let
       e = plock.packages.${path};

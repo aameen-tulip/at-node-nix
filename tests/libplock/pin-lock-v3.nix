@@ -111,7 +111,7 @@
 
     testPinSimplePhony = {
       expr = let
-        pinned = pinVersionsFromPlockV3 plv2-simple-phony;
+        pinned = pinVersionsFromPlockV3 { plock = plv2-simple-phony; };
         flt = _: builtins.intersectAttrs keeps;
       in builtins.mapAttrs flt pinned.packages;
       expected = {
@@ -128,7 +128,7 @@
 
     testPinRequiresPhony = {
       expr = let
-        pinned = pinVersionsFromPlockV3 plv2-req-phony;
+        pinned = pinVersionsFromPlockV3 { plock = plv2-req-phony; };
         flt = _: builtins.intersectAttrs keeps;
       in builtins.mapAttrs flt pinned.packages;
       expected = {

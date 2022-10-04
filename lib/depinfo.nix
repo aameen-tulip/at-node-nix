@@ -153,14 +153,16 @@
   #
   # XXX: Users almost certainly want to call `depInfoSetFromPlockV3' or
   # `fullDepInfoTreeFromPlockV3' rather than this helper.
-  depInfoTreeFromPlockV3 = plock: let
-    pass1 = builtins.mapAttrs depInfoEntFromPlockV3 plock.packages;
-    # This resolves entries in exactly the same way as `lib.libplock.realEntry'.
-    fixLink = path: plent:
-      if plent.link or false then pass1.${plent.resolved}
-                             else pass1.${path};
-  in assert lib.libplock.supportsPlV3 plock;
-     builtins.mapAttrs fixLink plock.packages;
+  depInfoTreeFromPlockV3 = let
+    inner = { plock }: let
+      pass1 = builtins.mapAttrs depInfoEntFromPlockV3 plock.packages;
+      # This resolves entries in exactly the same way as `lib.libplock.realEntry'.
+      fixLink = path: plent:
+        if plent.link or false then pass1.${plent.resolved}
+                              else pass1.${path};
+    in assert lib.libplock.supportsPlV3 plock;
+      builtins.mapAttrs fixLink plock.packages;
+  in lib.setFunctionArgs inner { plock = false; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -192,8 +194,8 @@
   pinDepInfoTreeFromPlockV3 = {
     plock       ? lib.importJSON "${lockDir}/package-lock.json"
   , lockDir     ? null
-  , pinnedLock  ? lib.libplock.pinVersionsFromPlockV3 plock
-  , depInfoTree ? depInfoTreeFromPlockV3 plock
+  , pinnedLock  ? lib.libplock.pinVersionsFromPlockV3 { inherit plock; }
+  , depInfoTree ? depInfoTreeFromPlockV3 { inherit plock; }
   }: let
     # FIXME: This does some redundant work on the symlink entries.
     #        Not serious enough to warrant a refactor now though.
@@ -225,7 +227,7 @@
   pinDepInfoSetFromPlockV3 = {
     plock           ? lib.importJSON "${lockDir}/package-lock.json"
   , lockDir         ? null
-  , pinnedLock      ? lib.libplock.pinVersionsFromPlockV3 plock
+  , pinnedLock      ? lib.libplock.pinVersionsFromPlockV3 { inherit plock; }
   , conflictIsError ? true  # `false' prints a warning instead. See note above.
   }: let
     keyDepInfo = path: let
