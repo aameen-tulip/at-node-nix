@@ -62,13 +62,26 @@
   inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
 
-# ============================================================================ #
+  inputs.rime.url = "github:aakropotkin/rime/main";
+  inputs.rime.inputs.ak-nix.follows = "/ak-nix";
+  inputs.rime.inputs.nixpkgs.follows = "/nixpkgs";
 
-  outputs = { self, nixpkgs, nix, ak-nix, pacote-src, ... }: let
+# ---------------------------------------------------------------------------- #
+
+  outputs = { self, nixpkgs, nix, ak-nix, pacote-src, rime, ... }: let
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib { inherit (ak-nix) lib; };
+    lib = import ./lib {
+      lib = let
+        ak-rime = ak-nix.lib.extend rime.overlays.lib;
+      in ak-nix.lib // {
+        inherit (ak-rime) ytypes;
+        liburi = ak-rime.liburi // ak-rime.parser // {
+          inherit (ak-rime) regexps;
+        };
+      };
+    };
 
 # ---------------------------------------------------------------------------- #
 

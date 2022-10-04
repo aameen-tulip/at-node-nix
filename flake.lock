@@ -9,11 +9,11 @@
         "yants-src": "yants-src"
       },
       "locked": {
-        "lastModified": 1664606897,
-        "narHash": "sha256-e8b1zAvRgezgOWOyrUOABxhrW4VuBfgKvI20aKzSpNY=",
+        "lastModified": 1664751084,
+        "narHash": "sha256-wH7rP/c3a9Bs+Cgb3LEtWK4sUc9Gcvh6bd34K3gdIAw=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "a1b12479c8859b518d953ed98fdb1331ccafb7d9",
+        "rev": "422b9bb825d7d17fe407bfa28c98e2bab43dfa6e",
         "type": "github"
       },
       "original": {
@@ -87,11 +87,11 @@
         "nixpkgs-regression": "nixpkgs-regression_2"
       },
       "locked": {
-        "lastModified": 1664535508,
-        "narHash": "sha256-snVk3EtetvPl4SjzRE/zgHIJdl63wO6eMtj67Jg7OZo=",
+        "lastModified": 1664805017,
+        "narHash": "sha256-X528bw0nywMdoXib/nZKqvCCTnsADb+3eT3cuUpaRh8=",
         "owner": "NixOS",
         "repo": "nix",
-        "rev": "89ca75c9f9c53596e75ba6a9d88f14e4d090922c",
+        "rev": "3ae9467d57188f9db41f85b0e5c41c0c9d141955",
         "type": "github"
       },
       "original": {
@@ -164,12 +164,37 @@
         "type": "github"
       }
     },
+    "rime": {
+      "inputs": {
+        "ak-nix": [
+          "ak-nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1664835876,
+        "narHash": "sha256-wahHClx/08Ocx1/2R6BtCbmv1UAZQCztf8IXb2SKTbc=",
+        "owner": "aakropotkin",
+        "repo": "rime",
+        "rev": "87a6358d85975fb75395096cfe6da7cdf8e551f0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aakropotkin",
+        "ref": "main",
+        "repo": "rime",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "ak-nix": "ak-nix",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs",
-        "pacote-src": "pacote-src"
+        "pacote-src": "pacote-src",
+        "rime": "rime"
       }
     },
     "yants-src": {
