@@ -409,7 +409,7 @@
     base = lib.libmeta.mkMetaSet members;
     ex = let
       ovs = flocoConfig.metaSetOverlays or [];
-      ov  = if builtins.isList ovs then lib.composeManExtensions ovs else ovs;
+      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
     in if ( ovs != [] ) then base.__extend ov else base;
   in ex;
 
