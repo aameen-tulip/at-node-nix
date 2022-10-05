@@ -76,13 +76,13 @@
   , depInfo      ? {}  # Not referenced
   , flocoFetch
   , flocoUnpack
-  , names
+  , names        ? lib.libmeta.metaEntNames { inherit ident version; }
   , ...
   } @ metaEnt: assert metaEnt._type == "metaEnt"; let
     common = {
       inherit key ident version;
       source = flocoFetch sourceInfo;
-      meta   = metaEnt.__entries;
+      meta   = metaEnt.__entries or metaEnt;
     };
     # FIXME: use `names.tarball' if you can.
     forTbs = let
