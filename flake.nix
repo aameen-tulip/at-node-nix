@@ -118,15 +118,16 @@
       pkgsFor = let
         ovs = lib.composeManyExtensions [
           self.overlays.pacote
-          ak-nix.overlays.default
+          ak-nix.overlays.ak-nix
         ];
       in ( pkgsForSys prev.system ).extend ovs;
-      callPackageWith  = autoArgs:
-        lib.callPackageWith ( pkgsFor // final // autoArgs );
-      callPackagesWith = autoArgs:
-        lib.callPackagesWith ( pkgsFor // final // autoArgs );
-      callPackage  = callPackageWith {};
-      callPackages = callPackagesWith {};
+      # FIXME: this obfuscates the real dependency scope.
+      callPackageWith  = auto:
+        lib.callPackageWith ( pkgsFor // final // auto );
+      callPackagesWith = auto:
+        lib.callPackagesWith ( pkgsFor // final // auto );
+      callPackage      = callPackageWith {};
+      callPackages     = callPackagesWith {};
     in {
 
       # FIXME: This needs to get resolved is a cleaner way.
@@ -137,7 +138,7 @@
 
       nodejs = prev.nodejs-14_x;
 
-      lib = import ./lib { lib = prev.lib or ak-nix.lib; };
+      lib = import ./lib { lib = prev.lib or rime.lib; };
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
