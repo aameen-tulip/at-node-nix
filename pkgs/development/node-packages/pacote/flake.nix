@@ -4,7 +4,7 @@
   inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
 
-  outputs = { self, nixpkgs, utils, pacote-src }: {
+  outputs = { self, nixpkgs, pacote-src }: {
     overlays.pacote = final: prev: let
       pacoteFull = nixpkgs.lib.callPackageWith final ./. {
         nodejs = final.nodejs-14_x;
