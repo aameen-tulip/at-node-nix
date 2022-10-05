@@ -9,16 +9,6 @@
 # This flake provides an overlay which extends `ak-nix' and `nixpkgs' which is
 # the preferred avenue for using these routines.
 #
-# Additional flake outputs expose several utilities through `nodeutils' for more
-# direct access with limited closures.
-# The tradeoff here is that you aren't realistically able to override most
-# functions and derivations "globally", so you might only want to use these in a
-# REPL or a small project.
-# Also keep in mind that I'm not going to go out of my way to make override
-# style argument passing "bullet-proof" with these exposures; doing so is
-# tedious and that's literally what overlays are intended for so use the right
-# tool for the job.
-#
 # The `lib' output contains routines which are not system dependendant and these
 # never reference derivations, so you can freely access them "purely" even when
 # `system' is unknown.
@@ -35,26 +25,10 @@
 # from scratch.
 #
 # ---------------------------------------------------------------------------- #
-#
-# NOTE: At time of writing I am migrating large bodies of "battle tested"
-# expressions from the branch `nps-scoped' onto `main', as well as some
-# routines which are held in a private repository.
-# As these routines are merged to `main' I intend to take that opportunity to
-# document them and write test cases.
-# If you come across what appears to be a dead end or a missing function, please
-# run a quick search on `nps-scoped' or feel free to send me an email
-# at <alex.ameen.tx@gmail.com> or contact me on Matrix <growpotkin1:matrix.org>.
-#
-# ---------------------------------------------------------------------------- #
 
 {
 
   description = "Node.js+Nix Package Management Expressions";
-
-# ============================================================================ #
-
-  inputs.nix.url = "github:NixOS/nix/master";
-  inputs.nix.inputs.nixpkgs.follows = "/nixpkgs";
 
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
@@ -68,7 +42,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  outputs = { self, nixpkgs, nix, ak-nix, pacote-src, rime, ... }: let
+  outputs = { self, nixpkgs, ak-nix, pacote-src, rime }: let
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
