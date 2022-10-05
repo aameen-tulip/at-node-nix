@@ -78,7 +78,8 @@
   , flocoUnpack
   , names        ? lib.libmeta.metaEntNames { inherit ident version; }
   , ...
-  } @ metaEnt: assert metaEnt._type == "metaEnt"; let
+  } @ metaEnt:
+    assert metaEnt ? _type -> metaEnt._type == "metaEnt"; let
     common = {
       inherit key ident version;
       source = flocoFetch sourceInfo;
@@ -205,7 +206,7 @@
 
   testPkgEnt = {
     src        ? outPath
-  , name       ? meta.names.test
+  , name       ? meta.names.test or ( meta.names.genName "test" )
   , ident      ? meta.ident
   , version    ? meta.version
   , outPath    ? prepared
