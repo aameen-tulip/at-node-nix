@@ -46,7 +46,7 @@
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib { inherit (rime) lib; };
+    lib = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
 
 # ---------------------------------------------------------------------------- #
 
@@ -112,7 +112,9 @@
 
       nodejs = prev.nodejs-14_x;
 
-      lib = import ./lib { lib = prev.lib or rime.lib; };
+      lib = import ./lib {
+        lib = prev.lib or ( ak-nix.lib.extend rime.overlays.lib );
+      };
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
