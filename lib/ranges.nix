@@ -13,6 +13,11 @@
 #  1.2.3 - 2    :=  >=1.2.3 <3.0.0-0
 #
 # ---------------------------------------------------------------------------- #
+#
+# TODO: handle `&&', `||', whitespace, and call evaluator from `ak-nix'.
+#
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
 
@@ -60,10 +65,13 @@
     fromCmp = let
       left     = head matchCmpVer;
       right    = elemAt matchCmpVer ( ( ( length matchCmpVer ) / 2 ) + 1 );
-      getOp    = e: head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
-      getVer   = e: head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
+      getOp    = e: if e == null then null else
+                    head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
+      getVer   = e: if e == null then null else
+                    head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
       parseCmp = e: { op = getOp e; version = getVer e; };
     in { left = parseCmp left; right = parseCmp right; type = "cmp"; };
+
     rest = if ( restTerms != null ) then ( parseVersionConstraint' restTerms )
                                     else null;
   in if ( matchRange != null )  then ( fromRange // { inherit rest; } ) else
@@ -82,14 +90,12 @@
     inherit (builtins) head compareVersions;
     parsed = parseVersionConstraint str;
     # FIXME: this needs to round up partials like "1.2.3 - 1.3" ==> "1.2.3 - 1.4.0"
-    fromRange = { from, to }: v: ( vge from v ) && ( vle to v );
-    fromCmp   = null;
+    fromRange = { from, to }: v: ( vge from v ) && ( vle to v ); fromCmp   = null;
     fromMod   = null;
   in null;
 
 
 # ---------------------------------------------------------------------------- #
-
 
   sortVersions' = descending: versions: let
     inherit (builtins) compareVersions sort;
@@ -136,10 +142,37 @@
     svs = semverSplit v;
     at  = builtins.elemAt svs;
   in {
-    major     = let p = at 0; in if ( p == null ) then "0" else p;
-    minor     = let p = at 1; in if ( p == null ) then "0" else p;
-    patch     = let p = at 2; in if ( p == null ) then "0" else p;
-    preTag    = at 3;
+    major  = let p = at 0; in if ( p == null ) then "0" else p;
+    minor  = let p = at 1; in if ( p == null ) then "0" else p;
+    patch  = let p = at 2; in if ( p == null ) then "0" else p;
+    preTag = let p = at 3; in if ( ( at 1 ) == null ) || ( ( at 2 ) == null )
+                              then "0" else p;
+    preVer    = at 4;
+    buildMeta = at 5;
+  };
+
+  # Used to bump loose version numbers when they used in comparators/ranges.
+  # These are also used to normalize "1.x" strings.
+  #   1     -> 2.0.0-0
+  #   1.0   -> 1.1.0-0
+  #   1.0.0 -> 1.0.0
+  parseSemverRoundUp = v: let
+    svs  = semverSplit v;
+    at   = builtins.elemAt svs;
+    majM = at 0;
+    minM = at 1;
+    patM = at 2;
+  in {
+    major =
+      if ( majM == null ) then "0" else
+      if minM == null then toString ( ( builtins.fromJSON majM ) + 1 ) else
+      majM;
+    minor =
+      if ( minM == null ) then "0" else
+      if patM == null then toString ( ( builtins.fromJSON minM ) + 1 ) else
+      minM;
+    patch  = let p = at 2; in if ( p == null ) then "0" else p;
+    preTag    = if ( minM == null ) || ( patM == null ) then "0" else ( at 3 );
     preVer    = at 4;
     buildMeta = at 5;
   };
@@ -150,15 +183,21 @@
   # Fills missing fields in versions, and strips leading "v".
   # "v1.0"            ==> "1.0.0-0"
   # "v1.2.3-X.4+5Y.6" ==> "1.2.3-X.4+5Y.6"
-  normalizeVersion = v: let
+  # NOTE: this is effective a `toString' for the parsed semver object.
+  normalizeVersion' = parser: v: let
     sv  = builtins.head ( builtins.match "v?(.*)" v );
-    ps  = parseSemver sv;
-    pre = if ( ps.preTag == null ) then "0" else
+    ps  = parser sv;
+    pre = if ( ps.preTag == null ) then null else
           if ( ps.preVer == null ) then ps.preTag else
           ( ps.preTag + "." + ps.preVer );
-    nb  = "${ps.major}.${ps.minor}.${ps.patch}-${pre}";
+    np  = "${ps.major}.${ps.minor}.${ps.patch}";
+    nb  = if pre == null then "" else "-${pre}";
     b   = if ( ps.buildMeta != null ) then ( "+" + ps.buildMeta ) else "";
-  in nb + b;
+  in np + nb + b;
+
+  normalizeVersion = normalizeVersion' parseSemver;
+
+  normalizeVersionRoundUp = normalizeVersion' parseSemverRoundUp;
 
 
 # ---------------------------------------------------------------------------- #
@@ -178,8 +217,10 @@ in {
     parseVersionConstraint'
     semverSplit
     parseSemver
+    parseSemverRoundUp
 
     normalizeVersion
+    normalizeVersionRoundUp
   ;
 }
 
