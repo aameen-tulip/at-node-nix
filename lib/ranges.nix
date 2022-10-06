@@ -35,10 +35,10 @@
 
   parseVersionConstraint' = str: let
     inherit (builtins) head elemAt match length;
-    ws      = "[ \t\n\r]";
-    mods    = "[~^]";
-    cmpPatt = "([<>]=?|=?[<>]|=)";
-    betPatt = "(${ws}-|-${ws})";
+    ws         = "[ \t\n\r]";
+    mods       = "[~^]";
+    cmpPatt    = "([<>]=?|=?[<>]|=)";
+    betPatt    = "(${ws}-|-${ws})";
     modPatt    = "(${mods})?(${versionRE})";
     cmpVerPatt = "(${cmpPatt}${ws}*(${versionRE})|(${versionRE})${ws}*${cmpPatt})";
     rangePatt  = "(${versionRE})${ws}*${betPatt}${ws}*(${versionRE})";
@@ -47,27 +47,32 @@
     stPatt     = "${termPatt}([|][|]${termPatt})*";
     matched = match stPatt str;
     # FIXME: This indexing is Nightmarish.
-    term = head matched;
-    restTerms = elemAt matched ( ( length matched ) / 2 );
+    term        = head matched;
+    restTerms   = elemAt matched ( ( length matched ) / 2 );
     matchRange  = match rangePatt term;
     matchMod    = match modPatt term;
     matchCmpVer = match "${cmpVerPatt}(${ws}*${cmpVerPatt})?" term;
+
     fromRange = let
-      left  = head matchRange;
-      right = elemAt matchRange ( ( ( length matchRange ) / 2 ) + 1 );
+      left   = head matchRange;
+      right  = elemAt matchRange ( ( ( length matchRange ) / 2 ) + 1 );
       sorted = sortVersionsA [left right];
     in { from = head sorted; to = elemAt sorted 1; type = "range"; };
-    fromMod = let m' = head matchMod; in {
-      mod = if ( m' == null ) then "=" else m';
+
+    fromMod = let
+      m' = head matchMod;
+    in {
+      mod     = if ( m' == null ) then "=" else m';
       version = elemAt matchMod 1;
-      type = "mod";
+      type    = "mod";
     };
+
     fromCmp = let
-      left     = head matchCmpVer;
-      right    = elemAt matchCmpVer ( ( ( length matchCmpVer ) / 2 ) + 1 );
-      getOp    = e: if e == null then null else
-                    head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
-      getVer   = e: if e == null then null else
+      left  = head matchCmpVer;
+      right = elemAt matchCmpVer ( ( ( length matchCmpVer ) / 2 ) + 1 );
+      getOp = e: if e == null then null else
+                 head ( match "[^<>=]*([<>=]+)[^<>=]*" e );
+      getVer = e: if e == null then null else
                     head ( match "[<>= \t\n\r]*([^<>= \t\n\r]+)[<>= \t\n\r]*" e );
       parseCmp = e: { op = getOp e; version = getVer e; };
     in { left = parseCmp left; right = parseCmp right; type = "cmp"; };
@@ -86,11 +91,11 @@
   # For any complex expressions which `&&', `||', or ranges defer to those.
 
   _verCmp = o: a: b: o ( builtins.compareVersions a b ) 0;
-  vg  = _verCmp ( a: b: a > b );
-  vge = _verCmp ( a: b: a >= b );
-  vl  = _verCmp ( a: b: a < b );
-  vle = _verCmp ( a: b: a <= b );
-  ve  = _verCmp ( a: b: a == b );
+  vg      = _verCmp ( a: b: a > b );
+  vge     = _verCmp ( a: b: a >= b );
+  vl      = _verCmp ( a: b: a < b );
+  vle     = _verCmp ( a: b: a <= b );
+  ve      = _verCmp ( a: b: a == b );
 
 
   # TODO: you extended the version parser recently to support the FIXME issue.
@@ -126,8 +131,8 @@
   # ( "X.Y.Z-0" is sometimes used to indicate a relase version explicitly )
   isRelease = v: ( builtins.match ".*(-[^0]).*" v ) == null;
 
-  latestRelease = vs: let inherit (builtins) filter head; in
-    head ( sortVersionsD ( filter isRelease vs ) );
+  latestRelease = vs:
+    builtins.head ( sortVersionsD ( builtins.filter isRelease vs ) );
 
 
 # ---------------------------------------------------------------------------- #
@@ -181,7 +186,7 @@
       if ( minM == null ) then "0" else
       if patM == null then toString ( ( builtins.fromJSON minM ) + 1 ) else
       minM;
-    patch  = let p = at 2; in if ( p == null ) then "0" else p;
+    patch     = let p = at 2; in if ( p == null ) then "0" else p;
     preTag    = if ( minM == null ) || ( patM == null ) then "0" else ( at 3 );
     preVer    = at 4;
     buildMeta = at 5;
@@ -205,8 +210,7 @@
     b   = if ( ps.buildMeta != null ) then ( "+" + ps.buildMeta ) else "";
   in np + nb + b;
 
-  normalizeVersion = normalizeVersion' parseSemver;
-
+  normalizeVersion        = normalizeVersion' parseSemver;
   normalizeVersionRoundUp = normalizeVersion' parseSemverRoundUp;
 
 
