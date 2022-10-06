@@ -42,6 +42,7 @@
     ytypes     = builtins.foldl' ( a: b: a // b ) ( prev.ytypes or {} ) [
       ( callLib ../types/npm-lock.nix )
     ];
+    libfilt    = callLib ./filt.nix;  # NOTE: standalone;
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW
