@@ -110,6 +110,18 @@
   in null;
 
 
+  parseSemverStatements = str: let
+    ops   = ["," "&&" "||"];
+    sp    = builtins.split " ?(,|[|][|]|&&) ?" str;
+    len   = builtins.length sp;
+    # FIXME
+    tok = { left, op, right }: {
+      left = builtins.head sp;
+      op   = builtins.elemAt sp 1;
+    };
+  in if len <= 1 then str else null;
+
+
 # ---------------------------------------------------------------------------- #
 
   sortVersions' = descending: versions: let

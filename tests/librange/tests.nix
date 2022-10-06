@@ -31,7 +31,7 @@
         major     = "1";
         minor     = "0";
         patch     = "0";
-        preTag    = null;
+        preTag    = "0";
         preVer    = null;
         buildMeta = null;
       };
@@ -43,7 +43,7 @@
         major     = "1";
         minor     = "2";
         patch     = "0";
-        preTag    = null;
+        preTag    = "0";
         preVer    = null;
         buildMeta = null;
       };
