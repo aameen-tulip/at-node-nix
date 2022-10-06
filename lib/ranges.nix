@@ -79,6 +79,12 @@
      if ( matchCmpVer != null ) then ( fromCmp   // { inherit rest; } ) else
      throw "Could not parse version constraint: ${str}";
 
+
+# ---------------------------------------------------------------------------- #
+
+  # NOTE: `ak-nix' added robust range and comparator objects and predicates.
+  # For any complex expressions which `&&', `||', or ranges defer to those.
+
   _verCmp = o: a: b: o ( builtins.compareVersions a b ) 0;
   vg  = _verCmp ( a: b: a > b );
   vge = _verCmp ( a: b: a >= b );
@@ -86,11 +92,15 @@
   vle = _verCmp ( a: b: a <= b );
   ve  = _verCmp ( a: b: a == b );
 
+
+  # TODO: you extended the version parser recently to support the FIXME issue.
+  # But you still need to implement this parser.
   parseVersionConstraint = str: let
     inherit (builtins) head compareVersions;
     parsed = parseVersionConstraint str;
     # FIXME: this needs to round up partials like "1.2.3 - 1.3" ==> "1.2.3 - 1.4.0"
-    fromRange = { from, to }: v: ( vge from v ) && ( vle to v ); fromCmp   = null;
+    fromRange = { from, to }: v: ( vge from v ) && ( vle to v );
+    fromCmp   = null;
     fromMod   = null;
   in null;
 
