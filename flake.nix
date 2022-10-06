@@ -186,6 +186,7 @@
         mkNmDirLinkCmd
       ;
       mkNmDirPlockV3 = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
+      pjsUtil = callPackage ./pkgs/build-support/setup-hooks/pjs-util.nix {};
     };
 
 # ---------------------------------------------------------------------------- #

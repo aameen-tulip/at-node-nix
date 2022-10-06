@@ -16,8 +16,11 @@
 : "${BASH:=bash}";
 : "${PATCH_SHEBANGS:=patchShebangs}";
 
+: "${globalInstall:=0}";
 : "${skipMissing:=1}";
 : "${scriptFallback:=:}";
+
+# NOTE: `dontPatchShebangs' is checked with fallback every time it's referenced.
 
 
 # --------------------------------------------------------------------------- #
@@ -125,15 +128,22 @@ pjsPatchShebangs() {
 
 # --------------------------------------------------------------------------- #
 
+# addMod SRC-DIR OUT-DIR
+# Ex:  addMod ./unpacked "$out/@foo/bar"
 defaultAddMod() {
-  test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  if test -e "$2"; then
+    test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  fi
   $MKDIR -p "$2";
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
 }
 
+# addMod FROM TO
+# Ex:  addBin ./unpacked/bin/quux "$out/bin/quux"
 defaultAddBin() {
-  test -w "${2%/*}"||$CHMOD +w "${2%/*}";
-  echo $MKDIR -p "${2%/*}";
+  if test -e "$2"; then
+    test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  fi
   $MKDIR -p "${2%/*}";
   $LN -srf -- "$1" "$2";
 }
@@ -141,10 +151,14 @@ defaultAddBin() {
 
 # --------------------------------------------------------------------------- #
 
-# installModule [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
-# installModule NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
-installModule() {
-  local pdir nmdir _ADD_MOD _ADD_BIN;
+installModuleGlobal() {
+  return 0;
+}
+
+
+# --------------------------------------------------------------------------- #
+
+_INSTALL_NM_PARGS='
   if test -n "${node_modules_path:-}"; then
     pdir="${1:+${1%/package*.json}}";
     pdir="${pdir:=$PWD}";
@@ -160,11 +174,52 @@ installModule() {
     nmdir="$1";
     shift;
     for p in "$@"; do
-      installModule "$p" "$nmdir";
+      eval "$__SELF__ $p $nmdir";
     done
     return 0;
   fi
-  idir="$nmdir/$( $JQ -r '.name' "$pdir/package.json"; )";
+  idir="$nmdir/$( $JQ -r ".name" "$pdir/package.json"; )";
+';
+
+installBinsNm() {
+  local pdir nmdir _ADD_BIN __SELF__;
+  __SELF__='installBinsNm';
+  eval "$_INSTALL_NM_PARGS";
+  if ! pjsHasAnyBin "$pdir/package.json"; then
+    return 0;
+  fi
+  if test -z "${_ADD_BIN:=${ADD_BIN:-}}"; then
+    if declare -F addBin; then
+      _ADD_BIN=addBin;
+    else
+      _ADD_BIN=defaultAddBin;
+    fi
+  fi
+  _IFS="$IFS";
+  IFS=$'\n';
+  for bp in $( cd "$idir" >/dev/null; pjsBinPairs "$PWD/package.json"; ); do
+    f="${bp##* }";
+    t="${bp%% *}";
+    if test -n "${f%%/*}"; then
+      bf="${idir}/$f"
+    fi
+    if test -n "${t%%/*}"; then
+      bt="${idir}/../.bin/$t"
+    fi
+    IFS="$_IFS";
+    eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
+  done
+}
+
+
+# --------------------------------------------------------------------------- #
+
+# installModuleNmNoBin [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
+# installModuleNmNoBin NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
+installModuleNmNoBin() {
+  local pdir nmdir _ADD_MOD __SELF__;
+  __SELF__='installModuleNmNoBin';
+  eval "$_INSTALL_NM_PARGS";
   if test -z "${_ADD_MOD:=${ADD_MOD:-}}"; then
     if declare -F addMod; then
       _ADD_MOD=addMod;
@@ -173,31 +228,18 @@ installModule() {
     fi
   fi
   eval "( $_ADD_MOD "$pdir" "$idir"; )";
-
-  if pjsHasAnyBin "$pdir/package.json"; then
-    if test -z "${_ADD_BIN:=${ADD_BIN:-}}"; then
-      if declare -F addBin; then
-        _ADD_BIN=addBin;
-      else
-        _ADD_BIN=defaultAddBin;
-      fi
-    fi
-    _IFS="$IFS";
-    IFS=$'\n';
-    for bp in $( cd "$idir" >/dev/null; pjsBinPairs "$PWD/package.json"; ); do
-      f="${bp##* }";
-      t="${bp%% *}";
-      if test -n "${f%%/*}"; then
-        bf="${idir}/$f"
-      fi
-      if test -n "${t%%/*}"; then
-        bt="${idir}/../.bin/$t"
-      fi
-      IFS="$_IFS";
-      eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
-    done
-  fi
 }
+
+
+# --------------------------------------------------------------------------- #
+
+# installModuleNm [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
+# installModuleNm NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
+installModuleNm() {
+  installModuleNmNoBin "$@";
+  installBinsNm "$@";
+}
+
 
 
 # --------------------------------------------------------------------------- #

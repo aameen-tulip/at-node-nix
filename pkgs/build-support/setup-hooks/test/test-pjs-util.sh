@@ -128,8 +128,8 @@ test_pjsBinPaths() {
 
 # --------------------------------------------------------------------------- #
 
-test_installModule() {
-  installModule "$EX1" "$PWD/nm1/node_modules";
+test_installModuleNm() {
+  installModuleNm "$EX1" "$PWD/nm1/node_modules";
   return 0;
 }
 
@@ -148,7 +148,7 @@ runTest test_pjsHasAnyBin;
 runTest test_pjsBinPairs;
 runTest test_pjsBinPaths;
 
-runTest test_installModule;
+runTest test_installModuleNm;
 
 
 # --------------------------------------------------------------------------- #
