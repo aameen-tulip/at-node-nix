@@ -71,6 +71,7 @@
   defaultNm = mkNm {};
 in {
   nmDirCmd   = defaultNm;
+  cmd        = defaultNm.cmd;
   __toString = self: self.nmDirCmd.cmd;
   # Cache of most common types.
   nmDirCmds = {
@@ -81,7 +82,9 @@ in {
   };
 
   # Build a new NM dir with custom args.
-  __functor = self: args: self // { nmDirCmd = mkNm args; };
+  __functor = self: args: let
+    nmDirCmd = mkNm args;
+  in self // { inherit nmDirCmd; inherit (nmDirCmd) cmd; };
   __functionArgs = let
       base = lib.functionArgs mkNmDirCmdWith;
       clean = removeAttrs base ["override" "overrideDerivation"];
