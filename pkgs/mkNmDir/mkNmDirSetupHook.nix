@@ -2,5 +2,5 @@
 , tree     ? null
 , nmDirCmd ? mkNmDir tree
 , mkNmDir
-, makeSetupHook
-}: makeSetupHook { inherit name; } ( nmDirCmd.cmd or ( toString nmDirCmd ) )
+, writeScript
+}: writeScript "${name}-hook" ( nmDirCmd.cmd or ( toString nmDirCmd ) )

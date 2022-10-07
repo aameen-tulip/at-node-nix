@@ -60,19 +60,32 @@ let
 in stdenv.mkDerivation ( {
 
   inherit name;
-  nmDirCmd = if builtins.isString nmDirCmd then nmDirCmd else
-    nmDirCmd.cmd + "\ninstallNodeModules;\n";
 
-  nativeBuildInputs = ( args.nativeBuildInputs or [] ) ++ [jq] ++
-                      ( lib.optional ( nodejs != null ) nodejs );
+  nativeBuildInputs = let
+    given    = args.nativeBuildInputs or [];
+    defaults = [nodejs jq];
+  in given ++ ( lib.filter ( x: x != null ) defaults );
 
-  passAsFile = ["nmDirCmd"];
+  nmDirCmd =
+    if builtins.isString nmDirCmd then nmDirCmd else
+    if nmDirCmd ? cmd then nmDirCmd.cmd + "\ninstallNodeModules;\n" else
+    if nmDirCmd ? __toString then nmDirCmd.__toString nmDirCmd else
+    throw "No idea how to treat this as a `node_modules/' directory builder.";
+
+  passAsFile =
+    if ( builtins.isString nmDirCmd ) &&
+       ( 1024 <= ( builtins.stringLength nmDirCmd ) )
+    then ["nmDirCmd"] else [];
 
   postUnpack = ''
     export absSourceRoot="$PWD/$sourceRoot";
     export node_modules_path="$absSourceRoot/node_modules";
 
-    source "$nmDirCmdPath";
+    if test -n "''${nmDirCmdPath:-}"; then
+      source "$nmDirCmdPath";
+    else
+      eval "$nmDirCmd";
+    fi
 
     if test -d "$node_modules_path"; then
       export PATH="$PATH:$node_modules_path/.bin";

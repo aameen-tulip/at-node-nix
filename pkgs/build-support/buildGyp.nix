@@ -122,16 +122,26 @@ in stdenv.mkDerivation ( {
     ] ++ ( lib.optional stdenv.isDarwin xcbuild );
   in given ++ ( lib.filter ( x: x != null ) defaults );
 
-  nmDirCmd = if builtins.isString nmDirCmd then nmDirCmd else
-    nmDirCmd.cmd + "\ninstallNodeModules;\n";
+  nmDirCmd =
+    if builtins.isString nmDirCmd then nmDirCmd else
+    if nmDirCmd ? cmd then nmDirCmd.cmd + "\ninstallNodeModules;\n" else
+    if nmDirCmd ? __toString then nmDirCmd.__toString nmDirCmd else
+    throw "No idea how to treat this as a `node_modules/' directory builder.";
 
-  passAsFile = ["nmDirCmd"];
+  passAsFile =
+    if ( builtins.isString nmDirCmd ) &&
+       ( 1024 <= ( builtins.stringLength nmDirCmd ) )
+    then ["nmDirCmd"] else [];
 
   postUnpack = ''
     export absSourceRoot="$PWD/$sourceRoot";
     export node_modules_path="$absSourceRoot/node_modules";
 
-    source "$nmDirCmdPath";
+    if test -n "''${nmDirCmdPath:-}"; then
+      source "$nmDirCmdPath";
+    else
+      eval "$nmDirCmd";
+    fi
 
     if test -d "$node_modules_path"; then
       export PATH="$PATH:$node_modules_path/.bin";
