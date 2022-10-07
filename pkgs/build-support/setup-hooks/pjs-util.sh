@@ -113,6 +113,14 @@ pjsBinPaths() {
 
 # --------------------------------------------------------------------------- #
 
+pjsHasField() {
+  $JQ -e "( .${1#.} // \"_%FAIL%_\" ) != \"_%FAIL%_\"" "${2:-package.json}"  \
+      >/dev/null 2>&1;
+}
+
+
+# --------------------------------------------------------------------------- #
+
 pjsSetBinPerms() {
   $CHMOD +x -- $( pjsBinPaths "$1"; );
 }
@@ -128,6 +136,36 @@ pjsPatchShebangs() {
 
 # --------------------------------------------------------------------------- #
 
+pjsFilesOr() {
+  local _default
+  _default="$1";
+  if $JQ -e 'has( "files" )' "${2:-package.json}" >/dev/null; then
+    $JQ -r '.files[]' "${2:-package.json}";
+  else
+    eval printf '%s\\n' "$_default";
+  fi
+}
+
+# FIXME: use `nocaseglob', `dotglob', and `GLOBIGNORE=...' to implement.
+pjsPacklist() {
+  local _fs;
+  if test "$#" -gt 0; then
+    pushd "${1%/*}" >/dev/null;
+  else
+    pushd . >/dev/null;
+  fi
+  if $JQ -e 'has( "files" )' package.json >/dev/null; then
+    _fs=( $( $JQ -r '.files[]' package.json; ) );
+  else
+    _fs=( * );
+  fi
+  printf '%s\n' "${_fs[@]}";
+  popd >/dev/null;
+}
+
+
+# --------------------------------------------------------------------------- #
+
 # addMod SRC-DIR OUT-DIR
 # Ex:  addMod ./unpacked "$out/@foo/bar"
 defaultAddMod() {
@@ -136,6 +174,7 @@ defaultAddMod() {
   fi
   $MKDIR -p "$2";
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
+
 }
 
 # addMod FROM TO

@@ -11,6 +11,7 @@
   "bin": {
     "foo": "bin/bar.js"
   },
+  "files": ["package.json", "app"],
   "dependencies": {},
   "devDependencies": {}
 }
