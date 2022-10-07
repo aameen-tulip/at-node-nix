@@ -3,4 +3,4 @@
 , nmDirCmd ? mkNmDir tree
 , mkNmDir
 , makeSetupHook
-}: makeSetupHook { inherit name; script = nmDirCmd.cmd; }
+}: makeSetupHook { inherit name; } ( nmDirCmd.cmd or ( toString nmDirCmd ) )
