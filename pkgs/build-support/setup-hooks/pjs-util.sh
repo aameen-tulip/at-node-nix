@@ -146,21 +146,22 @@ pjsFilesOr() {
   fi
 }
 
-# FIXME: use `nocaseglob', `dotglob', and `GLOBIGNORE=...' to implement.
+# FIXME: remove ignore files and junk
 pjsPacklist() {
-  local _fs;
+  declare -a fs;
   if test "$#" -gt 0; then
     pushd "${1%/*}" >/dev/null;
   else
     pushd . >/dev/null;
   fi
   if $JQ -e 'has( "files" )' package.json >/dev/null; then
-    _fs=( $( $JQ -r '.files[]' package.json; ) );
+    _fs=( $( $JQ -r ".files[]|\"-o -name \" + ." package.json; ) );
+    _fs=( $( $FIND . -iname 'readme*' -o -iname 'license*' ${_fs[@]}; ) );
   else
     _fs=( * );
   fi
   printf '%s\n' "${_fs[@]}";
-  popd >/dev/null;
+  popd >/dev/null 2>&1||:;
 }
 
 
