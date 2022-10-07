@@ -42,7 +42,7 @@
 , stdenv
 , xcbuild
 , node-gyp ? nodejs.pkgs.node-gyp
-, python   ? nodejs.python
+, python   ? nodejs.python  # XXX: strongly advise using python3
 # XXX: Any flags accepted by either `evalScripts' or `buildGyp' are permitted
 # here and will be passed through to the underlying builders.
 , ...

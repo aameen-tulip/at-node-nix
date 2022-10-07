@@ -118,14 +118,17 @@
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
-      unpackSafe     = callPackage ./pkgs/build-support/unpackSafe.nix;
-      buildGyp       = callPackage ./pkgs/build-support/buildGyp.nix;
-      evalScripts    = callPackage ./pkgs/build-support/evalScripts.nix;
-      runBuild       = callPackage ./pkgs/build-support/runBuild.nix;
+      unpackSafe  = callPackage ./pkgs/build-support/unpackSafe.nix;
+      evalScripts = callPackage ./pkgs/build-support/evalScripts.nix;
+      runBuild    = callPackage ./pkgs/build-support/runBuild.nix;
+      buildGyp    = callPackageWith {
+        python = prev.python3;
+      } ./pkgs/build-support/buildGyp.nix;
       # FIXME: the alignment with `buildGyp' is bad.
       genericInstall = callPackageWith {
         flocoConfig = final.flocoConfig;
         impure      = final.flocoConfig.enableImpureMeta;
+        python      = prev.python3;
       } ./pkgs/build-support/genericInstall.nix;
       patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
       genSetBinPermissionsHook =

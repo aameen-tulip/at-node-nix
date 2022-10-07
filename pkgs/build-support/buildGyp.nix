@@ -69,9 +69,9 @@
 # and any other fallbacks which reference `nodejs.*' attributes manually. 
 , nodejs
 , jq
-, node-gyp       ? nodejs.pkgs.node-gyp       or null
+, node-gyp ? nodejs.pkgs.node-gyp       or null
 #, node-gyp-build ? nodejs.pkgs.node-gyp-build or null
-, python         ? nodejs.python              or null # python3 by default
+, python   ? nodejs.python or null  # XXX: strongly advise using python3
 , stdenv
 , xcbuild
 , ...
