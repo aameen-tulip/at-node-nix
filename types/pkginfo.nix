@@ -8,6 +8,7 @@
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   inherit (yt) struct string list attrs option restrict;
+  prettyPrint = lib.generators.toPretty {};
 
 # ---------------------------------------------------------------------------- #
 
@@ -75,16 +76,20 @@
     range_constr_p1 = "[${re.range_constr_c}]";
     range_p1        = "[a-zA-Z0-9.+${re.range_constr_c}]";
     locator_p1      = "[${re.uri_c}]";
-    descriptor_p1   = re.locator_p1;
+    descriptor_p1   = "[<>~^,|& ${re.uri_c}]";
 
-    locator_old_p = "${re.id_old_p}@(${re.version}|${re.uri_ref_p})";
-    locator_new_p = "${re.id_new_p}@(${re.version}|${re.uri_ref_p})";
+    # FIXME: define `range_p'/semver patterns.
+    # They're currently nested in parsers for `lib/ranges.nix'.
+    range_p = "${re.range_p1}+";
 
-    # descriptor_p =   identifier + (locator|semver)
-    #              ==> identifier + (uri|semver)
-    # FIXME: define range regexes ( pull from parser ).
-    descriptor_old_p = "${re.id_old_p}@(${re.range_p1}+|${re.uri_ref_p})";
-    descriptor_new_p = "${re.id_new_p}@(${re.range_p1}+|${re.uri_ref_p})";
+    locator_p    = "(${re.version}|${re.uri_ref_p})";
+    descriptor_p = "(${re.uri_ref_p}|${re.range_p})";
+
+    id_locator_old_p = "${re.id_old_p}@(${re.version}|${re.uri_ref_p})";
+    id_locator_new_p = "${re.id_new_p}@(${re.version}|${re.uri_ref_p})";
+
+    id_descriptor_old_p = "${re.id_old_p}@${re.descriptor_p}";
+    id_descriptor_new_p = "${re.id_new_p}@${re.descriptor_p}";
 
 # ---------------------------------------------------------------------------- #
 
@@ -120,7 +125,6 @@
       base = yt.either Strings.identifier_old Strings.identifier_new;
     in base // {
       checkType = v: let
-        prettyPrint = lib.generators.toPretty {};
         res = base.checkType v;
       in if string.check v then res // {
         err = "\"${v}\" is not a valid module identifier";
@@ -153,14 +157,59 @@
 
 # ---------------------------------------------------------------------------- #
 
-    # "@foo/bar@1.0.0"  ( exact version )
-    locator = restrict "locator" ( lib.test re.locator_old_p ) string;
-    locator_new = restrict "new" ( lib.test re.locator_new_p ) Strings.locator;
+    # "1.0.0" ( exact version ) or "file:../foo" or "https://..." URI
+    locator = restrict "locator" ( lib.test re.locator_p ) string;
 
-    # "@foo/bar@>=1.0.0 <2.0.0"
-    descriptor = restrict "descriptor" ( lib.test re.descriptor_old_p ) string;
+    id_locator = restrict "ident+locator" ( lib.test re.id_locator_old_p )
+                                          string;
+    id_locator_new = restrict "new" ( lib.test re.id_locator_new_p )
+                                    Strings.id_locator;
+
+    # FIXME
+    range = restrict "semver[range]" ( lib.test re.range_p ) string;
+
+    # ">=1.0.0 <2.0.0" ( semver constraint ) or locator
+    descriptor = restrict "descriptor" ( lib.test re.descriptor_p ) string;
     descriptor_new = restrict "new" ( lib.test re.descriptor_new_p )
                                     Strings.descriptor;
+
+    id_descriptor =
+      restrict "ident+descriptor" ( lib.test re.id_descriptor_old_p ) string;
+    id_descriptor_new = restrict "new" ( lib.test re.id_descriptor_new_p )
+                                       Strings.id_descriptor;
+
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  Structs = {
+    identifier = yt.struct "identifier" {
+      bname = Strings.id_part;
+      scope = option Strings.id_part;
+    };
+    id_locator = yt.struct "identifier+locator" {
+      identifier = Structs.identifier;
+      locator    = Strings.locator;
+    };
+    id_descriptor = yt.struct "identifier+descriptor" {
+      identifier = Structs.identifier;
+      descriptor = yt.either Strings.descriptor Sums.descriptor;
+    };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  Sums = {
+    locator = yt.sum "locator" {
+      uri     = yt.Uri.Strings.uri_ref;
+      version = Strings.version;
+    };
+    descriptor = yt.sum "descriptor" {
+      range   = Strings.range;
+      locator = yt.either Strings.locator Sums.locator;
+    };
   };
 
 
@@ -170,6 +219,8 @@ in {
   inherit
     re
     Strings
+    Structs
+    Sums
   ;
 }
 
