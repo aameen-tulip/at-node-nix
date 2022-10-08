@@ -6,7 +6,7 @@
 
 { lib }: let
 
-  yt = lib.libyants;
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   inherit (yt) struct string list attrs option;
 
 # ---------------------------------------------------------------------------- #
@@ -14,11 +14,12 @@
   version = string;
   ident   = string;
 
-  bugs = either ( struct "bugs" { url = string; } ) string;
-
-  repository = either string ( struct "repository" {
-    type = string;  # FIXME: enum ["git"];
-    url  = string;
+  repository = yt.either string ( struct "repository" {
+    type      = option string;  # FIXME: enum ["git"];
+    url       = string;
+    directory = option string;  # FIXME
+    web       = option string;
+    dist      = option string;
   } );
 
   timestamp = string;           # "2019-08-08T17:52:35.249Z"
@@ -28,14 +29,19 @@
   manifest = attrs yt.any;
 
 
-  # NOTE: email not "url"
-  author = either string ( struct "author" {
-    email = string;
-    name  = string;
+# ---------------------------------------------------------------------------- #
+
+  defContact = name: yt.either string ( struct name {
+    name  = option string;
+    email = option string;
+    url   = option string;
+    githubUsername = option string;
   } );
-  # github/homepage/portfolio link
-  maintainer  = struct "maintainer"  { name = string; url = string; };
-  contributor = struct "contributor" { name = string; url = string; };
+
+  author      = defContact "author";
+  bugs        = defContact "bugs";
+  maintainer  = defContact "maintainer";
+  contributor = defContact "contributor";
 
 
 # ---------------------------------------------------------------------------- #
@@ -45,11 +51,11 @@
     _rev           = option string;
     author         = option author;
     bugs           = option bugs;
-    contributors   = option ( list contributor );
+    contributors   = option ( yt.either string ( list contributor ) );
     description    = option string;
     dist-tags      = attrs version;
     homepage       = option string;
-    keywords       = option ( list strings );
+    keywords       = option ( list string );
     license        = option string;
     maintainers    = list maintainer;
     name           = string;
@@ -59,7 +65,7 @@
     repository     = option repository;
     time           = time;
     # <USERNAME>: true  ( always true )
-    users          = option ( attrs bool );
+    users          = option ( attrs yt.bool );
     # XXX: I haven't confirmed if this is "full"
     versions       = manifest;
   };
@@ -72,7 +78,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  inherit Packument;
+  inherit packument;
 }
 
 # ---------------------------------------------------------------------------- #
@@ -125,7 +131,7 @@ in {
 #
 # ---------------------------------------------------------------------------- #
 #
-# * Manifest Example
+# * Manifest Summary Example ( NOTE: not the same as a full manifest )
 #
 #   {
 #     _hasShrinkwrap = false;
