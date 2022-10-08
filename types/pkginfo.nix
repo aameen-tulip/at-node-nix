@@ -90,43 +90,78 @@
 
   };  # End `re'
 
+  Strings = let
+    # Helper to add length restriction to "new" identifiers.
+    restrict_new_s = base_t: let
+      cond = builtins.test "${re.id_new_p1}{0,214}";
+    in restrict "new" cond base_t;
+  in {
+
+    # FIXME: This belongs with Semver/Range types
+    version  = restrict "version" ( lib.test lib.librange.versionRE ) string;
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: This belongs with Semver/Range types
-  version  = restrict "version" ( lib.test lib.librange.versionRE ) string;
+    identifier_old = restrict "identifier[old]" ( lib.test re.id_old_p ) string;
+    identifier_new = let
+      cond = s: ( lib.test re.id_new_p s ) &&
+                ( ( builtins.stringLength s ) <= 214 );
+    in restrict "identifier[new]" cond string;
+
+    identifier_builtin = let
+      cond = s: builtins.elem s node_bt_mods_l;
+    in restrict "identifier[builtin]" cond string;
+
+    identifier_reserved = let
+      cond = s: builtins.elem s id_reserved_l;
+    in restrict "identifier[reserved]" cond string;
+
+    identifier_any = let
+      base = yt.either Strings.identifier_old Strings.identifier_new;
+    in base // {
+      checkType = v: let
+        prettyPrint = lib.generators.toPretty {};
+        res = base.checkType v;
+      in if string.check v then res // {
+        err = "\"${v}\" is not a valid module identifier";
+      } else res // {
+        err = "expected type 'string[identifier]', but value '${prettyPrint v}'"
+              + " is of type '${builtins.typeOf v}'";
+      };
+    };
+
+    identifier_unreserved = let
+      cond = s: ! ( Strings.identifier_reserved.check s );
+      base = restrict "unreserved" cond Strings.identifier_any;
+    in base // {
+      checkType = v: let
+        res  = base.checkType v;
+      in if ! ( Strings.identifier_any.check v ) then res else res // {
+        err = "\"${v}\" is a reserved module name";
+      };
+    };
+
+    identifier = Strings.identifier_unreserved;
+
+    id_part     = restrict "id_part" ( lib.test re.id_part_old_p ) string;
+    id_part_new = restrict_new_s Strings.id_part;
+
+    # Either "" or "@foo/", but never "@foo"
+    scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old}+/)?" )
+                                   string;
+    scopedir_new = restrict_new_s Strings.scopedir;
 
 # ---------------------------------------------------------------------------- #
-  # Helper to add length restriction to "new" identifiers.
-  restrict_new_s = base_t: let
-    cond = builtins.test "${re.id_new_p1}{0,214}";
-  in restrict "new" cond base_t;
 
+    # "@foo/bar@1.0.0"  ( exact version )
+    locator = restrict "locator" ( lib.test re.locator_old_p ) string;
+    locator_new = restrict "new" ( lib.test re.locator_new_p ) Strings.locator;
 
-  identifier_old = restrict "identifier[old]" ( lib.test re.id_old_p ) string;
-  identifier_new = let
-    cond = s: ( lib.test re.id_new_p s ) &&
-              ( ( builtins.stringLength s ) <= 214 );
-  in restrict "identifier[new]" cond string;
-
-  identifier = yt.either identifier_old identifier_new;
-
-  id_part     = restrict "id_part" ( lib.test re.id_part_old_p ) string;
-  id_part_new = restrict_new_s id_part;
-
-  # Either "" or "@foo/", but never "@foo"
-  scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old}+/)?" ) string;
-  scopedir_new = restrict_new_s scopedir;
-
-# ---------------------------------------------------------------------------- #
-
-  # "@foo/bar@1.0.0"  ( exact version )
-  locator = restrict "locator" ( lib.test re.locator_old_p ) string;
-  locator_new = restrict "new" ( lib.test re.locator_new_p ) locator;
-
-  # "@foo/bar@>=1.0.0 <2.0.0"
-  descriptor = restrict "descriptor" ( lib.test re.descriptor_old_p ) string;
-  descriptor_new = restrict "new" ( lib.test re.descriptor_new_p ) descriptor;
+    # "@foo/bar@>=1.0.0 <2.0.0"
+    descriptor = restrict "descriptor" ( lib.test re.descriptor_old_p ) string;
+    descriptor_new = restrict "new" ( lib.test re.descriptor_new_p )
+                                    Strings.descriptor;
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -134,12 +169,7 @@
 in {
   inherit
     re
-    version
-    identifier identifier_old identifier_new
-    id_part    id_part_new
-    scopedir   scopedir_new
-    locator    locator_new
-    descriptor descriptor_new
+    Strings
   ;
 }
 
