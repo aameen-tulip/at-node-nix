@@ -15,9 +15,9 @@
   ident   = string;
 
   repository = yt.either string ( struct "repository" {
-    type      = option string;  # FIXME: enum ["git"];
+    type      = option ( yt.enum ["git" "url"] );
     url       = string;
-    directory = option string;  # FIXME
+    directory = option string;
     web       = option string;
     dist      = option string;
   } );
@@ -31,12 +31,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-  defContact = name: yt.either string ( struct name {
-    name  = option string;
-    email = option string;
-    url   = option string;
-    githubUsername = option string;
-  } );
+  defContact = name:
+    yt.either string ( struct name {
+      name           = option string;
+      email          = option string;
+      url            = option string;
+      githubUsername = option string;
+    } );
 
   author      = defContact "author";
   bugs        = defContact "bugs";
@@ -73,62 +74,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
-  inherit packument;
+  inherit
+    packument
+    repository
+  ;
 }
 
-# ---------------------------------------------------------------------------- #
-#
-#  * Counted 1991 `registry.npmjs.org' `Packuments for occurence of fields.
-#    {
-#      _id = 1991;
-#      _rev = 1984;            ***
-#      author = 1471;          ***
-#      bugs = 1714;            ***
-#      contributors = 406;     ***
-#      description = 1920;     ***
-#      dist-tags = 1991;
-#      homepage = 1907;        ***
-#      keywords = 1415;        ***
-#      license = 1971;         ***
-#      maintainers = 1991;
-#      name = 1991;
-#      readme = 1991;
-#      readmeFilename = 1984;  ***
-#      repository = 1977;      ***
-#      time = 1991;
-#      users = 1077;           ***
-#      versions = 1991;
-#    }
-#
-#
-# ---------------------------------------------------------------------------- #
-#
-#  * Types
-#    {
-#      _id = "string";
-#      _rev = "string";
-#      author = "set";
-#      bugs = "set";
-#      description = "string";
-#      dist-tags = "set";
-#      homepage = "string";
-#      keywords = "list";
-#      license = "string";
-#      maintainers = "list";
-#      name = "string";
-#      readme = "string";
-#      readmeFilename = "string";
-#      repository = "set";
-#      time = "set";
-#      versions = "set";
-#    }
-#
-#
+
 # ---------------------------------------------------------------------------- #
 #
 # * Manifest Summary Example ( NOTE: not the same as a full manifest )
@@ -239,24 +192,6 @@ in {
 #     };
 #     typings = "dist/types/remapping.d.ts";
 #     version = "2.2.0";
-#   }
-#
-#
-# ---------------------------------------------------------------------------- #
-#
-# * Users Example
-#
-#   {
-#     users = {
-#       antixrist = true;
-#       axelav = true;
-#       bsdprojects = true;
-#       evanlovely = true;
-#       huiyifyj = true;
-#       julien-f = true;
-#       "programmer.severson" = true;
-#       tg-z = true;
-#     };
 #   }
 #
 #
