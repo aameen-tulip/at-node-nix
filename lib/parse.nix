@@ -1,11 +1,8 @@
 
 # ============================================================================ #
 #
-# NOTE: These were one of the earliest set of routines written for this project.
-# They were largely aimed at processing `yarn.lock(v2)' entries.
-# These aren't used in newer `(meta|pkg)Set' style routines; but they
-# may be useful to folks who just need some standalone Node.js
-# helper routines/parsers.
+# Parsers for things like package identifiers/names,
+# locators ( version or URI ), and descriptors ( semver or URI ).
 #
 # ---------------------------------------------------------------------------- #
 
@@ -116,74 +113,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Collects various forms of name/ident info into a single attrset.
-  # XXX: When `enableStringContextDiscards = true', this functions performs
-  #      unsafe discards.
-  #      This routine is meant for parsing lockfiles and other forms of
-  #      "static" metadata when running in that mode.
-  # If you strip string contexts for bogus package entries, for example
-  # "I have this local project that I work on and don't update the version
-  # number between rebuilds", you may find that Nix isn't rebuilding your
-  # derivations "as expected".
-  # If you use this on anything other than a lockfile containing "static"
-  # registry tarballs or otherwise "pure" source references - you're
-  # fucking it up and you should stop doing that.
-  # If you aren't sure if you can safely strip string contexts, consult the
-  # wall of text at the top of `lib/meta.nix' that covers this topic in
-  # more detail.
-  nameInfo' = enableStringContextDiscards: str: let
-    unsafeDiscardStringContext =
-      if enableStringContextDiscards
-      then builtins.unsafeDiscardStringContext
-      else x: x;  # `id' op.
-    pi' = tryParseIdent ( unsafeDiscardStringContext str );
-    pd' = tryParseDescriptor true ( unsafeDiscardStringContext str );
-    pl' = tryParseLocator true ( unsafeDiscardStringContext str );
-    ids = ( if ( pi' != null ) then pi' // { type = "identifier"; } else {} ) //
-          ( if ( pd' != null ) then pd' // { type = "descriptor";} else {} ) //
-          ( if ( pl' != null ) then pl' // { type = "locator";} else {} );
-    scopeDir = if ( ( ids ? scope ) && ( ids.scope != null ) )
-               then "@" + ids.scope + "/" else "";
-    name = scopeDir + ids.pname;
-  in { inherit name scopeDir; } // ids;
-
-  nameInfo = nameInfo' false;
-
-# ---------------------------------------------------------------------------- #
-
-  # Matches any 16bit SHA256 hash.
-  isGitRev = str: ( builtins.match "[0-9a-f]{40}" str ) != null;
-
-
-# ---------------------------------------------------------------------------- #
-
-  getPjScopeDir = x: let
-    inherit (builtins) isPath isString isAttrs match head pathExists tryEval;
-    fromScope = scope: if scope == null then "" else "@${scope}/";
-    fromName  = name: fromScope ( parseIdent name ).scope;
-    fromAttrs = x.scopeDir or
-      ( if ( x ? scope ) then ( fromScope x.scope ) else
-        if ( x ? name )  then ( fromName x.name )   else
-        throw "Cannot get scopeDir from available attrs." );
-    m = match "(@([^/]+)/)?([^/]+)(@.+)?" x;
-    ms = let s = head m; in if s == null then "" else s;
-    fromMatch = if m != null then ms else
-      throw "Cannot parse scopeDir from string: ${x}";
-    fromRead = let
-      pjs = lib.libpkginfo.pkgJsonForPath x;
-      fromPi = fromName ( lib.libpkginfo.importJSON' pjs ).name;
-    in if pathExists pjs then fromPi else  # XXX: We can't unzip tarballs here.
-      throw "Cannot read scopeDir from path ${pjs}.";
-    fromString = let tm = tryEval fromMatch;
-                 in if tm.success then tm.value else fromRead;
-  in if isAttrs  x then fromAttrs  else
-     if isPath   x then fromRead   else # XXX: You could guess from subdir name?
-     if isString x then fromString else
-        throw "Cannot get scopeDir from type: ${builtins.typeOf x}";
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     tryParseIdent
@@ -198,10 +127,6 @@ in {
     parseLocator
     tryParseIdentLocator
     parseIdentLocator
-
-    nameInfo'
-    nameInfo
-    isGitRev
   ;
 }
 

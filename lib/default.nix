@@ -52,14 +52,9 @@
     ;
 
     inherit (final.libparse)
-      tryParseIdent
       parseIdent
-      tryParseDescriptor
       parseDescriptor
-      tryParseLocator
       parseLocator
-      nameInfo
-      isGitRev
     ;
 
     inherit (final.libattrs)

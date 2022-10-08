@@ -91,9 +91,11 @@
     id_descriptor_old_p = "${re.id_old_p}@${re.descriptor_p}";
     id_descriptor_new_p = "${re.id_new_p}@${re.descriptor_p}";
 
-# ---------------------------------------------------------------------------- #
 
   };  # End `re'
+
+
+# ---------------------------------------------------------------------------- #
 
   Strings = let
     # Helper to add length restriction to "new" identifiers.
@@ -165,6 +167,7 @@
     id_locator_new = restrict "new" ( lib.test re.id_locator_new_p )
                                     Strings.id_locator;
 
+
     # FIXME
     range = restrict "semver[range]" ( lib.test re.range_p ) string;
 
@@ -178,7 +181,7 @@
     id_descriptor_new = restrict "new" ( lib.test re.id_descriptor_new_p )
                                        Strings.id_descriptor;
 
-  };
+  };  # End Strings
 
 
 # ---------------------------------------------------------------------------- #
@@ -196,7 +199,7 @@
       identifier = Structs.identifier;
       descriptor = yt.either Strings.descriptor Sums.descriptor;
     };
-  };
+  };  # End Structs
 
 
 # ---------------------------------------------------------------------------- #
@@ -210,7 +213,7 @@
       range   = Strings.range;
       locator = yt.either Strings.locator Sums.locator;
     };
-  };
+  };  # End Sums
 
 
 # ---------------------------------------------------------------------------- #
