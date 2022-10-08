@@ -41,6 +41,7 @@
     libdep     = callLib  ./depinfo.nix;
     ytypes     = builtins.foldl' ( a: b: a // b ) ( prev.ytypes or {} ) [
       ( callLib ../types/npm-lock.nix )
+      { Packument = callLib ../types/packument.nix; }
     ];
     libfilt    = callLib ./filt.nix;  # NOTE: standalone;
 
