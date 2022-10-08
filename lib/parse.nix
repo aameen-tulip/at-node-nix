@@ -37,15 +37,15 @@
 
 # ---------------------------------------------------------------------------- #
 
-/**
- * Parses a `string` into a descriptor
- *
- * Returns `null` if the descriptor cannot be parsed.
- *
- * @param string The descriptor string (eg. `lodash@^1.0.0`)
- * @param strict If `false`, the range is optional
- *               (`unknown` will be used as fallback)
- */
+  /**
+   * Parses a `string` into a descriptor
+   *
+   * Returns `null` if the descriptor cannot be parsed.
+   *
+   * @param string The descriptor string (eg. `lodash@^1.0.0`)
+   * @param strict If `false`, the range is optional
+   *               (`unknown` will be used as fallback)
+   */
   tryParseDescriptor = strict: str: let
     # NOTE: The original patterns use `[^/]+?' ( non-greedy match ), which
     #       is currently broken in Nix or Darwin because LLVM is garbage.

@@ -6,13 +6,10 @@
 
 { lib }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim // lib.ytypes.PkgInfo;
   inherit (yt) struct string list attrs option;
 
 # ---------------------------------------------------------------------------- #
-
-  version = string;
-  ident   = string;
 
   repository = yt.either string ( struct "repository" {
     type      = option ( yt.enum ["git" "url"] );
@@ -26,7 +23,7 @@
   time      = attrs timestamp;  # <VERSION>: <TIMESTAMP>
 
   # FIXME:
-  manifest = attrs yt.any;
+  manifests = attrs yt.any;
 
 
 # ---------------------------------------------------------------------------- #
@@ -48,18 +45,18 @@
 # ---------------------------------------------------------------------------- #
 
   packument = struct "packument" {
-    _id            = ident;
-    _rev           = option string;
+    _id            = yt.ident;
+    _rev           = option yt.Uri.Strings.rev;
+    name           = yt.ident;
     author         = option author;
     bugs           = option bugs;
     contributors   = option ( yt.either string ( list contributor ) );
     description    = option string;
-    dist-tags      = attrs version;
+    dist-tags      = attrs yt.version;
     homepage       = option string;
     keywords       = option ( list string );
     license        = option string;
     maintainers    = list maintainer;
-    name           = string;
     # falls back to error string
     readme         = string;
     readmeFilename = option string;
@@ -68,7 +65,7 @@
     # <USERNAME>: true  ( always true )
     users          = option ( attrs yt.bool );
     # XXX: I haven't confirmed if this is "full"
-    versions       = manifest;
+    versions       = manifests;
   };
 
 
