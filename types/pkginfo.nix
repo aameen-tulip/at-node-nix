@@ -92,6 +92,10 @@
     id_descriptor_new_p = "${re.id_new_p}@${re.descriptor_p}";
 
 
+# ---------------------------------------------------------------------------- #
+
+    key = "${re.id_old_p}/${re.version}";
+
   };  # End `re'
 
 
@@ -152,6 +156,7 @@
     id_part     = restrict "id_part" ( lib.test re.id_part_old_p ) string;
     id_part_new = restrict_new_s Strings.id_part;
 
+    scope = Strings.id_part;
     # Either "" or "@foo/", but never "@foo"
     scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old_p1}+/)?" )
                                    string;
@@ -181,6 +186,10 @@
     id_descriptor_new = restrict "new" ( lib.test re.id_descriptor_new_p )
                                        Strings.id_descriptor;
 
+# ---------------------------------------------------------------------------- #
+
+    key = restrict "pkg-key" ( lib.test re.key ) string;
+
   };  # End Strings
 
 
@@ -189,18 +198,18 @@
   Structs = {
     identifier = yt.struct "identifier" {
       bname = Strings.id_part;
-      scope = option Strings.id_part;
+      scope = option ( yt.either Strings.scope Structs.scope );
     };
     id_locator = yt.struct "identifier+locator" {
-      identifier = Structs.identifier;
+      identifier = yt.either Structs.identifier Strings.identifier_any;
       locator    = Strings.locator;
     };
     id_descriptor = yt.struct "identifier+descriptor" {
-      identifier = Structs.identifier;
+      identifier = yt.either Structs.identifier Strings.identifier_any;
       descriptor = yt.either Strings.descriptor Sums.descriptor;
     };
     scope = yt.struct "scope" {
-      scope    = yt.option Strings.id_part;
+      scope    = yt.option ( yt.either Strings.scope Structs.scope );
       scopedir = Strings.scopedir;
     };
   };  # End Structs

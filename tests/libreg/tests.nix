@@ -43,8 +43,6 @@
         { ident = "@foo/bar"; }           { meta.ident = "@foo/bar"; }
         { name  = "@foo/bar"; }           { meta.name  = "@foo/bar"; }
         { scope = "foo"; }                { meta.scope = "foo"; }
-        { scope = "@foo"; }               { meta.scope = "@foo"; }
-        { scope = "@foo/"; }              { meta.scope = "@foo/"; }
         { key   = "@foo/bar/1.0.0"; }     { meta.key   = "@foo/bar/1.0.0"; }
         { key   = "@foo/bar/1"; }         { meta.key   = "@foo/bar/1"; }
         { key   = "@foo/bar/1-pre"; }     { meta.key   = "@foo/bar/1-pre"; }

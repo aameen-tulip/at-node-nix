@@ -5,6 +5,7 @@
 # ---------------------------------------------------------------------------- #
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  pi = yt.PkgInfo;
   inherit (lib) isType setType;
   inherit (lib.libfs) listSubdirs listDirsRecursive;
   inherit (lib.libpath) coercePath;
@@ -13,44 +14,91 @@
 # ---------------------------------------------------------------------------- #
 
   # Typeclass for Package/Module "Scope" name.
-  Scope = {
-    name   = "Scope";
+  Scope = let
+    coercibleSums = yt.sum {
+      ident = pi.Strings.identifier_any;
+      name  = pi.Strings.identifier_any;
+      key   = pi.Strings.key;
+      meta  = yt.attrs yt.any;
+    };
+    coercibleStructs_l = [
+      ( yt.struct { scope = pi.Strings.scope; } )
+      pi.Structs.scope
+      pi.Structs.identifier
+      pi.Structs.id_locator
+      pi.Structs.id_descriptor
+    ];
+    coercibleStrings_l = [
+      ( yt.restrict "scope(dirty)" ( lib.test "@([^@/]+)" ) yt.string )
+      pi.Strings.scope
+      pi.Strings.scopedir
+      pi.Strings.identifier_any
+      pi.Strings.id_locator
+      pi.Strings.id_descriptor
+      pi.Strings.key
+    ];
+    # null -> `{ scope = null; scopedir = ""; }'
+    coercibleType = let
+      eithers = coercibleStructs_l ++ coercibleStrings_l ++ [coercibleSums];
+    in yt.option ( yt.eitherN eithers );
+  in {
+    name = "Scope";
+    # Strict YANTS type for a string or attrset representation of a Scope.
+    # "foo" or { scope ? "foo"|null, scopedir = ( "" | "@${scope}/" ); }
+    ytype  = yt.either pi.Strings.id_part pi.Structs.scope;
     isType = Scope.ytype.check;
-    ytype  = yt.either yt.PkgInfo.Strings.id_part yt.PkgInfo.Structs.scope;
-    isCoercible = x: ( builtins.tryEval ( Scope.coerce x ) ).success;
+    # Is `x' coercible to `Scope'?
+    isCoercible = coercibleType.check;
+
+    # Nullable
+    empty = { scope = null; scopedir = ""; };
+    fromNull = yt.defun [yt.nil pi.Structs.scope] ( _: Scope.empty );
+
+    # Parser
     fromString = let
       inner = str: let
-        m     = builtins.match "(@([^@/]+)(/.*)?)" str;
-        scope = if m != null then builtins.elemAt m 1 else
-                if str == "" then null else str;
-      in {
+        m         = builtins.match "((@([^@/]+)(/.*)?)|[^@/]+)" str;
+        scopeAt   = builtins.elemAt m 2;
+        scopeBare = builtins.head m;
+        scope = if scopeAt == null then scopeBare else scopeAt;
+      in if m == null then Scope.empty else {
         inherit scope;
-        scopedir = if scope == null then "" else "@${scope}/";
+        scopedir = "@${scope}/";
       };
-    in yt.defun [yt.string yt.PkgInfo.Structs.scope] inner;
+    in yt.defun [( yt.eitherN coercibleStrings_l ) yt.PkgInfo.Structs.scope]
+                inner;
     # Writer
     toString = let
       inner = x:
         if builtins.isString x then "@${x}" else
         if x.scope == null then "" else "@${x.scope}";
     in yt.defun [Scope.ytype yt.string] inner;
+
     # Parser
-    fromAttrs = {
-      scope ? lib.yank "@([^/]+)/" x.scopedir
-    , scopedir ? "@${x.scope}/"
-    , ...
-    } @ x: if ( x ? scope ) || ( x ? scopedir ) then { inherit scope scopedir; }
-           else Scope.fromString ( x.identifier or x.ident or x.name );
+    fromAttrs = let
+      inner = x: let
+        fromField =
+          if ! ( x ? scope ) then Scope.empty else
+          if builtins.isString x.scope then Scope.fromString x.scope else
+          x.scope;
+      in if pi.Structs.scope.check x then x else
+         if x ? meta then Scope.fromAttrs x.meta else
+         if ( x ? key ) || ( x ? ident ) || ( x ? name ) then
+           Scope.fromString ( x.key or x.ident or x.name )
+         else fromField;
+      eithers = coercibleStructs_l ++ [coercibleSums];
+    in yt.defun [( yt.eitherN eithers ) pi.Structs.scope] inner;
     # Serializer
     toAttrs = x: { inherit (Scope.coerce x) scope; };
-    # Maker
+
+    # Best effort conversion
     coerce = let
-      inner = x: let
-        stringable = ( builtins.isString x ) || ( x ? __toString );
-        asStr = if builtins.isAttrs x then x.__toString x else x;
-      in if stringable then Scope.fromString asStr else Scope.fromAttrs x;
-      ft = yt.either yt.string ( yt.attrs yt.any );
-    in yt.defun [ft yt.PkgInfo.Structs.scope] inner;
+      inner = x:
+        if x == null           then Scope.empty else
+        if builtins.isString x then Scope.fromString x
+        else Scope.fromAttrs x;
+    in yt.defun [coercibleType pi.Structs.scope] inner;
+
     # Object Constructor/Instantiator
     __functor    = self: x: {
       _type      = self.name;
@@ -68,11 +116,11 @@
     inherit (builtins) substring stringLength;
     dropStr1 = str: substring 1 ( stringLength str ) str;
   in {
+    _type = "";
     ident = yt.PkgInfo.Strings.identifier name;
     bname = baseNameOf name;
     scope =
       if ( substring 0 1 name ) == "@" then dropStr1 ( dirOf name ) else null;
-    _type = "";
   };
 
 
