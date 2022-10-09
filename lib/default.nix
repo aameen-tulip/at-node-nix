@@ -44,7 +44,7 @@
       { Packument = callLib ../types/packument.nix; }
       { PkgInfo   = callLib ../types/pkginfo.nix; }
     ];
-    libfilt    = callLib ./filt.nix;  # NOTE: standalone;
+    libfilt = callLib ./filt.nix;  # NOTE: standalone;
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW
