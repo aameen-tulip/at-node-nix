@@ -6,8 +6,8 @@ on:
     paths:
       - .github/workflows/all-tests.yml
       - flake.nix
-      - lib/default.nix
       - lib/**
+      - types/**
       - tests/**
       - pkgs/**
       - '!**/README*'
@@ -17,7 +17,7 @@ on:
     paths:
       - .github/workflows/all-tests.yml
       - flake.nix
-      - lib/default.nix
+      - types/**
       - lib/**
       - tests/**
       - pkgs/**
@@ -69,6 +69,12 @@ jobs:
           echo "# ---------------------------------------------------------------------------- #" >&2;
           # Register aliases to avoid the long ref
           nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
+
+      - name: All Checks
+        run: |
+          nix flake check head --show-trace;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          nix flake check head --show-trace --impure;
 
       - name: All Tests
         run: |
