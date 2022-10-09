@@ -30,7 +30,7 @@
 , ident   ? meta.ident
 , version ? meta.version
 , src
-, meta
+, meta    ? builtins.intersectAttrs { ident = true; version = true; } args
 
 # Scripts to be run during `builPhase'.
 # These are executed in the order they appear, and may appear multiple times.

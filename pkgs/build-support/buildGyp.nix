@@ -36,7 +36,7 @@
 , ident   ? meta.ident   # Just used for the name fallback
 , version ? meta.version # Just used for the name fallback
 , src
-, meta
+, meta    ? builtins.intersectAttrs { ident = true; version = true; } args
 
 # A scipt that should install modules to `$node_modules_path/'
 , nmDirCmd ? ":"

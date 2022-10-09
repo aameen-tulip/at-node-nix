@@ -59,6 +59,7 @@
 
     inherit (final.libattrs)
       pkgsAsAttrsets
+      addFlocoPackages
     ;
 
     inherit (final.libplock)
