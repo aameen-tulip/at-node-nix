@@ -153,7 +153,7 @@
     id_part_new = restrict_new_s Strings.id_part;
 
     # Either "" or "@foo/", but never "@foo"
-    scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old}+/)?" )
+    scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old_p1}+/)?" )
                                    string;
     scopedir_new = restrict_new_s Strings.scopedir;
 
@@ -198,6 +198,10 @@
     id_descriptor = yt.struct "identifier+descriptor" {
       identifier = Structs.identifier;
       descriptor = yt.either Strings.descriptor Sums.descriptor;
+    };
+    scope = yt.struct "scope" {
+      scope    = Strings.id_part;
+      scopedir = Strings.scopedir;
     };
   };  # End Structs
 

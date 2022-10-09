@@ -14,13 +14,13 @@
 
 # ---------------------------------------------------------------------------- #
 
- /**
-  * Parses a string into an ident.
-  *
-  * Returns `null` if the ident cannot be parsed.
-  *
-  * @param string The ident string (eg. `@types/lodash`)
-  */
+  /**
+   * Parses a string into an ident.
+   *
+   * Returns `null` if the ident cannot be parsed.
+   *
+   * @param string The ident string (eg. `@types/lodash`)
+   */
   tryParseIdent = let
     inner = str: let
       # NOTE: The original patterns use `[^/]+?' ( non-greedy match ), which

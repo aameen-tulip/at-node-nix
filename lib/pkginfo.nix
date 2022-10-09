@@ -4,6 +4,7 @@
 
 # ---------------------------------------------------------------------------- #
 
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   inherit (lib) isType setType;
   inherit (lib.libfs) listSubdirs listDirsRecursive;
   inherit (lib.libpath) coercePath;
@@ -11,18 +12,47 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Split a `package.json' name field into "scope" ( if any ) and the
-  # package name, yielding a set with the original name, "bname", and scope.
-  # Ex:
-  #   "@foo/bar" ==> { name = "@foo/bar"; bname = "bar"; scope = "foo" }
-  #   "bar" ==> { name = "bar"; bname = "bar"; scope = null }
-  isPkgJsonName = test "(@[^/@.]+/)?([^/@.]+)";
+  Scope = {
+    name   = "Scope";
+    isType = Scope.ytype.check;
+    ytype  = yt.either yt.PkgInfo.Strings.id_part yt.PkgInfo.Structs.scope;
+    fromString = let
+      inner = str: let
+        m     = builtins.match "(@([^@/]+)(/.*)?)" str;
+        scope = if m == null then str else builtins.elemAt m 1;
+      in { inherit scope; scopedir = "@${scope}/"; };
+    in yt.defun [yt.string yt.PkgInfo.Structs.scope] inner;
+    toString = let
+      inner = { scope, scopedir }: scope;
+    in yt.defun [yt.PkgInfo.Structs.scope yt.string] inner;
+    fromAttrs = { scope ? null, scopedir ? "@${x.scope}/", ... } @ x:
+      if x ? scope then { inherit scope scopedir; } else
+      Scope.fromString ( x.ident or x.name );
+    toAttrs = x: Scope.coerce x;
+    coerce = let
+      inner = x: let
+        stringable = ( builtins.isString x ) || ( x ? __toString );
+        asStr = if builtins.isAttrs x then x.__toString x else x;
+      in if stringable then Scope.fromString asStr else Scope.fromAttrs x;
+      ft = yt.either yt.string ( yt.attrs yt.any );
+    in yt.defun [ft yt.PkgInfo.Structs.scope] inner;
+    __functor    = self: x: {
+      _type      = self.name;
+      val        = self.coerce x;
+      __toString = child: self.toString child.val;
+      __serial   = child: { inherit (self.toAttrs child.val) scope; };
+      __vtype    = self.ytype;
+    };
+  };
 
-  parsePkgJsonNameField = name: assert ( isPkgJsonName name ); let
+
+# ---------------------------------------------------------------------------- #
+
+  parsePkgJsonNameField = name: let
     inherit (builtins) substring stringLength;
     dropStr1 = str: substring 1 ( stringLength str ) str;
   in {
-    ident = name;
+    ident = yt.PkgInfo.Strings.identifier name;
     bname = baseNameOf name;
     scope =
       if ( substring 0 1 name ) == "@" then dropStr1 ( dirOf name ) else null;
@@ -302,6 +332,11 @@
 # ---------------------------------------------------------------------------- #
 
 in {
+
+  inherit
+    Scope
+  ;
+
   inherit
     mkPkgInfo
     pkgJsonHasBin
