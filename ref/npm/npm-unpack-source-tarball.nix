@@ -20,7 +20,7 @@ let
   pname   = scrubStr pname;
   version = scrubStr version;
 
-  sinfo = lib.normalizePkgScope ( scrubStr scope );
+  sinfo = lib.libpkginfo.Scope.fromString ( scrubStr scope );
   spre  = if sinfo.scope == null then "" else sinfo.scope + "-";
 
   tarFlags = [

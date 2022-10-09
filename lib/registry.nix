@@ -64,8 +64,10 @@
       key  = true;
     };
     __processArgs = self: arg: let
-      scopeFromString = ( lib.libpkginfo.normalizePkgScope arg ).scope;
-   in if builtins.isString arg then { scope = scopeFromString; } else
+      scopeFromString =
+        if ! ( lib.libpkginfo.Scope.isType arg ) then { scope = null; } else
+        { inherit (lib.libpkginfo.Scope.fromString arg) scope; };
+   in if builtins.isString arg then scopeFromString else
       if builtins.isAttrs arg then arg else
       if arg == null then { scope = null; } else
       throw "registryForScope: arg must be a string (scope) or attrset";

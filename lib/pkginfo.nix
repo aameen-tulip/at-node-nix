@@ -34,9 +34,12 @@
         if x.scope == null then "" else "@${x.scope}";
     in yt.defun [Scope.ytype yt.string] inner;
     # Parser
-    fromAttrs = { scope ? null, scopedir ? "@${x.scope}/", ... } @ x:
-      if x ? scope then { inherit scope scopedir; } else
-      Scope.fromString ( x.ident or x.name );
+    fromAttrs = {
+      scope ? lib.yank "@([^/]+)/" x.scopedir
+    , scopedir ? "@${x.scope}/"
+    , ...
+    } @ x: if ( x ? scope ) || ( x ? scopedir ) then { inherit scope scopedir; }
+           else Scope.fromString ( x.identifier or x.ident or x.name );
     # Serializer
     toAttrs = x: { inherit (Scope.coerce x) scope; };
     # Maker
@@ -70,29 +73,6 @@
       if ( substring 0 1 name ) == "@" then dropStr1 ( dirOf name ) else null;
     _type = "";
   };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # `str' may be either a scoped package name ( package.json name field )
-  # or just the "scope part" of a name.
-  # Ex:
-  #   "@foo/bar" ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   "foo/bar"  ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   "@foo/"    ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   "@foo"     ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   "foo/"     ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   "foo"      ==> { scope = "foo"; scopeDir = "@foo/"; }
-  #   ""         ==> { scope = null;  scopeDir = ""; }
-  #   null       ==> { scope = null;  scopeDir = ""; }
-  #   "@/"       ==> error: Invalid scope string: @/
-  normalizePkgScope = str: let
-    smatch = builtins.match "@?([^/@]+)(/[^/@0-9][^/@]*(/[1-9][^/@]*)?)?" ( lib.toLower str );
-    scope  = builtins.head smatch;
-  in if ( ( str == null ) || ( str == "" ) )
-     then { scope = null; scopeDir = ""; }
-     else if ( smatch == null ) then ( throw "Invalid scope string: ${str}" )
-     else { inherit scope; scopeDir = "@${scope}/"; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -367,7 +347,6 @@ in {
   inherit
     parsePkgJsonNameField
     node2nixName
-    normalizePkgScope
     asLocalTarballName
     asNpmRegistryTarballName
   ;
