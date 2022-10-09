@@ -70,14 +70,14 @@ jobs:
           # Register aliases to avoid the long ref
           nix registry add head "github:aameen-tulip/at-node-nix/$GITHUB_REF";
 
-      - name: All Checks
-        run: |
-          nix flake check head --show-trace;
-          echo "# ---------------------------------------------------------------------------- #" >&2;
-          nix flake check head --show-trace --impure;
-
       - name: All Tests
         run: |
           nix build head#tests --show-trace;
           echo "# ---------------------------------------------------------------------------- #" >&2;
           nix build head#tests --show-trace --impure;
+
+      - name: All Checks
+        run: |
+          nix flake check head --show-trace;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          nix flake check head --show-trace --impure;
