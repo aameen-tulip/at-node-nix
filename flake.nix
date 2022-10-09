@@ -174,8 +174,6 @@
       # Either `name' ( meta.names.tarball ) or `meta' are also required.
       mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
-      _node-pkg-set = callPackages ./pkgs/node-pkg-set.nix {};
-
       inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
         inherit (pkgsFor.xorg) lndir;
       })
