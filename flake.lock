@@ -9,11 +9,11 @@
         "yants-src": "yants-src"
       },
       "locked": {
-        "lastModified": 1665300834,
-        "narHash": "sha256-nsAomNyvTzxmt0MsmTXEX2DDQS9p59THV7RWDIggfnI=",
+        "lastModified": 1665333101,
+        "narHash": "sha256-r+f16lsv/Fk31WGXR/knrEj9Qq2Y+xVe42+QUCmcwWw=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "9472cf806134356231c67c8b8b0322cd63c67bd1",
+        "rev": "84c7918c91648b71cd8f82cca57302b410e9bc1b",
         "type": "github"
       },
       "original": {
