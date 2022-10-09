@@ -65,8 +65,8 @@
     };
     __processArgs = self: arg: let
       scopeFromString =
-        if ! ( lib.libpkginfo.Scope.isType arg ) then { scope = null; } else
-        { inherit (lib.libpkginfo.Scope.fromString arg) scope; };
+        if ! ( lib.libpkginfo.Scope.isCoercible arg ) then { scope = null; }
+        else { inherit (lib.libpkginfo.Scope.fromString arg) scope; };
    in if builtins.isString arg then scopeFromString else
       if builtins.isAttrs arg then arg else
       if arg == null then { scope = null; } else

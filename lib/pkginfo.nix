@@ -17,6 +17,7 @@
     name   = "Scope";
     isType = Scope.ytype.check;
     ytype  = yt.either yt.PkgInfo.Strings.id_part yt.PkgInfo.Structs.scope;
+    isCoercible = x: ( builtins.tryEval ( Scope.coerce x ) ).success;
     fromString = let
       inner = str: let
         m     = builtins.match "(@([^@/]+)(/.*)?)" str;
