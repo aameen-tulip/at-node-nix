@@ -200,7 +200,7 @@
       descriptor = yt.either Strings.descriptor Sums.descriptor;
     };
     scope = yt.struct "scope" {
-      scope    = Strings.id_part;
+      scope    = yt.option Strings.id_part;
       scopedir = Strings.scopedir;
     };
   };  # End Structs

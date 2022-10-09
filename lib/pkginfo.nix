@@ -12,6 +12,7 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Typeclass for Package/Module "Scope" name.
   Scope = {
     name   = "Scope";
     isType = Scope.ytype.check;
@@ -19,16 +20,26 @@
     fromString = let
       inner = str: let
         m     = builtins.match "(@([^@/]+)(/.*)?)" str;
-        scope = if m == null then str else builtins.elemAt m 1;
-      in { inherit scope; scopedir = "@${scope}/"; };
+        scope = if m != null then builtins.elemAt m 1 else
+                if str == "" then null else str;
+      in {
+        inherit scope;
+        scopedir = if scope == null then "" else "@${scope}/";
+      };
     in yt.defun [yt.string yt.PkgInfo.Structs.scope] inner;
+    # Writer
     toString = let
-      inner = { scope, scopedir }: scope;
-    in yt.defun [yt.PkgInfo.Structs.scope yt.string] inner;
+      inner = x:
+        if builtins.isString x then "@${x}" else
+        if x.scope == null then "" else "@${x.scope}";
+    in yt.defun [Scope.ytype yt.string] inner;
+    # Parser
     fromAttrs = { scope ? null, scopedir ? "@${x.scope}/", ... } @ x:
       if x ? scope then { inherit scope scopedir; } else
       Scope.fromString ( x.ident or x.name );
-    toAttrs = x: Scope.coerce x;
+    # Serializer
+    toAttrs = x: { inherit (Scope.coerce x) scope; };
+    # Maker
     coerce = let
       inner = x: let
         stringable = ( builtins.isString x ) || ( x ? __toString );
@@ -36,11 +47,12 @@
       in if stringable then Scope.fromString asStr else Scope.fromAttrs x;
       ft = yt.either yt.string ( yt.attrs yt.any );
     in yt.defun [ft yt.PkgInfo.Structs.scope] inner;
+    # Object Constructor/Instantiator
     __functor    = self: x: {
       _type      = self.name;
       val        = self.coerce x;
       __toString = child: self.toString child.val;
-      __serial   = child: { inherit (self.toAttrs child.val) scope; };
+      __serial   = child: self.toAttrs child.val;
       __vtype    = self.ytype;
     };
   };
