@@ -4,9 +4,7 @@
 
 ** Running
 
-This test suite can be run from the top level flake, or for more active
-development you can run the tests inside these subdirs to avoid
-needlessly reloading the full flake.
+This test suite can be run from the top level flake, or for more active development you can run the tests inside these subdirs to avoid needlessly reloading the full flake.
 
 #+BEGIN_SRC shell
   # Running all tests from the top level ( local tree ):
@@ -47,15 +45,11 @@ needlessly reloading the full flake.
 
 ** Writing Tests
 
-The short story is that =default.nix= files exist to pass around imports
-and define the test runners, so you only need to touch them when you're
-trying to pass in newly written expressions/pacakges to test suites.
+The short story is that =default.nix= files exist to pass around imports and define the test runners, so you only need to touch them when you're trying to pass in newly written expressions/packages to test suites.
 
-The actual tests all live in `tests.nix' files and are good old fashioned
-"expected result" and "expression" pairs.
+The actual tests all live in =tests.nix= files and are good old fashioned "expected result" and "expression" pairs.
 
-They're unit tests like you've seen in every other language so I won't
-waste time here.
+They're unit tests like you've seen in every other language so I won't waste time here.
 #+BEGIN_SRC nix
   test = {
     *** Read this ***
@@ -75,9 +69,7 @@ waste time here.
   }
 #+END_SRC
 
-The test above is expected to fail, so we'll see it appear in outputs of
-~nix build .#tests~ or ~nix eval -f . check~.
+The test above is expected to fail, so we'll see it appear in outputs of ~nix build .#tests~ or ~nix eval -f . check~.
 For these "checkers" we hide tests that pass, only printing "PASS".
 
-To see test output regardless of pass/fail use ~nix eval -f .test.testFoo~
-to see the test case evaluated as a raw value.
+To see test output regardless of pass/fail use ~nix eval -f .test.testFoo~ to see the test case evaluated as a raw value.
