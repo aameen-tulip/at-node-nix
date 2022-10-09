@@ -137,6 +137,8 @@
       terminalArgs = { registry = "string"; ident = "string"; };
       thunkMembers = { registryScopes = "set"; };
     };
+    __functor = self: arg:
+      self.__innerFunction self ( self.__processArgs self arg );
     __functionArgs = {
       flocoConfig    = true;
       registryScopes = true;
@@ -149,18 +151,18 @@
     __thunk = let
       flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
     in { inherit (flocoConfig) registryScopes; };
-    __functor = self: arg: let
-      regArgs =
-        if builtins.isAttrs arg then self.__thunk // arg else
+    __processArgs = self: arg: let
+      regArgs = if builtins.isAttrs arg then self.__thunk // arg else
         self.__thunk // {
           scope = lib.yank "@([^/]+).*" arg;
-          ident = lib.yank "((@[^/]+/)?[^@/]+)(/[1-9][^/@]*)?" arg;
+          ident = lib.yank "((@[^@/]+/)?[^@/]+).*" arg;
         };
       registry = registryForScope regArgs;
       ident =
         regArgs.ident or regArgs.meta.ident or regArgs.name or regArgs.meta.name
         or ( dirOf ( regArgs.key or regArgs.meta.key ) );
-    in _fetchPackument ( { inherit ident registry; } // regArgs );
+    in { inherit ident registry; } // regArgs;
+    __innerFunction = self: _fetchPackument;
   };
 
   # Tail calls `builtins.fromJSON' after fetching.
@@ -262,7 +264,6 @@
     let dist = x.dist or x.tarball or ( packumentLatestVersion x ).dist;
     in { inherit (dist) tarball; integrity = dist.integrity or null; };
 
-  # FIXME: You can likely convert `shasum' to a valid hash.
   getFetchurlTarballArgs = x:
     let ti = getTarInfo x; in { url = ti.tarball; hash = ti.integrity; };
 
@@ -298,9 +299,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: updates to `importFetchPackument' broke this functor, but
-  # honestly we've learned a lot since this was written and could use it could
-  # benefit from a rewrite to integrate with the new registry/scope handling.
+  # FIXME: updates to `importFetchPackument' and new parsers turned this
+  # implementation into a bit of a mess.
+  # This is due for a rewrite.
 
   /**
    * A lazily evaluated extensible packument database.
@@ -326,13 +327,17 @@
     registry = "https://registry.npmjs.org/";
     # Create an override extending a packumenter with a packument
     lookup = str: let
-      ni = lib.libparse.nameInfo str;
-      fetchPack = prev:
-        let raw = importFetchPackument prev.registry ni.name;
-        in addPackumentExtras raw;
+      ident = let
+        pi = lib.ytypes.PkgInfo;
+        lp = lib.libparse;
+      in if pi.Strings.identifier.check str then str else
+         lib.yank "((@[^/@]+/)?[^@/]+).*" str;
+      fetchPack = prev: let
+        raw = importFetchPackument { inherit (prev) registry; inherit ident; };
+      in addPackumentExtras raw;
       addPack = final: prev:
-        if ( prev.packuments ? ${ni.name} ) then {} else {
-          packuments = prev.packuments // { ${ni.name} = ( fetchPack prev ); };
+        if ( prev.packuments ? ${ident} ) then {} else {
+          packuments = prev.packuments // { ${ident} = fetchPack prev; };
         };
     in addPack;
     __functor = self: str: self.extend ( self.lookup str );
@@ -382,11 +387,11 @@
   # preferable here since it can use a common record to output flake inputs,
   # flake registries, and a custom "fetchTree registry" which is effectively
   # a `flake.lock' with some added fields.
-  flakeRegistryFromPackuments = registryUrl: name: let
-    p = importFetchPackument registryUrl name;
+  flakeRegistryFromPackuments = registry: ident: let
+    p = importFetchPackument { inherit registry ident; };
     registerVersion = version:
       let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
-      from = { id = name + "-" + v; type = "indirect"; };
+      from = { id = ident + "-" + v; type = "indirect"; };
       to = {
         type = "tarball";
         url = p.versions.${version}.dist.tarball;
@@ -396,8 +401,8 @@
       v = ( packumentLatestVersion' p ).version;
       v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
     in {
-      from = { id = name; type = "indirect"; };
-      to = { id = name + "-" + v'; type = "indirect"; };
+      from = { id = ident + "-latest"; type = "indirect"; };
+      to = { id = ident + "-" + v'; type = "indirect"; };
     };
   in {
     version = 2;
