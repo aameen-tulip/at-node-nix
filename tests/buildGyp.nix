@@ -4,11 +4,9 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib
-, buildGyp
-, ...
-} @ globalArgs: let
+{ lib, buildGyp }: let
 
+  # Our only dependency.
   nan = builtins.fetchTree {
     type    = "tarball";
     url     = "https://registry.npmjs.org/nan/-/nan-2.16.0.tgz";
@@ -29,3 +27,10 @@ in buildGyp {
     chmod -R +w "$node_modules_path";
   '';
 }
+
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #
