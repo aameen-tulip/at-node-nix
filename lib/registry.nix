@@ -31,10 +31,10 @@
   # See `tests/libreg/tests.nix' for more examples.
   registryForScope = {
     __functionMeta = {
-      argTypes = ["string" "set"];
-      destructure  = true;
-      terminalArgs = { scope = "string"; };
-      thunkMembers = { registryScopes = "set"; };
+      argTypes     = yt.either yt.string ( yt.attrs yt.any );
+      open         = true;
+      terminalArgs = { scope = yt.string; };
+      thunkMembers = { registryScopes = yt.attrs yt.string; };
       keywords = [
         "functor" "configured" "thunk" "polymorphic" "wrapper"
         "registry" "scope"
@@ -91,10 +91,10 @@
 
   fetchPackument = {
     __functionMeta = {
-      argTypes     = ["string" "set"];
-      destructure  = true;
-      terminalArgs = { registry = "string"; ident = "string"; };
-      thunkMembers = { registryScopes = "set"; };
+      argTypes     = yt.either yt.string ( yt.attrs yt.any );
+      open         = true;
+      terminalArgs = { registry = yt.string; ident = yt.string; };
+      thunkMembers = { registryScopes = yt.attrs yt.string; };
     };
     __functor = self: arg:
       self.__innerFunction self ( self.__processArgs self arg );
@@ -193,10 +193,10 @@
   # field just as you would for the `lib.importFetchPackument' functor.
   packumentLatestVersion = {
     __functionMeta = {
-      argTypes = ["string" "set"];
-      destructure = true;
-      terminalArgs = { packument = "set"; };
-      thunkMembers = { importFetchPackument = "lambda"; };
+      argTypes     = yt.either yt.string yt.Packument.Structs.packument;
+      open         = true;
+      terminalArgs = { inherit (yt.Packument.Structs) packument; };
+      thunkMembers = { importFetchPackument = yt.function; };
     };
     __functor = self: arg:
       self.__innerFunction self ( self.__processArgs self arg );
