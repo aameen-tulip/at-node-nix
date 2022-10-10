@@ -4,7 +4,7 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib, buildGyp }: let
+{ buildGyp }: let
 
   # Our only dependency.
   nan = builtins.fetchTree {
