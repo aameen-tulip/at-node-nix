@@ -28,7 +28,7 @@
 { lib
 , name    ? meta.names.installed or "${baseNameOf ident}-inst-${version}"
 , ident   ? meta.ident
-, version ? meta.version
+, version ? meta.version or ( lib.last ( lib.splitString "-" name ) )
 , src
 , meta    ? builtins.intersectAttrs { ident = true; version = true; } args
 

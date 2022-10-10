@@ -131,6 +131,8 @@
       patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
       genSetBinPermissionsHook =
         callPackage ./pkgs/pkgEnt/genSetBinPermsCmd.nix {};
+      # NOTE: read the file for some known limitations.
+      coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
 
       # Most likely this will get populated by `stdenv'
       npmSys = lib.getNpmSys { system = final.system; };
@@ -217,6 +219,16 @@
 
     } );
 
+
+# ---------------------------------------------------------------------------- #
+
+    checks = eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    in {
+      build-gyp = import ./tests/buildGyp.nix {
+        inherit (pkgsFor) lib buildGyp;
+      };
+    } );
 
 # ---------------------------------------------------------------------------- #
 

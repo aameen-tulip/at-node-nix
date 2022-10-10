@@ -6,10 +6,10 @@
 # All it does differently that regular `tar' is create directories before
 # unpacking to prevent them from being clobbered.
 #
-{ name    ? meta.name.src or throw "Let untarSanPerms set the name"
-, tarball ? args.outPath or args.src
-, meta    ? {}
-, setBinPerms   ? true
+{ name        ? meta.name.src or throw "Let untarSanPerms set the name"
+, tarball     ? args.outPath or args.src
+, meta        ? {}
+, setBinPerms ? true
 #, patchShebangs ? false  # FIXME
 , untarSanPerms
 , jq
