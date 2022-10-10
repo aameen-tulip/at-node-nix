@@ -77,7 +77,6 @@
     inherit (final.libreg)
       registryForScope
       importFetchPackument
-      getFetchurlTarballArgs
       packumenter
       packumentClosure
       flakeRegistryFromNpm
