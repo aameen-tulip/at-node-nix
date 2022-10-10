@@ -37,15 +37,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-    # Run a simple build that just creates a file `greeting.txt' with `echo'.
+    # Run a simple build that just creates a `build/' dir.
     testBuildGypMsgpack = let
       msgpack = import ./msgpack.nix { inherit (pkgsFor) buildGyp lib; };
+      read    = readDirIfSameSystem "${msgpack}/build";
     in {
-      # Make sure that the file `greeting.txt' was created.
-      # Also check that our `node_modules/' were installed to the expected path.
-      expr = removeAttrs ( readDirIfSameSystem "${msgpack}/build" ) [
-        "gyp-mac-tool"  # Appears for Darwin only
-      ];
+      # Ensure `build/' looks right, but drop a Darwin only file. 
+      expr = if builtins.isAttrs then removeAttrs read ["gyp-mac-tool"]
+                                 else read;
       expected = if isSameSystem then {
         Makefile                   = "regular";
         Release                    = "directory";
