@@ -100,8 +100,8 @@
         lib.callPackageWith ( pkgsFor // final // auto );
       callPackagesWith = auto:
         lib.callPackagesWith ( pkgsFor // final // auto );
-      callPackage      = callPackageWith {};
-      callPackages     = callPackagesWith {};
+      callPackage  = callPackageWith {};
+      callPackages = callPackagesWith {};
     in {
 
       # FIXME: This needs to get resolved is a cleaner way.
@@ -225,9 +225,7 @@
     checks = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
-      build-gyp = import ./tests/buildGyp.nix {
-        inherit (pkgsFor) lib buildGyp;
-      };
+      inherit (self.packages.${system}) tests;
     } );
 
 # ---------------------------------------------------------------------------- #
