@@ -357,7 +357,8 @@
     allDeps = map collectDeps ( attrValues pr.packuments );
     deduped = attrNames ( foldl' ( a: b: a // b ) {} allDeps );
     pr' =
-      foldl' ( acc: x: builtins.trace "looking up ${x}" ( acc x ) ) pr deduped;
+      foldl' ( acc: x: builtins.traceVerbose "looking up ${x}" ( acc x ) ) pr
+             deduped;
     mark = k: v: v // { _finished = true; };
     marked = let
       updatep = k: v: ( ! ( v ? _finished ) ) || ( ! v._finished );
@@ -387,31 +388,46 @@
   # preferable here since it can use a common record to output flake inputs,
   # flake registries, and a custom "fetchTree registry" which is effectively
   # a `flake.lock' with some added fields.
-  flakeRegistryFromPackuments = registry: ident: let
-    p = importFetchPackument { inherit registry ident; };
-    registerVersion = version:
-      let v = builtins.replaceStrings ["@" "."] ["_" "_"] version; in {
-      from = { id = ident + "-" + v; type = "indirect"; };
+  flakeRegistryFromPackuments = {
+    registry           ? null
+  , includePrereleases ? false
+  , outputTreelock     ? false
+  , ident
+  } @ args: let
+    p = importFetchPackument args;
+    registerVersion = version: let
+      realVersion =
+        if version == "latest" then ( packumentLatestVersion' p ).version
+                               else version;
+      id_v = if version == "latest" then "latest" else
+             ( builtins.replaceStrings ["@" "."] ["_" "_"] version );
+      id_sb = let
+        sb = lib.libparse.parseIdent ident;
+      in if sb.scope == null then sb.bname else "${sb.scope}--${sb.bname}";
+    in {
+      from = {
+        id = id_sb + "--" + id_v;
+        type = "indirect";
+      };
       to = {
         type = "tarball";
-        url = p.versions.${version}.dist.tarball;
+        url  = p.versions.${realVersion}.dist.tarball;
       };
     };
-    latest = let
-      v = ( packumentLatestVersion' p ).version;
-      v' = builtins.replaceStrings ["@" "."] ["_" "_"] v;
-    in {
-      from = { id = ident + "-latest"; type = "indirect"; };
-      to = { id = ident + "-" + v'; type = "indirect"; };
-    };
-  in {
-    version = 2;
-    flakes =
-      [latest] ++ ( map registerVersion ( builtins.attrNames p.versions ) );
-  };
+    latest   = registerVersion "latest";
+    releases = builtins.filter ( lib.test "[^a-zA-Z+-]*" )
+                               ( builtins.attrNames p.versions );
+    keeps = if includePrereleases then ( builtins.attrNames p.versions ) else
+            releases;
+    entries = [latest] ++ ( map registerVersion keeps );
+  in if outputTreelock then { treelockVersion = 1; trees  = entries; }
+                       else { version = 2;         flakes = entries; };
 
-  flakeRegistryFromNpm =
-    flakeRegistryFromPackuments "https://registry.npmjs.org";
+  flakeRegistryFromNpm = ident:
+    flakeRegistryFromPackuments {
+      inherit ident;
+      registry = "https://registry.npmjs.org";
+    };
 
 
 # ---------------------------------------------------------------------------- #
