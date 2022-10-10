@@ -43,8 +43,8 @@
       read    = readDirIfSameSystem "${msgpack}/build";
     in {
       # Ensure `build/' looks right, but drop a Darwin only file. 
-      expr = if builtins.isAttrs then removeAttrs read ["gyp-mac-tool"]
-                                 else read;
+      expr = if builtins.isAttrs read then removeAttrs read ["gyp-mac-tool"]
+                                      else read;
       expected = if isSameSystem then {
         Makefile                   = "regular";
         Release                    = "directory";
