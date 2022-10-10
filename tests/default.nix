@@ -7,17 +7,15 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ nixpkgs     ? builtins.getFlake "nixpkgs"
-, system      ? builtins.currentSystem
-, pkgsFor     ? nixpkgs.legacyPackages.${system}
+{ system      ? builtins.currentSystem
+, pkgsFor     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
 , rime        ? builtins.getFlake "github:aakropotkin/rime"
 , lib         ? import ../lib { inherit (rime) lib; }
-, annPkgs     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
 
-, flocoUnpack ? annPkgs.flocoUnpack
-, flocoConfig ? annPkgs.flocoConfig
-, flocoFetch  ? annPkgs.flocoFetch
+, flocoUnpack ? pkgsFor.flocoUnpack
+, flocoConfig ? pkgsFor.flocoConfig
+, flocoFetch  ? pkgsFor.flocoFetch
 
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
@@ -30,11 +28,11 @@
 
   # Used to import test files.
   autoArgs = {
-    inherit lib;
+    inherit lib pkgsFor;
 
     inherit limit;
 
-    inherit (annPkgs)
+    inherit (pkgsFor)
       _mkNmDirCopyCmd
       _mkNmDirLinkCmd
       _mkNmDirAddBinWithDirCmd
@@ -52,7 +50,6 @@
       _node-pkg-set
     ;
     inherit flocoUnpack flocoConfig flocoFetch;
-    pkgsFor = annPkgs;
   } // args;
 
   tests = let

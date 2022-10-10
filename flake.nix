@@ -210,11 +210,16 @@
       inherit (pkgsFor) pacote;
 
       tests = ( import ./tests {
-        inherit nixpkgs system lib ak-nix pkgsFor;
-        inherit (pkgsFor) writeText;
-        enableTraces = true;
-        fetchurl = lib.fetchurlDrv;
-        annPkgs  = self.legacyPackages.${system};
+        inherit system pkgsFor rime lib;
+        inherit (pkgsFor)
+          writeText
+          flocoUnpack
+          flocoConfig
+          flocoFetch
+        ;
+        keepFailed = false;
+        doTrace    = true;
+        limit      = 100;
       } ).checkDrv;
 
     } );

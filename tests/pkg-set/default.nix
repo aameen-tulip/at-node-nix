@@ -7,6 +7,7 @@
 #
 # ---------------------------------------------------------------------------- #
 
+# NOTE: we explicitly want the version of `lib' from `pkgsFor'.
 { lib       ? pkgsFor.lib
 , system    ? builtins.currentSystem
 , pkgsFor   ? ( builtins.getFlake ( toString ../.. ) ).legacyPackages.${system}

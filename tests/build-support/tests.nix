@@ -44,7 +44,7 @@
       # Make sure that the file `greeting.txt' was created.
       # Also check that our `node_modules/' were installed to the expected path.
       expr     = readDirIfSameSystem "${msgpack}/build";
-      expected = {
+      expected = if isSameSystem then {
         Makefile                   = "regular";
         Release                    = "directory";
         "binding.Makefile"         = "regular";
@@ -53,7 +53,7 @@
         gyp-mac-tool               = "regular";
         "msgpackBinding.target.mk" = "regular";
         node_gyp_bins              = "directory";
-      };
+      } else "${msgpack}/build";
     };
 
 

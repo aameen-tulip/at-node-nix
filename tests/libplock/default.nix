@@ -7,25 +7,20 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ nixpkgs     ? builtins.getFlake "nixpkgs"
-, system      ? builtins.currentSystem
-, pkgsFor     ? nixpkgs.legacyPackages.${system}
-, fetchurl    ? lib.fetchurlDrv
-, writeText   ? pkgsFor.writeText
-, rime        ? builtins.getFlake "github:aakropotkin/rime"
-, lib         ? import ../../lib { inherit (rime) lib; }
-, keepFailed  ? false  # Useful if you run the test explicitly.
-, doTrace     ? true   # We want this disabled for `nix flake check'
+{ system     ? builtins.currentSystem
+, pkgsFor    ? ( builtins.getFlake ( toString ../.. ) ).legacyPackages.${system}
+, writeText  ? pkgsFor.writeText
+, rime       ? builtins.getFlake "github:aakropotkin/rime"
+, lib        ? import ../../lib { inherit (rime) lib; }
+, keepFailed ? false  # Useful if you run the test explicitly.
+, doTrace    ? true   # We want this disabled for `nix flake check'
 , ...
 } @ args: let
 
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  autoArgs = {
-    inherit lib;
-    inherit fetchurl;  # `dependency-closure.nix' for testing plv1 fetchers.
-  } // args;
+  autoArgs = { inherit lib; } // args;
 
   tests = let
     testsFrom = file: let
