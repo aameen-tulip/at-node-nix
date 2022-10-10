@@ -43,7 +43,7 @@
     in {
       # Make sure that the file `greeting.txt' was created.
       # Also check that our `node_modules/' were installed to the expected path.
-      expr = removeAttrs ( readDirIfSameSystem "${msgpack}/build") [
+      expr = removeAttrs ( readDirIfSameSystem "${msgpack}/build" [
         "gyp-mac-tool"  # Appears for Darwin only
       ] );
       expected = if isSameSystem then {
