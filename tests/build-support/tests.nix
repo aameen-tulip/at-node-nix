@@ -39,7 +39,7 @@
 
     # Run a simple build that just creates a `build/' dir.
     testBuildGypMsgpack = let
-      msgpack = import ./msgpack.nix { inherit (pkgsFor) buildGyp lib; };
+      msgpack = import ./msgpack.nix { inherit (pkgsFor) buildGyp; };
       read    = readDirIfSameSystem "${msgpack}/build";
     in {
       # Ensure `build/' looks right, but drop a Darwin only file. 
