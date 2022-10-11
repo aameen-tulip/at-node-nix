@@ -45,9 +45,6 @@
       mkSourceTree
       mkSourceTreeDrv
       mkTarballFromLocal
-
-      # FIXME
-      _node-pkg-set
     ;
     inherit flocoUnpack flocoConfig flocoFetch;
   } // args;

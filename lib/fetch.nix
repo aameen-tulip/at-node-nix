@@ -4,14 +4,8 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# Designed for use with `pkgs/build-support/fetcher.nix', but "pure" routines
-# have been separated here so that they may be available for some `meta*'.
-# NOTE: `pkgs/build-support/fetcher.nix' is somewhat dated, and came before
-# the newer `mkExtInfo' patterns, and it lacks certain types of fetchers
-# related to registry tarballs in the new `nodeScope' patterns.
-# Those routines are likely due for an overhaul soon, and may be slowly
-# migrated here to this lib - since they should represent pure interfaces
-# anyway ( fetcher drv generators are not injected until the very end ).
+# Abstracts builtin fetchers for compatibility with `nixpkgs' forms, and
+# identifies the correct fetcher for various types of Node.js/NPM source trees.
 #
 # ---------------------------------------------------------------------------- #
 

@@ -35,9 +35,6 @@
 
       mkSourceTree mkSourceTreeDrv
       mkTarballFromLocal
-
-      # FIXME
-      _node-pkg-set
     ;
   } // args;
 
