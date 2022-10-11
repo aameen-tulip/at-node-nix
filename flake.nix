@@ -90,10 +90,8 @@
 
     overlays.at-node-nix = final: prev: let
       pkgsFor = let
-        ovs = lib.composeManyExtensions [
-          self.overlays.pacote
-          ak-nix.overlays.ak-nix
-        ];
+        ovs = lib.composeExtensions self.overlays.pacote
+                                    ak-nix.overlays.ak-nix;
       in ( pkgsForSys prev.system ).extend ovs;
       # FIXME: this obfuscates the real dependency scope.
       callPackageWith  = auto:
