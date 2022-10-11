@@ -1,0 +1,189 @@
+{
+  "nodes": {
+    "ak-nix": {
+      "inputs": {
+        "nix": "nix",
+        "nixpkgs": [
+          "at-node-nix",
+          "nixpkgs"
+        ],
+        "yants-src": "yants-src"
+      },
+      "locked": {
+        "lastModified": 1665424272,
+        "narHash": "sha256-z3aAHzkhG5maeqluhNSxfmNp25QAZJLiyA6jFzK1xDI=",
+        "owner": "aakropotkin",
+        "repo": "ak-nix",
+        "rev": "22e6b71fc2040c7a3b125573abd60329c253e0fa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aakropotkin",
+        "ref": "main",
+        "repo": "ak-nix",
+        "type": "github"
+      }
+    },
+    "at-node-nix": {
+      "inputs": {
+        "ak-nix": "ak-nix",
+        "nixpkgs": "nixpkgs",
+        "pacote-src": "pacote-src",
+        "rime": "rime"
+      },
+      "locked": {
+        "lastModified": 1665508368,
+        "narHash": "sha256-rk7/gh+9m0JKPb28wS87KvCCMPy9NHSNA1QNlrRO6aM=",
+        "owner": "aameen-tulip",
+        "repo": "at-node-nix",
+        "rev": "121f6475dd320c2f58c55492f4233ab1be347ef7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aameen-tulip",
+        "repo": "at-node-nix",
+        "type": "github"
+      }
+    },
+    "lowdown-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1633514407,
+        "narHash": "sha256-Dw32tiMjdK9t3ETl5fzGrutQTzh2rufgZV4A/BbxuD4=",
+        "owner": "kristapsdz",
+        "repo": "lowdown",
+        "rev": "d2c2b44ff6c27b936ec27358a2653caaef8f73b8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kristapsdz",
+        "repo": "lowdown",
+        "type": "github"
+      }
+    },
+    "nix": {
+      "inputs": {
+        "lowdown-src": "lowdown-src",
+        "nixpkgs": [
+          "at-node-nix",
+          "ak-nix",
+          "nixpkgs"
+        ],
+        "nixpkgs-regression": "nixpkgs-regression"
+      },
+      "locked": {
+        "lastModified": 1664984742,
+        "narHash": "sha256-3w98t0PHcHfh/gp4be0z5R964zn3j5q26XO79hPjttE=",
+        "owner": "NixOS",
+        "repo": "nix",
+        "rev": "ac0fb38e8a5a25a84fa17704bd31b453211263eb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nix",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1661353537,
+        "narHash": "sha256-1E2IGPajOsrkR49mM5h55OtYnU0dGyre6gl60NXKITE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0e304ff0d9db453a4b230e9386418fd974d5804a",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs-regression": {
+      "locked": {
+        "lastModified": 1643052045,
+        "narHash": "sha256-uGJ0VXIhWKGXxkeNnq4TvV3CIOkUJ3PAoLZ3HMzNVMw=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
+        "type": "github"
+      }
+    },
+    "pacote-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1651673723,
+        "narHash": "sha256-97nFOX7qGmxtbvht+yrq6K7qcL7ooLLGF5ga5zJAwpw=",
+        "owner": "npm",
+        "repo": "pacote",
+        "rev": "8f94b28f3c21bc6a59c4537a4ee9fdb93385dc78",
+        "type": "github"
+      },
+      "original": {
+        "owner": "npm",
+        "ref": "v13.3.0",
+        "repo": "pacote",
+        "type": "github"
+      }
+    },
+    "rime": {
+      "inputs": {
+        "ak-nix": [
+          "at-node-nix",
+          "ak-nix"
+        ],
+        "nixpkgs": [
+          "at-node-nix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1665430622,
+        "narHash": "sha256-A52KsyrDSA4rAq92tw4Tq1hySNB5z2jIQGaTuz9IL3U=",
+        "owner": "aakropotkin",
+        "repo": "rime",
+        "rev": "f51d617bbb2a5e25eba265a196913bb09896a371",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aakropotkin",
+        "ref": "main",
+        "repo": "rime",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "at-node-nix": "at-node-nix",
+        "nixpkgs": [
+          "at-node-nix",
+          "nixpkgs"
+        ]
+      }
+    },
+    "yants-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1645270620,
+        "narHash": "sha256-wwkl3K200UbW9Z7BRlVH8HOEXCaVYP2MqZpsF9EhgZg=",
+        "ref": "refs/heads/canon",
+        "rev": "efeb6dc11eb1a1e88d41dc2093fc5aa31f7abd35",
+        "revCount": 15,
+        "type": "git",
+        "url": "https://code.tvl.fyi/depot.git:/nix/yants.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://code.tvl.fyi/depot.git:/nix/yants.git"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

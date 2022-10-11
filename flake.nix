@@ -271,6 +271,14 @@
 
 # ---------------------------------------------------------------------------- #
 
+    templates = {
+      default = self.templates.project;
+      project.path = ./templates/project;
+      project.description = "a simple JS project with Floco";
+    };
+
+# ---------------------------------------------------------------------------- #
+
     legacyPackages = eachDefaultSystemMap ( system:
       ( nixpkgs.legacyPackages.${system} ).extend self.overlays.default
     );
