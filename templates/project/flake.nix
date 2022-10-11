@@ -5,6 +5,7 @@
 # ---------------------------------------------------------------------------- #
 
 {
+
   description = "a simple JS project with Floco";
 
   inputs.at-node-nix.url = "github:aameen-tulip/at-node-nix";

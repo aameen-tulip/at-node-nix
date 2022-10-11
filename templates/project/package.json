@@ -1,11 +1,7 @@
 {
-  "name": "project",
+  "name": "my-project",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "scripts": {
     "build": "ls ./node_modules/ > ./my-modules.log",
     "test": "grep -q nan ./my-modules.log"
