@@ -9,7 +9,10 @@
 
 set -u;
 
-source "${BASH_SOURCE[0]%/*}/../pjs-util.sh";
+: "${PJS_UTIL_SH:=${BASH_SOURCE[0]%/*}/../pjs-util.sh}";
+if test -z "$DONT_SOURCE"; then
+  source "$PJS_UTIL_SH";
+fi
 
 EX1D="${BASH_SOURCE[0]%/*}/ex1";
 EX1="$EX1D/package.json";
@@ -148,7 +151,7 @@ runTest test_pjsHasAnyBin;
 runTest test_pjsBinPairs;
 runTest test_pjsBinPaths;
 
-runTest test_installModuleNm;
+#runTest test_installModuleNm;
 
 
 # --------------------------------------------------------------------------- #
