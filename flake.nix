@@ -118,7 +118,6 @@
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
       unpackSafe  = callPackage ./pkgs/build-support/unpackSafe.nix;
       evalScripts = callPackage ./pkgs/build-support/evalScripts.nix;
-      runBuild    = callPackage ./pkgs/build-support/runBuild.nix;
       buildGyp    = callPackageWith {
         python = prev.python3;
       } ./pkgs/build-support/buildGyp.nix;
@@ -154,7 +153,6 @@
         source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
         meta'  = lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
       in { inherit tarball source; outPath = source.outPath; } // meta';
-        #final.pacotecli "extract" { spec = tarball; };
 
       # Default NmDir builder prefers symlinks
       mkNmDir = final.mkNmDirLinkCmd;
