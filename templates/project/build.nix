@@ -16,8 +16,7 @@ in evalScripts {
     path   = ./.;
     filter = name: type:
       ( lib.libfilt.packCore name type ) &&
-      ( ( baseNameOf name ) != "flake.lock" ) &&
-      ( ! ( lib.test ".*\\.nix" name ) );
+      ( lib.libfilt.nixFilt name type );
   };
   nmDirCmd = ''
     mkdir -p "$node_modules_path";

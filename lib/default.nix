@@ -7,14 +7,14 @@
 
   lib' = lib.extend ( final: prev: let
 
-    callLibWith = { lib ? final, ... } @ autoArgs: x: let
+    callLibWith = { lib ? final, ... } @ auto: x: let
       f = if prev.isFunction x then x else import x;
       args = builtins.intersectAttrs ( builtins.functionArgs f )
-                                      ( { inherit lib; } // autoArgs );
+                                      ( { inherit lib; } // auto );
     in f args;
     callLib = callLibWith {};
-    callLibsWith = autoArgs: lst:
-      builtins.foldl' ( acc: x: acc // ( callLibWith autoArgs x ) ) {} lst;
+    callLibsWith = auto: lst:
+      builtins.foldl' ( acc: x: acc // ( callLibWith auto x ) ) {} lst;
     callLibs = callLibsWith {};
 
 
@@ -45,7 +45,7 @@
       { PkgInfo   = callLib ../types/pkginfo.nix; }
     ];
     # `ak-nix' provides a base.
-    libfilt = ( prev.libfilt or {} ) // ( callLib ./filt.nix );
+    libfilt = prev.libfilt // ( callLib ./filt.nix );
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW

@@ -131,7 +131,7 @@
   _mkNmDirAddBinWithDirCmd = coreutils: path: ent: let
     bin = getBins ent;
     from = assert ( builtins.attrNames bin ) == ["__DIR__"];
-           "${getFromdir ent}/${bin.__DIR__}";
+           "$node_modules_path/${path}/${bin.__DIR__}";
   in "  " + ''${coreutils}/bin/ln -srf "${from}"/* -t "${getBindir path}/";'';
 
   # XXX: NPM has a bug, or at least an unspecificied edge case about how to
@@ -145,7 +145,7 @@
     bd    = getBindir path;
     fd    = getFromdir ent;
     addOne = name: relPath: let
-      from = "${fd}/${relPath}";
+      from = "$node_modules_path/${path}/${relPath}";
       to   = "${bd}/${name}";
     in "  " + ''${coreutils}/bin/ln -srf "${from}" "${to}";'';
     cmds = builtins.attrValues ( builtins.mapAttrs addOne bin );
