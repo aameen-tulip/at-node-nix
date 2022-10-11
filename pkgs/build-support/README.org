@@ -8,7 +8,7 @@ A wrapper over =evalScripts= that carries globally installed =node-gyp= with som
 This works "out of the box" for the vast majority of =node-gyp= projects.
 
 ** Example with a dependency.
-It's rare that these routines need any dependency modules available, as those are generally needed at runtime; but below we have an example of injecting a single dependency with minimal setup.
+It's rare that these routines need any dependency modules available ( only needed at Node.js runtime, not at install time ); but below we have an example of injecting a single dependency with minimal setup.
 #+BEGIN_SRC nix
 { buildGyp }: let
 
