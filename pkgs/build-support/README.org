@@ -35,4 +35,4 @@ in buildGyp {
 }
 #+END_SRC
 
-In this specific build a symlink for `nan` would also work or even `export NODE_PATH="$NODE_PATH:${nan}"`, but because copying is our most trusted approach that's what we'll use here.
+In this specific build a symlink for =nan= would also work or even ~export NODE_PATH="$NODE_PATH:${nan}"~, but because copying is our most trusted approach that's what we'll use here.
