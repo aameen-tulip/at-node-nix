@@ -45,14 +45,14 @@
 # ---------------------------------------------------------------------------- #
 
   packument = struct "packument" {
-    _id            = yt.ident;
+    _id            = yt.Strings.identifier;
     _rev           = option yt.Uri.Strings.rev;
-    name           = yt.ident;
+    name           = yt.Strings.identifier;
     author         = option author;
     bugs           = option bugs;
     contributors   = option ( yt.either string ( list contributor ) );
     description    = option string;
-    dist-tags      = attrs yt.version;
+    dist-tags      = attrs yt.Strings.version;
     homepage       = option string;
     keywords       = option ( list string );
     license        = option string;
