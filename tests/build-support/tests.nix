@@ -66,8 +66,9 @@
       log   = builtins.readFile "${checkPjsUtil}";
       lines = builtins.filter builtins.isString ( builtins.split "\n" log );
       passp = l: ( ( builtins.match "PASS: .*" l ) != null ) || ( l == "" );
+      dumpLog  = builtins.traceVerbose "\n${log}";
       otherSys = checkPjsUtil ? outPath;
-      sameSys  = builtins.trace "\n${log}\n" ( builtins.all passp lines );
+      sameSys  = dumpLog ( builtins.all passp lines );
     in {
       expr     = if isSameSystem then sameSys else otherSys;
       expected = true;
