@@ -44,7 +44,8 @@
       { Packument = callLib ../types/packument.nix; }
       { PkgInfo   = callLib ../types/pkginfo.nix; }
     ];
-    libfilt = callLib ./filt.nix;  # NOTE: standalone;
+    # `ak-nix' provides a base.
+    libfilt = ( prev.libfilt or {} ) // ( callLib ./filt.nix );
 
     inherit (final.libfetch)
       fetchurlDrvW fetchGitW fetchTreeW pathW
