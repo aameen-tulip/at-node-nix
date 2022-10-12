@@ -2,12 +2,13 @@
 # This is analogous to `npm run SCRIPT' or `yarn run SCRIPT'.
 #
 # Assumes that `src' is an unpacked Node.js package with `package.json' at
-# the root level.
-# `nodeModules' should most likely be a derivation produced by `linkModules',
-# which will be made available when scripts are evaluated; additionally,
-# `node_modules/.bin/' will be added to `PATH'.
+# the root level, or a tarball with the root at `package/'.
+#
+# Before building `node_modules/.bin/' will be added to `PATH', allowing
+# any scripts that are normally available during `package.json:scripts.*'
+# execution for other package managers "work" as the user expects.
 # This folder is removed after scripts have been evaluated, and the working
-# directory is moved to `$out'.
+# directory is copied to `$out'.
 #
 # Your scripts will run in a `stdenv' environment with `nodejs' and `jq'
 # available ( in addition to the `node_modules/.bin' scripts ).
@@ -26,7 +27,7 @@
 # to that package set.
 
 { lib
-, name    ? meta.names.installed or "${baseNameOf ident}-inst-${version}"
+, name    ? meta.names.installed or "${baseNameOf ident}-eval-${version}"
 , ident   ? meta.ident
 , version ? meta.version or ( lib.last ( lib.splitString "-" name ) )
 , src
@@ -34,88 +35,108 @@
 
 # Scripts to be run during `builPhase'.
 # These are executed in the order they appear, and may appear multiple times.
-, runScripts  ? ["preinstall" "install" "postinstall"]
+# NOTE: the default list is the lifecycle run by `npm install ../foo', for
+# installing one local project into another.
+# This list is probably overkill for most projects and in all likelihood this
+# list is NOT what you want to run for a registry tarball.
+#
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+, runScripts ? [
+  "prebuild"   "build"   "postbuild"
+  "preprepare" "prepare" "postprepare"
+  "prepack"
+  "preinstall" "install" "postinstall"
+]
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+# XXX: YOU WANT TO MODIFY THIS LIST IF YOU ARE BUILDING A REGISTRY TARBALL
+
 # If a script is not found, is will be skipped unless `skipMissing' is false.
 , skipMissing ? true
 
 # A scipt that should install modules to `$node_modules_path/'
-, nmDirCmd    ? ":"
+, nmDirCmd ? ":"
 
 # If you ACTUALLY want to avoid this you can explicitly set to `null' but
 # honestly I never seen a `postInstall' that didn't call `node'.
 , nodejs
 , jq
 , stdenv
+, pjsUtil
 , ...
 } @ args:
 let
   mkDrvArgs = removeAttrs args [
     "ident"
-    "runScripts" "skipMissing"
-    "nmDirCmd" "nodejs" "jq" "stdenv" "lib"
+    "nmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
     "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
   ];
+
+  nmDirCmd =
+    if ! ( args ? nmDirCmd ) then ":" else
+    if builtins.isString args.nmDirCmd then args.nmDirCmd else
+    if args.nmDirCmd ? cmd then ''
+      ${args.nmDirCmd.cmd}
+      installNodeModules;
+    '' else
+    if args.nmDirCmd ? __toString then toString args.nmDirCmd else
+    throw "No idea how to treat this as a `node_modules/' directory builder.";
+
 in stdenv.mkDerivation ( {
 
   inherit name;
 
+  inherit skipMissing nmDirCmd;
+
   nativeBuildInputs = let
     given    = args.nativeBuildInputs or [];
-    defaults = [nodejs jq];
-  in given ++ ( lib.filter ( x: x != null ) defaults );
-
-  nmDirCmd =
-    if builtins.isString nmDirCmd then nmDirCmd else
-    if nmDirCmd ? cmd then nmDirCmd.cmd + "\ninstallNodeModules;\n" else
-    if nmDirCmd ? __toString then nmDirCmd.__toString nmDirCmd else
-    throw "No idea how to treat this as a `node_modules/' directory builder.";
+    defaults = [pjsUtil nodejs jq];
+  in lib.unique( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
   passAsFile =
-    if ( builtins.isString nmDirCmd ) &&
-       ( 1024 <= ( builtins.stringLength nmDirCmd ) )
-    then ["nmDirCmd"] else [];
+    if 1024 <= ( builtins.stringLength nmDirCmd ) then ["nmDirCmd"] else [];
 
   postUnpack = ''
-    export absSourceRoot="$PWD/$sourceRoot";
-    export node_modules_path="$absSourceRoot/node_modules";
-
+    export node_modules_path="$PWD/$sourceRoot/node_modules";
     if test -n "''${nmDirCmdPath:-}"; then
       source "$nmDirCmdPath";
     else
       eval "$nmDirCmd";
     fi
+  '';
 
+  configurePhase = lib.withHooks "configure" ''
     if test -d "$node_modules_path"; then
       export PATH="$PATH:$node_modules_path/.bin";
       export NODE_PATH="$node_modules_path''${NODE_PATH:+:$NODE_PATH}";
     fi
   '';
 
-  buildPhase = let
-    runOne = sn: let
-      fallback = lib.optionalString skipMissing "// \":\"";
-    in ''eval "$( jq -r '.scripts.${sn} ${fallback}' ./package.json; )"'';
-    runAll = builtins.concatStringsSep "\n" ( map runOne runScripts );
-  in lib.withHooks "build" runAll;
+  buildPhase = lib.withHooks "build" ''
+    {
+      _RUN_SCRIPTS=( $runScripts );
+      for sn in "''${_RUN_SCRIPTS[@]}"; do
+        pjsRunScript "$sn";
+      done
+    }
+  '';
+
 
   # You can override this
   preInstall = ''
     if test -n "''${node_modules_path:-}"; then
+      chmod -R +w "$node_modules_path";
       rm -rf -- "$node_modules_path";
     fi
   '';
 
   installPhase = lib.withHooks "install" ''
-    cd "$NIX_BUILD_TOP";
-    mv -- "$sourceRoot" "$out";
+    cp -pr --reflink=auto -- . "$out";
   '';
-
-  # FIXME: bin perms hook
-  #postInstall = ''
-  #
-  #'';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
 

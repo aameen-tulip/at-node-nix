@@ -6,9 +6,6 @@
 # The `PKG' value can be a `pkgEnt' attrset, or an attset with the fields
 # `outPath' and ( if required ) `bin' ( normalized, see example below ), or in
 # its simplest form a store path ( string, `outPath' of a prepared module ).
-# NOTE: `outPath' will be copied/linked "as is", so do any building/node-gyp
-# stuff first; in particular ensure that `bin' scripts have proper permissions
-# and are patched using `patch-shebangs' or `patchShebangs'.
 #
 # It is recommended that you use this routine using input from `libtree' which
 # is designed specifically for this purpose; but you are free to hack together
@@ -121,6 +118,13 @@
   _mkNmDirLinkCmd = lndir: from: to:
     ''${lndir}/bin/lndir -silent "${from}" "${to}";'';
 
+  # `--no-preserve=mode' is strictly required!
+  # Tarballs are packed by absolute neanderthals with USER set to `root'.
+  # I'm sure NPM developers will call this a "security feature"; but I truly
+  # insist that they do this to tarballs intentionally with a non-standard
+  # EPOCH time and a custom fork of Zip protocol, and bullshit custom headers
+  # in their archives explicitly to prevent competing tools from being able to
+  # unpack their artifacts.
   _mkNmDirCopyCmd = coreutils: from: to:
     ''${coreutils}/bin/cp -r --no-preserve=mode --reflink=auto -T "${from}" "${to}";'';
 
@@ -198,10 +202,7 @@
                              else _mkNmDirAddBinNoDirsCmd coreutils path ent;
       forCopy = ''
         ${base}
-        chmod -R +wx ${getBindir path};
-        if test "''${dontPatchShebangs:-0}" != 1; then
-          ''${PATCH_SHEBANGS:-patchShebangs} ${getBindir path};
-        fi
+        _NM_FIXUP_BIN_DIRS+=( "${getBindir path}" );
       '';
     in if args.copy or false then forCopy else base
   # Hooks
@@ -281,6 +282,7 @@
       }
       : "''${preNmDirHook=preNmDir}";
     '';
+
     postHookDef = lib.optionalString ( args ? postNmDir ) ''
       postNmDir() {
         echo "installNodeModules: Running 'postNmDir' hook" >&2;
@@ -288,12 +290,27 @@
       }
       : "''${postNmDirHook=postNmDir}";
     '';
+
+    # FIXME: This fixup shit belongs in `evalScripts' honestly.
+    # Having added it here makes it harder to use this routine for dumping out
+    # trees to the filesystem which was it was originally intended for.
+    # Currently it's used by the default builder until we write a proper
+    # `patchPhase' for `evalScripts' just for coverage.
     addBinsDef = lib.optionalString ( haveBin != {} ) ''
       addNodeModulesBins() {
+        declare -a _NM_FIXUP_BIN_DIRS;
+        _NM_FIXUP_BIN_DIRS=();
       ${addBinDirs}
       ${addBins}
+        for bd in $( printf '%s\n' "''${_NM_FIXUP_BIN_DIRS[@]}"|sort -u; ); do
+          for s in $( readlink -f "$bd/"*; ); do
+            chmod 0755 "$s";
+            ''${PATCH_SHEBANGS:-patchShebangs} "$s";
+          done
+        done
       }
     '';
+
   # We must return an attrset for `lib.makeOverridable' to be effective.
   # Since we have an attrset I'm going to tack on some `passthru' and `meta'
   # like you might see on a derivation ( `drvAttrs' ); but none of that
@@ -310,7 +327,11 @@
       installNodeModules() {
         # Set `node_modules/' install path if unset.
         # The user can still override this in `preNmDir'.
-        : "''${node_modules_path:=$PWD/node_modules}";
+        if test -n "''${sourceRoot:-}"; then
+          : "''${node_modules_path:=$NIX_BUILD_TOP/$sourceRoot/node_modules}";
+        else
+          : "''${node_modules_path:=$PWD/node_modules}";
+        fi
         eval "''${preNmDirHook:-:}";
         echo "Installing Node Modules to '$node_modules_path'" >&2;
         addNodeModules;
