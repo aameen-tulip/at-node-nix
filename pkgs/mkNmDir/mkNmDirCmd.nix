@@ -143,7 +143,6 @@
   _mkNmDirAddBinNoDirsCmd = coreutils: path: ent: let
     bin   = getBins ent;
     bd    = getBindir path;
-    fd    = getFromdir ent;
     addOne = name: relPath: let
       from = "$node_modules_path/${path}/${relPath}";
       to   = "${bd}/${name}";
@@ -194,9 +193,17 @@
   # Same deal as `addCmd' but for handling bin links.
   # This is exposed in case you need to do something wonky like create wrapper
   # scripts; but I think it's unlikely that you'll need to.
-  , addBinCmd ? path: ent:
-      if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
-                      else _mkNmDirAddBinNoDirsCmd coreutils path ent
+  , addBinCmd ? path: ent: let
+      base = if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
+                             else _mkNmDirAddBinNoDirsCmd coreutils path ent;
+      forCopy = ''
+        ${base}
+        chmod -R +wx ${getBindir path};
+        if test "''${dontPatchShebangs:-0}" != 1; then
+          ''${PATCH_SHEBANGS:-patchShebangs} ${getBindir path};
+        fi
+      '';
+    in if args.copy or false then forCopy else base
   # Hooks
   , preNmDir  ? ""
   , postNmDir ? ""
@@ -374,7 +381,7 @@
   } @ args: mkNmDirCmdWith ( {
     inherit ignoreSubBins assumeHasBin handleBindir preNmDir postNmDir;
     inherit coreutils lndir;
-    addCmd = _mkNmDirCopyCmd coreutils;
+    copy = true;
   } // args );
 
 
