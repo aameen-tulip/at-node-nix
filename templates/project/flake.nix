@@ -36,7 +36,7 @@
       pkgsFor = at-node-nix.legacyPackages.${system}.extend
                   self.overlays.default;
     in {
-      ${baseNameOf pjs.name} = pkgsFor.flocoPackages.${baseNameOf pjs.name};
+      ${baseNameOf pjs.name} = pkgsFor.flocoPackages.${pjs.name};
       default = self.packages.${system}.${baseNameOf pjs.name};
     } );
 

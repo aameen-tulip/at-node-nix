@@ -236,8 +236,11 @@
     isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
     isTb        = ( entSubtype == "registry-tarball" ) ||
                   ( entSubtype == "source-tarball" );
-    haveTree    = isLocal || ( ( ( entSubtype == "git" ) || isTb ) &&
-                               lib.flocoConfig.enableImpureMeta );
+    # FIXME: fetching from the registry manifest makes WAY more sense.
+    canFetch = ( ( entSubtype == "git" ) || isTb ) &&
+               ( lib.flocoConfig.enableImpureMeta &&
+                 lib.flocoConfig.enableImpureFetchers );
+    haveTree   = isLocal || canFetch;
     entSubtype =
       if builtins.isString x then x else
       x.sourceInfo.entSubtype or ( lib.libfetch.typeOfEntry plent );

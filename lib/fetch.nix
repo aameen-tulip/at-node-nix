@@ -20,7 +20,8 @@
   typeOfEntry = entry: let
     isLink  = entry.link or false;
     isGit   = entry ? resolved && ( lib.test "git\\+.*" entry.resolved );
-    isPath  = ! ( ( entry ? link ) || ( entry ? resolved ) );
+    isPath  = ( ! ( entry.link or false ) ) &&
+              ( lib.test "/.*" ( entry.resolved or "/" ) );
     isRegTb =
       ( ( entry ? integrity ) || ( entry ? sha1 ) ) &&
       ( entry ? resolved ) &&
