@@ -33,6 +33,8 @@ usage() {
     echo "  -d,--dev     Preserve devDependencies metadata";
     echo "  --json       Output JSON instead of a Nix expression";
     echo "  -K,--keep    Keep generated project dir"
+    echo "  -S,--no-256  Skip attempts to collect sha256 for tarballs.";
+    echo "               Use this to workaround 'permission denied package/*'.";
     echo "ENVIRONMENT";
     echo "  FLAKE_REF    Flake URI to use for at-node-nix";
     echo "               default: github:aameen-tulip/at-node-nix";
@@ -48,16 +50,18 @@ usage() {
 
 while test "$#" -gt 0; do
   case "$1" in
-    -d|--dev)  DEV=true;                   ;;
-    -p|--prod) DEV=false;                  ;;
-    -h|--help) usage; exit 0;              ;;
-    --json)    JSON=true; OUT_TYPE=--json; ;;
-    -k|--keep) KEEP_TREE=:;                ;;
-    *)         DESCRIPTOR="$1";            ;;
+    -d|--dev)   DEV=true;                   ;;
+    -p|--prod)  DEV=false;                  ;;
+    -h|--help)  usage; exit 0;              ;;
+    --json)     JSON=true; OUT_TYPE=--json; ;;
+    -k|--keep)  KEEP_TREE=:;                ;;
+    -S|-no-256) DO_SHA256=false;            ;;
+    *)          DESCRIPTOR="$1";            ;;
   esac
   shift;
 done
 
+: "${DO_SHA256:=true}";
 : "${KEEP_TREE:=}";
 : "${DEV:=false}";
 : "${JSON:=false}";
@@ -194,25 +198,52 @@ mv ./plmin.json ./package-lock.json;
 
 # ---------------------------------------------------------------------------- #
 
-export DEV DESCRIPTOR JSON;
+advise_fail() {
+  {
+    echo '';
+    echo 'Nix encountered an error generating metadata.';
+    echo '';
+    if test "$DO_SHA256" = true; then
+      echo "If you received a 'Permission denied' error this means that you";
+      echo 'depend on a tarball encoded with bullshit directory entries';
+      echo "produced by some author using a bogus 'gzip' implementation.";
+      echo '';
+      echo "To work around this you can use the flag '--no-256' or '-S' to";
+      echo "generate entries without 'narHash' or 'gypfile' hints.";
+      echo "This will likely mean that you need to use 'flocoUnpack' in your";
+      echo 'build pipeline if you have written one manually.';
+      echo '';
+      echo "It is strongly recommended that you manually fill 'gypfile' fields";
+      echo "for any registry tarballs recorded with 'hasInstallScript' info.";
+      echo '';
+    fi
+    echo 'If you were trying to fetch private packages you may need to setup';
+    echo 'special authorization for Nix providing any NPM, GitHub, or other';
+    echo "access tokens to in 'nix.conf: access-tokens = ...', and 'netrc'.";
+    echo "For more info refer to the Nix manual's 'nix.conf' section."
+    echo '';
+  } >&2;
+}
+
+
+# ---------------------------------------------------------------------------- #
+
+export DEV DESCRIPTOR JSON DO_SHA256;
 $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
   lp: let
     pkgsFor = lp.${builtins.currentSystem}.extend ( final: prev: {
       # FIXME: needed because of some bullshit tarballs with bad compression.
-      flocoConfig = prev.flocoConfig // {
-        enableImpureMeta     = true;
-        enableImpureFetchers = true;
-        fetchers = {
-          urlFetcher     = lib.libfetch.fetchTreeW;
-          tarballFetcher = lib.libfetch.fetchTreeW;
-          gitFetcher     = lib.libfetch.fetchTreeW;
+      # This really fucks out ability to scrape SHA-256 hashes.
+      # TODO: write a wrapper routine to collect those, essentially a try/catch,
+      # that tries fetchTree and falls back to unpackSafe + builtins.path.
+      lib = prev.lib.extend ( _: libPrev: {
+        flocoConfig = libPrev.flocoConfig // {
+          enableImpureMeta     = true;
+          enableImpureFetchers = builtins.getEnv "DO_SHA256" == "true";
+          fetchers = {
+            tarballFetcher = libPrev.libfetch.fetchurlNoteUnpackDrvW;
+          };
         };
-      };
-      flocoFetcher = prev.lib.mkFlocoFetcher {
-        inherit (final) flocoConfig;
-      };
-      lib = prev.lib.extend ( _: _: {
-        inherit (final) flocoConfig flocoFetcher;
       } );
     } );
     inherit (pkgsFor) lib;
@@ -243,7 +274,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
       "# Regen with: nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
     out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
   in out
-';
+'||advise_fail;
 
 
 # ---------------------------------------------------------------------------- #

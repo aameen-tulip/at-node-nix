@@ -282,11 +282,11 @@
 # ---------------------------------------------------------------------------- #
 
   # Attempts to guess `impure' setting.
-  plock2TbFetchArgs    = plock2TbFetchArgs'    ( builtins ? currentTime );
-  plock2GitFetchArgs   = plock2GitFetchArgs'   ( builtins ? currentTime );
-  plock2PathFetchArgs  = plock2PathFetchArgs'  ( builtins ? currentTime );
-  plock2LinkFetchArgs  = plock2LinkFetchArgs'  ( builtins ? currentTime );
-  plock2EntryFetchArgs = plock2EntryFetchArgs' ( builtins ? currentTime );
+  plock2TbFetchArgs    = plock2TbFetchArgs'    lib.flocoConfig.enableImpureFetchers;
+  plock2GitFetchArgs   = plock2GitFetchArgs'   lib.flocoConfig.enableImpureFetchers;
+  plock2PathFetchArgs  = plock2PathFetchArgs'  lib.flocoConfig.enableImpureFetchers;
+  plock2LinkFetchArgs  = plock2LinkFetchArgs'  lib.flocoConfig.enableImpureFetchers;
+  plock2EntryFetchArgs = plock2EntryFetchArgs' lib.flocoConfig.enableImpureFetchers;
 
 
 # ---------------------------------------------------------------------------- #

@@ -67,8 +67,12 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackage  = lib.callPackageWith final;
-      callPackages = lib.callPackagesWith final;
+      callPackage  = lib.callPackageWith ( final // {
+        nodejs = prev.nodejs-14_x;
+      } );
+      callPackages = lib.callPackagesWith ( final // {
+        nodejs = prev.nodejs-14_x;
+      } );
       nodeEnv =
         callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
           libtool =
@@ -270,7 +274,7 @@
             CAT      = "${pkgsFor.coreutils}/bin/cat";
             REALPATH = "${pkgsFor.coreutils}/bin/realpath";
             PACOTE   = "${pkgsFor.pacote}/bin/pacote";
-            NPM      = "${pkgsFor.nodejs.pkgs.npm}/bin/npm";
+            NPM      = "${pkgsFor.nodejs-14_x.pkgs.npm}/bin/npm";
             JQ       = "${pkgsFor.jq}/bin/jq";
             WC       = "${pkgsFor.coreutils}/bin/wc";
             CUT      = "${pkgsFor.coreutils}/bin/cut";
