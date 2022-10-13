@@ -141,7 +141,7 @@
         allowSubstitutedFetchers =
           ( builtins.currentSystem or null ) != final.system;
       };
-      flocoFetch  = callPackage lib.libfetch.mkFlocoFetcher {};
+      flocoFetch  = callPackage final.lib.libfetch.mkFlocoFetcher {};
       flocoUnpack = {
         name             ? args.meta.names.source
       , tarball          ? args.outPath
@@ -200,6 +200,11 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # Made a function to block `nix flake check' from fetching.
+    testData = { ... }: import ./tests/data;
+
+# ---------------------------------------------------------------------------- #
+
     packages = eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
@@ -244,12 +249,15 @@
         type = "app";
         program = let
           script = pkgsFor.runCommandNoCC "genMeta.sh" {
-            NIX    = "${pkgsFor.nix}/bin/nix";
-            MKTEMP = "${pkgsFor.coreutils}/bin/mktemp";
-            CAT    = "${pkgsFor.coreutils}/bin/cat";
-            NPM    = "${pkgsFor.nodejs.pkgs.npm}/bin/npm";
-            PACOTE = "${pkgsFor.pacote}/bin/pacote";
-            JQ     = "${pkgsFor.jq}/bin/jq";
+            NIX      = "${pkgsFor.nix}/bin/nix";
+            MKTEMP   = "${pkgsFor.coreutils}/bin/mktemp";
+            CAT      = "${pkgsFor.coreutils}/bin/cat";
+            REALPATH = "${pkgsFor.coreutils}/bin/realpath";
+            PACOTE   = "${pkgsFor.pacote}/bin/pacote";
+            NPM      = "${pkgsFor.nodejs.pkgs.npm}/bin/npm";
+            JQ       = "${pkgsFor.jq}/bin/jq";
+            WC       = "${pkgsFor.coreutils}/bin/wc";
+            CUT      = "${pkgsFor.coreutils}/bin/cut";
             nativeBuildInputs = [pkgsFor.makeWrapper];
           } ''
             mkdir -p "$out/bin";
@@ -260,9 +268,12 @@
               --set-default NIX       "$NIX"                      \
               --set-default MKTEMP    "$MKTEMP"                   \
               --set-default CAT       "$CAT"                      \
-              --set-default NPM       "$NPM"                      \
+              --set-default REALPATH  "$REALPATH"                 \
               --set-default PACOTE    "$PACOTE"                   \
+              --set-default NPM       "$NPM"                      \
               --set-default JQ        "$JQ"                       \
+              --set-default WC        "$WC"                       \
+              --set-default WC        "$CUT"                      \
             ;
           '';
         in "${script}/bin/genMeta";

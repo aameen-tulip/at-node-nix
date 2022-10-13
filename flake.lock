@@ -9,11 +9,11 @@
         "yants-src": "yants-src"
       },
       "locked": {
-        "lastModified": 1665595817,
-        "narHash": "sha256-oyo8G/toLMhsMoaBeIKbPJL13HGi+dZw9XedTNkioDw=",
+        "lastModified": 1665674721,
+        "narHash": "sha256-IcweBoyMEBJcc2DsoQHPfHns21mZpJHLroEfdBp10cA=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "ad5721f156e15933b448b7e6380550defb2329e6",
+        "rev": "2fb46d4d2de3fc3034c3ece0c734c37a45ddee15",
         "type": "github"
       },
       "original": {
@@ -119,11 +119,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1665595979,
-        "narHash": "sha256-bKgYXkquAzF/l1aSv/Zj7v6jpKmIhR+szew/cY7s80Q=",
+        "lastModified": 1665674728,
+        "narHash": "sha256-emRGMn0FnS2lhsEFDadk49q9UnGveN68i/82sr3VBJ4=",
         "owner": "aakropotkin",
         "repo": "rime",
-        "rev": "f0985f6a66c2e456e71f667f2b910d886b643d90",
+        "rev": "4f56069f65ef7920ff3b288ff7bc2697b81d79d9",
         "type": "github"
       },
       "original": {

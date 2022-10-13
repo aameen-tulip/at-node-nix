@@ -9,7 +9,7 @@
 : "${NPM:=$NIX run nixpkgs#nodejs-14_x.pkgs.npm --}";
 : "${JQ:=$NIX run nixpkgs#jq --}";
 : "${WC:=wc}";
-: "${TR:=tr}";
+: "${CUT:=cut}";
 
 : "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
 
@@ -137,13 +137,14 @@ jq_fail_dump_data() {
     echo "  --argjson srcInfo: '$( $CAT "$srcInfo"; )'";
     echo "  --argjson dev: $DEV";
     echo '';
-    if test "$( $WC -l ./package-lock.json|$TR -d' ' -f1; )" -gt 100; then
+    if test "$( $WC -l ./package-lock.json|$CUT -d' ' -f1; )" -gt 100; then
       echo "Package Lock is too long to dump."
       echo "Run again with '--keep-tree' and poke around for yourself.";
     else
-      echo "  Package Lock ( read by 'jq' ):"
-      $CAT . ./package-lock.json >&2;
+      echo "Package Lock was:"
+      $CAT ./package-lock.json;
     fi
+    echo "Descriptor was: '$DESCRIPTOR'";
     echo "Good luck debugging <3";
   } >&2;
   exit 1;
@@ -194,17 +195,30 @@ mv ./plmin.json ./package-lock.json;
 # ---------------------------------------------------------------------------- #
 
 export DEV DESCRIPTOR JSON;
-$NIX eval --impure $OUT_TYPE $FLAKE_REF#lib --apply '
-  _lib: let
-    lib = _lib.extend ( _: prev: {
+$NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
+  lp: let
+    pkgsFor = lp.${builtins.currentSystem}.extend ( final: prev: {
       # FIXME: needed because of some bullshit tarballs with bad compression.
-      flocoConfig = prev.mkFlocoConfig ( prev.flocoConfig // {
-        enableImpureFetchers = false;
+      flocoConfig = prev.flocoConfig // {
+        enableImpureMeta     = true;
+        enableImpureFetchers = true;
+        fetchers = {
+          urlFetcher     = lib.libfetch.fetchTreeW;
+          tarballFetcher = lib.libfetch.fetchTreeW;
+          gitFetcher     = lib.libfetch.fetchTreeW;
+        };
+      };
+      flocoFetcher = prev.lib.mkFlocoFetcher {
+        inherit (final) flocoConfig;
+      };
+      lib = prev.lib.extend ( _: _: {
+        inherit (final) flocoConfig flocoFetcher;
       } );
     } );
-    lockDir = toString ./.;
-    metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
-    serial  = metaSet.__serial;
+    inherit (pkgsFor) lib;
+    lockDir  = toString ./.;
+    metaSet  = lib.metaSetFromPlockV3 { inherit lockDir; };
+    serial   = metaSet.__serial;
     isDev    = builtins.getEnv "DEV" == "true";
     dumpJSON = builtins.getEnv "JSON" == "true";
     trees = let
