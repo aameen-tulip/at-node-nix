@@ -56,7 +56,7 @@
     bin' = lib.optionalAttrs hasBin { inherit (plent) bin; };
     fetched = flocoFetch plent;
     core = {
-      meta.neededUnpack  = fetched.needsUnpack or false;
+      meta.needsUnpack   = fetched.needsUnpack or false;
       meta.hasBin        = hasBin;
       meta.entries.plent = plent;
       passthru.fetched   = fetched;
