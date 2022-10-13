@@ -92,11 +92,13 @@
     overlays.at-node-nix = final: prev: let
       # FIXME: this obfuscates the real dependency scope.
       callPackageWith  = auto:
-        lib.callPackageWith ( final // auto );
+        lib.callPackageWith ( final // { nodejs = prev.nodejs-14_x; } // auto );
       callPackagesWith = auto:
-        lib.callPackagesWith ( final // auto );
-      callPackage  = callPackageWith { nodejs = prev.nodejs-14_x; };
-      callPackages = callPackagesWith { nodejs = prev.nodejs-14_x; };
+        lib.callPackagesWith ( final // {
+          nodejs = prev.nodejs-14_x;
+        } // auto );
+      callPackage  = callPackageWith {};
+      callPackages = callPackagesWith {};
     in {
 
       # FIXME: This needs to get resolved is a cleaner way.
