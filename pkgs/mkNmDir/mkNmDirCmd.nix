@@ -221,8 +221,7 @@
       # We do not want out of tree projects to crash in sandboxed builds.
       dropExt = lib.filterAttrs ( k: _: lib.hasPrefix "node_modules/" k )
                                 tree;
-      doStrip = lib.hasPrefix "node_modules/"
-                              ( builtins.head ( builtins.attrNames dropExt ) );
+      doStrip = dropExt != {};
     in if doStrip then stripLeadingNmDirs dropExt else dropExt;
 
     haveBin = lib.filterAttrs ( hasBin {
@@ -233,7 +232,8 @@
     # We cannot just dump all of them on the CLI because we'll blow it out; but
     # this essentially behaves like `xargs' to avoid long line limit.
     mkdirs = dirs: let
-      dirs' = builtins.sort ( a: b: a < b ) ( lib.unique dirs );
+      dirs' = ["$node_modules_path"] ++
+              ( builtins.sort ( a: b: a < b ) ( lib.unique dirs ) );
       # Use a `fold' to group dirs in 5s.
       chunk = acc: dir: let
         nl  = {

@@ -90,17 +90,13 @@
 # ---------------------------------------------------------------------------- #
 
     overlays.at-node-nix = final: prev: let
-      pkgsFor = let
-        ovs = lib.composeExtensions self.overlays.pacote
-                                    ak-nix.overlays.ak-nix;
-      in ( pkgsForSys prev.system ).extend ovs;
       # FIXME: this obfuscates the real dependency scope.
       callPackageWith  = auto:
-        lib.callPackageWith ( pkgsFor // final // auto );
+        lib.callPackageWith ( final // auto );
       callPackagesWith = auto:
-        lib.callPackagesWith ( pkgsFor // final // auto );
-      callPackage  = callPackageWith {};
-      callPackages = callPackagesWith {};
+        lib.callPackagesWith ( final // auto );
+      callPackage  = callPackageWith { nodejs = prev.nodejs-14_x; };
+      callPackages = callPackagesWith { nodejs = prev.nodejs-14_x; };
     in {
 
       # FIXME: This needs to get resolved is a cleaner way.
@@ -109,9 +105,20 @@
       config = prev.config // { checkMeta = false; };
       # XXX: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-      nodejs = prev.nodejs-14_x;
-
-      lib = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
+      lib = let
+        base = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
+      in base.extend ( _: _: {
+        flocoConfig = base.mkFlocoConfig {
+          # Most likely this will get populated by `stdenv'
+          npmSys = base.getNpmSys { system = final.system; };
+          # Prefer fetching from original host rather than substitute.
+          # NOTE: This only applies to fetchers that use derivations.
+          #       Builtins won't be effected by this.
+          allowSubstitutedFetchers =
+            ( builtins.currentSystem or null ) != final.system;
+          enableImpureFetchers = false;
+        };
+      } );
 
       snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
       # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
@@ -132,15 +139,8 @@
       # NOTE: read the file for some known limitations.
       coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
 
-      # Most likely this will get populated by `stdenv'
-      npmSys = lib.getNpmSys { system = final.system; };
-      flocoConfig = final.lib.mkFlocoConfig {
-        # Prefer fetching from original host rather than substitute if possible.
-        # NOTE: This only applies to fetchers that use derivations.
-        #       Builtins won't be effected by this.
-        allowSubstitutedFetchers =
-          ( builtins.currentSystem or null ) != final.system;
-      };
+      inherit (final.lib) flocoConfig;
+      inherit (final.flocoConfig) npmSys;
       flocoFetch  = callPackage final.lib.libfetch.mkFlocoFetcher {};
       flocoUnpack = {
         name             ? args.meta.names.source
@@ -156,9 +156,23 @@
       # Default NmDir builder prefers symlinks
       mkNmDir = final.mkNmDirLinkCmd;
 
-      mkSourceTree = callPackage ./pkgs/mkNmDir/mkSourceTree.nix;
+      mkSourceTree = lib.callPackageWith {
+        inherit (final)
+          lib npmSys system stdenv
+          _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
+          mkNmDirCmdWith
+          flocoUnpack flocoConfig flocoFetch
+        ;
+      } ./pkgs/mkNmDir/mkSourceTree.nix;
       # { mkNmDir*, tree ( from `mkSourceTree' ) }
-      mkSourceTreeDrv = callPackage ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
+      mkSourceTreeDrv = lib.callPackageWith {
+        inherit (final)
+          lib npmSys system stdenv runCommandNoCC mkSourceTree mkNmDir
+          _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
+          mkNmDirCmdWith
+          flocoUnpack flocoConfig flocoFetch
+        ;
+      } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
 
       inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
         mkPkgEntSource
@@ -172,7 +186,7 @@
       mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
       inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
-        inherit (pkgsFor.xorg) lndir;
+        inherit (prev.xorg) lndir;
       })
         _mkNmDirCopyCmd
         _mkNmDirLinkCmd
