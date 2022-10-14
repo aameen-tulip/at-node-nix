@@ -1,0 +1,32 @@
+#+TITLE: Abbreviated Version Object
+Each abbreviated version object contains the following fields:
+
+* name
+the package name
+* version
+the version string for this version
+* deprecated
+the deprecation warnings message of this version
+* dependencies
+a mapping of other packages this version depends on to the required semver ranges
+* optionalDependencies
+an object mapping package names to the required semver ranges of optional dependencies
+* devDependencies
+a mapping of package names to the required semver ranges of development dependencies
+* bundleDependencies
+an array of dependencies bundled with this version
+* peerDependencies
+a mapping of package names to the required semver ranges of peer dependencies
+* bin
+a mapping of bin commands to set up for this version
+* directories
+an array of directories included by this version
+* dist
+a dist object
+* engines
+the node engines required for this version to run, if specified
+* _hasShrinkwrap
+true if this version is known to have a shrinkwrap that must be used to install it; false if this version is known not to have a shrinkwrap. If this field is undefined, the client must determine through other means if a shrinkwrap exists.
+* hasInstallScript
+true if this version has the install scripts.
+The name, version, and dist fields will always be present. The others will be absent if they are irrelevant for this package version.

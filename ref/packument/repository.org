@@ -1,0 +1,14 @@
+#+TITLE: repository
+An object specifying the repository where the source for this package might be found.
+It has two fields:
+* type
+a string, usually "git".
+* url
+a string, usually ~git://github.com/npm/npm.git~.
+* Example
+#+BEGIN_SRC json
+"repository": {
+    "type": "git",
+    "url": "git://github.com/npm/npm.git"
+}
+#+END_SRC

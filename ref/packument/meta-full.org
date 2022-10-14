@@ -1,0 +1,59 @@
+#+TITLE: Full Metadata Format
+* Top-level Fields
+In lexical order.
+** _id
+the package name, used as an ID in CouchDB
+** _rev
+the revision number of this version of the document in CouchDB
+** dist-tags
+a mapping of dist tags to versions. Every package will have a latest tag defined.
+** name
+the package name
+** time
+an object mapping versions to the time published, along with created and modified timestamps
+** users
+an object whose keys are the npm user names of people who have starred this package
+** versions
+a mapping of semver-compliant version numbers to version data
+
+* Hoisted from Latest
+The following fields are hoisted to the top-level of the package json from the latest version published:
+
+** author
+human object
+** bugs
+url
+** contributors
+array of human objects
+** description
+a short description of the package
+** homepage
+url
+** keywords
+array of string keywords
+** license
+the SPDX identifier of the package's license
+** maintainers
+array of human objects for people with permission to publish this package; not authoritative but informational
+** readme
+the first 64K of the README data for the most-recently published version of the package
+** readmeFilename
+The name of the file from which the readme data was taken.
+** repository
+as given in package.json, for the latest version
+
+* Misc. Fields
+Each package version data object contains all of the fields in the abbreviated document, plus the fields listed above as hosted, plus at least the following:
+
+The full version object will also contain any other fields the package publisher chose to include in their package.json file for that version.
+
+** _id
+package@version, such as npm@1.0.0
+** _nodeVersion
+the version of node used to publish this
+** _npmUser
+the author object for the npm user who published this version
+** _npmVersion
+the version of the npm client used to publish this
+** main
+the package's entry point (e.g., index.js or main.js)
