@@ -1,7 +1,7 @@
 #+TITLE: Package Metadata
 This information was expropriated from the [[https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md][NPM Registry Docs]].
 
-* Package Metadata
+* Overview
   :PROPERTIES:
   :CUSTOM_ID: package-metadata
   :END:
