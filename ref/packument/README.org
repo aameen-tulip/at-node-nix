@@ -1,5 +1,5 @@
 #+TITLE: Package Metadata
-This information was expropriated from then [[https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md][NPM Registry Docs]].
+This information was expropriated from the [[https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md][NPM Registry Docs]].
 
 * Package Metadata
   :PROPERTIES:
