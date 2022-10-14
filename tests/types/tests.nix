@@ -33,6 +33,12 @@
             expr     = let c = packument.checkType p; in if c.ok then p else c;
             expected = p;
           };
+
+           "testIdentifierSpec_${p._id}" = {
+            expr     = let c = lib.ytypes.PkgInfo.identifier.checkType p;
+                       in if c.ok then p else c;
+            expected = p;
+          };
         };
     in builtins.foldl' ( acc: p: acc // {} ) {} packs;
 
