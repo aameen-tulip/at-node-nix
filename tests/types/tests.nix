@@ -11,9 +11,25 @@
 
 # ---------------------------------------------------------------------------- #
 
-  allPacks = import ../data/packuments.nix;
-  inherit (import ../../types/packument.nix { inherit lib; }) packument;
+  yt = lib.ytypes;
+  inherit (yt.PkgInfo.Strings)
+    identifier_any
+    identifier
+    descriptor
+  ;
+  inherit (yt.Packument.Structs)
+    packument
+  ;
+  inherit (yt.NpmLock.Structs)
+    pkg-tarball
+  ;
 
+  inherit ( import ../data/plocks.nix )
+    arb2
+    arb3
+  ;
+
+  allPacks = import ../data/packuments.nix;
   packs = if limit < 1000 then lib.take limit allPacks else allPacks;
 
 # ---------------------------------------------------------------------------- #
@@ -30,19 +46,37 @@
       proc = acc: p:
         acc // {
           "testPackumentSpec_${p._id}" = {
-            expr     = let c = packument.checkType p; in if c.ok then p else c;
-            expected = p;
+            expr     = packument.check p;
+            expected = true;
           };
 
-           "testIdentifierSpec_${p._id}" = {
-            expr     = let c = lib.ytypes.PkgInfo.identifier.checkType p;
-                       in if c.ok then p else c;
-            expected = p;
+          "testIdentifierSpec_${p._id}" = {
+            expr = let
+              c = identifier_any.checkType p._id;
+            in if c.ok then p._id else c.err;
+            expected = p._id;
           };
         };
-    in builtins.foldl' ( acc: p: acc // {} ) {} packs;
+    in if lib.inPureEvalMode then {} else builtins.foldl' proc {} packs;
 
-  in npmTop1000 // {
+    # The `@floco/arbor' lock only uses registry tarballs.
+    plTarballEnts = let
+      pkgs = let
+        named = lib.libattrs.pushDownNames ( removeAttrs arb3.packages [""] );
+        vals  = builtins.attrValues named;
+      in if limit < 1000 then lib.take limit vals else vals;
+
+      proc = acc: p: let
+        ent = removeAttrs p ["name"];
+      in acc // {
+          "testPlockEntryTarball_${p.name}" = {
+            expr     = pkg-tarball ent;
+            expected = ent;
+          };
+        };
+    in builtins.foldl' proc {} pkgs;
+
+  in npmTop1000 // plTarballEnts // {
 
 # ---------------------------------------------------------------------------- #
 

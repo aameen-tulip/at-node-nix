@@ -104,7 +104,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-  pkg-git = struct "pkg[git]" ( pkg-any-fields // {
+  pkg-git = let
+
+  in struct "pkg[git]" ( pkg-any-fields // {
     resolved =
       restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" ) resolved_uri;
   } );

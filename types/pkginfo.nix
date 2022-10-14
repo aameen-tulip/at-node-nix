@@ -238,6 +238,13 @@ in {
     Structs
     Sums
   ;
+  inherit (Strings)
+    identifier
+    locator
+    descriptor
+    scope
+    scopedir
+  ;
 }
 
 # ---------------------------------------------------------------------------- #
