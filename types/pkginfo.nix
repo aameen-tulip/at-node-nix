@@ -45,23 +45,23 @@
   #  - They could have capital letters in them.
   #  - They could be really long.
   #  - They could be the name of an existing module in node core.
-  re = lib.liburi.re // {
-    id_part_new_c  = re.lower_c + re.digit_c + "_.-";
-    id_part_old_c  = re.upper_c + re.id_part_new_c;
-    id_new_c       = "@/" + re.id_part_new_c;
-    id_old_c       = re.upper_c + re.id_new_c;
+  RE = {
+    id_part_new_c  = "[:lower:][:digit:]_.-";
+    id_part_old_c  = "[:upper:]" + RE.id_part_new_c;
+    id_new_c       = "@/" + RE.id_part_new_c;
+    id_old_c       = "[:upper:]" + RE.id_new_c;
 
     id_part_new_p1  = "[a-z0-9_.-]";
     id_part_old_p1  = "[A-Za-z0-9_.-]";
     id_new_p1       = "[@/a-z0-9_.-]";
     id_old_p1       = "[@/A-Za-z0-9_.-]";
 
-    id_part_new_p = "[a-z0-9-]${re.id_part_new_p1}{0,213}";
+    id_part_new_p = "[a-z0-9-]${RE.id_part_new_p1}{0,213}";
     # XXX: I'm not 100% sure that these can't start with [._]
-    id_part_old_p = "[A-Za-z0-9-]${re.id_part_old_p1}*";
+    id_part_old_p = "[A-Za-z0-9-]${RE.id_part_old_p1}*";
     # XXX: You need to check the length again in your typecheck.
-    id_new_p = "(@${re.id_part_new_p}/)?${re.id_part_new_p}";
-    id_old_p = "(@${re.id_part_old_p}/)?${re.id_part_old_p}";
+    id_new_p = "(@${RE.id_part_new_p}/)?${RE.id_part_new_p}";
+    id_old_p = "(@${RE.id_part_old_p}/)?${RE.id_part_old_p}";
 
     # Blacklisted/reserved module names.
     node_builtins_p = "(${builtins.concatStringsSep "|" node_bt_mods_l})";
@@ -71,30 +71,30 @@
 
     version        = lib.librange.versionRE;  # FIXME: move here.
     range_constr_c = "<>=~^,|& -";
-    range_c        = re.alnum_c + ".+${re.range_constr_c}";
+    range_c        = "[:alnum:].+${RE.range_constr_c}";
 
-    range_constr_p1 = "[${re.range_constr_c}]";
-    range_p1        = "[a-zA-Z0-9.+${re.range_constr_c}]";
-    locator_p1      = "[${re.uri_c}]";
-    descriptor_p1   = "[<>~^,|& ${re.uri_c}]";
+    range_constr_p1 = "[${RE.range_constr_c}]";
+    range_p1        = "[a-zA-Z0-9.+${RE.range_constr_c}]";
+    locator_p1      = "[${yt.Uri.RE.uri_c}]";
+    descriptor_p1   = "[<>~^,|& ${yt.Uri.RE.uri_c}]";
 
     # FIXME: define `range_p'/semver patterns.
     # They're currently nested in parsers for `lib/ranges.nix'.
-    range_p = "${re.range_p1}+";
+    range_p = "${RE.range_p1}+";
 
-    locator_p    = "(${re.version}|${re.uri_ref_p})";
-    descriptor_p = "(${re.uri_ref_p}|${re.range_p})";
+    locator_p    = "(${RE.version}|${yt.Uri.RE.uri_ref_p})";
+    descriptor_p = "(${yt.Uri.RE.uri_ref_p}|${RE.range_p})";
 
-    id_locator_old_p = "${re.id_old_p}@(${re.version}|${re.uri_ref_p})";
-    id_locator_new_p = "${re.id_new_p}@(${re.version}|${re.uri_ref_p})";
+    id_locator_old_p = "${RE.id_old_p}@(${RE.version}|${yt.Uri.RE.uri_ref_p})";
+    id_locator_new_p = "${RE.id_new_p}@(${RE.version}|${yt.Uri.RE.uri_ref_p})";
 
-    id_descriptor_old_p = "${re.id_old_p}@${re.descriptor_p}";
-    id_descriptor_new_p = "${re.id_new_p}@${re.descriptor_p}";
+    id_descriptor_old_p = "${RE.id_old_p}@${RE.descriptor_p}";
+    id_descriptor_new_p = "${RE.id_new_p}@${RE.descriptor_p}";
 
 
 # ---------------------------------------------------------------------------- #
 
-    key = "${re.id_old_p}/${re.version}";
+    key = "${RE.id_old_p}/${RE.version}";
 
   };  # End `re'
 
@@ -104,7 +104,7 @@
   Strings = let
     # Helper to add length restriction to "new" identifiers.
     restrict_new_s = base_t: let
-      cond = builtins.test "${re.id_new_p1}{0,214}";
+      cond = builtins.test "${RE.id_new_p1}{0,214}";
     in restrict "new" cond base_t;
   in {
 
@@ -113,9 +113,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-    identifier_old = restrict "identifier[old]" ( lib.test re.id_old_p ) string;
+    identifier_old = restrict "identifier[old]" ( lib.test RE.id_old_p ) string;
     identifier_new = let
-      cond = s: ( lib.test re.id_new_p s ) &&
+      cond = s: ( lib.test RE.id_new_p s ) &&
                 ( ( builtins.stringLength s ) <= 214 );
     in restrict "identifier[new]" cond string;
 
@@ -153,42 +153,42 @@
 
     identifier = Strings.identifier_unreserved;
 
-    id_part     = restrict "id_part" ( lib.test re.id_part_old_p ) string;
+    id_part     = restrict "id_part" ( lib.test RE.id_part_old_p ) string;
     id_part_new = restrict_new_s Strings.id_part;
 
     scope = Strings.id_part;
     # Either "" or "@foo/", but never "@foo"
-    scopedir = restrict "scopedir" ( lib.test "(@${re.id_part_old_p1}+/)?" )
+    scopedir = restrict "scopedir" ( lib.test "(@${RE.id_part_old_p1}+/)?" )
                                    string;
     scopedir_new = restrict_new_s Strings.scopedir;
 
 # ---------------------------------------------------------------------------- #
 
     # "1.0.0" ( exact version ) or "file:../foo" or "https://..." URI
-    locator = restrict "locator" ( lib.test re.locator_p ) string;
+    locator = restrict "locator" ( lib.test RE.locator_p ) string;
 
-    id_locator = restrict "ident+locator" ( lib.test re.id_locator_old_p )
+    id_locator = restrict "ident+locator" ( lib.test RE.id_locator_old_p )
                                           string;
-    id_locator_new = restrict "new" ( lib.test re.id_locator_new_p )
+    id_locator_new = restrict "new" ( lib.test RE.id_locator_new_p )
                                     Strings.id_locator;
 
 
     # FIXME
-    range = restrict "semver[range]" ( lib.test re.range_p ) string;
+    range = restrict "semver[range]" ( lib.test RE.range_p ) string;
 
     # ">=1.0.0 <2.0.0" ( semver constraint ) or locator
-    descriptor = restrict "descriptor" ( lib.test re.descriptor_p ) string;
-    descriptor_new = restrict "new" ( lib.test re.descriptor_new_p )
+    descriptor = restrict "descriptor" ( lib.test RE.descriptor_p ) string;
+    descriptor_new = restrict "new" ( lib.test RE.descriptor_new_p )
                                     Strings.descriptor;
 
     id_descriptor =
-      restrict "ident+descriptor" ( lib.test re.id_descriptor_old_p ) string;
-    id_descriptor_new = restrict "new" ( lib.test re.id_descriptor_new_p )
+      restrict "ident+descriptor" ( lib.test RE.id_descriptor_old_p ) string;
+    id_descriptor_new = restrict "new" ( lib.test RE.id_descriptor_new_p )
                                        Strings.id_descriptor;
 
 # ---------------------------------------------------------------------------- #
 
-    key = restrict "pkg-key" ( lib.test re.key ) string;
+    key = restrict "pkg-key" ( lib.test RE.key ) string;
 
   };  # End Strings
 
@@ -233,7 +233,7 @@
 
 in {
   inherit
-    re
+    RE
     Strings
     Structs
     Sums

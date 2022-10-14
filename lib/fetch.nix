@@ -78,7 +78,6 @@
       fromInteg = integrity2Sha entry.integrity;
     in if entry ? integrity then fromInteg else
        if entry ? sha1      then { inherit (entry) sha1; } else {};
-    __functor = self: self.__innerFunction;
     __functionArgs = {
       sha1      = true;
       sha256    = true;
@@ -87,10 +86,17 @@
       hash      = true;
       narHash   = true;
     };
+    __functor = self: self.__innerFunction;
   };
 
 
 # ---------------------------------------------------------------------------- #
+
+  # XXX: Yo this whole prefetching thing wasn't the best idea.
+  # It works really well if you use the same fetcher later - but you are going
+  # to get different `narHash' for different fetchers, so you really need to
+  # leave this up to the user or at least raise visibility.
+  # As written it assumes you're going to use `fetchTree'.
 
   # Registry tarball package-lock entry to fetch* arguments
   #
@@ -107,7 +113,8 @@
   # `nix-store --dump-db ...' or serialize this info with `toJSON' to stash the
   # info to optimize/purify future runs.
   plock2TbFetchArgs' = impure: { resolved ? entry.url, ... } @ entry: let
-    prefetched = if ( ! impure ) then {} else fetchTree bfr;
+    preFetcher = builtins.fetchTree;
+    prefetched = if ( ! impure ) then {} else preFetcher bfr;
     nha = plockEntryHashAttr entry;
     # nixpkgs.fetchurl
     nfu = { url = resolved; } // nha;
@@ -119,7 +126,7 @@
     # builtins.fetchurl
     bfu = resolved;                               # XXX: Impure
     # builtins.fetchTree
-    bfr = { type = "tarball"; url = resolved; };  # XXX: Impure
+    bfr = { type = "file"; url = resolved; };  # XXX: Impure
     # builtins.fetchTarball
     bft = { url = resolved; };                    # XXX: Impure
     # fetchurlDrv

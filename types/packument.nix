@@ -46,7 +46,7 @@
 
   packument = struct "packument" {
     _id            = yt.Strings.identifier;
-    _rev           = option yt.Uri.Strings.rev;
+    _rev           = option yt.Git.Strings.rev;
     name           = yt.Strings.identifier;
     author         = option author;
     bugs           = option bugs;
