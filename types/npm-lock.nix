@@ -11,7 +11,7 @@
   ur = yt.Uri;
   pi = yt.PkgInfo;
   inherit (yt) struct string list bool attrs option restrict;
-  inherit (pi.Strings) identifier version locator descriptor;
+  inherit (pi.Strings) identifier identifier_any version locator descriptor;
   inherit (ur.Strings) uri_ref scheme fragment;
 
 # ---------------------------------------------------------------------------- #
@@ -26,13 +26,13 @@
   #     "from": "lodash@github:lodash/lodash"
   #   },
   dep_field = let
-    cond = x: builtins.all identifier.check ( builtins.attrNames x );
+    cond = x: builtins.all identifier_any.check ( builtins.attrNames x );
   in restrict "dep_descriptors" cond ( attrs descriptor );
 
   deps = {
-    dependencies     = option deps;
-    devDependencies  = option deps;
-    peerDependencies = option deps;
+    dependencies     = option dep_field;
+    devDependencies  = option dep_field;
+    peerDependencies = option dep_field;
     # FIXME
   };
 
@@ -73,17 +73,22 @@
 
   # Package Entries ( Plock v3 Only )
 
-  pkg-any-fields = let
-    fields = [
-      "name" "version" "dependencies*" "resolved" "license" "engines" "bin"
-      "os" "cpu"
-    ];
   # XXX: All are optional
-  in builtins.mapAttrs ( _: option ) {
+  pkg-any-fields = ( builtins.mapAttrs ( _: option ) {
     name     = identifier;
     version  = locator;
     resolved = resolved_uri;
-  };
+    license  = string;
+    engines  = yt.either ( yt.attrs string ) ( yt.list string );
+    bin      = yt.attrs string;
+    os       = yt.list string;  # FIXME: enum
+    cpu      = yt.list string;  # FIXME: enum
+    # These all default to `false'
+    hasInstallScript = bool;
+    gypfile          = bool;
+    optional         = bool;
+    dev              = bool;
+  } ) // deps;
 
 
 # ---------------------------------------------------------------------------- #
@@ -92,41 +97,33 @@
     resolved = option relative_file_uri;
     link     = option bool;
   };
-
-  pkg-path = struct "pkg[path]" pkg-path-fields;
-
-  pkg-dir = let
-    cond = x: ! ( x.link or false );
-  in restrict "dir" cond pkg-path;
-
-  pkg-link = let
-    cond = x: x.link or false;
-  in restrict "link" cond pkg-path;
+  pkg-path = struct   "pkg[path]" pkg-path-fields;
+  pkg-dir  = restrict "dir"  ( x: ! ( x.link or false) ) pkg-path;
+  pkg-link = restrict "link" ( x: x.link or false ) pkg-path;
 
 
 # ---------------------------------------------------------------------------- #
 
   pkg-git = struct "pkg[git]" ( pkg-any-fields // {
-    resolved = let
-      cond = lib.test "git(\\+(ssh|https?))?://.*";
-    in restrict "git" cond resolved_uri;
+    resolved =
+      restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" ) resolved_uri;
   } );
 
 
 # ---------------------------------------------------------------------------- #
 
   pkg-tarball = let
-    cond = x: ( x ? integrity ) || ( x ? sha1 );
-  in restrict "tarball" cond ( struct "pkg" ( pkg-any-fields // {
-    # FIXME: `lib.ytypes.Strings.tarball_url'
-    resolved =
-      restrict "tarball" ( lib.test "(file\\+)?https?://.*" ) resolved_uri;
-    # FIXME: it is mandatory to have at least one
-    integrity = option yt.Strings.sha512_sri;
-    # FIXME: this belongs in `ak-nix'
-    sha1 = option ( restrict "hash[sha1]" ( lib.test "[[:xdigit:]]+" )
-                                          string );
-  } ) );
+    condHash = x: ( x ? integrity ) || ( x ? sha1 );
+    fconds = pkg-any-fields // {
+      resolved  = restrict "tarball" yt.Strings.tarball_url.check resolved_uri;
+      integrity = option yt.Strings.sha512_sri;
+      sha1      = option yt.Strings.sha1_hash;
+    };
+    condFields  = x: let
+      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
+    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    cond = x: ( condHash x ) && ( condFields x );
+  in restrict "pkg[tarball]" cond ( yt.attrs yt.any );
 
 
 # ---------------------------------------------------------------------------- #

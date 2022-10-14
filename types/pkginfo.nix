@@ -80,7 +80,7 @@
 
     # FIXME: define `range_p'/semver patterns.
     # They're currently nested in parsers for `lib/ranges.nix'.
-    range_p = "${RE.range_p1}+";
+    range_p = "(${RE.range_p1}+|\\*|latest)";
 
     locator_p    = "(${RE.version}|${yt.Uri.RE.uri_ref_p})";
     descriptor_p = "(${yt.Uri.RE.uri_ref_p}|${RE.range_p})";
