@@ -7,47 +7,21 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ system      ? builtins.currentSystem
-, pkgsFor     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
+{ lib         ? import ../../lib { inherit (rime) lib; }
+, system      ? builtins.currentSystem
+, at-node-nix ? builtins.getFlake ( toString ../.. )
+, pkgsFor     ? at-node-nix.legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
 , rime        ? builtins.getFlake "github:aakropotkin/rime"
-, lib         ? import ../lib { inherit (rime) lib; }
-
-, flocoUnpack ? pkgsFor.flocoUnpack
-, flocoConfig ? pkgsFor.flocoConfig
-, flocoFetch  ? pkgsFor.flocoFetch
-
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
-, limit       ? 100    # Limits the max dataset for certain tests.
-                       # Generally subdirs raise their limit.
 , ...
 } @ args: let
 
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  autoArgs = {
-    inherit lib pkgsFor;
-
-    inherit limit;
-
-    inherit (pkgsFor)
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
-
-      mkSourceTree
-      mkSourceTreeDrv
-      mkTarballFromLocal
-    ;
-    inherit flocoUnpack flocoConfig flocoFetch;
-  } // args;
+  autoArgs = { inherit lib pkgsFor; } // args;
 
   tests = let
     testsFrom = file: let
@@ -57,19 +31,7 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./libpkginfo
-    ./libplock
-    ./libfetch
-    ./libsys
-    ./libdep
-    ./libreg
-    ./librange
-    ./types
-    # Derivations
-    ./mkNmDir
-    ./pkg-set
-    ./build-support
-    ./fpkgs
+    ./tests.nix
   ];
 
 # ---------------------------------------------------------------------------- #
@@ -78,7 +40,7 @@
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "all-tests";
+    name = "flocoPackages-tests";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {

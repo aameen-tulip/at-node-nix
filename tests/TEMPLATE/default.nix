@@ -7,12 +7,12 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ nixpkgs     ? builtins.getFlake "nixpkgs"
+{ lib         ? import ../../lib { inherit (rime) lib; }
 , system      ? builtins.currentSystem
-, pkgsFor     ? nixpkgs.legacyPackages.${system}
+, at-node-nix ? builtins.getFlake ( toString ../.. )
+, pkgsFor     ? at-node-nix.legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
 , rime        ? builtins.getFlake "github:aakropotkin/rime"
-, lib         ? import ../../lib { inherit (rime) lib; }
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , ...
