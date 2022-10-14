@@ -155,11 +155,8 @@
     addAllDeps = val: val // {
       allDependencies = lib.libpkginfo.allDependencies val;
     };
-    addPerVers = vers: val:
-      #( addAllDeps ( addTarInfoVers ( addNiVers vers val ) ) );
-      addNiVers vers val;
     # FIXME:
-    versions = builtins.mapAttrs addPerVers ( packument.versions or {} );
+    versions = builtins.mapAttrs addNiVers ( packument.versions or {} );
     packument' = packument // nid // { inherit versions; };
     latest = packumentLatestVersion' packument';
   in packument' // {
@@ -378,7 +375,7 @@
   , ...  # `engines' and a few other obnoxious fields should get tossed.
   } @ manifest: let
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
-    id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] ( _id );
+    id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] _id;
     maybeId = if withId then { inherit id; } else {};
     ft = builtins.fetchTree { url = _resolved; type = "tarball"; };
     maybeNarHash = if lookupNar then { inherit (ft) narHash; } else {};

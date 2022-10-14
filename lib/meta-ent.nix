@@ -217,9 +217,9 @@
 # ---------------------------------------------------------------------------- #
 
   metaEntFromPlockSubtype = x: let
-    plent   = x.entries.plock or x;
-    lockDir = plent.lockDir;
-    pjsDir  =
+    plent = x.entries.plock or x;
+    inherit (plent) lockDir;
+    pjsDir =
       if plent.pkey == "" then lockDir else
       # Fetch remote trees in impure mode
       if haveTree && ( ! isLocal ) then
@@ -301,7 +301,7 @@
   , version
   , ...
   } @ args: let
-    plent = if args ? entries.plock then args.entries.plock else args;
+    plent = args.entries.plock or args;
     key = ident + "/" + version;
     hasBin = ( plent.bin or {} ) != {};
     baseFields = {
@@ -348,8 +348,8 @@
         # basic lookup but it handles the vast majority of deps.
         subs = ent.ident or ent.name or ( lib.libplock.pathId path );
       in if subs == null then lib.lookupRelPathIdentV3 plock path else subs;
-      version = ( lib.libplock.realEntry plock path ).version;
-      key     = "${ident}/${version}";
+      inherit (lib.libplock.realEntry plock path) version;
+      key = "${ident}/${version}";
       # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
       # that will be processed by `metaEntFromPlockV3'.
       # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are

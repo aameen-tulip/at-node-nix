@@ -13,8 +13,8 @@
                                       ( { inherit lib; } // auto );
     in f args;
     callLib = callLibWith {};
-    callLibsWith = auto: lst:
-      builtins.foldl' ( acc: x: acc // ( callLibWith auto x ) ) {} lst;
+    callLibsWith = auto:
+      builtins.foldl' ( acc: x: acc // ( callLibWith auto x ) ) {};
     callLibs = callLibsWith {};
 
 

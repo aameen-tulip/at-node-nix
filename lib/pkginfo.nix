@@ -18,11 +18,11 @@
     coercibleSums = yt.sum {
       ident = pi.Strings.identifier_any;
       name  = pi.Strings.identifier_any;
-      key   = pi.Strings.key;
       meta  = yt.attrs yt.any;
+      inherit (pi.Strings) key;
     };
     coercibleStructs_l = [
-      ( yt.struct { scope = pi.Strings.scope; } )
+      ( yt.struct { inherit (pi.Strings) scope; } )
       pi.Structs.scope
       pi.Structs.identifier
       pi.Structs.id_locator
@@ -185,14 +185,11 @@
 
 # ---------------------------------------------------------------------------- #
 
-  explicitWorkspaces = workspaces:
-    builtins.filter ( p: ! ( hasGlob p ) ) workspaces;
+  explicitWorkspaces = builtins.filter ( p: ! ( hasGlob p ) );
 
-  singleGlobWorkspaces = workspaces:
-    builtins.filter hasSingleGlob workspaces;
+  singleGlobWorkspaces = builtins.filter hasSingleGlob;
 
-  doubleGlobWorkspaces = workspaces:
-    builtins.filter hasDoubleGlob  workspaces;
+  doubleGlobWorkspaces = builtins.filter hasDoubleGlob;
 
   ignoreNodeModulesDir = name: type:
     ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
@@ -209,7 +206,7 @@
     dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
            else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
            else [p];
-    process = dirs: builtins.filter ( x: x != null ) dirs;
+    process = builtins.filter ( x: x != null );
     msg = "processGlobEnd: Only globs at the end of paths arg handled: ${p}";
   in if ( hasGlob ( dirOf p ) ) then throw msg else ( process dirs );
 
@@ -336,7 +333,7 @@
     verifyResolves = true;
     rewriteDeps = deps: let
       alist  = lib.attrsToList ( intersectAttrs deps resolves );
-      parted = ( partition ( x: isFunction x.value ) alist );
+      parted = partition ( x: isFunction x.value ) alist;
       parted' = mapAttrs ( _: listToAttrs ) parted;
       applied = mapAttrs ( k: fn: fn deps.${k} ) parted'.right;
       merged = deps // parted'.wrong // applied;

@@ -337,7 +337,8 @@
     ] ++ ( lib.optional ( ! ( self.hasInstallScript or false ) ) "gypfile" );
     hide = removeAttrs dft hides;
     keepTrue = let
-      cond = k: v: ( builtins.elem k hides ) && ( v == true );
+      cond = k: v:
+        ( builtins.elem k hides ) && ( builtins.isBool v ) && v;
     in lib.filterAttrs cond dft;
   in assert metaWasPlock self;
      hide // keepTrue;
@@ -577,7 +578,7 @@
     if cond ent then ent.__extend ( fn ent ) else ent;
 
   genMetaEntMerge = cond: fn: ent: let
-    m = lib.recursiveUpdate ( fn ent.__entries ) ( ent.__entries );
+    m = lib.recursiveUpdate ( fn ent.__entries ) ent.__entries;
   in if cond ent then ent.__update m else ent;
 
   genMetaEntRules = name: cond: fn: {
@@ -600,7 +601,7 @@
     if cond set then set.__extend ( fn set ) else set;
 
   genMetaSetMerge = cond: fn: set: let
-    m = lib.recursiveUpdate ( fn set.__entries ) ( set.__entries );
+    m = lib.recursiveUpdate ( fn set.__entries ) set.__entries;
   in if cond set then set.__update m else set;
 
   genMetaSetRules = name: cond: fn: {

@@ -157,7 +157,7 @@
     # "1.2.3-X.4+5Y.6" ==>
     # [ "1" ".2.3-X.4" "2" ".3-X.4" "3" "-X.4" "X" ".4" "4" "+5Y.6" "5Y.6" ".6" ]
     # Keep fields [0, 2, 4, 6, 8, 10]
-    keeps = map ( i: builtins.elemAt matched i ) [0 2 4 6 8 10];
+    keeps = map ( builtins.elemAt matched ) [0 2 4 6 8 10];
   in if ( matched == null ) then [null null null null null null] else keeps;
 
 

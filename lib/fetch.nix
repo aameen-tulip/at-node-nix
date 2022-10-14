@@ -277,7 +277,7 @@
   plock2EntryFetchArgs' = impure: cwd: key: entry: let
     type = typeOfEntry entry;
     cwda = if cwd == null then {} else { inherit cwd; };
-    pathArgs = ( { inherit key; } // cwda );
+    pathArgs = { inherit key; } // cwda;
   in if type == "symlink" then plock2LinkFetchArgs' impure cwda entry   else
      if type == "path"    then plock2PathFetchArgs' impure pathArgs     else
      if type == "git"     then plock2GitFetchArgs' impure entry         else
@@ -405,7 +405,7 @@
     __thunk = {
       filter = name: type: let
         bname = baseNameOf name;
-      in ( type == "directory" -> ( bname != "node_modules" ) );
+      in type == "directory" -> ( bname != "node_modules" );
     };
     __fetcher = args: {
       outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
@@ -439,7 +439,7 @@
       path    = true;
     };
     # Copy the thunk from other fetchers.
-    __thunk = fetchGitW.__thunk;
+    inherit (fetchGitW) __thunk;
     __fetcher = builtins.fetchTree;
     __functor = self: { type, ... } @ args: let
       fa' =
@@ -450,11 +450,11 @@
           narHash = lib.flocoConfig.enableImpureFetchers;
         } else throw "Unrecognized `fetchTree' type: ${type}";
       fc = { type = false; narHash = true; };
-      args' = args // ( {
+      args' = args // {
         path    = plock2PathFetchArgs ( removeAttrs args ["type"] );
         tarball = plock2TbFetchArgs   ( removeAttrs args ["type"] );
         git     = plock2GitFetchArgs  ( removeAttrs args ["type"] );
-      } ).${type}.builtins.fetchTree;
+      }.${type}.builtins.fetchTree;
       # Make `__functionArgs' reflect the right args for filtering by type.
     in callWith ( self // { __functionArgs = fc // fa'; } ) args';
   };

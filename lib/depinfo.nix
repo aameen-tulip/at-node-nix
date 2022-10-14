@@ -108,8 +108,7 @@
   # be built; this is different from how it treats symlink entries and `git'
   # entries which may need to be built with the help of `dev' deps ).
   depInfoEntFromPlockV3 = path: plent: let
-    markField = field: attrs:
-      builtins.mapAttrs ( _: _: { ${field} = true; } ) attrs;
+    markField = field: builtins.mapAttrs ( _: _: { ${field} = true; } );
     cds = builtins.mapAttrs ( _: v: { descriptor = v; } ) ( joinPins plent );
     # Some dependencies may be `peer' and `runtime' but have different
     # descriptors, so we record these with distinct names.
