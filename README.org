@@ -96,7 +96,6 @@ For example to symlink unpacked sources from a =package-lock.json(v2/3)= into th
   in "${nmdir}\ninstallNodeModules;"'|bash;
   # `.bin/' members are relative symlinks. 
   ls -la ./node_modules/**;
-  # Next try `copy = false' to create symlinks with `lndir'. ( writeable dirs, read-only symlinked files ).
 #+END_SRC
 These tarballs will be cached by Nix for reuse.
 
