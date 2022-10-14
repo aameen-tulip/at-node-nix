@@ -35,7 +35,6 @@
 
   inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
-  inputs.pacote-src.inputs.nixpkgs.follows = "/nixpkgs";
 
   inputs.rime.url = "github:aakropotkin/rime/main";
   inputs.rime.inputs.ak-nix.follows = "/ak-nix";
