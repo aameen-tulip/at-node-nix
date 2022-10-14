@@ -52,7 +52,7 @@
       m = builtins.match "(file:)?(\\.[^:#?]*)" x;
       p = builtins.elemAt m 1;
     in ( m != null ) && ( ur.Strings.path_segments.check p );
-  in restrict "relative" cond string;
+  in restrict "uri[relative]" cond string;
 
 
 # ---------------------------------------------------------------------------- #
@@ -79,7 +79,7 @@
       "os" "cpu"
     ];
   # XXX: All are optional
-  in builtins.mapAttrs option {
+  in builtins.mapAttrs ( _: option ) {
     name     = identifier;
     version  = locator;
     resolved = resolved_uri;
@@ -88,8 +88,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  pkg-path-fields = let
-  in pkg-any-fields // {
+  pkg-path-fields = pkg-any-fields // {
     resolved = option relative_file_uri;
     link     = option bool;
   };
@@ -97,58 +96,57 @@
   pkg-path = struct "pkg[path]" pkg-path-fields;
 
   pkg-dir = let
-    cond = x: let
-      l = ! ( x.link or false );
-    in l;
+    cond = x: ! ( x.link or false );
   in restrict "dir" cond pkg-path;
 
-
-# ---------------------------------------------------------------------------- #
-
-  # pls-link = struct "${plns}:src:link" {
-  #   resolved = pathlike;
-  #   link     = bool;
-  # };
-
-  # pls-path = struct "${plns}:src:dir" {
-  #   resolved = option pathlike;  # The `pkey'. Defaults to lock dir.
-  # };
-
-  # pls-git = struct "${plns}:src:git" {
-  #   resolved = url;  # check for "git+" prefix
-  # };
-
-  # pls-tarball = struct "${plns}:src:tarball" {
-  #   resolved = either url path;
-  #   integrity = option sha512_sri;
-  #   sha1      = option sha1_h;
-  # };
-
-
-  #plsource = struct "${plns}:src" {
-  #  resolved  = either pathlike url;  # NOTE: root entry lacks this
-  #  link      = option bool;
-  #  integirty = option sha512_sri;
-  #  sha1      = option sha1_h;
-  #};
-
-  ## FIXME: enfoce `pathlike' on link and dir.
-  #pls-link = restrict "link" ( v: v.link or false ) plsource;
-  #pls-dir  = restrict "dir"  ( v: ! ( v.link or false ) ) plsource;
-  #pls-git  = restrict "git"  ( v: lib.hasPrefix "git+" v.resolved ) plsource;
-  #pls-tarball = let
-  #  # I'm not 100% sure local tarballs have hashes
-  #  hashCond = v: ( v ? sha1 ) || ( v ? integrity );
-  #  # FIXME: more tarball extensions
-  #  resCond = v:
-  #    lib.test "[^#]+\\.(tgz|tar.gz|tar.xz)(#.*)?" ( v.resolved or "" );
-  #  cond = v: ( hashCond v ) && ( resCond v );
-  #in restrict "tarball" cond plsource;
+  pkg-link = let
+    cond = x: x.link or false;
+  in restrict "link" cond pkg-path;
 
 
 # ---------------------------------------------------------------------------- #
+
+  pkg-git = struct "pkg[git]" ( pkg-any-fields // {
+    resolved = let
+      cond = lib.test "git(\\+(ssh|https?))?://.*";
+    in restrict "git" cond resolved_uri;
+  } );
+
+
+# ---------------------------------------------------------------------------- #
+
+  pkg-tarball = let
+    cond = x: ( x ? integrity ) || ( x ? sha1 );
+  in restrict "tarball" cond ( struct "pkg" ( pkg-any-fields // {
+    # FIXME: `lib.ytypes.Strings.tarball_url'
+    resolved =
+      restrict "tarball" ( lib.test "(file\\+)?https?://.*" ) resolved_uri;
+    # FIXME: it is mandatory to have at least one
+    integrity = option yt.Strings.sha512_sri;
+    # FIXME: this belongs in `ak-nix'
+    sha1 = option ( restrict "hash[sha1]" ( lib.test "[[:xdigit:]]+" )
+                                          string );
+  } ) );
+
+
+# ---------------------------------------------------------------------------- #
+
 
 in {
+  Strings = {
+    inherit
+      resolved_uri
+      relative_file_uri
+    ;
+  };
+  Structs = {
+    inherit
+      pkg-dir
+      pkg-link
+      pkg-git
+      pkg-tarball
+    ;
+  };
   inherit
     identifyResolvedType
   ;
