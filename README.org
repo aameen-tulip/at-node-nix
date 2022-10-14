@@ -90,9 +90,9 @@ This is a convenient way to use =at-node-nix= routines in your projects without 
 
 For example to symlink unpacked sources from a =package-lock.json(v2/3)= into the current working directory:
 #+BEGIN_SRC shell
-  nix eval --impure --expr --raw 'let
+  nix eval --impure --raw --expr 'let
     pkgsFor = ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
-    nmdir   = pkgsFor.mkNmDirPlockV3 { lockDir = toString ./.; dev = false; copy = true; };
+    nmdir   = pkgsFor.mkNmDirPlockV3 { lockDir = toString ./.; };
   in "${nmdir}; installNodeModules;"'|sh;
   # `.bin/' members are relative symlinks. 
   ls -la ./node_modules/**;
