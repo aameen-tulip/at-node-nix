@@ -17,10 +17,13 @@
     resolveDepForPlockV3
   ;
 
+  yt = lib.ytypes;
+
   # V1 Lockfiles
   plv1-big   = lib.importJSON ./data/plv1-big.json;
   plv1-small = lib.importJSON ./data/plv1-small.json;
   plv1-dev   = lib.importJSON ./data/plv1-dev.json;
+  plv2-fetch = lib.importJSON ../libfetch/data/proj2/package-lock.json;
 
   # V2 Lockfiles
   plv2-it = lib.importJSON ./data/plv2-it.json;
@@ -47,11 +50,7 @@
   # Use this to compare the `expected' and `actual' contents.
   tests = {
 
-    # FIXME
-    testPinVersionsFromPlockV2 = {
-      expr = {};
-      expected = {};
-    };
+# ---------------------------------------------------------------------------- #
 
     testSplitNmToIdentPath = {
       expr = splitNmToIdentPath "node_modules/foo/node_modules/@bar/quux";
@@ -75,6 +74,9 @@
         null
       ];
     };
+
+
+# ---------------------------------------------------------------------------- #
 
     testResolveDepForPlockV3 = {
       expr = let
@@ -120,6 +122,9 @@
       ];
     };
 
+
+# ---------------------------------------------------------------------------- #
+
     testResolveDepForPlockV1 = {
       expr = let
         res = { ident, ... } @ args: let
@@ -136,7 +141,42 @@
       ];
     };
 
-  };
+
+# ---------------------------------------------------------------------------- #
+
+    testIdentifyResolvedType_0 = {
+      expr = let
+        # We know that all of these are registry tarballs.
+        haveResolved = lib.filterAttrs ( _: v: v ? resolved ) plv2-it.packages;
+        identify = v: yt.NpmLock.identifyResolvedType v.resolved;
+        idrs = builtins.mapAttrs ( _: identify ) haveResolved;
+        types = map builtins.attrNames ( builtins.attrValues idrs );
+      in builtins.all ( t: t == ["file"] ) types;
+      expected = true;
+    };
+
+    # This one has registry tarballs, links, and git.
+    # It has paths as well; but those don't have a `resolved' field.
+    testIdentifyResolvedType_1 = {
+      expr = let
+        haveResolved =
+          lib.filterAttrs ( _: v: v ? resolved ) plv2-fetch.packages;
+        identify = v: yt.NpmLock.identifyResolvedType v.resolved;
+        idrs = builtins.mapAttrs ( _: identify ) haveResolved;
+      in builtins.concatMap builtins.attrNames ( builtins.attrValues idrs );
+      expected = ["git" "path" "file"];
+    };
+
+    # Test a dir ( should be flagged in the same cases as `link' ).
+    testIdentifyResolvedType_2 = {
+      expr     = yt.NpmLock.identifyResolvedType "../projd";
+      expected = { path = "../projd"; };
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+  };  # End Tests
 
 
 # ---------------------------------------------------------------------------- #

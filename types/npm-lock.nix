@@ -42,7 +42,7 @@
   # link, dir, tarball, git
   #   "resolved": "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c",
   #   "resolved": "https://registry.npmjs.org/typescript/-/typescript-4.8.2.tgz",
-  resolve_uri = let
+  resolved_uri = let
     cond = x: true;
   # FIXME: I think `uri_ref' is too strict
   in restrict "resolved" cond uri_ref;
@@ -82,7 +82,7 @@
   in builtins.mapAttrs option {
     name     = identifier;
     version  = locator;
-    resolved = resolve_uri;
+    resolved = resolved_uri;
   };
 
 
