@@ -8,11 +8,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  pushDownNames = builtins.mapAttrs ( name: val: val // { inherit name; } );
-
-
-# ---------------------------------------------------------------------------- #
-
   pkgsAsAttrsets = pkgs: let
     inherit (builtins) mapAttrs head;
     inherit (lib) groupBy;
@@ -44,7 +39,6 @@
 
 in {
   inherit
-    pushDownNames
     pkgsAsAttrsets
     addFlocoPackages
   ;
