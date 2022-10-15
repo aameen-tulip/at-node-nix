@@ -104,10 +104,9 @@
       resolved = option relative_file_uri;
       link     = option bool;
     };
-    condFields  = x: let
+    cond = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
     in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
-    cond = x: ( condHash x ) && ( condFields x );
   in restrict "pkg[path]" cond ( yt.attrs yt.any );
   
   pkg-dir  = restrict "dir"  ( x: ! ( x.link or false) ) pkg-path;
@@ -118,10 +117,9 @@
 
   pkg-git = let
     fconds = pkg-any-fields // { resolved = git_uri; };
-    condFields  = x: let
+    cond = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
     in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
-    cond = x: ( condHash x ) && ( condFields x );
   in restrict "pkg[git]" cond ( yt.attrs yt.any );
 
 
@@ -134,7 +132,7 @@
       integrity = option yt.Strings.sha512_sri;
       sha1      = option yt.Strings.sha1_hash;
     };
-    condFields  = x: let
+    condFields = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
     in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     cond = x: ( condHash x ) && ( condFields x );
