@@ -57,6 +57,12 @@
 
 # ---------------------------------------------------------------------------- #
 
+  git_uri = restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" )
+                           resolved_uri;
+
+
+# ---------------------------------------------------------------------------- #
+
   identifyResolvedType = r: let
     isPath = ( ! ( lib.liburi.Url.isType r ) ) && ( relative_file_uri.check r );
     isGit  = let
@@ -93,11 +99,17 @@
 
 # ---------------------------------------------------------------------------- #
 
-  pkg-path-fields = pkg-any-fields // {
-    resolved = option relative_file_uri;
-    link     = option bool;
-  };
-  pkg-path = struct   "pkg[path]" pkg-path-fields;
+  pkg-path = let
+    fconds = pkg-any-fields // {
+      resolved = option relative_file_uri;
+      link     = option bool;
+    };
+    condFields  = x: let
+      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
+    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    cond = x: ( condHash x ) && ( condFields x );
+  in restrict "pkg[path]" cond ( yt.attrs yt.any );
+  
   pkg-dir  = restrict "dir"  ( x: ! ( x.link or false) ) pkg-path;
   pkg-link = restrict "link" ( x: x.link or false ) pkg-path;
 
@@ -105,11 +117,12 @@
 # ---------------------------------------------------------------------------- #
 
   pkg-git = let
-
-  in struct "pkg[git]" ( pkg-any-fields // {
-    resolved =
-      restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" ) resolved_uri;
-  } );
+    fconds = pkg-any-fields // { resolved = git_uri; };
+    condFields  = x: let
+      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
+    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    cond = x: ( condHash x ) && ( condFields x );
+  in restrict "pkg[git]" cond ( yt.attrs yt.any );
 
 
 # ---------------------------------------------------------------------------- #
@@ -136,7 +149,9 @@ in {
     inherit
       resolved_uri
       relative_file_uri
+      git_uri
     ;
+    tarball_uri = yt.Strings.tarball_url;
   };
   Structs = {
     inherit
