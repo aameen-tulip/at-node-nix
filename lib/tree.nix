@@ -37,11 +37,14 @@
   #
   # NOTE: This function does not require that `metaSet' be passed.
   # If it is omitted we'll detect `__rootKey' from `plock'.
-  idealTreePlockV3 = {
+  idealTreePlockV3 = let
+    ldmsg = "(idealTreePlockV3): You must provide an arg for me to find " +
+            "your package lock. Recommended: `lockDir = <PATH>;'.";
+  in {
     plock  ? args.__meta.plock or
              ( if metaSet != null then metaSet.__meta.plock
                else lib.importJSON' "${lockDir}/package-lock.json" )
-  , lockDir ? throw "You must provide an arg for me to find your package lock"
+  , lockDir ? throw ldmsg
   # XXX: `metaSet' is optional when you provide `plock'.
   , metaSet ? if ( args ? _type ) && ( args._type == "metaSet" ) then args
                                                                  else null

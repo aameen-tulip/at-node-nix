@@ -18,9 +18,14 @@
 
   Structs = {
 
+    # Attrs starting with '_<FIELD>' are CouchDB metadata fields that are not
+    # relevant to package installation.
+    # These are sometimes useful for "locking though".
+    # Fore example we *COULD* use `_rev' to "lock" a packument and fetch it
+    # again later with `builtins.fetchTree { type = "file"; narHash = ...; }'.
     packument = struct "packument" {
-      _id          = yt.Strings.identifier_any;
-      _rev         = string;  # XXX: NOT A GIT REV
+      _id          = yt.Strings.identifier_any;  # couchDB metadata
+      _rev         = string;  # XXX: NOT A GIT REV. This is couchDB metadata.
       name         = yt.Strings.identifier_any;
       author       = option Eithers.human;
       bugs         = option Eithers.human;
