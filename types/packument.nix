@@ -29,15 +29,15 @@
       name         = yt.Strings.identifier_any;
       author       = option Eithers.human;
       bugs         = option Eithers.human;
-      contributors = option ( yt.either string ( list Eithers.human ) );
+      contributors = option Eithers.humans;
+      maintainers  = list Eithers.human;
       description  = option string;
       dist-tags    = attrs yt.Strings.version;
       homepage     = option string;
       keywords     = option ( list string );
-      license      = option string;
-      maintainers  = list Eithers.human;
-      # falls back to error string
-      readme         = string;
+      license      = option Eithers.licenses;
+      # falls back to error string in most cases but some old packages lack it.
+      readme         = option string;
       readmeFilename = option string;
       repository     = option Eithers.repository;
       time           = attrs string;
@@ -48,6 +48,8 @@
     };
 
 # ---------------------------------------------------------------------------- #
+
+    license = struct "license" { type = string; url = string; };
 
     human = struct "human" {
       name           = option string;
@@ -71,7 +73,10 @@
 
   Eithers = {
     human      = yt.either string Structs.human;
+    humans     = yt.either Eithers.human ( yt.list Eithers.human );
     repository = yt.either string Structs.repository;
+    license    = yt.either string Structs.license;
+    licenses   = yt.either Eithers.license ( yt.list Eithers.license );
   };
 
 

@@ -21,17 +21,42 @@
 
 { lib }: let
 
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  inherit (yt.PkgInfo) RE;
+
 # ---------------------------------------------------------------------------- #
 
+  tryYankVersionCore = str: let
+    m = builtins.match "([^-+]+)(-[^+]+)?(\\+.*)?" str;
+  in if m == null then null else builtins.head m;
 
-  versionRE = let
-    np        = "(0|[1-9][0-9]*)";
-    anum      = "[0-9a-zA-Z-]";
-    anp       = "(0|[1-9][0-9]*|[0-9]*[a-zA-Z-]${anum}*)";
-    corePatt  = ''${np}(\.${np}(\.${np})?)?'';
-    prePatt   = ''(-${anp}(\.${anp})?)?'';
-    buildPatt = ''(\+(${anum}+(\.[0-9a-zA-Z]+)*))?'';
-  in corePatt + prePatt + buildPatt;
+  yankVersionCore =
+    yt.defun [yt.PkgInfo.Strings.version yt.PkgInfo.Strings.version_core]
+             tryYankVersionCore;
+
+
+# ---------------------------------------------------------------------------- #
+
+  tryYankPreTag = str: let
+    m = builtins.match "[^-+]+-([^+]+)(\\+.*)?" str;
+  in if m == null then null else builtins.head m;
+
+  yankPreTag = yt.defun [yt.PkgInfo.Strings.version yt.PkgInfo.Strings.pre_tag]
+                        tryYankPreTag;
+
+
+# ---------------------------------------------------------------------------- #
+
+  tryYankBuildMeta = str: let
+    m = builtins.match "[^-+]+(-[^+]+)?\\+(.*)" str;
+  in if m == null then null else builtins.elemAt m 1;
+
+  yankBuildMeta =
+    yt.defun [yt.PkgInfo.Strings.version yt.PkgInfo.Strings.build_meta]
+             tryYankBuildMeta;
+
+
+# ---------------------------------------------------------------------------- #
 
   parseVersionConstraint' = str: let
     inherit (builtins) head elemAt match length;
@@ -39,9 +64,9 @@
     mods       = "[~^]";
     cmpPatt    = "([<>]=?|=?[<>]|=)";
     betPatt    = "(${ws}-|-${ws})";
-    modPatt    = "(${mods})?(${versionRE})";
-    cmpVerPatt = "(${cmpPatt}${ws}*(${versionRE})|(${versionRE})${ws}*${cmpPatt})";
-    rangePatt  = "(${versionRE})${ws}*${betPatt}${ws}*(${versionRE})";
+    modPatt    = "(${mods})?(${RE.version_p})";
+    cmpVerPatt = "(${cmpPatt}${ws}*(${RE.version_p})|(${RE.version_p})${ws}*${cmpPatt})";
+    rangePatt  = "(${RE.version_p})${ws}*${betPatt}${ws}*(${RE.version_p})";
     termPatt   = "${ws}*(${cmpVerPatt}(${ws}*${cmpVerPatt})?|${rangePatt}|${modPatt})${ws}*";
     # We have to escape "|" using "[|]", NOT "\|".
     stPatt     = "${termPatt}([|][|]${termPatt})*";
@@ -149,60 +174,92 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Split a version string into a list of 6 components following semver spec.
-  semverSplit = v: let
-    matched = builtins.match versionRE v;
-    # "1.0.0-beta+exp.sha.5114f85" ==>
-    # [ "1" ".0.0-beta" "0" ".0-beta" "0" "-beta" "beta" null null "+exp.sha.5114f85" "exp.sha.5114f85" ".5114f85" ]
-    # "1.2.3-X.4+5Y.6" ==>
-    # [ "1" ".2.3-X.4" "2" ".3-X.4" "3" "-X.4" "X" ".4" "4" "+5Y.6" "5Y.6" ".6" ]
-    # Keep fields [0, 2, 4, 6, 8, 10]
-    keeps = map ( builtins.elemAt matched ) [0 2 4 6 8 10];
-  in if ( matched == null ) then [null null null null null null] else keeps;
+  tryParseSemverStrict = v: let
+    core = tryYankVersionCore v;
+    cm   = builtins.match "${RE.num_p}(\\.${RE.num_p}(\\.${RE.num_p})?)?" core;
+  in if cm == null then null else {
+    major     = builtins.head cm;
+    minor     = builtins.elemAt cm 2;
+    patch     = builtins.elemAt cm 4;
+    preTag    = tryYankPreTag v;
+    buildMeta = tryYankBuildMeta v;
+  };
+
+  parseSemverStrict = v:
+    yt.defun [yt.PkgInfo.Strings.version ( yt.attrs yt.any )]
+             tryParseSemverStrict;
+
 
 
 # ---------------------------------------------------------------------------- #
 
   # Split a version string into a labeled set of subcomponents following
   # semver spec.
-  parseSemver = v: let
-    svs = semverSplit v;
-    at  = builtins.elemAt svs;
-  in {
-    major  = let p = at 0; in if ( p == null ) then "0" else p;
-    minor  = let p = at 1; in if ( p == null ) then "0" else p;
-    patch  = let p = at 2; in if ( p == null ) then "0" else p;
-    preTag = let p = at 3; in if ( ( at 1 ) == null ) || ( ( at 2 ) == null )
-                              then "0" else p;
-    preVer    = at 4;
-    buildMeta = at 5;
+  tryParseSemverRoundDown = v: let
+    strict = tryParseSemverStrict v;
+    fno    = field: if strict.${field} == null then "0" else strict.${field};
+  in if strict == null then null else {
+    major  = fno "major";
+    minor  = fno "minor";
+    patch  = fno "patch";
+    preTag =
+      if strict.preTag != null then strict.preTag else
+      if ( strict.minor == null ) || ( strict.patch == null ) then null else
+      tryYankPreTag v;
+    buildMeta = tryYankBuildMeta v;
   };
+
+  # FIXME: define struct
+  parseSemverRoundDown =
+    yt.defun [yt.PkgInfo.Strings.version ( yt.attrs yt.any )]
+             tryParseSemverRoundDown;
+
+
+# ---------------------------------------------------------------------------- #
 
   # Used to bump loose version numbers when they used in comparators/ranges.
   # These are also used to normalize "1.x" strings.
   #   1     -> 2.0.0-0
   #   1.0   -> 1.1.0-0
   #   1.0.0 -> 1.0.0
-  parseSemverRoundUp = v: let
-    svs  = semverSplit v;
-    at   = builtins.elemAt svs;
-    majM = at 0;
-    minM = at 1;
-    patM = at 2;
-  in {
+  tryParseSemverRoundUp = v: let
+    strict = tryParseSemverStrict v;
+    incs   = s: toString ( ( builtins.fromJSON s ) + 1 );
+    loose  = parseSemverRoundDown v;
+  in if strict == null then null else loose // {
     major =
-      if ( majM == null ) then "0" else
-      if minM == null then toString ( ( builtins.fromJSON majM ) + 1 ) else
-      majM;
+      if strict.major == null then "0" else
+      if strict.minor == null then incs strict.major else
+      strict.major;
     minor =
-      if ( minM == null ) then "0" else
-      if patM == null then toString ( ( builtins.fromJSON minM ) + 1 ) else
-      minM;
-    patch     = let p = at 2; in if ( p == null ) then "0" else p;
-    preTag    = if ( minM == null ) || ( patM == null ) then "0" else ( at 3 );
-    preVer    = at 4;
-    buildMeta = at 5;
+      if strict.minor == null then "0" else
+      if strict.patch == null then incs strict.minor else
+      strict.minor;
+    preTag = let
+      tag  = if strict.preTag != null then [strict.preTag] else [];
+      preV = if ( strict.minor == null ) || ( strict.patch == null )
+             then ["0"]
+             else [];
+      parts = tag ++ preV;
+    in if parts == [] then null else
+       builtins.concatStringsSep "." ( tag ++ preV );
   };
+
+  parseSemverRoundUp = yt.defun [yt.PkgInfo.Strings.version ( yt.attrs yt.any )]
+                                tryParseSemverRoundUp;
+
+
+# ---------------------------------------------------------------------------- #
+
+  cleanVersion = v: let
+    sv   = builtins.head ( builtins.match "v?(.*)" v );
+    m    = builtins.match "([^-+]+)(-[^+]+(\\+.*)?)?" sv;
+    core = builtins.head m;
+    post = builtins.elemAt m 1;
+    sx   = builtins.replaceStrings [".x" ".X"] ["" ""] core;
+  in if m == null then sv else
+     if post == null then sx else
+     "${sx}${post}";
 
 
 # ---------------------------------------------------------------------------- #
@@ -212,26 +269,21 @@
   # "v1.2.3-X.4+5Y.6" ==> "1.2.3-X.4+5Y.6"
   # NOTE: this is effective a `toString' for the parsed semver object.
   normalizeVersion' = parser: v: let
-    sv  = builtins.head ( builtins.match "v?(.*)" v );
-    ps  = parser sv;
-    pre = if ( ps.preTag == null ) then null else
-          if ( ps.preVer == null ) then ps.preTag else
-          ( ps.preTag + "." + ps.preVer );
-    np  = "${ps.major}.${ps.minor}.${ps.patch}";
-    nb  = if pre == null then "" else "-${pre}";
-    b   = if ( ps.buildMeta != null ) then ( "+" + ps.buildMeta ) else "";
+    clean = cleanVersion v;
+    ps    = parser clean;
+    np    = "${ps.major}.${ps.minor}.${ps.patch}";
+    nb    = if ps.preTag == null then "" else "-${ps.preTag}";
+    b     = if ps.buildMeta == null then "" else "+${ps.buildMeta}";
   in np + nb + b;
 
-  normalizeVersion        = normalizeVersion' parseSemver;
-  normalizeVersionRoundUp = normalizeVersion' parseSemverRoundUp;
+  normalizeVersionRoundDown = normalizeVersion' parseSemverRoundDown;
+  normalizeVersionRoundUp   = normalizeVersion' parseSemverRoundUp;
 
 
 # ---------------------------------------------------------------------------- #
 
 in {
   inherit
-    versionRE
-
     sortVersions'
     sortVersionsD
     sortVersionsA
@@ -240,12 +292,19 @@ in {
     isRelease
     latestRelease
 
-    parseVersionConstraint'
-    semverSplit
-    parseSemver
-    parseSemverRoundUp
+    tryYankVersionCore yankVersionCore
+    tryYankPreTag      yankPreTag
+    tryYankBuildMeta   yankBuildMeta
 
-    normalizeVersion
+    parseVersionConstraint'
+
+    tryParseSemverStrict    parseSemverStrict
+    tryParseSemverRoundDown parseSemverRoundDown
+    tryParseSemverRoundUp   parseSemverRoundUp
+
+    cleanVersion
+
+    normalizeVersionRoundDown
     normalizeVersionRoundUp
   ;
 }

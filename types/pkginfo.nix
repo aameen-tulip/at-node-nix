@@ -69,7 +69,17 @@
 
 # ---------------------------------------------------------------------------- #
 
-    version        = lib.librange.versionRE;  # FIXME: move here.
+    # "Dash" or alphabetical
+    da_c = "[[:alpha:]-]";
+    # "Dash" or alpha-numeric
+    dan_c     = "[[:alnum:]-]";
+    num_p     = "(0|[1-9][[:digit:]]*)";
+    part_p    = "(${RE.num_p}|[0-9]*${RE.da_c}${RE.dan_c}*)";
+    core_p    = "${RE.num_p}(\\.${RE.num_p}(\\.${RE.num_p})?)?";
+    tag_p     = "${RE.part_p}(\\.${RE.part_p})*";
+    build_p   = "${RE.dan_c}+(\\.[[:alnum:]]+)*";
+    version_p = "${RE.core_p}(-${RE.tag_p})?(\\+${RE.build_p})?";
+
     range_constr_c = "<>=~^,|& -";
     range_c        = "[:alnum:].+${RE.range_constr_c}";
 
@@ -82,11 +92,13 @@
     # They're currently nested in parsers for `lib/ranges.nix'.
     range_p = "(${RE.range_p1}+|\\*|latest)";
 
-    locator_p    = "(${RE.version}|${yt.Uri.RE.uri_ref_p})";
+    locator_p    = "(${RE.version_p}|${yt.Uri.RE.uri_ref_p})";
     descriptor_p = "(${yt.Uri.RE.uri_ref_p}|${RE.range_p})";
 
-    id_locator_old_p = "${RE.id_old_p}@(${RE.version}|${yt.Uri.RE.uri_ref_p})";
-    id_locator_new_p = "${RE.id_new_p}@(${RE.version}|${yt.Uri.RE.uri_ref_p})";
+    id_locator_old_p =
+      "${RE.id_old_p}@(${RE.version_p}|${yt.Uri.RE.uri_ref_p})";
+    id_locator_new_p =
+      "${RE.id_new_p}@(${RE.version_p}|${yt.Uri.RE.uri_ref_p})";
 
     id_descriptor_old_p = "${RE.id_old_p}@${RE.descriptor_p}";
     id_descriptor_new_p = "${RE.id_new_p}@${RE.descriptor_p}";
@@ -94,7 +106,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    key = "${RE.id_old_p}/${RE.version}";
+    key = "${RE.id_old_p}/${RE.version_p}";
 
   };  # End `re'
 
@@ -109,7 +121,10 @@
   in {
 
     # FIXME: This belongs with Semver/Range types
-    version  = restrict "version" ( lib.test lib.librange.versionRE ) string;
+    version_core = restrict "version:core" ( lib.test RE.core_p ) string;
+    pre_tag      = restrict "version:tag" ( lib.test RE.tag_p ) string;
+    build_meta   = restrict "version:meta" ( lib.test RE.build_p ) string;
+    version      = restrict "version" ( lib.test RE.version_p ) string;
 
 # ---------------------------------------------------------------------------- #
 

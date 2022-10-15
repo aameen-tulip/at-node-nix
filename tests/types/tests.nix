@@ -21,7 +21,7 @@
     packument
   ;
   inherit (yt.NpmLock.Structs)
-    pkg-tarball
+    pkg_tarball
   ;
 
   inherit ( import ../data/plocks.nix )
@@ -70,13 +70,17 @@
         ent = removeAttrs p ["name"];
       in acc // {
           "testPlockEntryTarball_${p.name}" = {
-            expr     = pkg-tarball ent;
+            expr     = pkg_tarball ent;
             expected = ent;
           };
         };
     in builtins.foldl' proc {} pkgs;
 
+# ---------------------------------------------------------------------------- #
+
   in npmTop1000 // plTarballEnts // {
+
+    inherit packs arb2 arb3 lib yt;
 
 # ---------------------------------------------------------------------------- #
 
