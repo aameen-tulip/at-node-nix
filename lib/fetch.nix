@@ -77,6 +77,19 @@
     ];
   };
 
+  # TODO: types
+  #   abspath
+  #   filename
+  #   barename ( no extensions )
+  #   relpath  ( string + struct )
+  #   path     ( sumtype )
+  #   file     ( sumtype )
+  #   md5 sri
+  #   narHash  ( check charset )
+  #   git reponame
+  #   fetchTree sourceInfo
+
+
 # ---------------------------------------------------------------------------- #
 
   # Tarball Fetcher Argsets.
@@ -136,6 +149,7 @@
     url     = false;
     rev     = true;  # can be parsed from URL
     allRefs = true;  # Defaults to false
+    shallow = true;  # "deepClone"
   };
 
 
@@ -153,13 +167,15 @@
   #       replaced with a "/".
 
   genericGitArgs = {
+    name  = Strings.filename;  # dirname
     type  = yt.enum ["git" "github" "sourcehut"];
     url   = yt.FlakeRef.Strings.git_ref;
     flake = yt.option yt.bool;
     inherit (yt.Git) rev ref;
     inherit (Sums) hash;
     allRefs    = yt.bool;
-    submodules = yt.bool;  # "deepClone"
+    submodules = yt.bool;  # fetchSubmodules
+    shallow    = yt.bool;  # deepClone?
     repo       = yt.Git.Strings.ref_component;
     owner      = yt.Git.Strings.owner;
   };
