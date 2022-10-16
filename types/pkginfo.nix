@@ -4,11 +4,11 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ ytypes }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  yt = ytypes // ytypes.Core // ytypes.Prim;
   inherit (yt) struct string list attrs option restrict;
-  prettyPrint = lib.generators.toPretty {};
+  lib.test = patt: s: ( builtins.match patt s ) != null;
 
 # ---------------------------------------------------------------------------- #
 
@@ -150,7 +150,9 @@
       in if string.check v then res // {
         err = "\"${v}\" is not a valid module identifier";
       } else res // {
-        err = "expected type 'string[identifier]', but value '${prettyPrint v}'"
+        # FIXME: we need `prettyPrint'.
+        #err = "expected type 'string[identifier]', but value '${prettyPrint v}'"
+        err = "expected type 'string[identifier]', but value "
               + " is of type '${builtins.typeOf v}'";
       };
     };

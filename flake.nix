@@ -44,18 +44,28 @@
 
   outputs = { self, nixpkgs, ak-nix, pacote-src, rime }: let
 
-    inherit (ak-nix.lib) eachDefaultSystemMap;
-    pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
+# ---------------------------------------------------------------------------- #
+
+    # `lib' overlays.
+
+    libOverlays.at-node-nix = import ./lib/overlay.lib.nix;
+    libOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.libOverlays.ak-nix
+                                                     rime.libOverlays.rime;
+    libOverlays.default = nixpkgs.lib.composeExtensions libOverlays.deps
+                                                        libOverlays.at-node-nix;
+
 
 # ---------------------------------------------------------------------------- #
 
-  in {  # Real Outputs
+    # This is included in `lib.ytypes' already.
+    # Ignore this unless you were considering vendoring `at-node-nix' types
+    # in your project.
+    # It is exposed here because it is sometimes useful for complex overrides
+    # where vendoring would otherwise be the only "clean" solution.
+    ytOverlays.at-node-nix = import ./types/overlay.yt.nix;
+    ytOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.ytOverlays.ak-nix
+                                                    rime.ytOverlays.rime;
 
-    inherit lib;
-    flocoFetch = lib.makeOverridable lib.mkFlocoFetcher {
-      flocoConfig = lib.libcfg.mkFlocoConfig {};
-    };
 
 # ---------------------------------------------------------------------------- #
 
@@ -66,10 +76,10 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackage  = lib.callPackageWith ( final // {
+      callPackage  = prev.lib.callPackageWith ( final // {
         nodejs = prev.nodejs-14_x;
       } );
-      callPackages = lib.callPackagesWith ( final // {
+      callPackages = prev.lib.callPackagesWith ( final // {
         nodejs = prev.nodejs-14_x;
       } );
       nodeEnv =
@@ -92,147 +102,58 @@
 
 # ---------------------------------------------------------------------------- #
 
-    overlays.at-node-nix = final: prev: let
-      # FIXME: this obfuscates the real dependency scope.
-      callPackageWith  = auto:
-        lib.callPackageWith ( final // { nodejs = prev.nodejs-14_x; } // auto );
-      callPackagesWith = auto:
-        lib.callPackagesWith ( final // {
-          nodejs = prev.nodejs-14_x;
-        } // auto );
-      callPackage  = callPackageWith {};
-      callPackages = callPackagesWith {};
-    in {
+    # Nixpkgs Overlays
 
-      # FIXME: This needs to get resolved is a cleaner way.
-      # Nixpkgs has a major breaking change to `meta' fields that puts me in
-      # a nasty spot... since I have a shitload of custom `meta' fields.
-      config = prev.config // { checkMeta = false; };
-      # XXX: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    overlays.at-node-nix = import ./overlay.nix;
+    # Deps of our default overlay
+    overlays.deps = nixpkgs.lib.composeManyExtensions [
+      ak-nix.overlays.ak-nix
+      rime.overlays.rime
+      overlays.pacote
+    ];
 
-      lib = let
-        base = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
-      in base.extend ( _: _: {
-        flocoConfig = base.mkFlocoConfig {
-          # Most likely this will get populated by `stdenv'
-          npmSys = base.getNpmSys { system = final.system; };
-          # Prefer fetching from original host rather than substitute.
-          # NOTE: This only applies to fetchers that use derivations.
-          #       Builtins won't be effected by this.
-          allowSubstitutedFetchers =
-            ( builtins.currentSystem or null ) != final.system;
-          enableImpureFetchers = false;
-        };
-      } );
+    # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
+    overlays.default = nixpkgs.lib.composeExtensions overlays.deps
+                                                     overlays.at-node-nix;
 
-      snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
-      # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
-      unpackSafe  = callPackage ./pkgs/build-support/unpackSafe.nix;
-      evalScripts = callPackage ./pkgs/build-support/evalScripts.nix;
-      buildGyp    = callPackageWith {
-        python = prev.python3;
-      } ./pkgs/build-support/buildGyp.nix;
-      # FIXME: the alignment with `buildGyp' is bad.
-      genericInstall = callPackageWith {
-        flocoConfig = final.flocoConfig;
-        impure      = final.flocoConfig.enableImpureMeta;
-        python      = prev.python3;
-      } ./pkgs/build-support/genericInstall.nix;
-      patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
-      genSetBinPermissionsHook =
-        callPackage ./pkgs/pkgEnt/genSetBinPermsCmd.nix {};
-      # NOTE: read the file for some known limitations.
-      coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
-
-      inherit (final.lib) flocoConfig;
-      inherit (final.flocoConfig) npmSys;
-      flocoFetch  = callPackage final.lib.libfetch.mkFlocoFetcher {};
-      flocoUnpack = {
-        name             ? args.meta.names.source
-      , tarball          ? args.outPath
-      , flocoConfig      ? final.flocoConfig
-      , allowSubstitutes ? flocoConfig.allowSubstitutedFetchers
-      , ...
-      } @ args: let
-        source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
-        meta'  = lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
-      in { inherit tarball source; outPath = source.outPath; } // meta';
-
-      # Default NmDir builder prefers symlinks
-      mkNmDir = final.mkNmDirLinkCmd;
-
-      mkSourceTree = lib.callPackageWith {
-        inherit (final)
-          lib npmSys system stdenv
-          _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
-          mkNmDirCmdWith
-          flocoUnpack flocoConfig flocoFetch
-        ;
-      } ./pkgs/mkNmDir/mkSourceTree.nix;
-      # { mkNmDir*, tree ( from `mkSourceTree' ) }
-      mkSourceTreeDrv = lib.callPackageWith {
-        inherit (final)
-          lib npmSys system stdenv runCommandNoCC mkSourceTree mkNmDir
-          _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
-          mkNmDirCmdWith
-          flocoUnpack flocoConfig flocoFetch
-        ;
-      } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
-
-      inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
-        mkPkgEntSource
-        buildPkgEnt
-        installPkgEnt
-        testPkgEnt
-      ;
-
-      # Takes `source' ( original ) and `prepared' ( "built" ) as args.
-      # Either `name' ( meta.names.tarball ) or `meta' are also required.
-      mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
-
-      inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
-        inherit (prev.xorg) lndir;
-      })
-        _mkNmDirCopyCmd
-        _mkNmDirLinkCmd
-        _mkNmDirAddBinWithDirCmd
-        _mkNmDirAddBinNoDirsCmd
-        _mkNmDirAddBinCmd
-        mkNmDirCmdWith
-        mkNmDirCopyCmd
-        mkNmDirLinkCmd
-      ;
-      mkNmDirPlockV3 = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
-      pjsUtil = callPackage ./pkgs/build-support/setup-hooks/pjs-util.nix {};
-      mkNmDirSetupHook = callPackage ./pkgs/mkNmDir/mkNmDirSetupHook.nix;
-    };
 
 # ---------------------------------------------------------------------------- #
 
-    # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
-    overlays.default = lib.composeManyExtensions [
-      ak-nix.overlays.default
-      self.overlays.pacote
-      self.overlays.at-node-nix
-    ];
+  in {  # Real Outputs
 
+    inherit overlays libOverlays ytOverlays;
+
+
+# ---------------------------------------------------------------------------- #
+
+    # Realized/Closed lib and package sets for direct consumption.
+    # These are great to use if you aren't composing a large set of overlays
+    # and are just building flake outputs.
+
+    lib = nixpkgs.lib.extend libOverlays.default;
+
+    legacyPackages = ak-nix.lib.eachDefaultSystemMap ( system:
+      nixpkgs.legacyPackages.${system}.extend overlays.default
+    );
 
 # ---------------------------------------------------------------------------- #
 
     # Made a function to block `nix flake check' from fetching.
     testData = { ... }: import ./tests/data;
 
+
 # ---------------------------------------------------------------------------- #
 
-    packages = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    packages = ak-nix.lib.eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
 
       inherit (pkgsFor) pacote;
 
       tests = ( import ./tests {
-        inherit system pkgsFor rime lib;
+        inherit system pkgsFor rime;
         inherit (pkgsFor)
+          lib
           writeText
           flocoUnpack
           flocoConfig
@@ -248,16 +169,16 @@
 
 # ---------------------------------------------------------------------------- #
 
-    checks = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    checks = ak-nix.lib.eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
       inherit (self.packages.${system}) tests;
     } );
 
 # ---------------------------------------------------------------------------- #
 
-    apps = eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    apps = ak-nix.lib.eachDefaultSystemMap ( system: let
+      pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
       # Generates `metaSet' file from a package descriptor.
       # Particularly useful for generating flakes for registry tarballs with
@@ -302,17 +223,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-    templates = {
-      default = self.templates.project;
+    templates = let
       project.path = ./templates/project;
       project.description = "a simple JS project with Floco";
+    in {
+      inherit project;
+      default = project;
     };
-
-# ---------------------------------------------------------------------------- #
-
-    legacyPackages = eachDefaultSystemMap ( system:
-      ( nixpkgs.legacyPackages.${system} ).extend self.overlays.default
-    );
 
 # ---------------------------------------------------------------------------- #
 

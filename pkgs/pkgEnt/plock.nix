@@ -87,8 +87,7 @@
     };
     # FIXME: use `names.tarball' if you can.
     forTbs = let
-      tbUrl    = flocoFetch ( ( removeAttrs sourceInfo ["entSubtype"] )
-                              // { type = "url"; } );
+      tbUrl    = flocoFetch ( sourceInfo // { type = "file"; } );
       fetched  = flocoFetch sourceInfo;
       unpacked = assert ( fetched.needsUnpack or false ); flocoUnpack {
         name    = names.src;

@@ -1,4 +1,8 @@
 # ============================================================================ #
+#
+#
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
 
@@ -25,6 +29,20 @@
      if isGit  then { git = r; } else
      if isFile then { file = r; } else
      throw "(identifyResolvedType) unable to determine type of ${r}";
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Given a package entry from a `package-lock.json(v[23])', return one of
+  # "file", "path", or "git" indicating the source type.
+  identifyPlentSourceType = ent: let
+    tagged = lib.libtypes.discrTypes {
+      path = yt.NpmLock.Structs.pkg_path_v3;
+      git  = yt.NpmLock.Structs.pkg_git_v3;
+      file = yt.NpmLock.Structs.pkg_tarball_v3;
+    } ent;
+  in if ! ( ent ? resolved ) then "path" else  # FIXME type is broken
+     builtins.head ( builtins.attrNames tagged );
 
 
 # ---------------------------------------------------------------------------- #
@@ -56,8 +74,8 @@
   # FIXME: move these
 
   Strings = {
-    filename = restrict "filename" ( lib.test "[^/\\]+" ) yt.string;
-    abspath  = restrict "abspath" ( lib.test "/.*" ) yt.string;
+    filename = yt.restrict "filename" ( lib.test "[^/\\]+" ) yt.string;
+    abspath  = yt.restrict "abspath" ( lib.test "/.*" ) yt.string;
   };
 
   Eithers = {
@@ -193,7 +211,7 @@
     inherit (builtinsPathArgs) name path filter;
     type  = yt.enum ["path"];
     flake = yt.bool;
-    url   = ytypes.FlakeRef.Strings.path_ref;
+    url   = yt.FlakeRef.Strings.path_ref;
     # I made these up
     basedir = Eithers.abspath;
     relpath = yt.NpmLock.relative_file_uri;  # FIXME: move this type
@@ -238,9 +256,7 @@
     };
     __fetcher = lib.fetchurlDrv;
     __functor = self: args: let
-      args' = let
-        rargs = removeAttrs args ["unpackAfter"];
-      in rargs // ( plock2TbFetchArgs rargs ).lib.fetchurlDrv;
+      args' = removeAttrs args ["unpackAfter"];
       # Hide `unpackAfter' for real call.
       fetched = callWith ( self // {
         __functionArgs = removeAttrs self.__functionArgs ["unpackAfter"];
@@ -274,9 +290,7 @@
       allRefs    = true;
     };
     __fetcher = builtins.fetchGit;
-    __functor = self: args: let
-      args' = args // ( plock2GitFetchArgs args ).builtins.fetchGit;
-    in callWith self args';
+    __functor = self: args: callWith self args;
   };
 
   # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
@@ -354,11 +368,7 @@
           narHash = lib.flocoConfig.enableImpureFetchers;
         } else throw "Unrecognized `fetchTree' type: ${type}";
       fc = { type = false; narHash = true; };
-      args' = args // {
-        path    = plock2PathFetchArgs ( removeAttrs args ["type"] );
-        tarball = plock2TbFetchArgs   ( removeAttrs args ["type"] );
-        git     = plock2GitFetchArgs  ( removeAttrs args ["type"] );
-      }.${type}.builtins.fetchTree;
+      args' = args // { inherit type; };
       # Make `__functionArgs' reflect the right args for filtering by type.
     in callWith ( self // { __functionArgs = fc // fa'; } ) args';
   };
@@ -388,49 +398,38 @@
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
   mkFlocoFetcher = {
-    tarballFetcher ? if enableImpureFetchers then tarballFetcherImpure
-                                             else tarballFetcherPure
-  , tarballFetcherPure   ? fetchers.tarballFetcherPure
-  , tarballFetcherImpure ? fetchers.tarballFetcherImpure
-  , urlFetcher  ? fetchers.urlFetcher
-  , gitFetcher  ? fetchers.gitFetcher
-  , dirFetcher  ? fetchers.dirFetcher
-  , linkFetcher ? fetchers.linkFetcher
-  , fetchers    ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
-                                      ( flocoConfig.fetchers or {} )
+    tarballFetcher ? fetchers.tarballFetcher
+  , fileFetcher    ? fetchers.fileFetcher
+  , gitFetcher     ? fetchers.gitFetcher
+  , pathFetcher    ? fetchers.pathFetcher
+  , fetchers       ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
+                                         ( flocoConfig.fetchers or {} )
   , flocoConfig          ? lib.flocoConfig
   , enableImpureFetchers ? flocoConfig.enableImpureFetchers
   , allowSubstitutes     ? flocoConfig.allowSubstitutedFetchers or true
-  , cwd            ? throw "You must set cwd for relative path fetching"
+  , cwd                  ? throw "You must set cwd for relative path fetching"
   } @ cargs: args: let
     fetchers = {
       # We don't carry pure/impure past argument handling because we're actually
       # going to fetch.
       inherit
-        urlFetcher
+        pathFetcher
         gitFetcher
-        dirFetcher
-        linkFetcher
         tarballFetcher
+        fileFetcher
       ;
     };
-    sourceInfo = if args ? entSubtype then args else args.sourceInfo or {};
-    plent = args.entries.plock or args;
-    atype = args.type or sourceInfo.type or null;
-    type  = if atype != null then atype else
-            if builtins.elem entSubtype ["registry-tarball" "source-tarball"]
-            then "tarball" else entSubtype;
-    entSubtype = let
-      fromArgs = args.entSubtype or sourceInfo.entSubtype or null;
-      type'    = if atype == "tarball" then "registry-tarball" else atype;
-      guess    = typeOfEntry plent;
-      fromT    = if atype != null then type' else guess;
-    in if fromArgs != null then fromArgs else fromT;
-    cwd' = if ! ( builtins.elem type ["path" "symlink"] ) then {} else
-      if ( args ? cwd ) || ( cargs ? cwd )
-      then { __thunk.cwd = args.cwd or cargs.cwd; }
-      else if ( plent ? lockDir ) then { __thunk.cwd = plent.lockDir; } else {};
-    fetcher = ( fetcherForType fetchers entSubtype ) // cwd';
+    sourceInfo = if args ? type then args else args.sourceInfo or {};
+    plent = if yt.NpmLock.package.check args then args else
+            args.entries.plock;
+    type = args.type or sourceInfo.type or ( identifyPlentSourceType plent );
+    cwd'  =
+      if type != "path" then {} else
+      if ( args ? cwd ) || ( cargs ? cwd ) then {
+        __thunk.cwd = args.cwd or cargs.cwd;
+      } else if ( plent ? lockDir ) then { __thunk.cwd = plent.lockDir; } else
+      {};
+    fetcher = fetchers."${type}Fetcher" // cwd';
     args' = if sourceInfo != {} then sourceInfo else plent;
     fetched = fetcher ( { inherit type; } // args' );
   # Don't refetch if `outPath' is defined ( basically only happens for flakes ).
@@ -442,6 +441,7 @@
 in {
   inherit
     identifyResolvedType
+    identifyPlentSourceType
     plockEntryHashAttr
 
     fetchGitW fetchTreeW pathW

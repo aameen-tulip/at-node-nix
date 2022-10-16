@@ -37,13 +37,11 @@
       tarballFetcherPure   = lib.libfetch.fetchurlNoteUnpackDrvW;
       tarballFetcherImpure = lib.libfetch.fetchTreeW;
     in {
-      urlFetcher     = lib.libfetch.fetchurlDrvW;
+      fileFetcher    = lib.libfetch.fetchurlDrvW;
       gitFetcher     = lib.libfetch.fetchGitW;
-      dirFetcher     = lib.libfetch.pathW;
-      linkFetcher    = lib.libfetch.pathW;
+      pathFetcher    = lib.libfetch.pathW;
       tarballFetcher = if lib.inPureEvalMode then tarballFetcherPure
                                              else tarballFetcherImpure;
-      inherit tarballFetcherPure tarballFetcherImpure;
     };
   };
 

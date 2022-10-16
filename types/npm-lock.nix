@@ -6,14 +6,15 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ ytypes }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  yt = ytypes // ytypes.Core // ytypes.Prim;
   ur = yt.Uri;
   pi = yt.PkgInfo;
   inherit (yt) struct string list bool attrs option restrict;
   inherit (pi.Strings) identifier identifier_any version locator descriptor;
   inherit (ur.Strings) uri_ref scheme fragment;
+  lib.test = patt: s: ( builtins.match patt s ) != null;
 
 # ---------------------------------------------------------------------------- #
 
