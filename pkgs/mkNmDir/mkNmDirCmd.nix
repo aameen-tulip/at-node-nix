@@ -48,7 +48,8 @@
     forEnt = let
       realEnt  = if ent ? meta then ent else {};
       meta = realEnt.meta or ent;
-    in ( realEnt.hasBin or meta.hasBin or assumeHasBin ) ||
+    in assumeHasBin ||
+       ( realEnt.hasBin or meta.hasBin or false ) ||
        ( ( realEnt.bin or meta.bin or {} ) != {} );
   in if isStr then forStr else forEnt;
 

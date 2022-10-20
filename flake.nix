@@ -48,9 +48,9 @@
 
     # `lib' overlays.
 
-    libOverlays.at-node-nix = import ./lib/overlay.lib.nix;
-    libOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.libOverlays.ak-nix
+    libOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.libOverlays.default
                                                      rime.libOverlays.rime;
+    libOverlays.at-node-nix = import ./lib/overlay.lib.nix;
     libOverlays.default = nixpkgs.lib.composeExtensions libOverlays.deps
                                                         libOverlays.at-node-nix;
 
@@ -63,7 +63,7 @@
     # It is exposed here because it is sometimes useful for complex overrides
     # where vendoring would otherwise be the only "clean" solution.
     ytOverlays.at-node-nix = import ./types/overlay.yt.nix;
-    ytOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.ytOverlays.ak-nix
+    ytOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.ytOverlays.default
                                                     rime.ytOverlays.rime;
 
 
@@ -104,41 +104,15 @@
 
     # Nixpkgs Overlays
 
-    overlays.at-node-nix = import ./overlay.nix;
     # Deps of our default overlay
-    overlays.deps = nixpkgs.lib.composeManyExtensions [
-      ak-nix.overlays.ak-nix
-      rime.overlays.rime
-      overlays.pacote
-    ];
+    overlays.deps = nixpkgs.lib.composeExtensions rime.overlays.default
+                                                  overlays.pacote;
+
+    overlays.at-node-nix = import ./overlay.nix;
 
     # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
     overlays.default = nixpkgs.lib.composeExtensions overlays.deps
                                                      overlays.at-node-nix;
-
-
-# ---------------------------------------------------------------------------- #
-
-  in {  # Real Outputs
-
-    inherit overlays libOverlays ytOverlays;
-
-# ---------------------------------------------------------------------------- #
-
-    # Realized/Closed lib and package sets for direct consumption.
-    # These are great to use if you aren't composing a large set of overlays
-    # and are just building flake outputs.
-
-    lib = nixpkgs.lib.extend libOverlays.default;
-
-    legacyPackages = ak-nix.lib.eachDefaultSystemMap ( system:
-      nixpkgs.legacyPackages.${system}.extend overlays.default
-    );
-
-# ---------------------------------------------------------------------------- #
-
-    # Made a function to block `nix flake check' from fetching.
-    testData = { ... }: import ./tests/data;
 
 
 # ---------------------------------------------------------------------------- #
@@ -168,10 +142,34 @@
 
 # ---------------------------------------------------------------------------- #
 
+  in {  # Real Outputs
+
+    inherit overlays libOverlays ytOverlays packages;
+
+# ---------------------------------------------------------------------------- #
+
+    # Realized/Closed lib and package sets for direct consumption.
+    # These are great to use if you aren't composing a large set of overlays
+    # and are just building flake outputs.
+
+    lib = nixpkgs.lib.extend libOverlays.default;
+
+    legacyPackages = ak-nix.lib.eachDefaultSystemMap ( system:
+      nixpkgs.legacyPackages.${system}.extend overlays.default
+    );
+
+# ---------------------------------------------------------------------------- #
+
+    # Made a function to block `nix flake check' from fetching.
+    testData = { ... }: import ./tests/data;
+
+
+# ---------------------------------------------------------------------------- #
+
     checks = ak-nix.lib.eachDefaultSystemMap ( system: let
       pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
-      inherit (self.packages.${system}) tests;
+      inherit (packages.${system}) tests;
     } );
 
 # ---------------------------------------------------------------------------- #
