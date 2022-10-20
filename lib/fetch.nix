@@ -198,6 +198,23 @@
     owner      = yt.Git.Strings.owner;
   };
 
+  plockEntryToGitArgs = let
+    inner = { resolved, ... }: let
+      parsed = lib.liburi.parseFullUrl resolved;
+      repo   = lib.yank "(.*)\\.git" ( baseNameOf parsed.path );
+      owner  = baseNameOf ( dirOf parsed.path );
+    in {
+      inherit repo owner;
+      name = repo;
+      url  = resolved;
+      rev  = parsed.fragment;
+      type = if parsed.authority == "git@github.com" then "github" else
+             "git";
+      allRefs = true;
+    };
+  # FIXME: return type
+  in defun [yt.NpmLock.Structs.pkg_git_v3 ( yt.attrs yt.any )] inner;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -219,21 +236,6 @@
 
 
 # ---------------------------------------------------------------------------- #
-
-  # Wrappers for builtin fetchers so that routines like `callPackages',
-  # `lib.functionArgs', and `lib.makeOverridable' with work with them.
-  # This is particularly important for `callPackage' with `builtins.fetchTree'.
-  # Since these are not system dependant they
-
-  callWith = {
-    __functionArgs
-  , __thunk ? {}
-  , __fetcher
-  #, __functor
-  , ...
-  } @ self: args: let
-    args' = builtins.intersectAttrs __functionArgs ( __thunk // args );
-  in lib.makeOverridable __fetcher args';
 
   # Wraps `fetchurlDrv'.
   # Since it isn't technically a builtin this wrapper is really just for
@@ -273,6 +275,9 @@
       ( fetchurlDrvW.__functor self args ) // { needsUnpack = true; };
   };
 
+
+# ---------------------------------------------------------------------------- #
+
   fetchGitW = {
     __functionArgs = {
       url        = false;
@@ -289,9 +294,17 @@
       shallow    = false;
       allRefs    = true;
     };
-    __fetcher = builtins.fetchGit;
-    __functor = self: args: callWith self args;
+    __innerFunction = builtins.fetchGit;
+    __processArgs = self: args:
+      if yt.NpmLock.Structs.pkg_git_v3.check args
+      then ( removeAttrs self.__thunk ["ref"] ) // ( plockEntryToGitArgs args )
+      else self.__thunk // args;
+    __functor = self: args:
+      lib.apply self.__innerFunction ( self.__processArgs self args );
   };
+
+
+# ---------------------------------------------------------------------------- #
 
   # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
   # You can always wipe out or redefine that filter.
@@ -339,6 +352,9 @@
       };
     in callWith self args';
   };
+
+
+# ---------------------------------------------------------------------------- #
 
   fetchTreeW = {
     __functionArgs = {
@@ -443,6 +459,8 @@ in {
     identifyResolvedType
     identifyPlentSourceType
     plockEntryHashAttr
+
+    plockEntryToGitArgs
 
     fetchGitW fetchTreeW pathW
     fetchurlDrvW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
