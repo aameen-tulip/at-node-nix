@@ -2,63 +2,22 @@
   "nodes": {
     "ak-nix": {
       "inputs": {
-        "nix": "nix",
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "yants-src": "yants-src"
+        ]
       },
       "locked": {
-        "lastModified": 1665773826,
-        "narHash": "sha256-u5VGELYTIXueClgrPfV8BdaAu9+UxVTeKX3+AyG7qyc=",
+        "lastModified": 1666233716,
+        "narHash": "sha256-K4xfuxIlTCYZIeB2Gi0naTrYZQUcfuhaocQlrkLoFls=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "056ba44f68b8c002b22ed52404106a7a2ed7a74e",
+        "rev": "15fe235a1359b874b6daffd34635b8801ec0f04e",
         "type": "github"
       },
       "original": {
         "owner": "aakropotkin",
         "ref": "main",
         "repo": "ak-nix",
-        "type": "github"
-      }
-    },
-    "lowdown-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1633514407,
-        "narHash": "sha256-Dw32tiMjdK9t3ETl5fzGrutQTzh2rufgZV4A/BbxuD4=",
-        "owner": "kristapsdz",
-        "repo": "lowdown",
-        "rev": "d2c2b44ff6c27b936ec27358a2653caaef8f73b8",
-        "type": "github"
-      },
-      "original": {
-        "owner": "kristapsdz",
-        "repo": "lowdown",
-        "type": "github"
-      }
-    },
-    "nix": {
-      "inputs": {
-        "lowdown-src": "lowdown-src",
-        "nixpkgs": [
-          "ak-nix",
-          "nixpkgs"
-        ],
-        "nixpkgs-regression": "nixpkgs-regression"
-      },
-      "locked": {
-        "lastModified": 1665761757,
-        "narHash": "sha256-A6DEvsXzVvBCUah/wD/ZsLu+oGkCmHdJg9x0HHj1jhs=",
-        "owner": "NixOS",
-        "repo": "nix",
-        "rev": "3093bd3a855b8fa1f572fd5a33c1971adf5e3e08",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "repo": "nix",
         "type": "github"
       }
     },
@@ -74,22 +33,6 @@
       "original": {
         "id": "nixpkgs",
         "type": "indirect"
-      }
-    },
-    "nixpkgs-regression": {
-      "locked": {
-        "lastModified": 1643052045,
-        "narHash": "sha256-uGJ0VXIhWKGXxkeNnq4TvV3CIOkUJ3PAoLZ3HMzNVMw=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
-        "type": "github"
       }
     },
     "pacote-src": {
@@ -119,11 +62,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1665774050,
-        "narHash": "sha256-jVXj47UWMYWfGWzv19t37oGUhaAH/Ejhl4Qmp+syTQU=",
+        "lastModified": 1666233757,
+        "narHash": "sha256-hoWnvkib+qGyPwWyworsMtQYAVkNA3HSFlRa5EOfBRg=",
         "owner": "aakropotkin",
         "repo": "rime",
-        "rev": "c8b4e873b7df0bb4fe7e5b709ec62734e551c480",
+        "rev": "13381f2f960c70abfea8b91a4a1da6d997969b6f",
         "type": "github"
       },
       "original": {
@@ -139,22 +82,6 @@
         "nixpkgs": "nixpkgs",
         "pacote-src": "pacote-src",
         "rime": "rime"
-      }
-    },
-    "yants-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1645270620,
-        "narHash": "sha256-wwkl3K200UbW9Z7BRlVH8HOEXCaVYP2MqZpsF9EhgZg=",
-        "ref": "refs/heads/canon",
-        "rev": "efeb6dc11eb1a1e88d41dc2093fc5aa31f7abd35",
-        "revCount": 15,
-        "type": "git",
-        "url": "https://code.tvl.fyi/depot.git:/nix/yants.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://code.tvl.fyi/depot.git:/nix/yants.git"
       }
     }
   },

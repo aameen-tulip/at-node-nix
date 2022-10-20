@@ -46,7 +46,7 @@
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
-    lib = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
+    lib = import ./lib { lib = ak-nix.lib.extend rime.libOverlays.default; };
 
 # ---------------------------------------------------------------------------- #
 
@@ -111,7 +111,9 @@
       # XXX: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
       lib = let
-        base = import ./lib { lib = ak-nix.lib.extend rime.overlays.lib; };
+        base = import ./lib {
+          lib = ak-nix.lib.extend rime.libOverlays.default;
+        };
       in base.extend ( _: _: {
         flocoConfig = base.mkFlocoConfig {
           # Most likely this will get populated by `stdenv'
@@ -146,7 +148,7 @@
 
       inherit (final.lib) flocoConfig;
       inherit (final.flocoConfig) npmSys;
-      flocoFetch  = callPackage final.lib.libfetch.mkFlocoFetcher {};
+      flocoFetch  = final.lib.libfetch.mkFlocoFetcher {};
       flocoUnpack = {
         name             ? args.meta.names.source
       , tarball          ? args.outPath
