@@ -405,7 +405,8 @@
     __thunk = {
       filter = name: type: let
         bname = baseNameOf name;
-      in type == "directory" -> ( bname != "node_modules" );
+      in ( type == "directory" -> ( bname != "node_modules" ) ) &&
+         ( lib.libfilt.genericFilt name type );
     };
     __fetcher = args: {
       outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
@@ -418,6 +419,7 @@
       # order to pass to `builtins.path' we need to make it a string.
       args' = if lib.libpath.isAbspath ( path.outPath or path ) then args else {
         path = "${args.cwd or self.__thunk.cwd}/${path}";
+        name = args.name or ( baseNameOf path );
       };
     in callWith self args';
   };

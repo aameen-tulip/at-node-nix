@@ -2,12 +2,13 @@
 #
 # Filter source trees.
 # Notable filters:
-#   - packCore: filter files to align with `npm pack' routine.
-#   - nix:      filter out Nix related files.
+#   - genericFilt:  filter out junk files. ( defined by `ak-nix' )
+#   - nixFilt:      filter out Nix related files. ( defined by `ak-nix' )
+#   - packCore:     filter files to align with `npm pack' routine.
 #
 # ---------------------------------------------------------------------------- #
 
-_: let
+lib: let
 
 # ---------------------------------------------------------------------------- #
 
@@ -59,7 +60,8 @@ _: let
 
 # ---------------------------------------------------------------------------- #
 
-
+  nodeNixFilt = name: type:
+    ( lib.libfilt.nixFilt name type ) && ( lib.libfilt.packCore );
 
 
 # ---------------------------------------------------------------------------- #
@@ -67,6 +69,7 @@ _: let
 in {
   inherit
     packCore
+    nodeNixFilt
   ;
 }
 
