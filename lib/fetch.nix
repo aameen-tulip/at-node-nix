@@ -218,6 +218,34 @@
 
 # ---------------------------------------------------------------------------- #
 
+  fetchGitW = {
+    __functionArgs = {
+      url        = false;
+      name       = true;
+      rev        = true;
+      ref        = true;
+      allRefs    = true;
+      shallow    = true;
+      submodules = true;
+    };
+    __thunk   = {
+      ref        = "HEAD";
+      submodules = false;
+      shallow    = false;
+      allRefs    = true;
+    };
+    __innerFunction = builtins.fetchGit;
+    __processArgs = self: args:
+      if yt.NpmLock.Structs.pkg_git_v3.check args
+      then ( removeAttrs self.__thunk ["ref"] ) // ( plockEntryToGitArgs args )
+      else self.__thunk // args;
+    __functor = self: args:
+      lib.apply self.__innerFunction ( self.__processArgs self args );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
   builtinsPathArgs = {
     name   = Strings.filename;
     path   = yt.either Strings.abspath yt.path;
@@ -278,34 +306,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  fetchGitW = {
-    __functionArgs = {
-      url        = false;
-      name       = true;
-      rev        = true;
-      ref        = true;
-      allRefs    = true;
-      shallow    = true;
-      submodules = true;
-    };
-    __thunk   = {
-      ref        = "HEAD";
-      submodules = false;
-      shallow    = false;
-      allRefs    = true;
-    };
-    __innerFunction = builtins.fetchGit;
-    __processArgs = self: args:
-      if yt.NpmLock.Structs.pkg_git_v3.check args
-      then ( removeAttrs self.__thunk ["ref"] ) // ( plockEntryToGitArgs args )
-      else self.__thunk // args;
-    __functor = self: args:
-      lib.apply self.__innerFunction ( self.__processArgs self args );
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
   # You can always wipe out or redefine that filter.
   # When using this with relative paths you need to set `cwd' to an absolute
@@ -336,7 +336,8 @@
     __thunk = {
       filter = name: type: let
         bname = baseNameOf name;
-      in type == "directory" -> ( bname != "node_modules" );
+      in ( type == "directory" -> ( bname != "node_modules" ) ) &&
+         ( lib.libfilt.genericFilt name type );
     };
     __fetcher = args: {
       outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
@@ -349,6 +350,7 @@
       # order to pass to `builtins.path' we need to make it a string.
       args' = if lib.libpath.isAbspath ( path.outPath or path ) then args else {
         path = "${args.cwd or self.__thunk.cwd}/${path}";
+        name = args.name or ( baseNameOf path );
       };
     in callWith self args';
   };
