@@ -8,10 +8,10 @@
 # ---------------------------------------------------------------------------- #
 
 { system     ? builtins.currentSystem
-, pkgsFor    ? ( builtins.getFlake ( toString ../.. ) ).legacyPackages.${system}
+, floco      ? builtins.getFlake ( toString ../.. )
+, pkgsFor    ? floco.legacyPackages.${system}
 , writeText  ? pkgsFor.writeText
-, rime       ? builtins.getFlake "github:aakropotkin/rime"
-, lib        ? import ../../lib { inherit (rime) lib; }
+, lib        ? floco.lib
 , keepFailed ? false  # Useful if you run the test explicitly.
 , doTrace    ? true   # We want this disabled for `nix flake check'
 , ...

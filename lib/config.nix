@@ -40,8 +40,8 @@
       gitFetcher     = lib.libfetch.flocoGitFetcher;
       pathFetcher    = lib.libfetch.pathW;
       tarballFetcher = if   lib.libcfg.enableImpureFetchers
-                       then lib.libfetch.fetchurlNoteUnpackDrvW
-                       else lib.libfetch.fetchTreeW;
+                       then lib.libfetch.fetchTreeW
+                       else lib.libfetch.fetchurlNoteUnpackDrvW;
     };
   };
 
