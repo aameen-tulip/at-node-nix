@@ -28,9 +28,14 @@
   msTreeD = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeD;
   msTreeP = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeP;
 
-  flocoConfig   = lib.mkFlocoConfig {};
-  flocoFetch    = lib.mkFlocoFetcher {};
-  flocoFetchCwd = lib.mkFlocoFetcher { cwd = lockDir; };
+  flocoConfig = lib.mkFlocoConfig {
+    fetchers = {
+      tarballFetcher = { url ? args.resolved } @ args:
+        lib.libfetch.fetchTreeW ( args // { inherit url; type = "tarball"; } );
+    };
+  };
+  flocoFetchCwd = lib.mkFlocoFetcher { inherit flocoConfig; cwd = lockDir; };
+  flocoFetch = lib.mkFlocoFetcher { inherit flocoConfig; };
 
   sourceTree = builtins.mapAttrs ( p: flocoFetchCwd ) plock.packages;
 

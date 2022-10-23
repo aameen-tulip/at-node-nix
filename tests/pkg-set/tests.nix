@@ -6,20 +6,27 @@
 
 { lib
 , system
-, flocoConfig
-, flocoFetch
 , flocoUnpack
 , pkgsFor
 }: let
 
 # ---------------------------------------------------------------------------- #
 
-  inherit (pkgsFor)
-    mkPkgEntSource
+  # FIXME: unfuck tarball fetching.
+  inherit (pkgsFor.extend ( _: prev: {
+    flocoConfig = lib.mkFlocoConfig {
+      fetchers.fileFetcher = args:
+        lib.libfetch.fetchTreeW ( args // { type = "tarball"; } );
+    };
+    flocoFetch = lib.mkFlocoFetcher { inherit flocoConfig; cwd = lockDir; };
+  } ) )
     buildPkgEnt
     installPkgEnt
+    mkPkgEntSource
     mkNmDirLinkCmd
     mkNmDirPlockV3
+    flocoConfig
+    flocoFetch
   ;
 
 # ---------------------------------------------------------------------------- #

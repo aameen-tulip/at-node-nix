@@ -20,12 +20,14 @@
 #
 # ---------------------------------------------------------------------------- #
 
+  # XXX: Mainters Note: You must keep `enableImpureFetchers' assignment in sync
+  # with `tarballFetcher' purity detection since there is no self reference.
   defaultFlocoConfig = {
     # Used for querying manifests and packuments.
     # Must be an attrset of strings.
     registryScopes._default  = "https://registry.npmjs.org";
-    enableImpureMeta         = false;
-    enableImpureFetchers     = false;
+    enableImpureMeta         = ! lib.inPureEvalMode;
+    enableImpureFetchers     = ! lib.inPureEvalMode;
     allowSubstitutedFetchers = true;
     metaEntOverlays          = [];
     metaSetOverlays          = [];
@@ -33,15 +35,13 @@
     pkgSetOverlays           = [];
     # It's only possible to put these here because they are platform agnostic.
     # If you use system dependant fetchers override this.
-    fetchers = let
-      tarballFetcherPure   = lib.libfetch.fetchurlNoteUnpackDrvW;
-      tarballFetcherImpure = lib.libfetch.fetchTreeW;
-    in {
+    fetchers = {
       fileFetcher    = lib.libfetch.fetchurlDrvW;
-      gitFetcher     = lib.libfetch.fetchGitW;
+      gitFetcher     = lib.libfetch.flocoGitFetcher;
       pathFetcher    = lib.libfetch.pathW;
-      tarballFetcher = if lib.inPureEvalMode then tarballFetcherPure
-                                             else tarballFetcherImpure;
+      tarballFetcher = if   lib.libcfg.enableImpureFetchers
+                       then lib.libfetch.fetchurlNoteUnpackDrvW
+                       else lib.libfetch.fetchTreeW;
     };
   };
 

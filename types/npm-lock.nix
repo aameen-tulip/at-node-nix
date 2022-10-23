@@ -131,8 +131,9 @@
   pkg_git_v3 = let
     fconds = pkg_any_fields_v3 // { resolved = git_uri; };
     cond = x: let
-      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
-    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+      fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
+      fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    in ( x ? resolved ) && fields;
   in restrict "package[git]" cond ( yt.attrs yt.any );
 
 
@@ -146,8 +147,9 @@
       sha1      = option yt.Strings.sha1_hash;
     };
     condFields = x: let
-      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
-    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+      fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
+      fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    in ( x ? resolved ) && fields;
     cond = x: ( condHash x ) && ( condFields x );
   in restrict "package[tarball]" cond ( yt.attrs yt.any );
 
