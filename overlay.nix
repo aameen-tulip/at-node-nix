@@ -139,6 +139,13 @@ in {
   pjsUtil = callPackage ./pkgs/build-support/setup-hooks/pjs-util.nix {};
   mkNmDirSetupHook = callPackage ./pkgs/mkNmDir/mkNmDirSetupHook.nix;
 
+  # NOTE: this package accepts `flakeRef' as an argument which should be set to
+  # `self.sourceInfo.outPath' when exposed by the top level flake.
+  # The fallback is an unlocked ref to the `main' branch.
+  genMeta = callPackage ./pkgs/tools/genMeta {
+    inherit (prev) pacote;
+  };
+
 }
 
 

@@ -18,6 +18,7 @@
 
   # Given a `resolved' URI from a `package-lock.json', discern its
   # `builtins.fetchTree' source "type".
+  # FIXME: add `github'.
   identifyResolvedType = r: let
     isPath = ( ! ( lib.liburi.Url.isType r ) ) &&
              ( yt.NpmLock.Strings.relative_file_uri.check r );
@@ -35,6 +36,7 @@
 
   # Given a package entry from a `package-lock.json(v[23])', return one of
   # "file", "path", or "git" indicating the source type.
+  # FIXME: add `github'.
   identifyPlentSourceType = ent: let
     tagged = lib.libtypes.discrTypes {
       path = yt.NpmLock.Structs.pkg_path_v3;
@@ -49,6 +51,7 @@
 
   # XXX: I'm unsure of whether or not this works with v1 locks.
   plockEntryHashAttr = {
+
     __innerFunction = entry: let
       integrity2Sha = integrity: let
         m = builtins.match "(sha(512|256|1))-(.*)" integrity;
@@ -57,6 +60,7 @@
       fromInteg = integrity2Sha entry.integrity;
     in if entry ? integrity then fromInteg else
        if entry ? sha1      then { inherit (entry) sha1; } else {};
+
     __functionArgs = {
       sha1      = true;
       sha256    = true;
@@ -65,6 +69,7 @@
       hash      = true;
       narHash   = true;
     };
+
     __functor = self: self.__innerFunction;
   };
 
@@ -72,16 +77,6 @@
 # ---------------------------------------------------------------------------- #
 
   # FIXME: move these
-
-  Strings = {
-    filename = yt.restrict "filename" ( lib.test "[^/\\]+" ) yt.string;
-    abspath  = yt.restrict "abspath" ( lib.test "/.*" ) yt.string;
-  };
-
-  Eithers = {
-    abspath = yt.either yt.path Strings.abspath;
-  };
-
   Sums.hash = yt.sum {
     md5       = yt.Strings.md5_hash;
     sha1      = yt.Strings.sha1_hash;
@@ -133,7 +128,7 @@
 
   # This super-set can support any tarball/file fetcher.
   genericTarballArgs = {
-    name  = Strings.filename;
+    name  = yt.FS.Strings.filename;
     type  = yt.enum ["file" "tarball"];
     url   = yt.Uri.Strings.uri_ref;
     flake = yt.option yt.bool;
@@ -185,7 +180,7 @@
   #       replaced with a "/".
 
   genericGitArgs = {
-    name  = Strings.filename;  # dirname
+    name  = yt.FS.Strings.filename;  # dirname
     type  = yt.enum ["git" "github" "sourcehut"];
     url   = yt.FlakeRef.Strings.git_ref;
     flake = yt.option yt.bool;
@@ -213,7 +208,7 @@
       allRefs = true;
     };
   # FIXME: return type
-  in defun [yt.NpmLock.Structs.pkg_git_v3 ( yt.attrs yt.any )] inner;
+  in yt.defun [yt.NpmLock.Structs.pkg_git_v3 ( yt.attrs yt.any )] inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -228,27 +223,157 @@
       shallow    = true;
       submodules = true;
     };
+
     __thunk   = {
       ref        = "HEAD";
       submodules = false;
       shallow    = false;
       allRefs    = true;
     };
+
     __innerFunction = builtins.fetchGit;
-    __processArgs = self: args:
-      if yt.NpmLock.Structs.pkg_git_v3.check args
-      then ( removeAttrs self.__thunk ["ref"] ) // ( plockEntryToGitArgs args )
-      else self.__thunk // args;
+
+    __processArgs = self: args: let
+      args' =
+        if yt.NpmLock.Structs.pkg_git_v3.check args
+        then ( removeAttrs self.__thunk ["ref"] ) //
+             ( plockEntryToGitArgs args )
+        else self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+
     __functor = self: args:
-      lib.apply self.__innerFunction ( self.__processArgs self args );
+      self.__innerFunction ( self.__processArgs self args );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # XXX: This is NOT compatible with `type = "github";'.
+  fetchTreeGitW = {
+    __functionMeta = {
+      name     = "fetchTreeGitW";
+      argTypes = let
+        # FIXME: allow other types of args like attrsets.
+        # NOTE: `__processArgs' already allows NPM lock entries to be used.
+        # Currently we don't typecheck base on `argTypes' so this is fine.
+        ftga = yt.struct {
+          url     = yt.FlakeRef.Strings.git_ref;  # FIXME: "SERVER[:/]OWNER"
+          type    = yt.option ( yt.enum ["git"] );
+          narHash = yt.option yt.Hash.Strings.sha256_sri;
+          rev     = yt.option yt.Git.rev;
+          ref     = yt.option yt.Git.ref;
+          allRefs = yt.option yt.bool;
+          shallow = yt.option yt.bool;
+          submodules = yt.option yt.bool;
+        };
+      in [ftga];
+    };
+
+    __functionArgs = let
+      core = removeAttrs builtinsFetchgitArgs ["name"];
+    in core // { type = true; };
+
+    __innerFunction = builtins.fetchTree;
+
+    __thunk = fetchGitW.__thunk // { type = "git"; };
+
+    __processArgs = self: args: let
+      args' =
+        if yt.NpmLock.Structs.pkg_git_v3.check args
+        then ( removeAttrs self.__thunk ["ref"] ) //
+             ( plockEntryToGitArgs args )
+        else self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+
+    __processResult = self: {
+      latModified
+    , lastModifiedDate
+    , narHash
+    , outPath
+    , rev
+    , shortRev
+    # Only for `type = "git"', not `type = "github"'. Others are common.
+    , revCount
+    , submodules
+    } @ sourceInfo: {
+      type = "git";
+      inherit outPath sourceInfo;
+    };
+
+    __functor = self: args: let
+      fetchInfo = self.__processArgs args;
+      result    = self.__processResult self ( self.__innerFunction fetchInfo );
+    in result // { inherit fetchInfo; };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  fetchTreeGithubW = {
+    __functionMeta = {
+      name     = "fetchTreeGithubW";
+      argTypes = let
+        # FIXME: allow other types of args like url.
+        # NOTE: `__processArgs' already allows NPM lock entries to be used.
+        # Currently we don't typecheck base on `argTypes' so this is fine.
+        ftgha = yt.struct {
+          type     = yt.option ( yt.enum ["github"] );
+          owner    = yt.Git.owner;
+          repo     = yt.string;  # FIXME
+          # In pure mode you need at least one:
+          narHash  = yt.option yt.Hash.Strings.sha256_sri;
+          rev      = yt.option yt.Git.rev;
+          ref      = yt.option yt.Git.ref;
+          # NOTE: `shortRev' appears in `sourceInfo' but doesn't work as an arg.
+        };
+      in [ftgha];
+    };
+
+    __functionArgs = {
+      type    = true;
+      owner   = false;
+      repo    = false;
+      # One of the following is required in pure mode.
+      narHash = true;
+      rev     = true;
+      ref     = true;
+    };
+
+    __innerFunction = builtins.fetchTree;
+
+    __thunk = { ref = "HEAD"; };
+
+    __processArgs = self: args: let
+      args' =
+        if yt.NpmLock.Structs.pkg_git_v3.check args
+        then plockEntryToGitArgs args
+        else self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+
+    __processResult = self: {
+      latModified
+    , lastModifiedDate
+    , narHash
+    , outPath
+    , rev
+    , shortRev
+    } @ sourceInfo: {
+      type = "github";
+      inherit outPath sourceInfo;
+    };
+
+    __functor = self: args: let
+      fetchInfo = self.__processArgs args;
+      result    = self.__processResult self ( self.__innerFunction fetchInfo );
+    in result // { inherit fetchInfo; };
   };
 
 
 # ---------------------------------------------------------------------------- #
 
   builtinsPathArgs = {
-    name   = Strings.filename;
-    path   = yt.either Strings.abspath yt.path;
+    name   = yt.FS.Strings.filename;
+    path   = yt.FS.abspath;
     filter = yt.function;
   };
 
@@ -258,7 +383,7 @@
     flake = yt.bool;
     url   = yt.FlakeRef.Strings.path_ref;
     # I made these up
-    basedir = Eithers.abspath;
+    basedir = yt.FS.abspath;
     relpath = yt.NpmLock.relative_file_uri;  # FIXME: move this type
   };
 
@@ -279,25 +404,30 @@
     __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
     };
+
     __thunk = {
       unpack           = false;
       unpackAfter      = false;
       allowSubstitutes = true;
     };
-    __fetcher = lib.fetchurlDrv;
+
+    __innerFunction = lib.fetchurlDrv;
+
+    __processArgs = self: args: let
+      args' = self.__thunk // ( removeAttrs args ["unpackAfter"] );
+    in lib.intersectAttrs self.__functionArgs args';
+
+    # Call inner without `unpackAfter' arg, preserving it as a tag in our result
     __functor = self: args: let
-      args' = removeAttrs args ["unpackAfter"];
-      # Hide `unpackAfter' for real call.
-      fetched = callWith ( self // {
-        __functionArgs = removeAttrs self.__functionArgs ["unpackAfter"];
-      } ) args';
-      upa = builtins.fetchTarball { url = fetched.outPath; };
-      unpackedFull = upa // { passthru.tarball = fetched; };
+      fetched = self.__innerFunction ( self.__processArgs self args );
+      # Unpack
+      unpacked      = builtins.fetchTarball { url = fetched.outPath; };
+      unpackedFull  = unpacked // { passthru.tarball = fetched; };
       doUnpackAfter = args.unpackAfter or self.__thunk.unpackAfter;
     in if doUnpackAfter then unpackedFull else fetched;
   };
 
-  fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = true; };
+  fetchurlUnpackDrvW     = fetchurlDrvW // { __thunk.unpackAfter = true; };
   fetchurlNoteUnpackDrvW = fetchurlDrvW // {
     __functor = self: args:
       ( fetchurlDrvW.__functor self args ) // { needsUnpack = true; };
@@ -333,27 +463,83 @@
       outPath   = true;
       cwd       = false;
     };
+
     __thunk = {
       filter = name: type: let
         bname = baseNameOf name;
       in ( type == "directory" -> ( bname != "node_modules" ) ) &&
          ( lib.libfilt.genericFilt name type );
     };
-    __fetcher = args: {
+
+    __innerFunction = args: {
       outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
     };
-    __functor = self: {
-      path ? args.resolved or args.outPath or ""
-      , ...
-    } @ args: let
+
+    __processArgs = self: args: let
       # NOTE: `path' may be a set in the case where it is a derivation; so in
       # order to pass to `builtins.path' we need to make it a string.
-      args' = if lib.libpath.isAbspath ( path.outPath or path ) then args else {
-        path = "${args.cwd or self.__thunk.cwd}/${path}";
-        name = args.name or ( baseNameOf path );
-      };
-    in callWith self args';
+      p = args.path or args.resolved or args.outPath or "";
+      # Coerce an abspath
+      path = if lib.libpath.isAbspath p then p else
+             "${args.cwd or self.__thunk.cwd}/${path}";
+      name = args.name or ( baseNameOf path );
+      args' = args // { inherit name path; };
+    in builtins.intersectAttrs self.__functionArgs args';
+
+    __functor = self: args:
+      self.__innerFunction ( self.__processArgs self args );
   };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # The `type = "path"' form of `builtins.fetchTree'.
+  # The only change here is we don't require `type' to be specified explicitly,
+  # and if additional fields appear in our argset we ignore them.
+  # Returns a set `{ type = "path"; sourceInfo = {...}; fetchInfo = {...}; }'.
+  fetchTreePathW = {
+    __functionMeta = {
+      name = "fetchTreePathW";
+      argTypes = let
+        ftpa = yt.struct {
+          type    = yt.option ( yt.enum ["path"] );
+          path    = yt.FS.abspath;
+          narHash = yt.option yt.Hash.Strings.sha256_sri;
+        };
+      in [ftpa];
+    };
+
+    __functionArgs = {
+      type    = true;
+      path    = false;
+      narHash = lib.flocoConfig.enableImpureFetchers;  # XXX: Probably FIXME
+    };
+
+    __innerFunction = builtins.fetchTree;
+
+    __processArgs = self: {
+      path
+    , type    ? "path"
+    , narHash ? null
+    , ...
+    } @ args: let
+      opt = if args ? narHash then { inherit narHash; } else {};
+    in assert type == "path";
+       { inherit type path; } // opt;
+
+    __processResult = self: {
+      latModified
+    , lastModifiedDate
+    , narHash
+    , outPath
+    } @ sourceInfo: { inherit outPath sourceInfo; type = "path"; };
+
+    __functor = self: args: let
+      fetchInfo = self.__processArgs self args;
+      result    = self.__processResult self ( self.__innerFunction fetchInfo );
+    in result // { inherit fetchInfo; };
+  };
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -363,32 +549,47 @@
       # Common
       type    = false;
       narHash = true;
-      name    = true;
-      # `fetchTarball' mode
-      url     = true;
+      # `fetchTarball'/`fetchGit' mode
+      url = true;
+      # `fetchGit'/`fetchGithub' mode
+      rev = true;
+      ref = true;
       # `fetchGit' mode
-      rev     = true;
-      ref     = true;
-      allRefs = true;
-      shallow = true;
+      allRefs    = true;
+      shortRev   = true;
+      shallow    = true;
+      submodules = true;
+      # `fetchGithub' mode
+      owner = true;
+      repo  = true;
       # `path' mode
-      path    = true;
+      path = true;
     };
+
     # Copy the thunk from other fetchers.
     inherit (fetchGitW) __thunk;
-    __fetcher = builtins.fetchTree;
-    __functor = self: { type, ... } @ args: let
-      fa' =
-        if type == "path" then { path = false; } else
-        if type == "git"  then fetchGitW.__functionArgs else
-        if type == "tarball" then {
-          url     = false;
-          narHash = lib.flocoConfig.enableImpureFetchers;
-        } else throw "Unrecognized `fetchTree' type: ${type}";
+
+    __innerFunction = builtins.fetchTree;
+
+    __processArgs = self: { type, ... } @ args: let
+      # Reform `__functionArgs' to reflect given type.
+      fa = if builtins.elem type ["tarball" "file"] then {
+        url = false;
+        # FIXME: only network URLs need `narHash'.
+        #narHash = lib.flocoConfig.enableImpureFetchers;
+      } else throw "Unrecognized `fetchTree' type: ${type}";
       fc = { type = false; narHash = true; };
+      # Force `type' to appear, and inject the thunk from ``
       args' = args // { inherit type; };
-      # Make `__functionArgs' reflect the right args for filtering by type.
-    in callWith ( self // { __functionArgs = fc // fa'; } ) args';
+    in builtins.intersectAttrs ( fa // fc ) args';
+
+    __functor = self: { type, ... } @ args: let
+      fetchInfo  = self.__processArgs args;
+      sourceInfo = self.__innerFunction fetchInfo;
+    in if type == "path"   then fetchTreePathW args else
+       if type == "git"    then fetchTreeGitW args else
+       if type == "github" then fetchTreeGithubW args else
+       { inherit fetchInfo sourceInfo type; inherit (sourceInfo) outPath; };
   };
 
 

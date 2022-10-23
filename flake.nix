@@ -30,26 +30,38 @@
 
   description = "Node.js+Nix Package Management Expressions";
 
+  # Generic Nix helpers
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
 
+  # NPM fetcher and archiver.
   inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
 
+  # URI, URL, and Flake Ref helpers.
   inputs.rime.url = "github:aakropotkin/rime/main";
   inputs.rime.inputs.ak-nix.follows = "/ak-nix";
   inputs.rime.inputs.nixpkgs.follows = "/nixpkgs";
 
+  # Fetchers and Filesystem helpers.
+  inputs.laika.url = "github:aakropotkin/laika/main";
+  inputs.laika.inputs.ak-nix.follows = "/ak-nix";
+  inputs.laika.inputs.nixpkgs.follows = "/nixpkgs";
+
 # ---------------------------------------------------------------------------- #
 
-  outputs = { self, nixpkgs, ak-nix, pacote-src, rime }: let
+  outputs = { self, nixpkgs, ak-nix, pacote-src, rime, laika }: let
 
 # ---------------------------------------------------------------------------- #
 
     # `lib' overlays.
 
-    libOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.libOverlays.default
-                                                     rime.libOverlays.rime;
+    libOverlays.deps = nixpkgs.lib.composeManyExtensions [
+      ak-nix.libOverlays.default
+      # Both of the following depend only on `ak-nix', knowing this we can
+      # safely compose the bare overlays.
+      rime.libOverlays.rime laika.libOverlays.laika
+    ];
     libOverlays.at-node-nix = import ./lib/overlay.lib.nix;
     libOverlays.default = nixpkgs.lib.composeExtensions libOverlays.deps
                                                         libOverlays.at-node-nix;
@@ -63,8 +75,10 @@
     # It is exposed here because it is sometimes useful for complex overrides
     # where vendoring would otherwise be the only "clean" solution.
     ytOverlays.at-node-nix = import ./types/overlay.yt.nix;
-    ytOverlays.deps = nixpkgs.lib.composeExtensions ak-nix.ytOverlays.default
-                                                    rime.ytOverlays.rime;
+    # NOTE: see comment above in `libOverlays'.
+    ytOverlays.deps = nixpkgs.lib.composeManyExtensions [
+      ak-nix.ytOverlays.default rime.ytOverlays.rime laika.ytOverlays.laika
+    ];
 
 
 # ---------------------------------------------------------------------------- #
@@ -108,7 +122,20 @@
     overlays.deps = nixpkgs.lib.composeExtensions rime.overlays.default
                                                   overlays.pacote;
 
-    overlays.at-node-nix = import ./overlay.nix;
+    overlays.at-node-nix = let
+      base = import ./overlay.nix;
+      fixGenMeta = final: prev: {
+        # Generates `metaSet' file from a package descriptor.
+        # Particularly useful for generating flakes for registry tarballs with
+        # install scripts since these rarely need to be dynamically generated.
+        # NOTE: This isn't really recommended for projects that are under active
+        #       development ( because their lockfiles change frequently ).
+        genMeta = prev.genMeta.override {
+          flakeRef = self.sourceInfo.outPath;
+          inherit (prev) pacote;
+        };
+      };
+    in nixpkgs.lib.composeExtensions base fixGenMeta;
 
     # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
     overlays.default = nixpkgs.lib.composeExtensions overlays.deps
@@ -121,7 +148,7 @@
       pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
 
-      inherit (pkgsFor) pacote;
+      inherit (pkgsFor) pacote genMeta;
 
       tests = ( import ./tests {
         inherit system pkgsFor rime;
@@ -163,7 +190,6 @@
     # Made a function to block `nix flake check' from fetching.
     testData = { ... }: import ./tests/data;
 
-
 # ---------------------------------------------------------------------------- #
 
     checks = ak-nix.lib.eachDefaultSystemMap ( system: let
@@ -171,52 +197,6 @@
     in {
       inherit (packages.${system}) tests;
     } );
-
-# ---------------------------------------------------------------------------- #
-
-    apps = ak-nix.lib.eachDefaultSystemMap ( system: let
-      pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
-    in {
-      # Generates `metaSet' file from a package descriptor.
-      # Particularly useful for generating flakes for registry tarballs with
-      # install scripts since these rarely need to be dynamically generated.
-      # NOTE: This isn't really recommended for projects that are under active
-      #       development ( because their lockfiles change frequently ).
-      genMeta = {
-        type = "app";
-        program = let
-          script = pkgsFor.runCommandNoCC "genMeta.sh" {
-            NIX      = "${pkgsFor.nix}/bin/nix";
-            MKTEMP   = "${pkgsFor.coreutils}/bin/mktemp";
-            CAT      = "${pkgsFor.coreutils}/bin/cat";
-            REALPATH = "${pkgsFor.coreutils}/bin/realpath";
-            PACOTE   = "${pkgsFor.pacote}/bin/pacote";
-            NPM      = "${pkgsFor.nodejs-14_x.pkgs.npm}/bin/npm";
-            JQ       = "${pkgsFor.jq}/bin/jq";
-            WC       = "${pkgsFor.coreutils}/bin/wc";
-            CUT      = "${pkgsFor.coreutils}/bin/cut";
-            nativeBuildInputs = [pkgsFor.makeWrapper];
-          } ''
-            mkdir -p "$out/bin";
-            cp ${builtins.path { path = ./bin/genMeta.sh; } }  \
-               "$out/bin/genMeta";
-            wrapProgram "$out/bin/genMeta"                        \
-              --set-default FLAKE_REF ${self.sourceInfo.outPath}  \
-              --set-default NIX       "$NIX"                      \
-              --set-default MKTEMP    "$MKTEMP"                   \
-              --set-default CAT       "$CAT"                      \
-              --set-default REALPATH  "$REALPATH"                 \
-              --set-default PACOTE    "$PACOTE"                   \
-              --set-default NPM       "$NPM"                      \
-              --set-default JQ        "$JQ"                       \
-              --set-default WC        "$WC"                       \
-              --set-default WC        "$CUT"                      \
-            ;
-          '';
-        in "${script}/bin/genMeta";
-      };
-    } );
-
 
 # ---------------------------------------------------------------------------- #
 
