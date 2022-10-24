@@ -417,7 +417,7 @@
   # We add the field `needsUpack = true' in pure mode.
   # In practice the best thing to do is to override this fetcher in pure mode
   # in your config.
-  fetchurlDrvW = {
+  fetchurlDrvMaybeUnpackAfterW = {
     #__functionArgs = hashFields // { name = true; url = false; };
     __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
@@ -449,10 +449,22 @@
     in if doUnpackAfter then unpackedFull else fetched;
   };
 
-  fetchurlUnpackDrvW     = fetchurlDrvW // { __thunk.unpackAfter = true; };
-  fetchurlNoteUnpackDrvW = fetchurlDrvW // {
-    __functor = self: args:
-      ( fetchurlDrvW.__functor self args ) // { needsUnpack = true; };
+  # Fetch a tarball using the given hash, and then unpack.
+  # This allows you to use the "packed" hash but still return a store-path to
+  # an unpacked tarball.
+  fetchurlUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
+    __thunk.unpackAfter = true;
+  };
+
+  # Fetch a tarball using the given hash, and mark it explicitly as needing to
+  # be unpacked.
+  # FIXME: remove this and instead change logic in builders to look for
+  # `source.type == "file";' to detect if unpacking is required.
+  fetchurlNoteUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
+    __functor = self: x:
+      ( fetchurlDrvMaybeUnpackAfterW.__functor self x ) // {
+        needsUnpack = true;
+      };
   };
 
 
@@ -460,14 +472,14 @@
 
   # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
   # You can always wipe out or redefine that filter.
-  # When using this with relative paths you need to set `cwd' to an absolute
+  # When using this with relative paths you need to set `basedir' to an absolute
   # path before calling:
   #   ( lib.flocoPathFetcher // {
-  #       __thunk.cwd = toString ./../../foo; }
+  #       __thunk.basedir = toString ./../../foo; }
   #   ) "./baz"
   #   or
   #   let fetchFromPWD = lib.flocoPathFetcher // {
-  #         __thunk.cwd = toString ./.;
+  #         __thunk.basedir = toString ./.;
   #       };
   #   in builtins.mapAttrs ( k: _: fetchFromPWD k ) ( builtins.readDir ./. );
   #
@@ -479,49 +491,66 @@
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
   flocoPathFetcher = {
-    __functionArgs = {
-      name      = true;
-      path      = true;
-      filter    = true;
-      recursive = true;
-      sha256    = true;
-      cwd       = false;  # FIXME: remove this and put in `flocoPathFetcher'
+
+    __functionMeta = let
+      prev = lib.libfetch.pathW.__functionMeta;
+    in prev // {
+      name = "flocoPathFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "laika#lib.libfetch.pathW";
+      signature = [yt.any yt.any];  # FIXME: return type
+    };
+
+    # Add the arg `basedir'.
+    __functionArgs = ( lib.functionArgs flocoPathFetcher.__innerFunction ) // {
+      basedir = true;
     };
 
     __thunk = {
+      # XXX: You likely want to set `basedir' here!
       filter = name: type: let
         bname = baseNameOf name;
       in ( type == "directory" -> ( bname != "node_modules" ) ) &&
          ( lib.libfilt.genericFilt name type );
     };
 
-    __innerFunction = builtins.path;
+    __innerFunction = lib.libfetch.pathW;
 
+    # Convert relative paths to absolute, and repackage returned store-path into
+    # a `sourceInfo:path' struct.
     __processArgs = self: x: let
       # NOTE: `path' may be a set in the case where it is a derivation; so in
       # order to pass to `builtins.path' we need to make it a string.
       p = if builtins.isString x then x else
           x.path or x.resolved or x.outPath or "";
       # Coerce an abspath
-      path = if lib.libpath.isAbspath p then p else
-             "${x.cwd or self.__thunk.cwd}/${p}";
-      name  = x.name or ( baseNameOf p );
-      args' =
-        if builtins.isAttrs x then removeAttrs ( self.__thunk // x ) ["cwd"]
-                              else removeAttrs self.__thunk ["cwd"];
-      args = args' // { inherit name path; };
-    in builtins.intersectAttrs self.__functionArgs args;
+      path = let
+        msg = "You must provide `flocoPathFetcher.__thunk.basedir', or " +
+              "pass `basedir' as an argument to fetch relative paths.";
+        basedir = x.basedir or self.__thunk.basedir or ( throw msg );
+      in if lib.libpath.isAbspath p then p else "${basedir}/${p}";
+      # `lib.libstr.baseName' handles store-path basenames.
+      name = x.name or ( lib.libfs.baseName p );
+    in lib.canPassStrict self.__innerFunction
+                         ( self.__thunk // { inherit name path; } );
 
     __functor = self: x: let
-      args      = self.__processArgs self x;
-      outPath   = x.outPath or ( self.__innerFunction args );
+      args    = self.__processArgs self x;
+      outPath = x.outPath or ( self.__innerFunction args );
+      # `filter' is a function so it cannot be added to `fetchInfo' if we want
+      # that record to be serialized.
+      # Instead we stash it in `passthru'.
+      # XXX: if users want to override args, and they had previously overridden
+      # the filter they need to refer to `passthru' to actually reproduce the
+      # original fetch with their overridden args.
+      # In practice I think it's incredibly unlikely that anyone will need to.
       passthru' =
         if args ? filter then { passthru.filter = args.filter; } else {};
     in {
-      type               = "path";
-      fetchInfo          = removeAttrs args ["fetcher"];
-      sourceInfo.outPath = outPath;
+      type      = "path";
+      fetchInfo = removeAttrs args ["filter"];
       inherit outPath;
+      sourceInfo.outPath = outPath;
     } // passthru';
   };
 
@@ -638,15 +667,15 @@
   # You likely want to create a fetcher for each `lockDir'/`metaSet'; but it
   # will check `entries.plock.lockDir' as a fallback.
   #
-  # The following examples will handle `cwd' properly for "dir"/path and
+  # The following examples will handle `basedir' properly for "dir"/path and
   # "link"/symlink fetchers:
   #   let
   #     lockDir      = toString ../../foo;
   #     plock        = lib.importJSON' "${lockDir}/package-lock.json";
-  #     flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
+  #     flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
   #   in builtins.mapAttrs ( _: flocoFetcher ) plock.packages
   #
-  # With `metaSet' it'll figure out `cwd' from the `entries.plock' attrs.
+  # With `metaSet' it'll figure out `basedir' from the `entries.plock' attrs.
   #   let
   #     flocoFetcher = lib.mkFlocoFetcher {};
   #     metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; }
@@ -662,40 +691,49 @@
   , flocoConfig          ? lib.flocoConfig
   , enableImpureFetchers ? flocoConfig.enableImpureFetchers
   , allowSubstitutes     ? flocoConfig.allowSubstitutedFetchers or true
-  , cwd                  ? throw "You must set cwd for relative path fetching"
+  , basedir              ? null  # Throws in `flocoPathFetcher' if needed.
   } @ cargs: {
     fetchers = {
       # We don't carry pure/impure past argument handling because we're actually
       # going to fetch.
       inherit
-        pathFetcher
         gitFetcher
         tarballFetcher
         fileFetcher
       ;
+      # If we are using `flocoPathFetcher', then inject `basedir'.
+      pathFetcher =
+        if pathFetcher.__functionMeta.name == "flocoPathFetcher" then
+        pathFetcher // {
+          __thunk = pathFetcher.__thunk // { inherit basedir; };
+        } else pathFetcher;
     };
-    inherit cwd;
 
     # FIXME: a hot mess over here.
-    # FIXME: refer to `fetchInfo' not `sourceInfo'.
-    __innerFunction = fetchers: args: let
-      sourceInfo = if args ? type then args else args.sourceInfo or {};
-      plent = if yt.NpmLock.package.check args then args else
-              args.entries.plock;
-      type = args.type or sourceInfo.type or ( identifyPlentSourceType plent );
-      cwd'  =
-        if type  != "path"  then {} else
-        if args  ?  cwd     then { __thunk.cwd = args.cwd; }      else
-        if plent ?  lockDir then { __thunk.cwd = plent.lockDir; } else
-        {};
-      fetcher = fetchers."${type}Fetcher";
-      args' = if sourceInfo != {} then sourceInfo else plent;
-      fetched = fetcher ( { inherit type; } // cwd' // args' );
-    # Don't refetch if `outPath' is defined.
-    in if sourceInfo ? outPath then sourceInfo else fetched;
+    __innerFunction = fetchers: x: let
+      plent = if yt.NpmLock.package.check x then x else
+              x.entries.plock or null;
+      # Effectively these are our args.
+      fetchInfo = let
+        # Handle any legacy usage of `sourceInfo'.
+        # TODO: drop support for this.
+        fallback = if x ? sourceInfo.type then x.sourceInfo else
+                   if plent == null then x else plent;
+      in x.fetchInfo or fallback;
+      # Determine the `flocoSourceType'.
+      type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
+      # FIXME: this belongs in `flocoTarballFetcher'.
+      url' = let
+        url = x.url or x.resolved or
+              fetchInfo.url or fetchInfo.resolved or null;
+      in if url == null then {} else { inherit url; };
+      args = if builtins.isAttrs fetchInfo then url' // {
+        inherit type;
+      } // fetchInfo else fetchInfo;
+      # Select the right fetcher based on `type'.
+    in lib.apply fetchers."${type}Fetcher" args;
 
-    __functor = self: args:
-      self.__innerFunction self.fetchers ( args // { inherit (self) cwd; } );
+    __functor = self: x: self.__innerFunction self.fetchers x;
   };
 
 # ---------------------------------------------------------------------------- #
@@ -716,7 +754,7 @@ in {
 
     flocoPathFetcher
 
-    fetchurlDrvW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
+    fetchurlDrvMaybeUnpackAfterW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
     mkFlocoFetcher
   ;
 }

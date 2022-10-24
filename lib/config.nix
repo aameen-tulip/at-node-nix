@@ -40,7 +40,7 @@
       gitFetcher     = lib.libfetch.flocoGitFetcher;
       pathFetcher    = lib.libfetch.flocoPathFetcher;
       tarballFetcher = if   lib.libcfg.enableImpureFetchers
-                       then lib.libfetch.fetchTreeW
+                       then lib.libfetch.fetchurlUnpackDrvW
                        else lib.libfetch.fetchurlNoteUnpackDrvW;
     };
   };
@@ -86,10 +86,9 @@
       inherit enableImpureMeta enableImpureFetchers;
       # Define as a fixed point so changed propagate.
       fetchers = {
-        tarballFetcher =
-          if cfg.enableImpureFetchers
-          then cfg.fetchers.tarballFetcherImpure
-          else cfg.fetchers.tarballFetcherPure;
+        tarballFetcher = if enableImpureFetchers
+                         then lib.libfetch.fetchurlUnpackDrvW
+                         else lib.libfetch.fetchurlNoteUnpackDrvW;
       } // fetchers;
     };
   in assert validateFlocoConfig cfg;

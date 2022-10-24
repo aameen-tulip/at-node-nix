@@ -30,11 +30,15 @@
 
   flocoConfig = lib.mkFlocoConfig {
     fetchers = {
-      tarballFetcher = { url ? args.resolved } @ args:
-        lib.libfetch.fetchTreeW ( args // { inherit url; type = "tarball"; } );
+      tarballFetcher = { url ? args.resolved, hash ? args.integrity } @ args:
+        lib.apply lib.libfetch.fetchurlDrvUnpackW
+                  ( args // { inherit url hash; } );
     };
   };
-  flocoFetchCwd = lib.mkFlocoFetcher { inherit flocoConfig; cwd = lockDir; };
+  flocoFetchCwd = lib.mkFlocoFetcher {
+    inherit flocoConfig;
+    basedir = lockDir;
+  };
   flocoFetch = lib.mkFlocoFetcher { inherit flocoConfig; };
 
   sourceTree = builtins.mapAttrs ( p: flocoFetchCwd ) plock.packages;

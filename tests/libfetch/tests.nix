@@ -47,7 +47,7 @@
  
     testCwdFlocoFetcher = {
       expr = let
-        flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
+        flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
         mapFetch = builtins.mapAttrs ( _: flocoFetcher );
       in builtins.mapAttrs ( _: v: builtins.deepSeq v true ) {
         plents = mapFetch metaSet.__meta.plock.packages;

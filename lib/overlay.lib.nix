@@ -56,7 +56,7 @@ in {
   ytypes = prev.ytypes.extend ( import ../types/overlay.yt.nix );
 
   inherit (final.libfetch)
-    fetchurlDrvW fetchTreeW pathW
+    flocoPathFetcher
     flocoGitFetcher
     mkFlocoFetcher
   ;

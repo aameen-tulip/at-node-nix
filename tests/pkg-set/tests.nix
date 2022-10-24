@@ -15,10 +15,11 @@
   # FIXME: unfuck tarball fetching.
   inherit (pkgsFor.extend ( _: prev: {
     flocoConfig = lib.mkFlocoConfig {
-      fetchers.fileFetcher = args:
-        lib.libfetch.fetchTreeW ( args // { type = "tarball"; } );
+      tarballFetcher = { url ? args.resolved, hash ? args.integrity } @ args:
+        lib.apply lib.libfetch.fetchurlDrvUnpackW
+                  ( args // { inherit url hash; } );
     };
-    flocoFetch = lib.mkFlocoFetcher { inherit flocoConfig; cwd = lockDir; };
+    flocoFetch = lib.mkFlocoFetcher { inherit flocoConfig; basedir = lockDir; };
   } ) )
     buildPkgEnt
     installPkgEnt

@@ -35,18 +35,19 @@
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
 
   # NPM fetcher and archiver.
-  inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
+  inputs.pacote-src.url   = "github:npm/pacote/v13.3.0";
   inputs.pacote-src.flake = false;
 
   # URI, URL, and Flake Ref helpers.
   inputs.rime.url = "github:aakropotkin/rime/main";
-  inputs.rime.inputs.ak-nix.follows = "/ak-nix";
+  inputs.rime.inputs.ak-nix.follows  = "/ak-nix";
   inputs.rime.inputs.nixpkgs.follows = "/nixpkgs";
 
   # Fetchers and Filesystem helpers.
   inputs.laika.url = "github:aakropotkin/laika/main";
-  inputs.laika.inputs.ak-nix.follows = "/ak-nix";
   inputs.laika.inputs.nixpkgs.follows = "/nixpkgs";
+  inputs.laika.inputs.ak-nix.follows  = "/ak-nix";
+  inputs.laika.inputs.rime.follows    = "/rime";
 
 # ---------------------------------------------------------------------------- #
 
@@ -55,13 +56,7 @@
 # ---------------------------------------------------------------------------- #
 
     # `lib' overlays.
-
-    libOverlays.deps = nixpkgs.lib.composeManyExtensions [
-      ak-nix.libOverlays.default
-      # Both of the following depend only on `ak-nix', knowing this we can
-      # safely compose the bare overlays.
-      rime.libOverlays.rime laika.libOverlays.laika
-    ];
+    libOverlays.deps = laika.libOverlays.default;  # carries other deps.
     libOverlays.at-node-nix = import ./lib/overlay.lib.nix;
     libOverlays.default = nixpkgs.lib.composeExtensions libOverlays.deps
                                                         libOverlays.at-node-nix;
@@ -74,11 +69,11 @@
     # in your project.
     # It is exposed here because it is sometimes useful for complex overrides
     # where vendoring would otherwise be the only "clean" solution.
+    ytOverlays.deps        = laika.ytOverlays.default;
     ytOverlays.at-node-nix = import ./types/overlay.yt.nix;
+    ytOverlays.default = nixpkgs.lib.composeExtensions ytOverlays.deps
+                                                       ytOverlays.at-node-nix;
     # NOTE: see comment above in `libOverlays'.
-    ytOverlays.deps = nixpkgs.lib.composeManyExtensions [
-      ak-nix.ytOverlays.default rime.ytOverlays.rime laika.ytOverlays.laika
-    ];
 
 
 # ---------------------------------------------------------------------------- #
@@ -119,7 +114,7 @@
     # Nixpkgs Overlays
 
     # Deps of our default overlay
-    overlays.deps = nixpkgs.lib.composeExtensions rime.overlays.default
+    overlays.deps = nixpkgs.lib.composeExtensions laika.overlays.default
                                                   overlays.pacote;
 
     overlays.at-node-nix = let
