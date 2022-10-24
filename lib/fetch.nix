@@ -462,10 +462,14 @@
   # You can always wipe out or redefine that filter.
   # When using this with relative paths you need to set `cwd' to an absolute
   # path before calling:
-  #   ( lib.pathW // { __thunk.cwd = toString ./../../foo; }  ) "./baz"
+  #   ( lib.flocoPathFetcher // {
+  #       __thunk.cwd = toString ./../../foo; }
+  #   ) "./baz"
   #   or
-  #   let fetchFromFoo = lib.pathW // { __thunk.cwd = toString ./../../foo; };
-  #   in builtins.mapAttrs
+  #   let fetchFromPWD = lib.flocoPathFetcher // {
+  #         __thunk.cwd = toString ./.;
+  #       };
+  #   in builtins.mapAttrs ( k: _: fetchFromPWD k ) ( builtins.readDir ./. );
   #
   # NOTE: If you pass an attrset with `outPath' or `path.outPath' as your args,
   # this is essentially an accessor that just returns that `outPath'.
@@ -496,18 +500,21 @@
     __processArgs = self: x: let
       # NOTE: `path' may be a set in the case where it is a derivation; so in
       # order to pass to `builtins.path' we need to make it a string.
-      p = x.path or x.resolved or x.outPath or "";
+      p = if builtins.isString x then x else
+          x.path or x.resolved or x.outPath or "";
       # Coerce an abspath
       path = if lib.libpath.isAbspath p then p else
              "${x.cwd or self.__thunk.cwd}/${p}";
       name  = x.name or ( baseNameOf p );
-      args' = removeAttrs ( self.__thunk // x ) ["cwd"];
-      args  =  args' // { inherit name path; };
+      args' =
+        if builtins.isAttrs x then removeAttrs ( self.__thunk // x ) ["cwd"]
+                              else removeAttrs self.__thunk ["cwd"];
+      args = args' // { inherit name path; };
     in builtins.intersectAttrs self.__functionArgs args;
 
     __functor = self: x: let
       args      = self.__processArgs self x;
-      outPath   = self.__innerFunction args;
+      outPath   = x.outPath or ( self.__innerFunction args );
       passthru' =
         if args ? filter then { passthru.filter = args.filter; } else {};
     in {
@@ -681,9 +688,9 @@
         if args  ?  cwd     then { __thunk.cwd = args.cwd; }      else
         if plent ?  lockDir then { __thunk.cwd = plent.lockDir; } else
         {};
-      fetcher = fetchers."${type}Fetcher" // cwd';
+      fetcher = fetchers."${type}Fetcher";
       args' = if sourceInfo != {} then sourceInfo else plent;
-      fetched = fetcher ( { inherit type; } // args' );
+      fetched = fetcher ( { inherit type; } // cwd' // args' );
     # Don't refetch if `outPath' is defined.
     in if sourceInfo ? outPath then sourceInfo else fetched;
 

@@ -38,7 +38,7 @@ in {
   in unconfigured.extend ( libFinal: libPrev: {
     flocoConfig = libPrev.mkFlocoConfig {
       # Most likely this will get populated by `stdenv'
-      npmSys = libPrev.getNpmSys { inherit (final) system; };
+      npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
       # Prefer fetching from original host rather than substitute.
       # NOTE: This only applies to fetchers that use derivations.
       #       Builtins won't be effected by this.
@@ -48,7 +48,7 @@ in {
     };
   } );
 
-  inherit (final.flocoConfig) npmSys;
+  inherit (final.lib.flocoConfig) npmSys;
 
 
 # ---------------------------------------------------------------------------- #
