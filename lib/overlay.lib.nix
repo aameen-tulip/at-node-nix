@@ -46,17 +46,18 @@ in {
   libreg     = callLib  ./registry.nix;
   libtree    = callLib  ./tree.nix;
   libsys     = callLib  ./system.nix;
-  libfetch   = callLib  ./fetch.nix;
   libmeta    = callLibs [./meta.nix ./meta-ent.nix];
   libdep     = callLib  ./depinfo.nix;
-
+  # `laika' provides a base.
+  libfetch = prev.libfetch // ( callLib  ./fetch.nix );
   # `ak-nix' provides a base.
   libfilt = prev.libfilt // ( callLib ./filt.nix );
-
+  # `ak-nix', `rime', and `laika' have constructed the existing set.
   ytypes = prev.ytypes.extend ( import ../types/overlay.yt.nix );
 
   inherit (final.libfetch)
-    fetchurlDrvW fetchGitW fetchTreeW pathW
+    fetchurlDrvW fetchTreeW pathW
+    flocoGitFetcher
     mkFlocoFetcher
   ;
 

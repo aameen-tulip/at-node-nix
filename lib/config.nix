@@ -38,7 +38,7 @@
     fetchers = {
       fileFetcher    = lib.libfetch.fetchurlDrvW;
       gitFetcher     = lib.libfetch.flocoGitFetcher;
-      pathFetcher    = lib.libfetch.pathW;
+      pathFetcher    = lib.libfetch.flocoPathFetcher;
       tarballFetcher = if   lib.libcfg.enableImpureFetchers
                        then lib.libfetch.fetchTreeW
                        else lib.libfetch.fetchurlNoteUnpackDrvW;

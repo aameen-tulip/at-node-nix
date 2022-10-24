@@ -27,8 +27,8 @@
     testFlocoFetcher = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher {};
-      in builtins.mapAttrs ( _: v: v ? outPath ) {
-        dir  = flocoFetcher proj2;
+      in builtins.mapAttrs ( _: v: if v ? outPath then true else v ) {
+        dir = flocoFetcher proj2;
         # NOTE: This test case will fail in GitHub Actions if you don't set up
         #       an SSH key authorized for your repo.
         #       If you fork this repo and it crashes here, setup a key, auth it,

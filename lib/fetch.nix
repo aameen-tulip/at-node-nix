@@ -8,6 +8,7 @@
 
   yt  = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
   plt = yt.NpmLock.Structs // yt.NpmLock;
+  inherit (lib.libfetch) fetchTreeGithubW fetchTreeGitW fetchGitW;
 
 # ---------------------------------------------------------------------------- #
 #
@@ -129,20 +130,6 @@
     cond = x: ! ( builtins.elem x ["indirect" "sourcehut" "mercurial"] );
   in yt.restrict "floco" cond yt.FlakeRef.Enums.ref_type;
 
-  Structs.sourceInfo = yt.struct "sourceInfo" {
-    outPath = yt.FS.store_path;
-    narHash = yt.Hash.Strings.sha256_sri;
-    # Git/Github/Path
-    lastModified     = yt.Prim.int;
-    lastModifiedDate = yt.Prim.string;  # FIXME: timestamp
-    # Git/Github
-    rev      = yt.option yt.Git.rev;
-    shortRev = yt.option yt.Prim.string;
-    # Git
-    revCount   = yt.option yt.Prim.int;
-    submodules = yt.option yt.Prim.bool;
-  };
-
   Structs.fetched = yt.struct "fetchedSource" {
     type       = Enums.sourceType;
     outPath    = yt.FS.store_path;
@@ -216,13 +203,6 @@
     md5    = true;
     rev    = true;
     # ...
-  };
-
-  builtinsFetchgitArgs = {
-    url     = false;
-    rev     = true;  # can be parsed from URL
-    allRefs = true;  # Defaults to false
-    shallow = true;  # "deepClone"
   };
 
 
@@ -350,176 +330,22 @@
 
 # ---------------------------------------------------------------------------- #
 
-  fetchGitW = {
-    __functionArgs = {
-      url        = false;
-      name       = true;
-      allRefs    = true;
-      shallow    = true;
-      submodules = true;
-      # Depends on pure mode
-      rev = true;
-      ref = true;
+  flocoProcessGitArgs = self: x: let
+    args = if ! ( yt.NpmLock.pkg_git_v3.check x ) then x else
+           plockEntryToGenericGitArgs x;
+  in lib.canPassStrict self ( ( self.__thunk or {} ) // args );
+
+  flocoProcessFTResult = type: fetchInfo: sourceInfo:
+    assert fetchInfo ? type -> type == fetchInfo.type;
+    {
+      inherit type fetchInfo sourceInfo;
+      inherit (sourceInfo) outPath;
     };
 
-    __thunk   = {
-      submodules = false;
-      shallow    = false;
-      allRefs    = true;
-    };
-
-    __innerFunction = builtins.fetchGit;
-
-    __processArgs = self: args: let
-      args' = if ! ( yt.NpmLock.Structs.pkg_git_v3.check args ) then args else
-              plockEntryToGenericGitArgs args;
-    in builtins.intersectAttrs self.__functionArgs ( self.__thunk // args' );
-
-    __functor = self: args:
-      self.__innerFunction ( self.__processArgs self args );
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # XXX: This is NOT compatible with `type = "github";'.
-  fetchTreeGitW = {
-    __functionMeta = {
-      name     = "fetchTreeGitW";
-      argTypes = let
-        # FIXME: allow other types of args like attrsets.
-        # NOTE: `__processArgs' already allows NPM lock entries to be used.
-        # Currently we don't typecheck base on `argTypes' so this is fine.
-        ftga = yt.struct {
-          url     = yt.FlakeRef.Strings.git_ref;  # FIXME: "SERVER[:/]OWNER"
-          type    = yt.option ( yt.enum ["git"] );
-          narHash = yt.option yt.Hash.Strings.sha256_sri;
-          rev     = yt.option yt.Git.rev;
-          ref     = yt.option yt.Git.ref;
-          allRefs = yt.option yt.bool;
-          shallow = yt.option yt.bool;
-          submodules = yt.option yt.bool;
-        };
-      in [ftga];
-    };
-
-    __functionArgs = {
-      url        = false;
-      type       = true;
-      allRefs    = true;
-      shallow    = true;
-      submodules = true;
-      # One of the following is required in pure mode.
-      rev     = true;
-      ref     = true;
-      narHash = true;
-    };
-
-    __innerFunction = builtins.fetchTree;
-
-    __thunk = fetchGitW.__thunk // { type = "git"; };
-
-    __processArgs = self: args: let
-      args' = if ! ( yt.NpmLock.Structs.pkg_git_v3.check args ) then args else
-              plockEntryToGenericGitArgs args;
-    in builtins.intersectAttrs self.__functionArgs ( self.__thunk // args' );
-
-    __processResult = self: {
-      outPath
-    , narHash
-    , lastModified
-    , lastModifiedDate
-    , rev
-    , shortRev
-    # Only for `type = "git"', not `type = "github"'. Others are common.
-    , revCount
-    , submodules
-    } @ sourceInfo: {
-      type = "git";
-      inherit outPath sourceInfo;
-    };
-
-    __functor = self: args: let
-      fetchInfo = self.__processArgs self args;
-      result    = self.__processResult self ( self.__innerFunction fetchInfo );
-    in result // { inherit fetchInfo; };
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: This shouldn't be trying to reinterpret args specific to plent.
-  fetchTreeGithubW = {
-    __functionMeta = {
-      name     = "fetchTreeGithubW";
-      argTypes = let
-        # NOTE: `__processArgs' already allows NPM lock entries to be used.
-        ftgha = yt.struct {
-          type     = yt.option ( yt.enum ["github"] );
-          owner    = yt.Git.owner;
-          repo     = yt.Git.Strings.ref_component;
-          # In pure mode you need at least one:
-          narHash  = yt.option yt.Hash.Strings.sha256_sri;
-          rev      = yt.option yt.Git.rev;
-          ref      = yt.option yt.Git.ref;
-          # NOTE: `shortRev' appears in `sourceInfo' but doesn't work as an arg.
-        };
-      in [ftgha];
-    };
-
-    __functionArgs = {
-      type    = true;
-      owner   = false;
-      repo    = false;
-      # One of the following is required in pure mode.
-      narHash = true;
-      rev     = true;
-      ref     = true;
-    };
-
-    __innerFunction = builtins.fetchTree;
-
-    __thunk = { type = "github"; };
-
-    __processArgs = self: args: let
-      # FIXME: this ain't going to cover `https://github.com' and other shit
-      # that it absolutely should cover.
-      pargs = let
-        parsed = parseGitUrl args;
-        core = {
-          owner = args.owner or parsed.owner;
-          repo  = args.repo or args.name or parsed.repo;
-        };
-        opt = let
-          rev = args.rev or parsed.rev or null;
-          fallbackRef = if rev == null then "refs/heads/HEAD" else null;
-        in lib.filterAttrs ( _: v: v != null ) {
-          inherit rev;
-          ref     = args.ref or fallbackRef;
-          narHash = args.narHash or args.sha256 or null;
-        };
-      in core // opt;
-      args' = if ! ( yt.NpmLock.Structs.pkg_git_v3.check args ) then pargs else
-              plockEntryToGenericGitArgs args;
-    in builtins.intersectAttrs self.__functionArgs ( self.__thunk // args' );
-
-    __processResult = self: {
-      latModified
-    , lastModifiedDate
-    , narHash
-    , outPath
-    , rev
-    , shortRev
-    } @ sourceInfo: {
-      type = "github";
-      inherit outPath sourceInfo;
-    };
-
-    __functor = self: args: let
-      fetchInfo = self.__processArgs self args;
-      result    = self.__processResult self ( self.__innerFunction fetchInfo );
-    in result // { inherit fetchInfo; };
-  };
+  flocoFTFunctor = type: self: x: let
+    fetchInfo  = self.__processArgs self x;
+    sourceInfo = self.__innerFunction fetchInfo;
+  in flocoProcessFTResult type fetchInfo sourceInfo;
 
 
 # ---------------------------------------------------------------------------- #
@@ -551,26 +377,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: use `pickGitFetcherFromArgs'
-  # FIXME: hashes
-  flocoGitFetcher = {
-    __processArgs = self: arg: let
-      parsed = parseGitUrl arg;
-      inherit (parsed) owner rev repo host url type;
-    in {
-      fetcher = if parsed.type == "github" then fetchTreeGithubW else
-                if arg ? type then fetchTreeGitW else fetchGitW;
-      fetchInfo = lib.filterAttrs ( _: v: v != null ) parsed;
-      original  = arg;
+  flocoGitFetcher = lib.libfetch.fetchGitW // {
+    __functionMeta = lib.libfetch.fetchGitW.__functionMeta // {
+      name = "flocoGitFetcher(fetchGitW)";
     };
-
-    __innerFunction = { fetcher, fetchInfo, original }: let
-      args = fetchInfo //
-             ( if builtins.isString original then {} else original );
-    in fetcher args;
-
-    __functor = self: args:
-      self.__innerFunction ( self.__processArgs self args );
+    __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
+    __processArgs = flocoProcessGitArgs;
+    __functor     = flocoFTFunctor "git";
   };
 
 
@@ -618,7 +431,11 @@
 
     __innerFunction = lib.fetchurlDrv;
 
-    __processArgs = self: args: let
+    __processArgs = self: x: let
+      args  = x // {
+        url  = x.url or x.resolved;
+        hash = x.integrity or x.sha1 or x.hash or x.shasum or x.narHash;
+      };
       args' = removeAttrs ( self.__thunk // args ) ["unpackAfter"];
     in builtins.intersectAttrs self.__functionArgs args';
 
@@ -657,7 +474,7 @@
   # in `metaEnt' data ( this still applies `filter' if it is defined ).
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
-  pathW = {
+  flocoPathFetcher = {
     __functionArgs = {
       name      = true;
       path      = true;
@@ -676,19 +493,29 @@
 
     __innerFunction = builtins.path;
 
-    __processArgs = self: args: let
+    __processArgs = self: x: let
       # NOTE: `path' may be a set in the case where it is a derivation; so in
       # order to pass to `builtins.path' we need to make it a string.
-      p = args.path or args.resolved or args.outPath or "";
+      p = x.path or x.resolved or x.outPath or "";
       # Coerce an abspath
       path = if lib.libpath.isAbspath p then p else
-             "${args.cwd or self.__thunk.cwd}/${p}";
-      name  = args.name or ( baseNameOf p );
-      args' = ( removeAttrs args ["cwd"] ) // { inherit name path; };
-    in builtins.intersectAttrs self.__functionArgs args';
+             "${x.cwd or self.__thunk.cwd}/${p}";
+      name  = x.name or ( baseNameOf p );
+      args' = removeAttrs ( self.__thunk // x ) ["cwd"];
+      args  =  args' // { inherit name path; };
+    in builtins.intersectAttrs self.__functionArgs args;
 
-    __functor = self: args:
-      self.__innerFunction ( self.__processArgs self args );
+    __functor = self: x: let
+      args      = self.__processArgs self x;
+      outPath   = self.__innerFunction args;
+      passthru' =
+        if args ? filter then { passthru.filter = args.filter; } else {};
+    in {
+      type               = "path";
+      fetchInfo          = removeAttrs args ["fetcher"];
+      sourceInfo.outPath = outPath;
+      inherit outPath;
+    } // passthru';
   };
 
 
@@ -875,13 +702,12 @@ in {
     # Git stuff
     pickGitFetcherFromArgsPure pickGitFetcherFromArgsImpure
     plockEntryToGenericGitArgs
-    fetchTreeGitW fetchTreeGithubW
-    fetchGitW
     flocoGitFetcher
 
     fetchTreePathW
+    fetchTreeW
 
-    fetchTreeW pathW
+    flocoPathFetcher
 
     fetchurlDrvW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
     mkFlocoFetcher
