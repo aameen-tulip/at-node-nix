@@ -1,5 +1,6 @@
 { lib
-, flocoPackages
+, ident
+, version
 , evalScripts
 , src ? builtins.path {
     path   = ./.;
@@ -8,12 +9,9 @@
       ( lib.libfilt.nixFilt name type );
   }
 , nmDirs
-}: let
-  pjs = lib.importJSON ./package.json;
-  # A dependency
-in evalScripts {
-  name       = "${baseNameOf pjs.name}-built-${pjs.version}";
-  version    = pjs.version;
+}: evalScripts {
+  name = "${baseNameOf ident}-built-${version}";
+  inherit version src;
   nmDirCmd   = nmDirs.nmDirCmds.devCopy or ( toString nmDirs );
   runScripts = ["build"];
 }
