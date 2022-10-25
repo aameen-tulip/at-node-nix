@@ -29,7 +29,7 @@
     lockMeta  = at-node-nix.lib.metaSetFromPlockV3 { lockDir = toString ./.; };
     # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
     cacheMeta = let
-      metaJSON = at-node-nix.lib.importJSON ./meta.json;
+      metaJSON = nixpkgs.lib.importJSON ./meta.json;
       metaRaw =
         if builtins.pathExists ./meta.nix  then import ./meta.nix else
         if builtins.pathExists ./meta.json then metaJSON else
@@ -103,8 +103,9 @@
     # as desired.
     # This is your opportunity to get your package set in order before adding
     # the build/derivations for the project that this flake targets.
-    # When reading the example above read "essentially" I'm glossing over the
-    # details about "self-reference" and just focusing on the merge operation.
+    # When reading the example above read "essentially".
+    # I'm glossing over the details about "self-reference" and just focusing
+    # on the merge operation.
     #
     # Projects which consume your flake as a dependency are expected to use
     # this overlay + your "standalone" package overlay ( defined below )
@@ -201,6 +202,7 @@
           #       prodCopy = ...;
           #       prodLink = ...;
           #     };
+          #     ...
           #   };
           nmDirs = final.mkNmDirPlockV3 {
             lockDir = toString ./.;
