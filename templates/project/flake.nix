@@ -175,12 +175,13 @@
             lockDir = toString ./client;
             pkgSet  = final.flocoPackages;
           };
-        };
-      };
-    };
+        };  # End module definition
+      } );  #  End flocoPackages
+    };  # End PROJECT Overlay
 
+    # Our project + dependencies prepared for consumption as a Nixpkgs extension.
     overlays.default = nixpkgs.lib.composeExtensions overlays.deps
-                                                     overlays.client;
+                                                     overlays.PROJECT;
 
 # ---------------------------------------------------------------------------- #
 
@@ -188,24 +189,18 @@
 
 # ---------------------------------------------------------------------------- #
 
-    overlays.default = self.overlays.${baseNameOf pjs.name};
-    overlays.${baseNameOf pjs.name} = final: prev: {
-      flocoPackages = lib.addFlocoPackages prev {
-        "${pjs.name}/${pjs.version}" =
-          lib.callPackageWith final ./build.nix {};
-        "${pjs.name}" = final.flocoPackages."${pjs.name}/${pjs.version}";
-      };
-    };
-
+    inherit overlays pjs;
 
 # ---------------------------------------------------------------------------- #
 
+    # Exposes our project to the Nix CLI
     packages = lib.eachDefaultSystemMap ( system: let
       pkgsFor = at-node-nix.legacyPackages.${system}.extend
                   self.overlays.default;
+      package = pkgsFor.flocoPackages."${pjs.name}/${pjs.version}";
     in {
-      ${baseNameOf pjs.name} = pkgsFor.flocoPackages.${pjs.name};
-      default = self.packages.${system}.${baseNameOf pjs.name};
+      ${baseNameOf pjs.name} = package;
+      default                = package;
     } );
 
 
