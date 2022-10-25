@@ -238,8 +238,11 @@
       pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
       package = pkgsFor.flocoPackages."${pjs.name}/${pjs.version}";
     in {
+      # Expose our package as an "installable". ( uses package.json name ).
       ${baseNameOf pjs.name} = package;
+      # Make the default install target our package.
       default = package;
+
       # We'll make a test-suite runner available from the CLI as well.
       # The default test prints "PASS" or "FAIL" to the file `test.log' and
       # we use `checkPhase' to convert that into an exit status.
@@ -263,7 +266,17 @@
 
 
 # ---------------------------------------------------------------------------- #
-
+  
+    # This can be used to generate the `meta.{nix,json}' files mentioned at the
+    # top of this template.
+    # This is just calling `at-node-nix#genMeta', but it adds `--dev' by
+    # default ( unless other flags are given ), and it automatically targets
+    # our project.
+    #
+    # You could generate a JSON cache ( effectively a lockfile ) using.
+    #   nix run .#regen-cache -- --dev --json > meta.json && git add ./meta.json
+    # Now Nix will be able to skip some runtime processing, only falling back
+    # to the `package-lock.json' when the cache is missing new dependencies.
     apps = at-node-nix.lib.eachDefaultSystemMap ( system: let
       pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
     in {

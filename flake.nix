@@ -309,6 +309,7 @@
       project.description = "a package-lock.json(v3) project with Floco";
     in {
       default = project;
+      inherit project;
 
       simple.path        = ./templates/project-trivial;
       simple.description = "a simple JS project with Floco";
