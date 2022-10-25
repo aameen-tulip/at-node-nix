@@ -146,14 +146,21 @@
           # input you want ( they don't need to be `flocoPackages' you can
           # dump a raw tarball or install `nixpkgs#hello' if you cared to ).
           # Please refer to `at-node-nix' upstream docs under:
-          #   `<at-node-nix>/pkgs/mkNmDir' and `<at-node-nix>/lib/libtree' for
+          # `<at-node-nix>/pkgs/mkNmDir' and `<at-node-nix>/lib/libtree' for
           # more information.
           #
           # `nmDirs' returned by `mkNmDirPlockV3' is an attrset with a few
           # pre-generated trees that should cover the majority of use cases.
           # if you define additional derivations ( for example `test' or
-          # `global' for an executable ) you can choose from:
-          #   nmDir = {
+          # `global' for an executable ) you might have a need for these.
+          # Tests that use `jest' or builds that use `webpack' often need
+          # copied modules rather than symlinks, and at runtime you'll want to
+          # use the "prod" trees.
+          # Below is a map of the `nmDirs' provided out of the box, but remember
+          # that `at-node-nix' carries a wider collection of generators if you
+          # have a need for them.
+          #
+          #   nmDirs = {
           #     # A sane default NM dir ( `devLink' symlinks dev tree )
           #     nmDirCmd = {
           #       cmd = <STRING>;  # Shell script which defines installers.
@@ -167,8 +174,8 @@
           #     nmDirCmds = {
           #       devCopy = ...;
           #       devLink = ...;
-          #       procCopy = ...;
-          #       procLink = ...;
+          #       prodCopy = ...;
+          #       prodLink = ...;
           #     };
           #   };
           nmDirs = final.mkNmDirPlockV3 {
