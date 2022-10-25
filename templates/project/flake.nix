@@ -15,8 +15,7 @@
 
   outputs = { nixpkgs, at-node-nix, flocoPackages, ... } @ inputs: let
 
-    inherit (at-node-nix) lib;
-    pjs = lib.importJSON ./package.json;
+    pjs = nixpkhs.lib.importJSON ./package.json;
 
 # ---------------------------------------------------------------------------- #
 
@@ -41,6 +40,7 @@
     # Nonetheless it's an incredibly useful hunk of data that you'll likely
     # reference often if you are analyzing/optimizing the build system.
     metaSet = lockMeta.__extend ( _: _: cacheMeta.__entries or cacheMeta );
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -218,7 +218,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  in {
+  in {  # Begin Outputs
 
 # ---------------------------------------------------------------------------- #
 
@@ -236,7 +236,7 @@
 # ---------------------------------------------------------------------------- #
 
     # Exposes our project to the Nix CLI
-    packages = lib.eachDefaultSystemMap ( system: let
+    packages = at-node-nix.lib.eachDefaultSystemMap ( system: let
       pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
       package = pkgsFor.flocoPackages."${pjs.name}/${pjs.version}";
     in {
