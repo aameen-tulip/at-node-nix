@@ -237,7 +237,7 @@
     isTb        = ( entSubtype == "registry-tarball" ) ||
                   ( entSubtype == "source-tarball" );
     # FIXME: fetching from the registry manifest makes WAY more sense.
-    canFetch = ( ( entSubtype == "git" ) || isTb ) &&
+    canFetch = ( entSubtype == "git" ) &&
                ( lib.flocoConfig.enableImpureMeta &&
                  lib.flocoConfig.enableImpureFetchers );
     haveTree   = isLocal || canFetch;
