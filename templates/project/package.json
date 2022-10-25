@@ -4,9 +4,15 @@
   "description": "",
   "scripts": {
     "build": "echo 'console.log( \"PASS\" )' > index.js",
-    "test": "node ./index.js|grep PASS"
+    "test": "node ./index.js|{ grep PASS||echo FAIL; }|tee test.log >&2"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.15.12",
+    "eslint": "^8.26.0",
+    "lodash": "^4.17.21",
+    "typescript": "^4.8.4"
+  }
 }

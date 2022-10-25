@@ -20,6 +20,30 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # These are provided for reference and will allow you to probe package
+    # information with `nix repl' or `nix eval'.
+    # These will be exposed as flake outputs for your convenienct but can be
+    # removed if you don't plan to poke around.
+
+    # Metadata scraped from the lockfile without any overrides by the cache.
+    lockMeta  = at-node-nix.lib.metaSetFromPlockV3 { lockDir = toString ./.; };
+    # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
+    cacheMeta = let
+      metaJSON = at-node-nix.lib.importJSON ./meta.json;
+      metaRaw =
+        if builtins.pathExists ./meta.nix  then import ./meta.nix else
+        if builtins.pathExists ./meta.json then metaJSON else
+        {};
+    in if metaRaw != {} then at-node-nix.lib.metaSetFromSerial else {};
+    # The "merged" metadata from the lockfile and `meta.{json,nix}'.
+    # This approximates the `flocoPackages' used to build - but keep in mind
+    # that this isn't showing any upstream or downstream overlays.
+    # Nonetheless it's an incredibly useful hunk of data that you'll likely
+    # reference often if you are analyzing/optimizing the build system.
+    metaSet = lockMeta.__extend ( _: _: cacheMeta.__entries or cacheMeta );
+
+# ---------------------------------------------------------------------------- #
+
     # Adds packages from `package-lock.json' to `flocoPackages' as "raw"
     # sources - no builds are executed, tarballs are consumed "as is".
     # We only ADD missing packages, we do not override existing ones.
@@ -179,7 +203,7 @@
           #     };
           #   };
           nmDirs = final.mkNmDirPlockV3 {
-            lockDir = toString ./client;
+            lockDir = toString ./.;
             pkgSet  = final.flocoPackages;
           };
         };  # End module definition
@@ -194,7 +218,18 @@
 
   in {
 
-    inherit overlays pjs;
+# ---------------------------------------------------------------------------- #
+
+    # Metadata reference, useful for analysis and debugging.
+    # This can be safely removed without effecting the build - see note up top
+    # for more info.
+    inherit pjs lockMeta cacheMeta metaSet;
+    plock = nixpkgs.lib.importJSON ./package-lock.json;
+
+# ---------------------------------------------------------------------------- #
+
+    # Exposes our extension to Nixpkgs for other projects to use.
+    inherit overlays;
 
 # ---------------------------------------------------------------------------- #
 
@@ -204,8 +239,44 @@
       package = pkgsFor.flocoPackages."${pjs.name}/${pjs.version}";
     in {
       ${baseNameOf pjs.name} = package;
-      default                = package;
+      default = package;
+      # We'll make a test-suite runner available from the CLI as well.
+      # The default test prints "PASS" or "FAIL" to the file `test.log' and
+      # we use `checkPhase' to convert that into an exit status.
+      # An exit failure will not be cached by Nix, so if you want to keep the
+      # tree you can add the flag `--keep-failed' on the CLI.
+      #
+      # To run your test suite with logging:  `nix run .#test -L;'
+      test = pkgsFor.evalScripts {
+        name = "${baseNameOf pjs.name}-tests-${pjs.version}";
+        src  = package;  # Use our built project as the root of the test env.
+        # For running the test suite we'll use symlinks of the production tree.
+        # The `nmDirPlockV3' info we used previously can be referenced here so
+        # we can avoid the boilerplate of generating `nmDirs' again.
+        nmDirCmd = package.passthru.nmDirs.nmDirCmds.prodLink;
+        runScripts = ["test"];
+        checkPhase = ''
+          grep -q '^PASS$' ./test.log||exit 1;
+        '';
+      };
     } );
+
+
+# ---------------------------------------------------------------------------- #
+
+    apps = at-node-nix.lib.eachDefaultSystemMap ( system: let
+      pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
+    in {
+      regen-cache.type    = "app";
+      regen-cache.program = let
+        script = pkgsFor.writeShellScript "regen-cache" ''
+          ${pkgsFor.nix}/bin/nix run at-node-nix#genMeta -- "''${@:---dev}"  \
+                                                            ${toString ./.};
+        '';
+      in script.outPath;
+
+    } );
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -217,6 +288,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-#
+# SERIAL: 1.0.0
 #
 # ============================================================================ #

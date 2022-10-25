@@ -3,16 +3,17 @@
     "ak-nix": {
       "inputs": {
         "nixpkgs": [
+          "flocoPackages",
           "at-node-nix",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1666233716,
-        "narHash": "sha256-K4xfuxIlTCYZIeB2Gi0naTrYZQUcfuhaocQlrkLoFls=",
+        "lastModified": 1666243146,
+        "narHash": "sha256-X1YVpNA+2pEe3jbPv1/fwbQNHURz4+5eyLc9Xb9xZZk=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "15fe235a1359b874b6daffd34635b8801ec0f04e",
+        "rev": "3ac2a43faee292f326224403a0bf518b7784907b",
         "type": "github"
       },
       "original": {
@@ -30,16 +31,39 @@
         "rime": "rime"
       },
       "locked": {
-        "lastModified": 1666236751,
-        "narHash": "sha256-NxJsHsdgOz87EJOyZw6f3s3NlTE1YRf5bmPyxkvy1FU=",
+        "lastModified": 1666381054,
+        "narHash": "sha256-uuwwx4HNfDWnzbKdmVXqs4lzGZJrb9iVABBUPJjh8qU=",
         "owner": "aameen-tulip",
         "repo": "at-node-nix",
-        "rev": "7587f5aab3ff1fc012efd987688ea01ce755d4e8",
+        "rev": "b249c03378e0effd7aa7d4f0deddc191421ff14c",
         "type": "github"
       },
       "original": {
         "owner": "aameen-tulip",
         "repo": "at-node-nix",
+        "type": "github"
+      }
+    },
+    "flocoPackages": {
+      "inputs": {
+        "at-node-nix": "at-node-nix",
+        "nixpkgs": [
+          "flocoPackages",
+          "at-node-nix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1666383130,
+        "narHash": "sha256-LheMEYJUqW3q0WGZpy/eJlF1/32J5NK6VhEowSe8j5A=",
+        "owner": "aakropotkin",
+        "repo": "flocoPackages",
+        "rev": "3a48cae94300b1e6717d8511a14452b6ddd0efe0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aakropotkin",
+        "repo": "flocoPackages",
         "type": "github"
       }
     },
@@ -77,20 +101,22 @@
     "rime": {
       "inputs": {
         "ak-nix": [
+          "flocoPackages",
           "at-node-nix",
           "ak-nix"
         ],
         "nixpkgs": [
+          "flocoPackages",
           "at-node-nix",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1666233757,
-        "narHash": "sha256-hoWnvkib+qGyPwWyworsMtQYAVkNA3HSFlRa5EOfBRg=",
+        "lastModified": 1666243290,
+        "narHash": "sha256-I9LJ3R620LFUPI/Sp++Bzes3EM8TXAm+/45wsMPeNKA=",
         "owner": "aakropotkin",
         "repo": "rime",
-        "rev": "13381f2f960c70abfea8b91a4a1da6d997969b6f",
+        "rev": "502a2ebda42c1dbdafd1d7a5dea863d0ea1ed946",
         "type": "github"
       },
       "original": {
@@ -102,9 +128,13 @@
     },
     "root": {
       "inputs": {
-        "at-node-nix": "at-node-nix",
+        "at-node-nix": [
+          "flocoPackages",
+          "at-node-nix"
+        ],
+        "flocoPackages": "flocoPackages",
         "nixpkgs": [
-          "at-node-nix",
+          "flocoPackages",
           "nixpkgs"
         ]
       }

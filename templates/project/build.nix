@@ -12,6 +12,8 @@
 }: evalScripts {
   name = "${baseNameOf ident}-built-${version}";
   inherit version src;
-  nmDirCmd   = nmDirs.nmDirCmds.devCopy or ( toString nmDirs );
+  # We'll use `devCopy' for our build.
+  nmDirCmd   = nmDirs.nmDirCmds.devCopy;
   runScripts = ["build"];
+  passthru   = { inherit nmDirs; };
 }
