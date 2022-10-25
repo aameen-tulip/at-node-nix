@@ -15,7 +15,7 @@
 
   outputs = { nixpkgs, at-node-nix, flocoPackages, ... } @ inputs: let
 
-    pjs = nixpkhs.lib.importJSON ./package.json;
+    pjs = nixpkgs.lib.importJSON ./package.json;
 
 # ---------------------------------------------------------------------------- #
 
