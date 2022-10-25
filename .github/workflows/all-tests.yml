@@ -72,12 +72,29 @@ jobs:
 
       - name: All Tests
         run: |
-          nix build head#tests --show-trace;
+          nix build head#tests --show-trace --no-link;
           echo "# ---------------------------------------------------------------------------- #" >&2;
-          nix build head#tests --show-trace --impure;
+          nix build head#tests --show-trace --impure --no-link;
 
       - name: All Checks
         run: |
           nix flake check head --show-trace;
           echo "# ---------------------------------------------------------------------------- #" >&2;
           nix flake check head --show-trace --impure;
+
+      - name: Project Template
+        run: |
+          mkdir -p project;
+          cd project;
+          nix flake init --template head#project;
+          git init;
+          git add .;
+
+          echo "Build Package:" >&2;
+          nix build --no-link -L;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          echo "Test Package:" >&2;
+          nix build --no-link -L;
+
+          cd -;
+          rm -rf ./project;

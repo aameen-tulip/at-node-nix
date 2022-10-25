@@ -3,7 +3,6 @@
     "ak-nix": {
       "inputs": {
         "nixpkgs": [
-          "flocoPackages",
           "at-node-nix",
           "nixpkgs"
         ]
@@ -44,29 +43,6 @@
         "type": "github"
       }
     },
-    "flocoPackages": {
-      "inputs": {
-        "at-node-nix": "at-node-nix",
-        "nixpkgs": [
-          "flocoPackages",
-          "at-node-nix",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1666383130,
-        "narHash": "sha256-LheMEYJUqW3q0WGZpy/eJlF1/32J5NK6VhEowSe8j5A=",
-        "owner": "aakropotkin",
-        "repo": "flocoPackages",
-        "rev": "3a48cae94300b1e6717d8511a14452b6ddd0efe0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "aakropotkin",
-        "repo": "flocoPackages",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1661353537,
@@ -101,12 +77,10 @@
     "rime": {
       "inputs": {
         "ak-nix": [
-          "flocoPackages",
           "at-node-nix",
           "ak-nix"
         ],
         "nixpkgs": [
-          "flocoPackages",
           "at-node-nix",
           "nixpkgs"
         ]
@@ -128,13 +102,9 @@
     },
     "root": {
       "inputs": {
-        "at-node-nix": [
-          "flocoPackages",
-          "at-node-nix"
-        ],
-        "flocoPackages": "flocoPackages",
+        "at-node-nix": "at-node-nix",
         "nixpkgs": [
-          "flocoPackages",
+          "at-node-nix",
           "nixpkgs"
         ]
       }
