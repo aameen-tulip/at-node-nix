@@ -7,9 +7,9 @@
 
   description = "a `package-lock.json(v3)' project with Floco";
 
-  inputs.nixpkgs.follows = "/at-node-nix/nixpkgs";
-  inputs.at-node-nix.url   = "github:aameen-tulip/at-node-nix";
-  inputs.flocoPackages.url = "github:aakropotkin/flocoPackages";
+  inputs.nixpkgs.follows     = "/flocoPackages/nixpkgs";
+  inputs.at-node-nix.follows = "/flocoPackages/at-node-nix";
+  inputs.flocoPackages.url   = "github:aakropotkin/flocoPackages";
 
 # ---------------------------------------------------------------------------- #
 
@@ -90,7 +90,7 @@
     # Knowing this may help you organize these overlays as well as any other
     # overlays you consume.
     overlays.deps = nixpkgs.lib.composeManyExtensions [
-      flocoPackages.overlays.default 
+      flocoPackages.overlays.default
       overlays.cachePackages
       overlays.lockPackages
     ];
@@ -127,8 +127,8 @@
       in {
         # XXX: see note above about `key'.
         ${key} = callFlocoPackage ./build.nix {
-          ident   = pjs.name;
-          version = pjs.version;
+          ident = pjs.name;
+          inherit (pjs) version;
           # We'll auto-generate a set of `node_modules/' directory builders
           # using our `package-lock.json'.
           # This will assign a "key" to each dependency in the lock, which is
@@ -145,7 +145,7 @@
           # copy, symlink, or whatever you want using basically any kind of
           # input you want ( they don't need to be `flocoPackages' you can
           # dump a raw tarball or install `nixpkgs#hello' if you cared to ).
-          # Please refer to `at-node-nix' upstream docs under:
+          # Please refer to `at-node-nix' upstream docs under
           # `<at-node-nix>/pkgs/mkNmDir' and `<at-node-nix>/lib/libtree' for
           # more information.
           #
@@ -172,8 +172,8 @@
           #     cmd = <STRING>;  # Alias of `nmDirCmd.cmd' ( default script ).
           #     # Other common `node_modules/' builders.
           #     nmDirCmds = {
-          #       devCopy = ...;
-          #       devLink = ...;
+          #       devCopy  = ...;
+          #       devLink  = ...;
           #       prodCopy = ...;
           #       prodLink = ...;
           #     };
@@ -183,7 +183,7 @@
             pkgSet  = final.flocoPackages;
           };
         };  # End module definition
-      } );  #  End flocoPackages
+      } );  # End flocoPackages
     };  # End PROJECT Overlay
 
     # Our project + dependencies prepared for consumption as a Nixpkgs extension.
