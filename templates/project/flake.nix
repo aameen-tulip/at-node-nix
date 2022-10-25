@@ -95,7 +95,7 @@
       overlays.lockPackages
     ];
 
-    # A stanalone overlay with your project and any "high priority" overrides.
+    # A standalone overlay with your project and any "high priority" overrides.
     # This overlay will clobber any previously defined packages in
     # `overlays.deps' when consumed.
     # In general try to keep this overlay minimal, and defer to multiple
