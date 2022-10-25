@@ -13,7 +13,7 @@
 # ---------------------------------------------------------------------------- #
 
   # cmd ::= resolve | manifest | packument | tarball | extract
-  pacotecli = cmd: flags @ { spec, dest ? null, ... }: let
+  pacotecli = cmd: { spec, dest ? null, ... } @ flags: let
 
     name = flags.name or
            ( if flags ? dest then baseNameOf flags.dest else "source" );
@@ -35,7 +35,7 @@
       spec
     ] ++ ( if elem cmd ["tarball" "extract"] then ["$out"] else [] );
 
-    stdoutTo = if elem cmd ["tarball" "extract"] then "$manifest" else "$out";
+    stdoutTo = if elem cmd ["tarball" "extract"] then "$dist" else "$out";
 
   in ( runCommandNoCC name {
     # `tarball' and `extract' dump `{ integrity, resolved, from }' to `stdout'.
@@ -51,7 +51,7 @@
     # Ex: The hashes in the `meta' output for both "extract" calls align here.
     #   extract lodash --> tarball "file:./result" --> extract "file:./result"
     outputs = ["out" "cache"] ++
-              ( if elem cmd ["tarball" "extract"] then ["manifest"] else [] );
+              ( if elem cmd ["tarball" "extract"] then ["dist"] else [] );
 
     outputHashMode = if cmd == "extract" then "recursive" else "flat";
     outputHashAlgo = "sha256";
