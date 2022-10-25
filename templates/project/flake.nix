@@ -200,8 +200,7 @@
 
     # Exposes our project to the Nix CLI
     packages = lib.eachDefaultSystemMap ( system: let
-      pkgsFor = at-node-nix.legacyPackages.${system}.extend
-                  self.overlays.default;
+      pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
       package = pkgsFor.flocoPackages."${pjs.name}/${pjs.version}";
     in {
       ${baseNameOf pjs.name} = package;
