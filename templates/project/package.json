@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "ls ./node_modules/ > ./my-modules.log",
-    "test": "grep -q nan ./my-modules.log"
+    "build": "echo 'console.log( \"PASS\" )' > index.js",
+    "test": "node ./index.js|grep PASS"
   },
   "keywords": [],
   "author": "",
