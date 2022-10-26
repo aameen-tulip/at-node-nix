@@ -14,7 +14,9 @@
 : "${CHMOD:=chmod}";
 : "${SED:=sed}";
 : "${BASH:=bash}";
-: "${PATCH_SHEBANGS:=patchShebangs}";
+: "${GREP:=grep}";
+: "${READLINK:=readlink}";
+: "${PATCH_SHEBANGS:=pjsPatchNodeShebangs}";
 
 : "${globalInstall:=0}";
 : "${skipMissing:=1}";
@@ -280,6 +282,53 @@ installModuleNm() {
   installBinsNm "$@";
 }
 
+
+
+# --------------------------------------------------------------------------- #
+
+# Identical to `<nixpkgs>/pkgs/stdenv/generic/setup.sh'
+pjsIsScript() {
+  local fn="$1";
+  local fd;
+  local magic;
+  exec {fd}< "$fn";
+  read -r -n 2 -u "$fd" magic;
+  exec {fd}<&-
+  if [[ "$magic" =~ \#! ]]; then
+    return 0;
+  else
+    return 1;
+  fi
+}
+
+
+# --------------------------------------------------------------------------- #
+
+: "${_NODE_BIN=}";
+
+pjsPatchNodeShebangs_one() {
+  local timestamp oldInterpreterLine oldPath arg0 args;
+  pjsIsScript "$1"||return 0;
+  read -r oldInterpreterLine < "$f";
+  read -r oldPath arg0 args <<< "${oldInterpreterLine:2}"
+  # Only modify `node' shebangs.
+  case "$oldPath $arg0" in
+    */bin/env\ *node) :; ;;
+    */node) case "$oldPath" in $NIX_STORE/*) return 0; ;; *) :; ;; esac; :; ;;
+    *) return 0; ;;
+  esac
+  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
+  timestamp="$( stat --printf '%y' "$1"; )";
+  $SED -i -e "1 s|.*|#\!$_NODE_BIN|" "$1";
+  touch --date "$timestamp" "$1";
+}
+
+pjsPatchNodeShebangs() {
+  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
+  while IFS= read -r -d $'\0' f; do
+    pjsPatchNodeShebangs_one "$f";
+  done < <( $FIND "$@" -type f -perm -0100 -print0; );
+}
 
 
 # --------------------------------------------------------------------------- #
