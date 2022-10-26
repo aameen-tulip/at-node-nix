@@ -65,7 +65,7 @@
       };
       log   = builtins.readFile "${checkPjsUtil}";
       lines = builtins.filter builtins.isString ( builtins.split "\n" log );
-      passp = l: ( builtins.match "FAIL" l ) == null;
+      passp = l: ( builtins.match "FAIL:.*" l ) == null;
       dumpLog  = builtins.traceVerbose "\n${log}";
       otherSys = checkPjsUtil ? outPath;
       sameSys  = dumpLog ( builtins.all passp lines );
