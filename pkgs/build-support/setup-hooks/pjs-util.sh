@@ -3,7 +3,8 @@
 # -*- mode: sh; sh-shell: bash; -*-
 # --------------------------------------------------------------------------- #
 #
-# Expects `bash', `jq', `sed', `coreutils', and `findutils' to be in path.
+# Expects `bash', `jq', `sed', `coreutils', `node', and `findutils' to be
+# in PATH.
 #
 # --------------------------------------------------------------------------- #
 
@@ -30,27 +31,38 @@
 # --------------------------------------------------------------------------- #
 
 pjsBasename() {
+  local pdir;
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   $JQ -r '.name|capture( "(?<scope>[^/]+/)?(?<bname>[^/]+)" )|.bname'  \
-      "${1:-package.json}";
+      "$pdir/package.json";
 }
 
 
 # --------------------------------------------------------------------------- #
 
+# pjsHasScript SCRIPT-NAME [PJS-PATH:=$PWD]
 pjsHasScript() {
+  local pdir;
+  pdir="${2:+$( $REALPATH "${2%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   $JQ -e --arg sn "$1" 'has( "scripts" ) and ( .scripts|has( $sn ) )'  \
-      "${2:-package.json}" >/dev/null;
+      "$pdir/package.json" >/dev/null;
 }
 
+# pjsRunScript SCRIPT-NAME [PJS-PATH:=$PWD]
 pjsRunScript() {
+  local pdir;
+  pdir="${2:+$( $REALPATH "${2%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   if [[ "$skipMissing" -eq 1 ]]; then
     $BASH -c "$(
       $JQ -r --arg sn "$1" --arg fb "$scriptFallback"   \
-          '.scripts[$sn] // $fb' "${2:-package.json}";
+          '.scripts[$sn] // $fb' "$pdir/package.json";
     )";
   else
     $BASH -c "$(
-      $JQ -r --arg sn "$1" '.scripts[$sn]' "${2:-package.json}";
+      $JQ -r --arg sn "$1" '.scripts[$sn]' "$pdir/package.json";
     )";
   fi
 }
@@ -59,30 +71,42 @@ pjsRunScript() {
 # --------------------------------------------------------------------------- #
 
 pjsHasBin() {
-  $JQ -e 'has( "bin" )' "${1:-package.json}" >/dev/null;
+  local pdir;
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
+  $JQ -e 'has( "bin" )' "$pdir/package.json" >/dev/null;
 }
 
 pjsHasBinString() {
+  local pdir;
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   $JQ -e 'has( "bin" ) and ( ( .bin|type ) == "string" )'  \
-      "${1:-package.json}" >/dev/null;
+      "$pdir/package.json" >/dev/null;
 }
 
 pjsHasBindir() {
+  local pdir;
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   $JQ -e 'has( "directories" ) and ( .directories|has( "bin" ) )'  \
-      "${1:-package.json}" >/dev/null;
+      "$pdir/package.json" >/dev/null;
 }
 
 pjsHasAnyBin() {
+  local pdir;
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   $JQ -e 'has( "bin" ) or ( has( "directories" ) and
           ( .directories|has( "bin" ) ) )'  \
-      "${1:-package.json}" >/dev/null;
+      "$pdir/package.json" >/dev/null;
 }
 # --------------------------------------------------------------------------- #
 
 pjsBinPairs() {
   local pdir bdir script bname;
-  pdir="${1:+${1%/package.json}}";
-  pdir="${pdir:=$PWD}";
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   if pjsHasBin "$pdir/package.json"; then
     if pjsHasBinString "$pdir/package.json"; then
       script="$( $JQ -r '.bin' "$pdir/package.json"; )";
@@ -102,8 +126,8 @@ pjsBinPairs() {
 # pjsBinPaths [PKG-DIR:=$PWD]
 pjsBinPaths() {
   local pdir bdir;
-  pdir="${1:+${1%/package.json}}";
-  pdir="${pdir:=$PWD}";
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   if pjsHasBin "$pdir/package.json"; then
     if pjsHasBinString "$pdir/package.json"; then
       $JQ -r '.bin' "$pdir/package.json";
@@ -123,8 +147,8 @@ pjsBinPaths() {
 # Set executable permissions for bins declared in `package.json'.
 pjsSetBinPerms() {
   local pdir bpaths;
-  pdir="${1:+${1%/package.json}}";
-  pdir="${pdir:=$PWD}";
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   bpaths=( $( pjsBinPaths "$pdir"; ) );
   if [[ -n "${bpaths[*]:-}" ]]; then
     $CHMOD +x -- $( printf "$pdir/%s " "${bpaths[@]}"; );
@@ -135,7 +159,10 @@ pjsSetBinPerms() {
 # --------------------------------------------------------------------------- #
 
 pjsHasField() {
-  $JQ -e "( .${1#.} // \"_%FAIL%_\" ) != \"_%FAIL%_\"" "${2:-package.json}"  \
+  local pdir;
+  pdir="${2:+$( $REALPATH "${2%/package.json}"; )}";
+  : "${pdir:=$PWD}";
+  $JQ -e "( .${1#.} // \"_%FAIL%_\" ) != \"_%FAIL%_\"" "$pdir/package.json"  \
       >/dev/null 2>&1;
 }
 
@@ -143,10 +170,12 @@ pjsHasField() {
 # --------------------------------------------------------------------------- #
 
 pjsFilesOr() {
-  local _default
+  local _default pdir;
   _default="$1";
-  if $JQ -e 'has( "files" )' "${2:-package.json}" >/dev/null; then
-    $JQ -r '.files[]' "${2:-package.json}";
+  pdir="${2:+$( $REALPATH "${2%/package.json}"; )}";
+  : "${pdir:=$PWD}";
+  if $JQ -e 'has( "files" )' "$$pdir/package.json" >/dev/null; then
+    $JQ -r '.files[]' "$$pdir/package.json";
   else
     eval printf '%s\\n' "$_default";
   fi
@@ -201,7 +230,7 @@ pjsPatchNodeShebangsForce_one() {
 }
 
 pjsPatchNodeShebangsForce() {
-  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
+  : "${_NODE_BIN:=$( $READLINK -f "$( command -v node; )"; )}";
   while IFS= read -r -d $'\0' f; do
     pjsPatchNodeShebangsForce_one "$f";
   done < <( $FIND "$@" -type f -perm -0100 -print0; );
@@ -212,8 +241,8 @@ pjsPatchNodeShebangs() {
   if [[ -n "${dontPatchShebangs-}" ]]; then
     return 0;
   fi
-  pdir="${1:+${1%/package.json}}";
-  pdir="${pdir:=$PWD}";
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
+  : "${pdir:=$PWD}";
   bpaths=( $( pjsBinPaths "$pdir"; ) );
   if [[ -n "${bpaths[*]:-}" ]]; then
     $PATCH_NODE_SHEBANGS $( printf "$pdir/%s " "${bpaths[@]}"; );
@@ -223,8 +252,8 @@ pjsPatchNodeShebangs() {
 
 # --------------------------------------------------------------------------- #
 
-# addMod SRC-DIR OUT-DIR
-# Ex:  addMod ./unpacked "$out/@foo/bar"
+# pjs*AddMod SRC-DIR OUT-DIR
+# Ex:  pjs*AddMod ./unpacked "$out/@foo/bar"
 pjsDefaultAddMod() {
   if [[ -e "$2" ]]; then
     [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
@@ -236,8 +265,8 @@ pjsDefaultAddMod() {
 pjsAddMod() { pjsDefaultAddMod "$@"; }
 
 
-# addMod FROM TO
-# Ex:  pjsAddBin ./unpacked/bin/quux "$out/bin/quux"
+# pjs*AddBin FROM TO
+# Ex:  pjs*AddBin ./unpacked/bin/quux "$out/bin/quux"
 pjsDefaultAddBin() {
   if [[ -e "$2" ]]; then
     [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
@@ -262,15 +291,15 @@ pjsAddMod() { pjsDefaultAddBin "$@"; }
 # Otherwise `nmdir=$1' and remaining args are treated as multiple `pdirs'.
 _INSTALL_NM_PARGS='
   if [[ -n "${node_modules_path:-}" ]]; then
-    pdir="${1:+$( $REALPATH ${1%/package*.json}; )}";
-    pdir="${pdir:=$PWD}";
+    pdir="${1:+$( $REALPATH "${1%/package*.json}"; )}";
+    : "${pdir:=$PWD}";
     nmdir="$node_modules_path";
   elif [[ "$#" -eq 1 ]]; then
     pdir="$PWD";
     nmdir="${1:-node_modules}";
   elif [[ "$#" -eq 2 ]]; then
-    pdir="${1:+$( $REALPATH ${1%/package*.json}; )}";
-    pdir="${pdir:=$PWD}";
+    pdir="${1:+$( $REALPATH "${1%/package*.json}"; )}";
+    : "${pdir:=$PWD}";
     nmdir="$2";
   else
     nmdir="$1";
@@ -323,16 +352,12 @@ installBinsNm() {
     fi
   fi
 
-  # FIXME: this will piss off symlinks:
-  # Also there's a chance the user already patched/set executable bit during a
-  # previous phase.
-  # This is a good behavior, but it should be skippable.
-
-  # Set executable permissions first.
-  pjsSetBinPerms "$idir";
-
-  # Maybe patch shebangs.
-  pjsPatchNodeShebangs "$idir";
+  if [[ -z "${installBinsNmSkipPatch:-}" ]]; then
+    # Set executable permissions first.
+    pjsSetBinPerms "$idir";
+    # Maybe patch shebangs.
+    pjsPatchNodeShebangs "$idir";
+  fi
 
   # Install relative symlinks into parent `$nmdir'.
   _IFS="$IFS";
@@ -376,10 +401,10 @@ installModuleNm() {
 # installModuleGlobal [PJS-PATH=$PWD/package.json] [PREFIX:=$out]
 installModuleGlobal() {
   local _prefix pdir;
-  pdir="${1:+$( $REALPATH ${1%/package.json}; )}";
+  pdir="${1:+$( $REALPATH "${1%/package.json}"; )}";
   if [[ ! -r "$pdir/package.json" ]]; then
     _prefix="$pdir";
-    pdir="${2:=$PWD}";
+    : "${pdir:=$PWD}";
   fi
   : "${_prefix:=${2:-${prefix:-$out}}}";
   bindir="$_prefix/bin" installModuleNm "$pdir" "$_prefix/lib/node_modules";

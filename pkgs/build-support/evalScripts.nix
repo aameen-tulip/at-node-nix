@@ -65,12 +65,17 @@
 , jq
 , stdenv
 , pjsUtil
+, patchNodePackageHook
+, installGlobalNodeModuleHook
+, globalInstall ? false
 , ...
 } @ args:
 let
   mkDrvArgs = removeAttrs args [
     "ident"
     "nmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
+    "patchNodePackageHook" "installGlobalNodeModuleHook"
+    "doStrip"
     "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
@@ -90,11 +95,14 @@ in stdenv.mkDerivation ( {
 
   inherit name;
 
-  inherit skipMissing nmDirCmd;
+  inherit skipMissing globalInstall nmDirCmd;
+
+  outputs = if globalInstall then ["out" "global"] else ["out"];
 
   nativeBuildInputs = let
     given    = args.nativeBuildInputs or [];
-    defaults = [pjsUtil nodejs jq];
+    gi       = if globalInstall then [installGlobalNodeModuleHook] else [];
+    defaults = [pjsUtil patchNodePackageHook nodejs jq] ++ gi;
   in lib.unique( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
   passAsFile =
@@ -102,10 +110,14 @@ in stdenv.mkDerivation ( {
 
   postUnpack = ''
     export node_modules_path="$PWD/$sourceRoot/node_modules";
-    if test -n "''${nmDirCmdPath:-}"; then
+    if test -n "''${nmDirCmdPath-}"; then
       source "$nmDirCmdPath";
     else
       eval "$nmDirCmd";
+      if [[ "$?" -ne 0 ]]; then
+        echo "Failed to execute nmDirCmd: \"$nmDirCmd\"" >&2;
+        exit 1;
+      fi
     fi
   '';
 
@@ -139,6 +151,8 @@ in stdenv.mkDerivation ( {
   '';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
+
+  dontStrip = ! ( args.gypfile or args.doStrip or false );
 
 } // mkDrvArgs )
 
