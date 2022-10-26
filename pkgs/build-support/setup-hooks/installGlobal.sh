@@ -1,5 +1,5 @@
 
-postInstallPhases+=" installModuleGlobalNodeModule"
+postInstallPhases+=" installGlobalNodeModule"
 
 installGlobalNodeModule() {
   local _prefix;
