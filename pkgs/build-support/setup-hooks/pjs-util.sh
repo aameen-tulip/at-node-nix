@@ -17,6 +17,7 @@
 : "${BASH:=bash}";
 : "${GREP:=grep}";
 : "${READLINK:=readlink}";
+: "${REALPATH:=realpath}";
 : "${PATCH_NODE_SHEBANGS:=pjsPatchNodeShebangsForce}";
 
 : "${globalInstall:=0}";
@@ -245,13 +246,6 @@ defaultAddBin() {
 
 # --------------------------------------------------------------------------- #
 
-installModuleGlobal() {
-  return 0;
-}
-
-
-# --------------------------------------------------------------------------- #
-
 # Process args for NM Dir installers.
 # `pdir' refers to the "package.json" dir.
 # `idir' refers to the "install" prefix, being a `node_modules/*' subdir.
@@ -310,7 +304,7 @@ installModuleNmNoBin() {
 # `idir' is expected to already contain an installed module.
 # `pdir' may point elsewhere and is only used to collect the bin entries.
 installBinsNm() {
-  local pdir nmdir _ADD_BIN __SELF__;
+  local pdir nmdir _bindir _ADD_BIN __SELF__;
   __SELF__='installBinsNm';
   eval "$_INSTALL_NM_PARGS";
   if ! pjsHasAnyBin "$pdir/package.json"; then
@@ -340,11 +334,15 @@ installBinsNm() {
       bf="$idir/$f"
     fi
     if [[ -n "${t%%/*}" ]]; then
-      if [[ "$idir" =~ "@" ]]; then
-        bt="$idir/../../.bin/$t"
-      else
-        bt="$idir/../.bin/$t"
+      _bindir="${bindir:-}";
+      if [[ -z "${_bindir:-}" ]]; then
+        if [[ "$idir" =~ "@" ]]; then
+          _bindir="$idir/../../.bin"
+        else
+          _bindir="$idir/../.bin"
+        fi
       fi
+      bt="$_bindir/$t";
     fi
     IFS="$_IFS";
     eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
@@ -361,6 +359,21 @@ installModuleNm() {
   installBinsNm "$@";
 }
 
+
+
+# --------------------------------------------------------------------------- #
+
+# installModuleGlobal [PJS-PATH=$PWD/package.json] [PREFIX:=$out]
+installModuleGlobal() {
+  local _prefix pdir;
+  pdir="${1:+$( $REALPATH ${1%/package.json}; )}";
+  if [[ ! -r "$pdir/package.json" ]]; then
+    _prefix="$pdir";
+    pdir="${2:=$PWD}";
+  fi
+  : "${_prefix:=${2:-${prefix:-$out}}}";
+  bindir="$_prefix/bin" installModuleNm "$pdir" "$_prefix/lib/node_modules";
+}
 
 
 # --------------------------------------------------------------------------- #

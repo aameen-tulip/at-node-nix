@@ -203,6 +203,16 @@ test_installBinsNm_patch() {
 
 # --------------------------------------------------------------------------- #
 
+test_installGlobal() {
+  installModuleGlobal "$EX1" "$PWD/nm2";
+  test -x "$PWD/nm2/bin/foo"||return 1;
+  test -x "$PWD/nm2/lib/node_modules/ex1/bin/bar.js"||return 1;
+  $HEAD -n1 "$PWD/nm2/bin/foo"                       \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+}
+
+# --------------------------------------------------------------------------- #
+
 runTest test_pjsBasename;
 runTest test_pjsHasScript;
 runTest test_pjsRunScript;
@@ -217,6 +227,8 @@ runTest test_pjsBinPaths;
 
 runTest test_installBinsNm;
 runTest test_installBinsNm_patch;
+
+runTest test_installGlobal;
 
 #runTest test_installModuleNm;
 
