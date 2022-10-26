@@ -9,6 +9,6 @@ installGlobalNodeModule() {
   fi
   _prefix="${global:-$out}";
   echo "Installing Node Module Globally to output: $_prefix";
-  bindir="$_prefix/bin" installModuleGlobal "$PWD" "$_prefix";
+  bindir="$_prefix/bin" installModuleNm "$PWD" "$_prefix";
   # FIXME: install deps
 }
