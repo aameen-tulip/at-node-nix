@@ -225,7 +225,7 @@ pjsPatchNodeShebangs() {
 
 # addMod SRC-DIR OUT-DIR
 # Ex:  addMod ./unpacked "$out/@foo/bar"
-defaultAddMod() {
+pjsDefaultAddMod() {
   if [[ -e "$2" ]]; then
     [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
   fi
@@ -233,15 +233,20 @@ defaultAddMod() {
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
 }
 
+pjsAddMod() { pjsDefaultAddMod "$@"; }
+
+
 # addMod FROM TO
-# Ex:  addBin ./unpacked/bin/quux "$out/bin/quux"
-defaultAddBin() {
+# Ex:  pjsAddBin ./unpacked/bin/quux "$out/bin/quux"
+pjsDefaultAddBin() {
   if [[ -e "$2" ]]; then
     [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
   fi
   $MKDIR -p "${2%/*}";
   $LN -srf -- "$1" "$2";
 }
+
+pjsAddMod() { pjsDefaultAddBin "$@"; }
 
 
 # --------------------------------------------------------------------------- #
@@ -257,14 +262,14 @@ defaultAddBin() {
 # Otherwise `nmdir=$1' and remaining args are treated as multiple `pdirs'.
 _INSTALL_NM_PARGS='
   if [[ -n "${node_modules_path:-}" ]]; then
-    pdir="${1:+${1%/package*.json}}";
+    pdir="${1:+$( $REALPATH ${1%/package*.json}; )}";
     pdir="${pdir:=$PWD}";
     nmdir="$node_modules_path";
   elif [[ "$#" -eq 1 ]]; then
     pdir="$PWD";
     nmdir="${1:-node_modules}";
   elif [[ "$#" -eq 2 ]]; then
-    pdir="${1:+${1%/package*.json}}";
+    pdir="${1:+$( $REALPATH ${1%/package*.json}; )}";
     pdir="${pdir:=$PWD}";
     nmdir="$2";
   else
@@ -291,7 +296,7 @@ installModuleNmNoBin() {
     if declare -F addMod; then
       _ADD_MOD=addMod;
     else
-      _ADD_MOD=defaultAddMod;
+      _ADD_MOD=pjsDefaultAddMod;
     fi
   fi
   eval "( $_ADD_MOD "$pdir" "$idir"; )";
@@ -300,7 +305,7 @@ installModuleNmNoBin() {
 
 # --------------------------------------------------------------------------- #
 
-# Install executables from `idir' to `$nmdir/.bin/'.
+# Install executables from `idir' to `$nmdir/.bin/' ( or `$bindir' if set ).
 # `idir' is expected to already contain an installed module.
 # `pdir' may point elsewhere and is only used to collect the bin entries.
 installBinsNm() {
@@ -314,9 +319,14 @@ installBinsNm() {
     if declare -F addBin; then
       _ADD_BIN=addBin;
     else
-      _ADD_BIN=defaultAddBin;
+      _ADD_BIN=pjsDefaultAddBin;
     fi
   fi
+
+  # FIXME: this will piss off symlinks:
+  # Also there's a chance the user already patched/set executable bit during a
+  # previous phase.
+  # This is a good behavior, but it should be skippable.
 
   # Set executable permissions first.
   pjsSetBinPerms "$idir";
