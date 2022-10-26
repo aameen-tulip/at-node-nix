@@ -260,6 +260,8 @@ pjsDefaultAddMod() {
   fi
   $MKDIR -p "$2";
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
+  pjsSetBinPerms "$2";
+  pjsPatchNodeShebangs "$2";
 }
 
 pjsAddMod() { pjsDefaultAddMod "$@"; }
@@ -350,13 +352,6 @@ installBinsNm() {
     else
       _ADD_BIN=pjsDefaultAddBin;
     fi
-  fi
-
-  if [[ -z "${installBinsNmSkipPatch:-}" ]]; then
-    # Set executable permissions first.
-    pjsSetBinPerms "$idir";
-    # Maybe patch shebangs.
-    pjsPatchNodeShebangs "$idir";
   fi
 
   # Install relative symlinks into parent `$nmdir'.

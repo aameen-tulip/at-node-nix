@@ -7,8 +7,8 @@
 #
 # --------------------------------------------------------------------------- #
 
-postPatchPhases+=" patchNodePackage";
-postBuildPhases+=" patchNodePackage";
+preConfigurePhases+=" patchNodePackage";
+preInstallPhases+=" patchNodePackage";
 
 patchNodePackage() {
   local pdir;

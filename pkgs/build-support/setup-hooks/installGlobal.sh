@@ -1,5 +1,5 @@
 
-postInstallPhases+=" installGlobalNodeModule"
+preFixupPhases+=" installGlobalNodeModule";
 
 installGlobalNodeModule() {
   local _prefix;
@@ -9,6 +9,6 @@ installGlobalNodeModule() {
   fi
   _prefix="${global:-$out}";
   echo "Installing Node Module Globally to output: $_prefix";
-  bindir="$_prefix/bin" installModuleNm "$PWD" "$_prefix";
+  bindir="$_prefix/bin" installModuleNm "$PWD" "$_prefix/lib/node_modules";
   # FIXME: install deps
 }
