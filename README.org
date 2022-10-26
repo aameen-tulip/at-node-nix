@@ -24,7 +24,50 @@ The purpose of this flake is to provide you with useful utilities for building
 Node.js+Nix projects in whatever context or toolkit you choose.
 While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSet= and =metaSet= as abstractions which may be used with any setup - you just need to provide the bindings/implementations for their prototypes.
 
-During alpha phase this project was named =at-node-nix=. The released tool will be named "Floco". 
+During alpha phase this project was named =at-node-nix=. The released tool will be named "Floco".
+
+* Getting Started
+The best place to get started is going to be with the templates provided by the top level flake.
+The template =simple= is best for a trivial project, and doesn't try to magically convert any lock-files or other metadata.
+The default =project= template is intended for working on a =package-lock.json(v2/3)= project.
+
+#+BEGIN_SRC sh
+mkdir -p foo;
+cd foo;
+nix flake init --template github:aameen-tulip/at-node-nix;
+git init;
+git add *;
+
+# Run a build of the dummy project
+nix build -L;
+
+# Run tests on the dummy project
+nix build .#test -L --no-link;
+
+# Add a new dependency:
+NPM_CONFIG_LOCKFILE_VERSION=3  \
+npm i --ignore-scripts --package-lock-only foo --save-dev;
+
+# Modify and rebuild
+jq '.scripts.build|="foo --version|tee foo.log"' ./package.json > package.json~;
+mv ./package.json~ ./package.json;
+nix build -L;
+
+# generate a cache to help skip some dynamic lock processing.
+nix run .#regen-cache -- --dev --json > meta.json;
+git add meta.json;
+nix build -L;
+
+# see metadata for my package.
+nix eval --impure --json '.#metaSet."my-project/1.0.0".__serial'|jq;
+
+# See `node_modules/' setup script.
+nix eval --impure --raw .#pacakge.nmDirCmd;
+
+# See floco packaging metadata
+nix eval --json .#metaSet.__serial|jq;
+#+END_SRC
+
 
 * Interfaces and Tools
 
