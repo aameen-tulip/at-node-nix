@@ -1,3 +1,4 @@
+#!/Users/alexameen/.nix-profile/bin/bash
 # =========================================================================== #
 # -*- mode: sh; sh-shell: bash; -*-
 # --------------------------------------------------------------------------- #
@@ -16,7 +17,7 @@
 : "${BASH:=bash}";
 : "${GREP:=grep}";
 : "${READLINK:=readlink}";
-: "${PATCH_SHEBANGS:=pjsPatchNodeShebangs}";
+: "${PATCH_NODE_SHEBANGS:=pjsPatchNodeShebangsForce}";
 
 : "${globalInstall:=0}";
 : "${skipMissing:=1}";
@@ -41,7 +42,7 @@ pjsHasScript() {
 }
 
 pjsRunScript() {
-  if test "$skipMissing" -eq 1; then
+  if [[ "$skipMissing" -eq 1 ]]; then
     $BASH -c "$(
       $JQ -r --arg sn "$1" --arg fb "$scriptFallback"   \
           '.scripts[$sn] // $fb' "${2:-package.json}";
@@ -75,40 +76,57 @@ pjsHasAnyBin() {
           ( .directories|has( "bin" ) ) )'  \
       "${1:-package.json}" >/dev/null;
 }
+# --------------------------------------------------------------------------- #
 
 pjsBinPairs() {
   local pdir bdir script bname;
-  if pjsHasBin "$1"; then
-    if pjsHasBinString "$1"; then
-      script="$( $JQ -r '.bin' "${1:-package.json}"; )";
-      bname="$( pjsBasename ${1:-}; )";
+  pdir="${1:+${1%/package.json}}";
+  pdir="${pdir:=$PWD}";
+  if pjsHasBin "$pdir/package.json"; then
+    if pjsHasBinString "$pdir/package.json"; then
+      script="$( $JQ -r '.bin' "$pdir/package.json"; )";
+      bname="$( pjsBasename "$pdir/package.json"; )";
       echo "$bname $script";
     else
       $JQ -r '.bin|to_entries|map( .key + " " + .value )[]'  \
-          "${1:-package.json}";
+          "$pdir/package.json";
     fi
-  elif pjsHasBindir "$1"; then
-    pdir="${1:+${1%/package*.json}}";
-    pdir="${pdir:=.}";
-    bdir="$( $JQ -r '.directories.bin' "${1:-package.json}"; )";
+  elif pjsHasBindir "$pdir/package.json"; then
+    bdir="$( $JQ -r '.directories.bin' "$pdir/package.json"; )";
     $FIND "$pdir/$bdir" -maxdepth 1 -type f -printf "%f $bdir/%f\n"  \
       |$SED 's/\([^.]\+\)\(\.[^ ]\+\) /\1 /';
   fi
 }
 
+# pjsBinPaths [PKG-DIR:=$PWD]
 pjsBinPaths() {
   local pdir bdir;
-  if pjsHasBin "$1"; then
-    if pjsHasBinString "$1"; then
-      $JQ -r '.bin' "${1:-package.json}";
+  pdir="${1:+${1%/package.json}}";
+  pdir="${pdir:=$PWD}";
+  if pjsHasBin "$pdir/package.json"; then
+    if pjsHasBinString "$pdir/package.json"; then
+      $JQ -r '.bin' "$pdir/package.json";
     else
-      $JQ -r '.bin|keys[]' "${1:-package.json}";
+      $JQ -r '.bin[]' "$pdir/package.json";
     fi
-  elif pjsHasBindir "$1"; then
-#    pdir="${1:+${1%/package.json}}";
-    pdir="${pdir:=.}";
-    bdir="$( $JQ -r '.directories.bin' "${1:-package.json}"; )";
-    $FIND "$pdir/$bdir" -maxdepth 1 -type f -print;
+  elif pjsHasBindir "$pdir/package.json"; then
+    bdir="$( $JQ -r '.directories.bin' "$pdir/package.json"; )";
+    ( cd "$pdir" >/dev/null; $FIND "$bdir/" -maxdepth 1 -type f -print; );
+  fi
+}
+
+
+# --------------------------------------------------------------------------- #
+
+# pjsSetBinPerms [PKG-DIR:=PWD]
+# Set executable permissions for bins declared in `package.json'.
+pjsSetBinPerms() {
+  local pdir bpaths;
+  pdir="${1:+${1%/package.json}}";
+  pdir="${pdir:=$PWD}";
+  bpaths=( $( pjsBinPaths "$pdir"; ) );
+  if [[ -n "${bpaths[*]:-}" ]]; then
+    $CHMOD +x -- $( printf "$pdir/%s " "${bpaths[@]}"; );
   fi
 }
 
@@ -118,21 +136,6 @@ pjsBinPaths() {
 pjsHasField() {
   $JQ -e "( .${1#.} // \"_%FAIL%_\" ) != \"_%FAIL%_\"" "${2:-package.json}"  \
       >/dev/null 2>&1;
-}
-
-
-# --------------------------------------------------------------------------- #
-
-pjsSetBinPerms() {
-  $CHMOD +x -- $( pjsBinPaths "$1"; );
-}
-
-
-# --------------------------------------------------------------------------- #
-
-pjsPatchShebangs() {
-  test "${dontPatchShebangs:-0}" -ne 1 && return 0;
-  $PATCH_SHEBANGS $( pjsBinPaths "$1"; );
 }
 
 
@@ -151,7 +154,7 @@ pjsFilesOr() {
 # FIXME: remove ignore files and junk
 pjsPacklist() {
   declare -a fs;
-  if test "$#" -gt 0; then
+  if [[ "$#" -gt 0 ]]; then
     pushd "${1%/*}" >/dev/null;
   else
     pushd . >/dev/null;
@@ -169,22 +172,71 @@ pjsPacklist() {
 
 # --------------------------------------------------------------------------- #
 
+pjsPatchNodeShebangsForce_one() {
+  local timestamp oldInterpreterLine oldPath arg0 args;
+  pjsIsScript "$1"||return 0;
+  read -r oldInterpreterLine < "$f";
+  read -r oldPath arg0 args <<< "${oldInterpreterLine:2}";
+  # Only modify `node' shebangs.
+  case "$oldPath $arg0" in
+    */bin/env\ *node) :; ;;
+    */node\ |node\ )
+      case "$oldPath" in
+        $NIX_STORE/*) return 0; ;;
+        *) :; ;;
+      esac
+      :;
+    ;;
+    *) return 0; ;;
+  esac
+  : "${_NODE_BIN:=$( $READLINK -f "$( command -v node; )"; )}";
+  timestamp="$( stat --printf '%y' "$1"; )";
+  printf '%s'                                                         \
+    "$1: interpreter directive changed from \"$oldInterpreterLine\""  \
+    " to \"#!${_NODE_BIN:?}\"" >&2;
+  echo '' >&2;
+  $SED -i -e "1 s|.*|#\!$_NODE_BIN|" "$1";
+  touch --date "$timestamp" "$1";
+}
+
+pjsPatchNodeShebangsForce() {
+  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
+  while IFS= read -r -d $'\0' f; do
+    pjsPatchNodeShebangsForce_one "$f";
+  done < <( $FIND "$@" -type f -perm -0100 -print0; );
+}
+
+pjsPatchNodeShebangs() {
+  local pdir bpaths;
+  if [[ -n "${dontPatchShebangs-}" ]]; then
+    return 0;
+  fi
+  pdir="${1:+${1%/package.json}}";
+  pdir="${pdir:=$PWD}";
+  bpaths=( $( pjsBinPaths "$pdir"; ) );
+  if [[ -n "${bpaths[*]:-}" ]]; then
+    $PATCH_NODE_SHEBANGS $( printf "$pdir/%s " "${bpaths[@]}"; );
+  fi
+}
+
+
+# --------------------------------------------------------------------------- #
+
 # addMod SRC-DIR OUT-DIR
 # Ex:  addMod ./unpacked "$out/@foo/bar"
 defaultAddMod() {
-  if test -e "$2"; then
-    test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  if [[ -e "$2" ]]; then
+    [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
   fi
   $MKDIR -p "$2";
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
-
 }
 
 # addMod FROM TO
 # Ex:  addBin ./unpacked/bin/quux "$out/bin/quux"
 defaultAddBin() {
-  if test -e "$2"; then
-    test -w "${2%/*}"||$CHMOD +w "${2%/*}";
+  if [[ -e "$2" ]]; then
+    [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
   fi
   $MKDIR -p "${2%/*}";
   $LN -srf -- "$1" "$2";
@@ -200,15 +252,24 @@ installModuleGlobal() {
 
 # --------------------------------------------------------------------------- #
 
+# Process args for NM Dir installers.
+# `pdir' refers to the "package.json" dir.
+# `idir' refers to the "install" prefix, being a `node_modules/*' subdir.
+# `nmdir' refers to the "parent" `node_modules/' dir above `idir'.
+#
+# If `node_modules_path' is set, "package dir" `pdir' is arg1 or PWD if omitted.
+# Otherwise, a single arg sets `pdir=$PWD' and `nmdir=$1'.
+# Two args sets `pdir=$1' ( strips `package.json' if given ), `nmdir=$2'.
+# Otherwise `nmdir=$1' and remaining args are treated as multiple `pdirs'.
 _INSTALL_NM_PARGS='
-  if test -n "${node_modules_path:-}"; then
+  if [[ -n "${node_modules_path:-}" ]]; then
     pdir="${1:+${1%/package*.json}}";
     pdir="${pdir:=$PWD}";
     nmdir="$node_modules_path";
-  elif test "$#" -eq 1; then
+  elif [[ "$#" -eq 1 ]]; then
     pdir="$PWD";
     nmdir="${1:-node_modules}";
-  elif test "$#" -eq 2; then
+  elif [[ "$#" -eq 2 ]]; then
     pdir="${1:+${1%/package*.json}}";
     pdir="${pdir:=$PWD}";
     nmdir="$2";
@@ -223,36 +284,6 @@ _INSTALL_NM_PARGS='
   idir="$nmdir/$( $JQ -r ".name" "$pdir/package.json"; )";
 ';
 
-installBinsNm() {
-  local pdir nmdir _ADD_BIN __SELF__;
-  __SELF__='installBinsNm';
-  eval "$_INSTALL_NM_PARGS";
-  if ! pjsHasAnyBin "$pdir/package.json"; then
-    return 0;
-  fi
-  if test -z "${_ADD_BIN:=${ADD_BIN:-}}"; then
-    if declare -F addBin; then
-      _ADD_BIN=addBin;
-    else
-      _ADD_BIN=defaultAddBin;
-    fi
-  fi
-  _IFS="$IFS";
-  IFS=$'\n';
-  for bp in $( cd "$idir" >/dev/null; pjsBinPairs "$PWD/package.json"; ); do
-    f="${bp##* }";
-    t="${bp%% *}";
-    if test -n "${f%%/*}"; then
-      bf="${idir}/$f"
-    fi
-    if test -n "${t%%/*}"; then
-      bt="${idir}/../.bin/$t"
-    fi
-    IFS="$_IFS";
-    eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
-  done
-}
-
 
 # --------------------------------------------------------------------------- #
 
@@ -262,7 +293,7 @@ installModuleNmNoBin() {
   local pdir nmdir _ADD_MOD __SELF__;
   __SELF__='installModuleNmNoBin';
   eval "$_INSTALL_NM_PARGS";
-  if test -z "${_ADD_MOD:=${ADD_MOD:-}}"; then
+  if [[ -z "${_ADD_MOD:=${ADD_MOD:-}}" ]]; then
     if declare -F addMod; then
       _ADD_MOD=addMod;
     else
@@ -270,6 +301,54 @@ installModuleNmNoBin() {
     fi
   fi
   eval "( $_ADD_MOD "$pdir" "$idir"; )";
+}
+
+
+# --------------------------------------------------------------------------- #
+
+# Install executables from `idir' to `$nmdir/.bin/'.
+# `idir' is expected to already contain an installed module.
+# `pdir' may point elsewhere and is only used to collect the bin entries.
+installBinsNm() {
+  local pdir nmdir _ADD_BIN __SELF__;
+  __SELF__='installBinsNm';
+  eval "$_INSTALL_NM_PARGS";
+  if ! pjsHasAnyBin "$pdir/package.json"; then
+    return 0;
+  fi
+  if [[ -z "${_ADD_BIN:=${ADD_BIN:-}}" ]]; then
+    if declare -F addBin; then
+      _ADD_BIN=addBin;
+    else
+      _ADD_BIN=defaultAddBin;
+    fi
+  fi
+
+  # Set executable permissions first.
+  pjsSetBinPerms "$idir";
+
+  # Maybe patch shebangs.
+  pjsPatchNodeShebangs "$idir";
+
+  # Install relative symlinks into parent `$nmdir'.
+  _IFS="$IFS";
+  IFS=$'\n';
+  for bp in $( cd "$idir" >/dev/null; pjsBinPairs "$PWD/package.json"; ); do
+    f="${bp##* }";
+    t="${bp%% *}";
+    if [[ -n "${f%%/*}" ]]; then
+      bf="$idir/$f"
+    fi
+    if [[ -n "${t%%/*}" ]]; then
+      if [[ "$idir" =~ "@" ]]; then
+        bt="$idir/../../.bin/$t"
+      else
+        bt="$idir/../.bin/$t"
+      fi
+    fi
+    IFS="$_IFS";
+    eval "( $_ADD_BIN "${bf:-$f}" "${bt:-$t}"; )";
+  done
 }
 
 
@@ -299,35 +378,6 @@ pjsIsScript() {
   else
     return 1;
   fi
-}
-
-
-# --------------------------------------------------------------------------- #
-
-: "${_NODE_BIN=}";
-
-pjsPatchNodeShebangs_one() {
-  local timestamp oldInterpreterLine oldPath arg0 args;
-  pjsIsScript "$1"||return 0;
-  read -r oldInterpreterLine < "$f";
-  read -r oldPath arg0 args <<< "${oldInterpreterLine:2}"
-  # Only modify `node' shebangs.
-  case "$oldPath $arg0" in
-    */bin/env\ *node) :; ;;
-    */node) case "$oldPath" in $NIX_STORE/*) return 0; ;; *) :; ;; esac; :; ;;
-    *) return 0; ;;
-  esac
-  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
-  timestamp="$( stat --printf '%y' "$1"; )";
-  $SED -i -e "1 s|.*|#\!$_NODE_BIN|" "$1";
-  touch --date "$timestamp" "$1";
-}
-
-pjsPatchNodeShebangs() {
-  : "${_NODE_BIN:=$( $READLINK -f $( command -v node; ); )}";
-  while IFS= read -r -d $'\0' f; do
-    pjsPatchNodeShebangs_one "$f";
-  done < <( $FIND "$@" -type f -perm -0100 -print0; );
 }
 
 

@@ -1,2 +1,2 @@
-#!/usr/bin/env node
+#! node
 console.log( "PASS" );

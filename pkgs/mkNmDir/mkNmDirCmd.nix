@@ -305,7 +305,7 @@
         for bd in $( printf '%s\n' "''${_NM_FIXUP_BIN_DIRS[@]}"|sort -u; ); do
           for s in $( readlink -f "$bd/"*; ); do
             chmod 0755 "$s";
-            ''${PATCH_SHEBANGS:-patchShebangs} "$s";
+            ''${PATCH_NODE_SHEBANGS:-pjsPatchNodeShebangsForce} "$s";
           done
         done
       }
@@ -317,6 +317,10 @@
   # is essential ( possibly useful in overrides ).
   in {
     cmd = ''
+      source ${builtins.path {
+        path      = ../build-support/setup-hooks/pjs-util.sh;
+        recursive = false;
+      }}
       ${preHookDef}
       ${postHookDef}
       ${addBinsDef}

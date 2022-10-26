@@ -135,7 +135,7 @@
     setFallback = ''
       : "''${node_modules_path:=$PWD/node_modules}";
       export node_modules_path;
-      if test "''${PATH_SHEBANGS:+y}" != "y"; then
+      if test "''${PATCH_SHEBANGS:+y}" != "y"; then
         if declare -F patchShebangs; then
           : "''${PATCH_SHEBANGS:=patchShebangs}";
         else

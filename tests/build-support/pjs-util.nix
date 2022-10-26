@@ -1,7 +1,7 @@
-{ pjsUtil, jq, stdenv }: stdenv.mkDerivation {
+{ pjsUtil, jq, stdenv, nodejs }: stdenv.mkDerivation {
   name = "test-pjs-util.log";
   src  = builtins.path { path = ./pjs-util; };
-  nativeBuildInputs = [pjsUtil jq];
+  nativeBuildInputs = [pjsUtil jq nodejs];
   dontConfigure = true;
   dontBuild     = true;
   doCheck       = true;
