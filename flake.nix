@@ -320,6 +320,9 @@
 
       simple-bin.path        = ./templates/simple-bin;
       simple-bin.description = "a simple JS executable with no deps";
+
+      tree-bin.path        = ./templates/tree-bin;
+      tree-bin.description = "a simple JS executable with tree.json file";
     };
 
 # ---------------------------------------------------------------------------- #
