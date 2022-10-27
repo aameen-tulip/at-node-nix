@@ -228,6 +228,12 @@ advise_fail() {
 
 # ---------------------------------------------------------------------------- #
 
+# FIXME: there's a rare edge case where a devDependency is a symlink and we are
+# operating in `--prod' mode.
+# The `packages."node_modules/..." = { link = true; resolved = "..."; }' entry
+# is written, but there is no associated key for the resolved path.
+# This should get patched in `lib.libplock', but for now we just kill those.
+
 export DEV DESCRIPTOR JSON DO_SHA256;
 $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
   lp: let
@@ -247,14 +253,27 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
       } );
     } );
     inherit (pkgsFor) lib;
-    lockDir  = toString ./.;
-    metaSet  = lib.metaSetFromPlockV3 { inherit lockDir; };
+    lockDir = toString ./.;
+    plock   = lib.importJSON "${lockDir}/package-lock.json";
+    isDev   = builtins.getEnv "DEV" == "true";
+    plockND = plock // {
+      packages = let
+        prods = lib.filterAttrs ( _: v: ! ( v.dev or false ) ) plock.packages;
+        ddfs  = builtins.mapAttrs ( _: v: removeAttrs v ["devDependencies"] )
+                                  prods;
+        linkMissing = k: v:
+          ( v.link or false ) && ( ! ( prods ? ${v.resolved} ) );
+      in lib.filterAttrs ( k: v: ! ( linkMissing k v ) ) ddfs;
+    };
+    metaSet = lib.metaSetFromPlockV3 {
+      inherit lockDir;
+      plock = if isDev then plock else plockND;
+    };
     serial   = metaSet.__serial;
-    isDev    = builtins.getEnv "DEV" == "true";
     dumpJSON = builtins.getEnv "JSON" == "true";
     trees = let
       mkTree = dev: lib.libtree.idealTreePlockV3 {
-        inherit lockDir dev;
+        inherit lockDir dev metaSet;
         skipUnsupported = false;
       };
       maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
@@ -263,7 +282,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
       inherit (metaSet.__meta) fromType rootKey;
       inherit trees;
     };
-    data   = serial // { inherit __meta; };
+    data      = serial // { inherit __meta; };
     shellArgs = builtins.concatStringsSep " " [
       ( if isDev then "--dev" else "--prod" )
       ( builtins.getEnv "DESCRIPTOR" )
