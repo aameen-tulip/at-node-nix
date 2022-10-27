@@ -255,9 +255,14 @@ pjsPatchNodeShebangs() {
 # pjs*AddMod SRC-DIR OUT-DIR
 # Ex:  pjs*AddMod ./unpacked "$out/@foo/bar"
 pjsDefaultAddMod() {
-  if [[ -e "$2" ]]; then
-    [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
-  fi
+  case "${2%/*}" in
+    $NIX_STORE) :; ;;
+    *)
+      if [[ -e "$2" ]]; then
+        [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
+      fi
+    ;;
+  esac
   $MKDIR -p "$2";
   $CP -r --no-preserve=mode --reflink=auto -T -- "$1" "$2";
   pjsSetBinPerms "$2";
@@ -277,7 +282,7 @@ pjsDefaultAddBin() {
   $LN -srf -- "$1" "$2";
 }
 
-pjsAddMod() { pjsDefaultAddBin "$@"; }
+pjsAddBin() { pjsDefaultAddBin "$@"; }
 
 
 # --------------------------------------------------------------------------- #
@@ -420,6 +425,69 @@ pjsIsScript() {
     return 0;
   else
     return 1;
+  fi
+}
+
+
+# --------------------------------------------------------------------------- #
+
+pjsSetDirs() {
+  unset PDIR NMDIR IDIR BINDIR _PREFIX;
+  PDIR="${1:+${1%/package.json}}";
+  : "${PDIR=$PWD}";
+  _PREFIX="${global:-$out}";
+  NMDIR="$_PREFIX/lib/node_modules";
+  IDIR="$nmdir/$( $JQ -r ".name" "$PDIR/package.json"; )";
+  BINDIR="$_PREFIX/bin";
+
+  if [[ ! -r "$PDIR/package.json" ]]; then
+    echo "$PDIR: Cannot locate Node Package to be processed" >&2;
+    return 1;
+  fi
+
+  export _PREFIX NMDIR PDIR BINDIR;
+
+  if [[ -n "${VERBOSE:+y}" ]]; then
+    echo "Setting Install Paths to:";
+    echo "_PREFIX: $_PREFIX";
+    echo "NMDIR:  $NMDIR";
+    echo "IDIR:   $IDIR";
+    echo "BINDIR: $BINDIR";
+  fi
+}
+
+
+# --------------------------------------------------------------------------- #
+
+pjsRunNmDirCmd() {
+  local _old_nmp;
+  case "$1" in
+    --dont-set-dirs) :; ;;
+    *) pjsSetDirs "$@"; ;;
+  esac
+
+  # Push original value;
+  if [[ -n "${node_modules_path+y}" ]]; then
+    _old_nmp="$node_modules_path";
+  fi
+
+  export node_modules_path="$IDIR/node_modules";
+
+  if test -n "${nmDirCmdPath:-}"; then
+    mkdir -p "$node_modules_path";
+    source "$nmDirCmdPath";
+  else
+    mkdir -p "$node_modules_path";
+    eval "${nmDirCmd:-:}";
+    if [[ "$?" -ne 0 ]]; then
+      echo "Failed to execute nmDirCmd: \"$nmDirCmd\"" >&2;
+      exit 1;
+    fi
+  fi
+
+  # Restore original value;
+  if [[ -n "${_old_nmp=+y}" ]]; then
+    export node_modules_path="$_old_nmp";
   fi
 }
 

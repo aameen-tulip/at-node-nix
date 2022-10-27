@@ -114,6 +114,9 @@ in {
           *) :; ;;
         esac
       '';
+
+      dontStrip = args.dontStrip or false;
+
     } );  # End `__innerFunction'
 
 

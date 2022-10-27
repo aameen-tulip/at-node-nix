@@ -97,20 +97,23 @@ in stdenv.mkDerivation ( {
 
   inherit skipMissing globalInstall nmDirCmd;
 
-  outputs = if globalInstall then ["out" "global"] else ["out"];
+  outputs = let
+    prev   = args.outputs or ["out"];
+    global = if globalInstall then ["global"] else [];
+  in prev ++ global;
 
   nativeBuildInputs = let
     given    = args.nativeBuildInputs or [];
     gi       = if globalInstall then [installGlobalNodeModuleHook] else [];
     defaults = [pjsUtil patchNodePackageHook nodejs jq] ++ gi;
-  in lib.unique( given ++ ( lib.filter ( x: x != null ) defaults ) );
+  in lib.unique ( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
   passAsFile =
     if 1024 <= ( builtins.stringLength nmDirCmd ) then ["nmDirCmd"] else [];
 
   postUnpack = ''
     export node_modules_path="$PWD/$sourceRoot/node_modules";
-    if test -n "''${nmDirCmdPath-}"; then
+    if test -n "''${nmDirCmdPath:-}"; then
       source "$nmDirCmdPath";
     else
       eval "$nmDirCmd";
@@ -137,22 +140,24 @@ in stdenv.mkDerivation ( {
     }
   '';
 
-
   # You can override this
   preInstall = ''
     if test -n "''${node_modules_path:-}"; then
-      chmod -R +w "$node_modules_path";
-      rm -rf -- "$node_modules_path";
+      if test -e "$node_modules_path"; then
+        chmod -R +w "$node_modules_path";
+        rm -rf -- "$node_modules_path";
+      fi
+      unset node_modules_path;
     fi
   '';
 
   installPhase = lib.withHooks "install" ''
-    cp -pr --reflink=auto -- . "$out";
+    pjsAddMod . "$out";
   '';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
 
-  dontStrip = ! ( args.gypfile or args.doStrip or false );
+  dontStrip = true;
 
 } // mkDrvArgs )
 
