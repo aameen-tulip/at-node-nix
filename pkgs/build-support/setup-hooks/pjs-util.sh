@@ -1,12 +1,12 @@
 #! /usr/bin/env bash
-# =========================================================================== #
+# ============================================================================ #
 # -*- mode: sh; sh-shell: bash; -*-
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 #
 # Expects `bash', `jq', `sed', `coreutils', `node', and `findutils' to be
 # in PATH.
 #
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 : "${JQ:=jq}";
 : "${CP:=cp}";
@@ -28,7 +28,7 @@
 # NOTE: `dontPatchShebangs' is checked with fallback every time it's referenced.
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 pjsBasename() {
   local pdir;
@@ -39,7 +39,7 @@ pjsBasename() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # pjsHasScript SCRIPT-NAME [PJS-PATH:=$PWD]
 pjsHasScript() {
@@ -68,7 +68,7 @@ pjsRunScript() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 pjsHasBin() {
   local pdir;
@@ -101,7 +101,9 @@ pjsHasAnyBin() {
           ( .directories|has( "bin" ) ) )'  \
       "$pdir/package.json" >/dev/null;
 }
-# --------------------------------------------------------------------------- #
+
+
+# ---------------------------------------------------------------------------- #
 
 pjsBinPairs() {
   local pdir bdir script bname;
@@ -141,7 +143,7 @@ pjsBinPaths() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # pjsSetBinPerms [PKG-DIR:=PWD]
 # Set executable permissions for bins declared in `package.json'.
@@ -156,7 +158,7 @@ pjsSetBinPerms() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 pjsHasField() {
   local pdir;
@@ -167,7 +169,7 @@ pjsHasField() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 pjsFilesOr() {
   local _default pdir;
@@ -200,7 +202,7 @@ pjsPacklist() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 pjsPatchNodeShebangsForce_one() {
   local timestamp oldInterpreterLine oldPath arg0 args;
@@ -250,7 +252,7 @@ pjsPatchNodeShebangs() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # pjs*AddMod SRC-DIR OUT-DIR
 # Ex:  pjs*AddMod ./unpacked "$out/@foo/bar"
@@ -285,7 +287,7 @@ pjsDefaultAddBin() {
 pjsAddBin() { pjsDefaultAddBin "$@"; }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # Process args for NM Dir installers.
 # `pdir' refers to the "package.json" dir.
@@ -320,7 +322,7 @@ _INSTALL_NM_PARGS='
 ';
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # installModuleNmNoBin [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
 # installModuleNmNoBin NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
@@ -339,7 +341,7 @@ installModuleNmNoBin() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # Install executables from `idir' to `$nmdir/.bin/' ( or `$bindir' if set ).
 # `idir' is expected to already contain an installed module.
@@ -385,7 +387,7 @@ installBinsNm() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # installModuleNm [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
 # installModuleNm NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
@@ -396,7 +398,7 @@ installModuleNm() {
 
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # installModuleGlobal [PJS-PATH=$PWD/package.json] [PREFIX:=$out]
 installModuleGlobal() {
@@ -411,7 +413,7 @@ installModuleGlobal() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
 # Identical to `<nixpkgs>/pkgs/stdenv/generic/setup.sh'
 pjsIsScript() {
@@ -429,8 +431,22 @@ pjsIsScript() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
+# pjsSetDirs [PKG-DIR:=$PWD]
+#
+# Sets environment variables associated with install prefixes.
+#   PDIR      directory containing `package.json'.
+#   _PREFIX   installation prefix, generally `$out' or `$global'.
+#   NMDIR     `nodes_modules/' directory to install modules to.
+#   IDIR      "install dir" being the direcotry where we extract `PDIR'.
+#             ex: `node_modules/@foo/bar'
+#   BINDIR    directory to install bins to.
+#             local installs usually use `*/node_modules/.bin'.
+#             global installs generally use `<PREFIX>/bin'.`
+#
+# FIXME: currently this assumes you're doing a global install.
+# Tweak the setting of `BINDIR' and `NMDIR' with some kind of flag.
 pjsSetDirs() {
   unset PDIR NMDIR IDIR BINDIR _PREFIX;
   PDIR="${1:+${1%/package.json}}";
@@ -457,10 +473,20 @@ pjsSetDirs() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 
+# pjsRunNmDirCmd [--dont-set-dirs]
+#
+# Runs `nmDirCmd' targeting `IDIR' env var to produce `<IDIR>/node_modules/'.
+# This was originally designed to add runtime deps to globally installed tools.
+# It is likely useful in other contexts.
+#
+# By default it passes any args to `pjsSetDirs' to setup install prefixes.
+# You can use the flag `--dont-set-dirs' to avoid modifying those variables.
+# This is useful in the event that you want to manually set those values.
 pjsRunNmDirCmd() {
   local _old_nmp;
+
   case "$1" in
     --dont-set-dirs) :; ;;
     *) pjsSetDirs "$@"; ;;
@@ -492,9 +518,9 @@ pjsRunNmDirCmd() {
 }
 
 
-# --------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 #
 #
 #
-# =========================================================================== #
+# ============================================================================ #
 # vim: set filetype=sh :

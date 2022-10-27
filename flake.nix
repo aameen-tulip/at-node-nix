@@ -317,6 +317,9 @@
 
       simple.path        = ./templates/project-trivial;
       simple.description = "a simple JS project with Floco";
+
+      simple-bin.path        = ./templates/simple-bin;
+      simple-bin.description = "a simple JS executable with no deps";
     };
 
 # ---------------------------------------------------------------------------- #
