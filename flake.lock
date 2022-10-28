@@ -35,23 +35,6 @@
         "type": "indirect"
       }
     },
-    "pacote-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1651673723,
-        "narHash": "sha256-97nFOX7qGmxtbvht+yrq6K7qcL7ooLLGF5ga5zJAwpw=",
-        "owner": "npm",
-        "repo": "pacote",
-        "rev": "8f94b28f3c21bc6a59c4537a4ee9fdb93385dc78",
-        "type": "github"
-      },
-      "original": {
-        "owner": "npm",
-        "ref": "v13.3.0",
-        "repo": "pacote",
-        "type": "github"
-      }
-    },
     "rime": {
       "inputs": {
         "ak-nix": [
@@ -80,7 +63,6 @@
       "inputs": {
         "ak-nix": "ak-nix",
         "nixpkgs": "nixpkgs",
-        "pacote-src": "pacote-src",
         "rime": "rime"
       }
     }

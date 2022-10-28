@@ -33,16 +33,13 @@
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
 
-  inputs.pacote-src.url = "github:npm/pacote/v13.3.0";
-  inputs.pacote-src.flake = false;
-
   inputs.rime.url = "github:aakropotkin/rime/main";
   inputs.rime.inputs.ak-nix.follows = "/ak-nix";
   inputs.rime.inputs.nixpkgs.follows = "/nixpkgs";
 
 # ---------------------------------------------------------------------------- #
 
-  outputs = { self, nixpkgs, ak-nix, pacote-src, rime }: let
+  outputs = { self, nixpkgs, ak-nix, rime }: let
 
     inherit (ak-nix.lib) eachDefaultSystemMap;
     pkgsForSys = system: nixpkgs.legacyPackages.${system};
@@ -66,27 +63,22 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackage  = lib.callPackageWith ( final // {
-        nodejs = prev.nodejs-14_x;
-      } );
-      callPackages = lib.callPackagesWith ( final // {
-        nodejs = prev.nodejs-14_x;
-      } );
-      nodeEnv =
-        callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
-          libtool =
-            if final.stdenv.isDarwin then final.darwin.cctools else null;
-        };
-      pacotePkgs =
-        callPackage ./pkgs/development/node-packages/pacote/node-packages.nix {
-          inherit nodeEnv;
-          src = pacote-src;
-        };
-      pacoteNew  = callPackage ./pkgs/tools/pacote/pacote.nix {};
-      pacoteUtil = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
+      callPackageWith  = auto:
+        lib.callPackageWith ( final // { nodejs = prev.nodejs-14_x; } // auto );
+      callPackagesWith = auto:
+        lib.callPackagesWith ( final // {
+          nodejs = prev.nodejs-14_x;
+        } // auto );
+      callPackage  = callPackageWith {};
+      callPackages = callPackagesWith {};
+      pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {};
+      pacoteUtil   = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
     in {
-      pacote = pacotePkgs.package;
-      inherit pacoteNew;
+      flocoPackages.pacote = final.lib.addFlocoPackages ( _: _: {
+        "pacote/${pacoteModule.version}" = pacoteModule;
+        pacote = pacoteModule;
+      } );
+      pacote = pacoteModule.global;
       inherit (pacoteUtil) pacotecli pacote-manifest;
     };
 
