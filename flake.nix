@@ -82,11 +82,12 @@
           inherit nodeEnv;
           src = pacote-src;
         };
+      pacoteNew  = callPackage ./pkgs/tools/pacote/pacote.nix {};
+      pacoteUtil = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
     in {
       pacote = pacotePkgs.package;
-      inherit (callPackages ./pkgs/tools/floco/pacote.nix {})
-        pacotecli pacote-manifest
-      ;
+      inherit pacoteNew;
+      inherit (pacoteUtil) pacotecli pacote-manifest;
     };
 
 
