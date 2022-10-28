@@ -4,8 +4,14 @@
 , jq
 , bash
 , nodejs
+, gnugrep
+, gnused
+, findutils
+, coreutils
 }: let
-  pjsUtil = import ./pjs-util.nix { inherit jq makeSetupHook nodejs bash; };
+  pjsUtil = import ./pjs-util.nix {
+    inherit makeSetupHook jq nodejs bash gnused gnugrep findutils coreutils;
+  };
 in {
 
   inherit pjsUtil;
