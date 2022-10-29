@@ -31,7 +31,7 @@
   , ...
   } @ fetchInfo: let
     # FIXME: do not know how to unpack source archive /nix/store/...
-    ftLocked = ( fetchInfo ? narHash ); #|| ( ! lib.inPureEvalMode );
+    ftLocked = ( fetchInfo ? narHash ) || ( ! lib.inPureEvalMode );
     preferFt = ( fetchInfo ? type ) && ftLocked;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
     # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
@@ -108,6 +108,22 @@ in evalScripts {
   name = "pacote-${version}";
   inherit version;
   src = pacote-src;
+  # Our unpack command.
+  # Included inline here for reference, and in case `pacote-src' was returned
+  # by `fetchTree { type = "file"; ... }'.
+  preUnpack = ''
+    nodeUnpack() {
+      tar tf "$1"|xargs -i dirname '{}'|sort -u|xargs -i mkdir -p '{}';
+      tar                          \
+        --no-same-owner            \
+        --no-same-permissions      \
+        --delay-directory-restore  \
+        --no-overwrite-dir         \
+        -xf "$1"                   \
+      ;
+    };
+    unpackCmdHooks+=( nodeUnpack );
+  '';
   globalInstall = true;  # Activates an additional output `global' and installs.
   # Passing a string suppresses auto-installation into workspace.
   # We only care about installing to the `global/lib/node_modules/' directory.
