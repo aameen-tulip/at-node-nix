@@ -30,7 +30,6 @@
   , narHash   ? null
   , ...
   } @ fetchInfo: let
-    # FIXME: do not know how to unpack source archive /nix/store/...
     ftLocked = ( fetchInfo ? narHash ) || ( ! lib.inPureEvalMode );
     preferFt = ( fetchInfo ? type ) && ftLocked;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
@@ -108,9 +107,12 @@ in evalScripts {
   name = "pacote-${version}";
   inherit version;
   src = pacote-src;
-  # Our unpack command.
+  # Our last ditch unpack command.
   # Included inline here for reference, and in case `pacote-src' was returned
   # by `fetchTree { type = "file"; ... }'.
+  # This is the exact implementation of `unpackSafe', except we don't patch
+  # shebangs or set executable perms ( handled during patch/installation ).
+  # NOTE: this is the last best effort routine, not built for speed.
   preUnpack = ''
     nodeUnpack() {
       tar tf "$1"|xargs -i dirname '{}'|sort -u|xargs -i mkdir -p '{}';
@@ -124,9 +126,9 @@ in evalScripts {
     };
     unpackCmdHooks+=( nodeUnpack );
   '';
-  globalInstall = true;  # Activates an additional output `global' and installs.
+  globalInstall = true;  # Activates additional `global' output for install.
   # Passing a string suppresses auto-installation into workspace.
-  # We only care about installing to the `global/lib/node_modules/' directory.
+  # We only care about installing to the `$global/lib/node_modules/' directory.
   nmDirCmd = ( mkNmDir {
     tree         = pkgTree;
     assumeHasBin = false;
