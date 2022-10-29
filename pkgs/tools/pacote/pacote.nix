@@ -18,8 +18,7 @@
 #
 # In impure mode we can use `builtins.fetchTree' which is backed by sha256, or
 # we can use it if `narHash' is given.
-# In impure mode we will only use `fetchTree' if we actually get passed the arg
-# `type = "file"' ( this is just an arbitrary trigger, it could've been a bool )
+# In impure mode we will use `fetchTree'.
 , flocoFileFetcher ? {
     url       ? fetchInfo.resolved
   , resolved  ? null
