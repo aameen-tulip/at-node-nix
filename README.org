@@ -69,8 +69,11 @@ nix eval --json .#metaSet.__serial|jq;
 #+END_SRC
 
 ** Examples
-The framework can be daunting, there's a lot it can do
-but it might be hard to know where to start.
+Learning is best taken a piece at a time.
+There's a lot this framework can do, but you'll only grab a
+few modules for any given project so you can pick things up as you go.
+It might be hard to know where to start, so aside from the example above
+I recommend the templates, tests, and some real builders.
 
 Personally I think a good jumping off point is reading
 how we bootstrap [[./pkgs/tools/pacote/pacote.nix][pacote]]
