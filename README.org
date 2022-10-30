@@ -80,18 +80,20 @@ It's a barebones build with a lot of documentation, but it's
 still a lot to digest.
 
 There's a lot to absorb there, and it can help you write a
-first project using [[./templates/simple][simple template]]
+first project using [[./templates/trivial-project][simple template]]
 and work your way up to something like that =pacote= build.
 
 Take a look at a trivial =node-gyp= build that manually creates
 a node_modules tree as a way to get your feet wet
 [[./tests/build-support/msgpack.nix][msgpack]].
 
-There's similar simple projects out on the =flocoPackages= repo
-especially under the ~pkgs/BINS/*~ directory.
+There's similar simple projects out on the
+[[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
+repo especially under the ~pkgs/BINS/*~ directory.
 
 Past that read the =README.org= files under ~pkgs/~, and then
-explore the test suite examples and more of =flocoPackages=. 
+explore the test suite examples and more of
+[[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
 
 * Interfaces and Tools
 
