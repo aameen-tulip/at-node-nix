@@ -82,13 +82,17 @@ package metadata collection.
 It's a barebones build with a lot of documentation, but it's
 still a lot to digest.
 
-There's a lot to absorb there, and it can help you write a
-first project using [[./templates/trivial-project][simple template]]
-and work your way up to something like that =pacote= build.
+There's no expectation that you'll absorb that yet, but it can help you
+write a first project using [[./templates/trivial-project][simple template]]
+since it's a self contained definition built on top of that template.
+I imagine you'll copy chunks from there until you are ready to explore more
+and replace it.
 
 Take a look at a trivial =node-gyp= build that manually creates
 a node_modules tree as a way to get your feet wet
 [[./tests/build-support/msgpack.nix][msgpack]].
+This looks very similar to the trivial template and is a good
+Place to start playing with =buildGyp= and compare it to =evalScripts=. 
 
 There's similar simple projects out on the
 [[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
