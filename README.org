@@ -68,6 +68,30 @@ nix eval --impure --raw .#pacakge.nmDirCmd;
 nix eval --json .#metaSet.__serial|jq;
 #+END_SRC
 
+** Examples
+The framework can be daunting, there's a lot it can do
+but it might be hard to know where to start.
+
+Personally I think a good jumping off point is reading
+how we bootstrap [[pacote][./pkgs/tools/pacote/pacote.nix]]
+( click the link ), since it doesn't involve any overlays or
+package metadata collection.
+It's a barebones build with a lot of documentation, but it's
+still a lot to digest.
+
+There's a lot to absorb there, and it can help you write a
+first project using [[simple template][./templates/simple]]
+and work your way up to something like that =pacote= build.
+
+Take a look at a trivial =node-gyp= build that manually creates
+a node_modules tree as a way to get your feet wet
+[[msgpack][./tests/build-support/msgpack.nix]].
+
+There's similar simple projects out on the =flocoPackages= repo
+especially under the ~pkgs/BINS/*~ directory.
+
+Past that read the =README.org= files under ~pkgs/~, and then
+explore the test suite examples and more of =flocoPackages=. 
 
 * Interfaces and Tools
 
