@@ -62,11 +62,11 @@
 
 , metaSet    ? lib.metaSetFromSerial ( import ./meta.nix )
 , pacote-src ? flocoFileFetcher metaSet.${metaSet.__meta.rootKey}.sourceInfo
-, mkNmDir    ? mkNmDirLinkCmd
+, mkNmDir    ? mkNmDirCopyCmd
 
 , system
 , evalScripts
-, mkNmDirLinkCmd
+, mkNmDirCopyCmd
 , unpackSafe
 , ...
 } @ args: let

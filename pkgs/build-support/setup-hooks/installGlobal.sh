@@ -60,6 +60,10 @@ installGlobalNodeModule_runNmDirCmd() {
       exit 1;
     fi
   fi
+  # FIXME: this was needed to fix existing builders, but I'm not in love with it
+  if test -n "$( declare -F installNodeModules; )"; then
+    installNodeModules;
+  fi
 
   # Restore original value;
   if [[ -n "${_old_nmp=+y}" ]]; then
@@ -70,8 +74,12 @@ installGlobalNodeModule_runNmDirCmd() {
 installGlobalNodeModule() {
   installGlobalNodeModule_setup;
   runHook preInstallGlobalNodeModule;
+  echo "Adding Module to $idir" >&2;
   pjsAddMod . "$idir";
+  echo "Symlinking bins" >&2;
   installGlobalNodeModule_symlink_bins;
+  echo "Running nmDirCmd" >&2;
   installGlobalNodeModule_runNmDirCmd;
   runHook postInstallGlobalNodeModule;
+  unset _prefix nmdir pdir bindir;
 }

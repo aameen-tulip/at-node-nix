@@ -71,13 +71,16 @@
         } // auto );
       callPackage  = callPackageWith {};
       callPackages = callPackagesWith {};
-      pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {};
+      pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {
+        mkNmDir = final.mkNmDirCopyCmd;
+      };
       pacoteUtil   = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
     in {
       flocoPackages.pacote = final.lib.addFlocoPackages ( _: _: {
         "pacote/${pacoteModule.version}" = pacoteModule;
         pacote = pacoteModule;
       } );
+      inherit pacoteModule;
       pacote = pacoteModule.global;
       inherit (pacoteUtil) pacotecli pacote-manifest;
     };
@@ -227,7 +230,7 @@
       pkgsFor = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
     in {
 
-      inherit (pkgsFor) pacote;
+      inherit (pkgsFor) pacote pacoteModule;
 
       tests = ( import ./tests {
         inherit system pkgsFor rime lib;
