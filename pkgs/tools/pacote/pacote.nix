@@ -33,7 +33,7 @@
     preferFt = ( fetchInfo ? type ) && ftLocked;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
     # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
-    ft  = ( builtins.fetchTree { inherit url type; } ) // nh';
+    ft = ( builtins.fetchTree { inherit url type; } ) // nh';
     # Works in pure mode and avoids tarball TTL.
     drv = lib.libfetch.fetchurlDrvW {
       inherit url hash;
@@ -75,8 +75,8 @@
   version = args.version or metaSet.${metaSet.__meta.rootKey}.version;
 
   prepPkg = {
-    fetchInfo   ? ent.sourceInfo
-  , sourceInfo  ? null  # TODO: deprecate
+    fetchInfo  ? ent.sourceInfo
+  , sourceInfo ? null  # TODO: deprecate
   , ...
   } @ ent: let
     meta = ent.__serial or ent;  # Needed by `mkNmDirCmd' for `bin' entries.
