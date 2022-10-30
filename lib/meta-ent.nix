@@ -25,8 +25,13 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # original metadata sources such as `package.json' are stashed as members
+  # of `entries' by default. 
+  # We use this accessor to refer to them so that users can override this
+  # function with custom implementations that fetch these files.
   getFromEntries = { entries ? {} }: builtins.attrValues entries;
 
+  # Abstraction to refer to `package.json' scripts fields.
   getScripts = { scripts ? {} , entries ? {} }: let
     entScripts = builtins.catAttrs "scripts" ( builtins.attrValues entries );
   in ( builtins.foldl' ( a: b: a // b ) {} entScripts ) // scripts;
@@ -350,6 +355,7 @@
       in if subs == null then lib.lookupRelPathIdentV3 plock path else subs;
       inherit (lib.libplock.realEntry plock path) version;
       key = "${ident}/${version}";
+
       # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
       # that will be processed by `metaEntFromPlockV3'.
       # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
@@ -419,7 +425,10 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Determines if a package needs any `nodeModulesDir[-dev]' fields.
+  # Determines if a package needs any `node_modules/' to prepare
+  # for consumption.
+  # This framework aims to build projects in isolation, so this helps us
+  # determine which projects actually need processing.
   # If `hasBuild' is not yet set, we will err on the safe side and assume it
   # has a build.
   # XXX: It is strongly recommended that you provide a `hasBuild' field.
@@ -434,6 +443,7 @@
   , ...
   } @ attrs: ! ( hasBuild || hasInstallScript || hasPrepare || hasBin );
 
+  # Split a collection of packages based on `metaEntIsSimple'.
   metaSetPartitionSimple = mset: let
     lst = builtins.attrValues mset.__entries;
     parted = builtins.partition metaEntIsSimple lst;
