@@ -92,7 +92,7 @@ Take a look at a trivial =node-gyp= build that manually creates
 a =node_modules/= tree as a way to get your feet wet:
 [[./tests/build-support/msgpack.nix][msgpack]].
 This looks very similar to the trivial template and is a good
-Place to start playing with =buildGyp= and compare it to =evalScripts=. 
+place to start playing with =buildGyp= and compare it to =evalScripts=. 
 
 There's similar simple projects out on the
 [[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
