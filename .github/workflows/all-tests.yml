@@ -83,6 +83,7 @@ jobs:
           nix flake check head --show-trace --impure;
 
       - name: Project Template
+        if: always()
         run: |
           mkdir -p project;
           cd project;
@@ -98,3 +99,36 @@ jobs:
 
           cd -;
           rm -rf ./project;
+
+      - name: Gen Meta
+        if: always()
+        run: |
+          mkdir -p project;
+          cd project;
+
+          cat <<EOF > package.json
+          {
+            "name": "@floco/test",
+            "version": "4.2.0",
+            "license": "GPL3",
+            "dependencies": {
+              "lodash": "latest"
+            },
+            "devDependencies": {
+              "@babel/cli": "latest"
+            }
+          }
+          EOF
+          touch ./index.js;
+
+          nix run head#genMeta -- --dev "$PWD"|tee meta.nix;
+
+          _es=0;
+          case "$( nix eval --raw -f ./meta.nix __meta.rootKey; )" in
+            @floco/test/4.2.0) echo "PASS"; _es=0; ;;
+            *) echo "FAIL"; _es=1; ;;
+          esac
+
+          cd -;
+          rm -rf ./project;
+          exit "$_es";
