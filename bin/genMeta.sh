@@ -95,6 +95,7 @@ esac
 
 # ---------------------------------------------------------------------------- #
 
+trap '_es="$?"; cleanup; exit "$_es";' HUP TERM EXIT INT QUIT;
 dir="$( $MKTEMP -d; )";
 srcInfo="$( $MKTEMP; )";
 pushd "$dir" >/dev/null || exit 1;
@@ -111,13 +112,13 @@ cleanup() {
     rm -rf "$dir" "$srcInfo";
   fi
 }
-trap '_es="$?"; cleanup; exit "$_es";' HUP TERM EXIT INT QUIT;
 
 
 # ---------------------------------------------------------------------------- #
 
 # We stash the output of `pacote' which contains `sourceInfo' fields.
-$PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null|$JQ -c > "$srcInfo";
+$PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null|$JQ -c > "$srcInfo"||
+  $PACOTE extract "$DESCRIPTOR" . --json;
 
 # Produce a lockfile
 NPM_CONFIG_LOCKFILE_VERSION=3                                    \

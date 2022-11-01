@@ -197,7 +197,7 @@ pjsPacklist() {
   fi
   if $JQ -e 'has( "files" )' package.json >/dev/null; then
     _fs=( $( $JQ -r ".files[]|\"-o -name \" + ." package.json; ) );
-    _fs=( $( $FIND . -iname 'readme*' -o -iname 'license*' ${_fs[@]}; ) );
+    _fs=( $( $FIND . -iname 'readme*' -o -iname 'license*' "${_fs[@]}"; ) );
   else
     _fs=( * );
   fi
