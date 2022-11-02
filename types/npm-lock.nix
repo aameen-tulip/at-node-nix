@@ -85,7 +85,7 @@
   tarball_uri = let
     tarballUrlCond = yt.Strings.tarball_url.check;
     # Basically the only registry that doesn't put the tarball in the URL...
-    githubPkgCond = lib.test "https://npm.pkg.github.com/download/.*";
+    githubPkgCond = lib.test "https://npm\\.pkg\\.github\\.com/download/.*";
     cond = s: ( tarballUrlCond s ) || ( githubPkgCond s );
   in restrict "tarball" cond uri_ref;
 

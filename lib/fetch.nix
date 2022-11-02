@@ -35,7 +35,7 @@
     isGit = let
       data = ( lib.liburi.Url.fromString r ).scheme.data or null;
     in ( lib.liburi.Url.isType r ) && ( data == "git" );
-    isFile = lib.libstr.isTarballUrl r;
+    isFile = yt.NpmLock.Strings.tarball_uri.check r;
   in if isPath   then { path = r; } else
      if isGit    then { git = r; } else
      if isFile   then { file = r; } else
@@ -52,8 +52,12 @@
       git  = yt.NpmLock.Structs.pkg_git_v3;
       file = yt.NpmLock.Structs.pkg_tarball_v3;
     } ent;
-  in if ! ( ent ? resolved ) then "path" else  # FIXME type is broken
-     builtins.head ( builtins.attrNames tagged );
+    fromTag = builtins.head ( builtins.attrNames tagged );
+    fromFetchInfo = let
+      t = ent.type or ent.fetchInfo.type or ent.sourceInfo.type or null;
+    in if builtins.elem t ["git" "github" "sourcehut"] then "git" else
+       if builtins.elem t ["file" "tarball"] then "file" else t;
+  in if fromFetchInfo != null then fromFetchInfo else fromTag;
 
 
 # ---------------------------------------------------------------------------- #
