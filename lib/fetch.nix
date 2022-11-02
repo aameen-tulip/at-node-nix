@@ -1,6 +1,19 @@
 # ============================================================================ #
+#
+#
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
+
+  yt  = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
+  plt = yt.NpmLock.Structs // yt.NpmLock;
+  inherit (lib.libfetch)
+    fetchTreeGithubW
+    fetchTreeGitW
+    fetchGitW
+    fetchTreePathW
+  ;
 
 # ---------------------------------------------------------------------------- #
 #
@@ -9,309 +22,271 @@
 #
 # ---------------------------------------------------------------------------- #
 
-  # Symlink: { resolved :: relative path string, link :: bool }
-  # Path: { resolved :: relative path string }
-  # Git ( private and public ):
-  #   "resolved": "git+ssh://git@github.com/<owner>/<repo>.git#<rev>",
-  #   This URI is consistent regardless of `https://' or other descriptors.
-  #   So, if `builtins.match "git\\+.*" entry.resolved != null' you need to run
-  #   the `prepare' ( or whatever ) lifecycle scripts.
-  # Tarball: { resolved :: url or path string, integrity :: SHA512-SRI, [sha1] }
-  typeOfEntry = entry: let
-    isLink  = entry.link or false;
-    isGit   = entry ? resolved && ( lib.test "git\\+.*" entry.resolved );
-    isPath  = ( ! ( entry.link or false ) ) &&
-              ( lib.test "/.*" ( entry.resolved or "/" ) );
-    isRegTb =
-      ( ( entry ? integrity ) || ( entry ? sha1 ) ) &&
-      ( entry ? resolved ) &&
-      ( ( lib.test "http.*/-/.*\\.tgz" entry.resolved ) ||
-        ( lib.test "https?://npm.pkg.github.com/.*" entry.resolved ) );
-    isSrcTb =
-      ( ( entry ? integrity ) || ( entry ? sha1 ) ) &&
-      ( entry ? resolved ) &&
-      # XXX: Checking for "/-/" in the URL path is far from "robust" but
-      #      it does what I need it to do for now.
-      ( ! ( lib.test "http.*/-/.*\\.tgz" entry.resolved ) ) &&
-      ( lib.test "http.*\\.(tar\\.gz|tgz)" entry.resolved );
-  in if isLink  then "symlink"          else
-     if isGit   then "git"              else
-     if isPath  then "path"             else
-     # XXX: `isRegTb' must be checked before `isSrcTb`
-     if isRegTb then "registry-tarball" else
-     if isSrcTb then "source-tarball"   else
-     throw "(typeOfEntry) Unrecognized entry type: ${builtins.toJSON entry}";
+  # Given a `resolved' URI from a `package-lock.json', ROUGHLY discern its
+  # `builtins.fetchTree' source "type".
+  # NOTE: this is not exact.
+  # For example, `git' may refer to either `git', `github', or `sourcehut'.
+  # Selecting the correct fetcher for each subtype is deferred to the fetchers.
+  # This rough approximation helps us limit the number of fetchers we require
+  # users to define - at a minimum they must define at least the 3 named here.
+  identifyResolvedType = r: let
+    isPath = ( ! ( lib.liburi.Url.isType r ) ) &&
+             ( yt.NpmLock.Strings.relative_file_uri.check r );
+    isGit = let
+      data = ( lib.liburi.Url.fromString r ).scheme.data or null;
+    in ( lib.liburi.Url.isType r ) && ( data == "git" );
+    isFile = lib.libstr.isTarballUrl r;
+  in if isPath   then { path = r; } else
+     if isGit    then { git = r; } else
+     if isFile   then { file = r; } else
+     throw "(identifyResolvedType) unable to determine type of ${r}";
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Given a set of `nodeFetchers' which satisfy the expected interfaces -
-  # Return the fetch function for the given `type'
-  fetcherForType = {
-    tarballFetcher
-  , urlFetcher
-  , gitFetcher
-  , linkFetcher
-  , dirFetcher
-  , ...
-  } @ nodeFetchers: type:
-    if type == "symlink"          then nodeFetchers.linkFetcher     else
-    if type == "path"             then nodeFetchers.dirFetcher      else
-    if type == "git"              then nodeFetchers.gitFetcher      else
-    if type == "registry-tarball" then nodeFetchers.tarballFetcher  else
-    if type == "source-tarball"   then nodeFetchers.tarballFetcher  else
-    if type == "tarball"          then nodeFetchers.tarballFetcher  else
-    if type == "url"              then nodeFetchers.urlFetcher      else
-    throw "(fetcherForType) Unrecognized entry type: ${type}";
+  # Given a package entry from a `package-lock.json(v[23])', return one of
+  # "file", "path", or "git" indicating the source type.
+  identifyPlentSourceType = ent: let
+    tagged = lib.libtypes.discrTypes {
+      path = yt.NpmLock.Structs.pkg_path_v3;
+      git  = yt.NpmLock.Structs.pkg_git_v3;
+      file = yt.NpmLock.Structs.pkg_tarball_v3;
+    } ent;
+  in if ! ( ent ? resolved ) then "path" else  # FIXME type is broken
+     builtins.head ( builtins.attrNames tagged );
 
 
 # ---------------------------------------------------------------------------- #
 
-
+  # Essentially an optimized `tagHash'.
   # XXX: I'm unsure of whether or not this works with v1 locks.
   plockEntryHashAttr = {
-    __innerFunction = entry: let
-      integrity2Sha = integrity: let
-        m = builtins.match "(sha(512|256|1))-(.*)" integrity;
-        shaSet = { ${builtins.head m} = builtins.elemAt m 2; };
-      in if m == null then { hash = integrity; } else shaSet;
-      fromInteg = integrity2Sha entry.integrity;
-    in if entry ? integrity then fromInteg else
-       if entry ? sha1      then { inherit (entry) sha1; } else {};
-    __functionArgs = {
-      sha1      = true;
-      sha256    = true;
-      sha512    = true;
-      integrity = true;
-      hash      = true;
-      narHash   = true;
-    };
+    __innerFunction = entry:
+      if entry ? integrity then lib.libenc.tagHash entry.integrity else
+      if entry ? sha1      then { sha1_hash = entry.sha1; } else {};
+    __functionArgs = { sha1 = true; integrity = true; };
     __functor = self: self.__innerFunction;
   };
 
 
 # ---------------------------------------------------------------------------- #
 
-  # XXX: Yo this whole prefetching thing wasn't the best idea.
-  # It works really well if you use the same fetcher later - but you are going
-  # to get different `narHash' for different fetchers, so you really need to
-  # leave this up to the user or at least raise visibility.
-  # As written it assumes you're going to use `fetchTree'.
+  # path tarball file git github
+  # NOTE: `fetchTree { type = "indirect"; id = "foo"; }' works!
+  Enums.sourceType = let
+    cond = x: ! ( builtins.elem x ["indirect" "sourcehut" "mercurial"] );
+  in yt.restrict "floco" cond yt.FlakeRef.Enums.ref_type;
 
-  # Registry tarball package-lock entry to fetch* arguments
-  #
-  # Remember that Nix is lazily evaluated, so while this may look like a wasted
-  # effort, since we ultimately only use one of these attributes - you need
-  # to look at these like "lenses" ( or an object accessor for y'all OOP heads
-  # in the audience ).
-  #
-  # If `impure' is enabled, the `narHash' of the unpacked tarball will be
-  # calculated by pre-fetching.
-  # This allows the `fetchzip' derivation to be created which is useful if you
-  # plan to push/pull from remote binary caches or stores.
-  # Ideally you would pre-fetch to define the derivation, then use
-  # `nix-store --dump-db ...' or serialize this info with `toJSON' to stash the
-  # info to optimize/purify future runs.
-  plock2TbFetchArgs' = impure: { resolved ? entry.url, ... } @ entry: let
-    preFetcher = builtins.fetchTree;
-    prefetched = if ( ! impure ) then {} else preFetcher bfr;
-    nha = plockEntryHashAttr entry;
-    # nixpkgs.fetchurl
-    nfu = { url = resolved; } // nha;
-    # XXX: You cannot use `nixpkgs.fetchzip' without knowing the unpacked hash.
-    # If `impure == true' we prefetch and record the hash so that it's possible
-    # to push the derivation to a cache - this isn't /really/ that useful in
-    # practice, but it is better than not having a DRV at all.
-    nfz = { url = resolved; sha256 = prefetched.narHash; };
-    # builtins.fetchurl
-    bfu = resolved;                               # XXX: Impure
-    # builtins.fetchTree
-    bfr = { type = "file"; url = resolved; };  # XXX: Impure
-    # builtins.fetchTarball
-    bft = { url = resolved; };                    # XXX: Impure
-    # fetchurlDrv
-    lfu = { url = resolved; unpack = false; } // nha;
-    flake = bfr // { flake = false; };
-    impureArgs = {
-      nixpkgs.fetchurl      = nfu;
-      nixpkgs.fetchzip      = nfz;
-      builtins.fetchurl     = bfu;
-      builtins.fetchTree    = bfr   // { inherit (prefetched) narHash; };
-      builtins.fetchTarball = bft   // { sha256 = prefetched.narHash; };
-      flake                 = flake // { inherit (prefetched) narHash; };
-      lib.fetchurlDrv       = lfu;
-    };
-    pureArgs = {
-      nixpkgs.fetchurl      = nfu;
-      builtins.fetchurl     = bfu;
-      builtins.fetchTree    = bfr;
-      builtins.fetchTarball = bft;
-      inherit flake;
-      lib.fetchurlDrv       = lfu;
-    };
-  in if impure then impureArgs else pureArgs;
+  Structs.fetched = yt.struct "fetchedSource" {
+    type       = Enums.sourceType;
+    outPath    = yt.FS.store_path;
+    sourceInfo = Structs.sourceInfo;
+    fetchInfo  = yt.attrs yt.any;
+    passthru   = yt.option ( yt.attrs yt.any );
+    meta       = yt.option ( yt.attrs yt.any );
+  };
+
+  # TODO: types
+  #   barename ( no extensions )
+  #   relpath  ( string + struct )
+  #   path     ( sumtype )
+  #   file     ( sumtype )
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Git
-  plock2GitFetchArgs' = impure: { resolved ? entry.url, ... } @ entry: let
-    # I'm pretty sure you can pass this "as is" to `fetchTree'.
-    # I'm also pretty sure that Eelco implemented `fetchTree' and Flake refs
-    # based on NPM's URIs to support Node.js at Target - the commonality is
-    # uncanny even for NPM's extended URIs.
-    #   0: protocol ( ssh, http(s), etc )
-    #   1: host     ( git@github.com, github.com, gitlab.com, etc )
-    #   2: owner
-    #   3: repo
-    #   4: rev
-    #
-    # git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c
-    murl = builtins.match "(git+[^:]+)://([^/:]+)[/:]([^/]+)/([^#]+)#(.*)"
-                          resolved;
-    protocol = builtins.head murl;
-    host     = builtins.elemAt murl 1;
-    owner    = builtins.elemAt murl 2;
-    repo     = builtins.elemAt murl 3;
-    rev      = builtins.elemAt murl 4;
+  # Fixup return value from `builtins.fetchTree' to align with `floco*Fetch'
+  # interfaces ( `{ fetchInfo, sourceInfo, outPath, type, passthru, meta }' ).
+  flocoProcessFTResult = type: fetchInfo: sourceInfo:
+    assert fetchInfo ? type -> type == fetchInfo.type;
+    {
+      inherit type fetchInfo sourceInfo;
+      inherit (sourceInfo) outPath;
+    };
 
-    # NOTE: If a hostname has a `git@' ( ssh ) prefix, it MUST use a ":", not
-    #       "/" to separate the hostname and path.
-    #       Nix's `fetchGit' and `fetchTree' do not use a ":" here, so replace
-    #       it with "/" - if you don't, you'll get an error:
-    #       "make sure you have access rights".
-    # builtins.fetchGit { url = "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c"; }
-    # builtins.fetchTree { type = "git"; url = "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c"; }
-    # NOTE: You must provide `type = "git";' for `fetchTree' it doesn't parse
-    #       the URI to try and guess ( flake refs will ).
-    # NOTE: You must leave the "<path>#<rev>" as is for the builtin fetchers -
-    #       a "<path>/<rev>" will not work; but I think flake inputs DO want it
-    #       replaced with a "/".
-    bfg = {
-      url = "${protocol}://${host}/${owner}/${repo}#${rev}";
-      inherit rev;
-      allRefs = true;
-    };
-    bfr = bfg // { type = "git"; };
-    prefetched = if ( ! impure ) then {} else fetchTree bfr;
-    # XXX: Impure
-    nfg = {
-      inherit rev;
-      url = "${protocol}://${host}/${owner}/${repo}";
-      sha256 = prefetched.narHash;
-    };
-    flake = bfr // { flake = false; };
-    impureArgs = {
-      nixpkgs.fetchgit   = nfg;
-      builtins.fetchTree = bfr   // { inherit (prefetched) narHash; };
-      builtins.fetchGit  = bfg   // { inherit (prefetched) narHash; };
-      flake              = flake // { inherit (prefetched) narHash; };
-    };
-    pureArgs = {
-      builtins.fetchTree = bfr;
-      builtins.fetchGit  = bfg;
-      inherit flake;
-    };
-  in if impure then impureArgs else pureArgs;
+  # Generic `builtins.fetchTree' functor for `floco*Fetcher'.
+  flocoFTFunctor = type: self: x: let
+    fetchInfo  = self.__processArgs self x;
+    sourceInfo = self.__innerFunction fetchInfo;
+    result     = flocoProcessFTResult type fetchInfo sourceInfo;
+    msg = ''
+      flocoFetch(${type})
+        inputs:     ${builtins.toJSON ( x.__serial or x )}
+        fetchInfo:  ${builtins.toJSON fetchInfo}
+        sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
+    '';
+  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
 
 
 # ---------------------------------------------------------------------------- #
 
-  # This is the only fetcher that doesn't take the entry itself.
-  # You need to pass the "key" ( relative path to directory ) and CWD instead.
-  # NOTE: We intentionally avoid a check like `assert builtins.pathExists abs'
-  #       here because these fetchers may be generated before dependant paths
-  #       are actually fetched, and if they refer to store paths, they may not
-  #       be built yet.
-  #       Instead we put faith in the lazy evaluator.
-  #       For this same reason, we strongly recommend that you explicitly set
-  #       `cwd' because relying on the default of `PWD' makes a BIG assumption,
-  #       which is that all of these paths are locally available.
-  plock2PathFetchArgs' = impure: {
-    cwd ? ( if impure then builtins.getEnv "PWD" else
-          throw ( "(plock2PathFetchArgs) Cannot " +
-                  "determine CWD to resolve path URIs" ) )
-  , key ? args.pkey or args.resolved or args.path  # "key" is a relative path
-  , ...
-  } @ args: let
-    cwd' = assert lib.libpath.isAbspath cwd;
-      builtins.head ( builtins.match "(.*[^/])/?" cwd );
-    abs = if ( lib.libpath.isAbspath key ) then key else
-          if ( key == "" ) then cwd' else "${cwd'}/${key}";
-  in {
-    builtins.fetchTree = { type = "path"; path = abs; };
-    builtins.path = { path = abs; };
-    # FIXME: I have no idea if this works.
-    flake = { type = "path"; path = abs; flake = false; };
+  # NOTE: the fetcher for `git' entries need to distinguish between `git',
+  # `github', and `sourcehut' when processing these args.
+  # They should not try to interpret the `builtins.fetchTree' type using
+  # `identify(Resolved|PlentSource)Type' which conflates all three `git' types.
+  # XXX: I'm not sure we can get away with using `type = "github";' unless we
+  # are sure that we know the right `ref'/`branch'. Needs testing.
+  plockEntryToGenericGitArgs = let
+    inner = { resolved, ... } @ args: let
+      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type;
+      allRefs' = let
+        bname         = baseNameOf ( args.ref or "refs/heads/HEAD" );
+        defaultBRefs  = ["HEAD" "master" "main"];
+        preferAllRefs = ! ( builtins.elem bname defaultBRefs );
+      in if type == "github" then {} else {
+        allRefs = args.allRefs or preferAllRefs;
+      };
+    in {
+      inherit type repo owner rev;
+      name = repo;
+      url  = resolved;
+    } // allRefs';
+  in yt.defun [yt.NpmLock.Structs.pkg_git_v3
+               lib.libfetch.genericGitArgsPure] inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoProcessGitArgs = self: x: let
+    rough =
+      if yt.NpmLock.pkg_git_v3.check x then plockEntryToGenericGitArgs x else
+      if x ? rev then x else
+      plockEntryToGenericGitArgs ( x // { resolved = x.url or x.resolved; } );
+    tas     = ( self.__thunk or {} ) // rough;
+    type    = if lib.libfetch.isGithubUrl rough.url then "github" else "git";
+    fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
+              lib.libfetch.fetchGitW;
+    args = if type != "github" then tas else
+           removeAttrs ( tas // { inherit type; } ) ["url"];
+  in lib.canPassStrict fetcher args;
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoGitFetcher = lib.libfetch.fetchGitW // {
+    __functionMeta = lib.libfetch.fetchGitW.__functionMeta // {
+      name = "flocoGitFetcher";
+    };
+    __innerFunction = args:
+      if ( args.type or "git" ) == "github"
+      then lib.libfetch.fetchTreeGithubW args
+      else lib.libfetch.fetchGitW args;
+    __functionArgs =
+      ( builtins.mapAttrs ( _: _: true ) lib.libfetch.genericGitArgFields ) // {
+        resolved = true;
+      };
+    __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
+    __processArgs = flocoProcessGitArgs;
+    __functor     = self: x: let
+      fetchInfo  = self.__processArgs self x;
+      sourceInfo = self.__innerFunction fetchInfo;
+    in flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo sourceInfo;
   };
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Symlink Relative ( "dirFetcher" in `pacote' taxonomy )
-  # NOTE: This fetcher triggers additional lifecycle routines that are not
-  #       run for a regular "node_modules/<path>" entry.
-  #       We do not trigger life-cycle here, and defer to the caller.
-  # The difference between "paths" and "symlinks" in NPM/pacote taxonomy is that
-  # "symlinks" represent out of tree projects ( external projects ) which will
-  # be processed under the assumption that they are raw source trees.
-  # These are more similar to `git' sources insofar as they are conditionally
-  # built when a `.scripts.build' routine is present ( or "prepare" routine ).
-  # Where they differ from `git' checkouts is largely irrelevant for our
-  # purposes but since it took my ages to figure out I'll share:
-  # Git sources will only be processed a single time and are cached for reuse;
-  # Symlink sources are re-checked when referenced to see if they need to be
-  # rebuilt - this is very similar to how Nix treats dirty git checkouts.
-  # In practice we treat paths and symlinks identically since Nix abstracts away
-  # the practical differences that NPM and `pacote' have to deal with.
-  plock2LinkFetchArgs' = impure: {
-    cwd ? ( if impure then builtins.getEnv "PWD" else
-            throw ( "(plock2LinkFetchArgs) Cannot determine " +
-                    "CWD to resolve link URIs" ) )
-  }: { resolved, ... }: plock2PathFetchArgs { inherit cwd; key = resolved; };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Returns the appropriate fetcher arg-set given a `plock(V2)' entry.
-  plock2EntryFetchArgs' = impure: cwd: key: entry: let
-    type = typeOfEntry entry;
-    cwda = if cwd == null then {} else { inherit cwd; };
-    pathArgs = { inherit key; } // cwda;
-  in if type == "symlink" then plock2LinkFetchArgs' impure cwda entry   else
-     if type == "path"    then plock2PathFetchArgs' impure pathArgs     else
-     if type == "git"     then plock2GitFetchArgs' impure entry         else
-     if type == "registry-tarball" then plock2TbFetchArgs' impure entry else
-     if type == "source-tarball" then plock2TbFetchArgs' impure entry   else
-     throw "(plock2EntryFetchArgs) Unrecognized entry type for: ${key}";
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Attempts to guess `impure' setting.
-  plock2TbFetchArgs    = plock2TbFetchArgs'    lib.flocoConfig.enableImpureFetchers;
-  plock2GitFetchArgs   = plock2GitFetchArgs'   lib.flocoConfig.enableImpureFetchers;
-  plock2PathFetchArgs  = plock2PathFetchArgs'  lib.flocoConfig.enableImpureFetchers;
-  plock2LinkFetchArgs  = plock2LinkFetchArgs'  lib.flocoConfig.enableImpureFetchers;
-  plock2EntryFetchArgs = plock2EntryFetchArgs' lib.flocoConfig.enableImpureFetchers;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Wrappers for builtin fetchers so that routines like `callPackages',
-  # `lib.functionArgs', and `lib.makeOverridable' with work with them.
-  # This is particularly important for `callPackage' with `builtins.fetchTree'.
-  # Since these are not system dependant they
-
-  callWith = {
-    __functionArgs
-  , __thunk ? {}
-  , __fetcher
-  #, __functor
+  # In impure mode we can use `builtins.fetchTree' which is backed by sha256, or
+  # we can use it if `narHash' is given.
+  # In impure mode we will use `fetchTree'.
+  fetchTreeOrUrlDrv = {
+    url       ? fetchInfo.resolved
+  , resolved  ? null
+  , hash      ?
+    builtins.elemAt ( builtins.match "(sha(512|256|1)-)?(.*)" integrity ) 2
+  , integrity ? fetchInfo.shasum
+  , shasum    ? null
+  , type      ? "file"
+  , narHash   ? null
   , ...
-  } @ self: args: let
-    args' = builtins.intersectAttrs __functionArgs ( __thunk // args );
-  in lib.makeOverridable __fetcher args';
+  } @ fetchInfo: let
+    ftLocked = ( fetchInfo ? narHash ) || lib.flocoConfig.enableImpureFetchers;
+    #preferFt = ( fetchInfo ? type ) && ftLocked;
+    preferFt = false;
+    nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
+    # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
+    ft = ( builtins.fetchTree { inherit url type; } ) // nh';
+    # Works in pure mode and avoids tarball TTL.
+    drv = lib.libfetch.fetchurlDrvW {
+      inherit url hash;
+      unpack = type == "tarball";
+      #allowSubstitutes = ( system != ( builtins.currentSystem or null ) );
+      #preferLocalBuild = true;
+    };
+  in if preferFt then ft else drv;
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoTarballFetcher = {
+    __functionMeta = {
+      name = "flocoTarballFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
+      signature = [yt.any yt.any];  # FIXME: return type
+    };
+    __functionArgs  = {
+      type       = true;
+      url        = true;
+      resolved   = true;
+      integritry = true;
+      sha1       = true;
+      narHash    = ! lib.inPureEvalMode;
+    };
+    __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
+    __thunk = {};
+    __processArgs = self: x: let
+      args = {
+        type = "tarball";
+        url  = x.url or x.resolved;
+      } // ( if x ? harHash then { inherit (x) narHash; } else {} );
+      args' = self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+    __functor = self: x: flocoFTFunctor "tarball" self x;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoFileFetcher = {
+    __functionMeta = {
+      name = "flocoFileFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "<laika#lib.libfetch.fetchurlDrvW|builtins.fetchTree>";
+      signature = [yt.any yt.any];  # FIXME: return type
+    };
+    __functionArgs =
+      ( lib.functionArgs flocoFileFetcher.__innerFunction ) // {
+        integrity = true;
+        hash      = true;
+        sha1      = true;
+        resolved  = true;
+      };
+    __innerFunction =
+      if lib.flocoConfig.enableImpureFetchers
+      then { url, type, narHash ? null } @ fetchInfo: let
+        sourceInfo = builtins.fetchTree fetchInfo;
+      in {
+        type = "file";
+        inherit (sourceInfo) outPath;
+        inherit fetchInfo sourceInfo;
+      } else lib.libfetch.fetchurlDrvW;
+    __thunk = {};
+    __processArgs = self: x: let
+      args = {
+        type = "file";
+        url  = x.url or x.resolved;
+        hash = x.hash or x.integrity or x.shasum or null;
+      } // ( if x ? narHash then { inherit (x) narHash; } else {} );
+      args' = self.__thunk // (
+        if args.hash != null then args else removeAttrs args ["hash"]
+      );
+    in builtins.intersectAttrs self.__functionArgs args';
+    __functor = self: x: flocoFTFunctor "file" self x;
+  };
+
+
+# ---------------------------------------------------------------------------- #
 
   # Wraps `fetchurlDrv'.
   # Since it isn't technically a builtin this wrapper is really just for
@@ -322,67 +297,75 @@
   # We add the field `needsUpack = true' in pure mode.
   # In practice the best thing to do is to override this fetcher in pure mode
   # in your config.
-  fetchurlDrvW = {
+  fetchurlDrvMaybeUnpackAfterW = {
     #__functionArgs = hashFields // { name = true; url = false; };
-    __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
+    __functionArgs = ( lib.functionArgs lib.libfetch.fetchurlDrvW ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
+      resolved    = true;
+      integritry  = true;
+      sha1        = true;
     };
+
     __thunk = {
       unpack           = false;
       unpackAfter      = false;
       allowSubstitutes = true;
     };
-    __fetcher = lib.fetchurlDrv;
+
+    __innerFunction = lib.libfetch.fetchurlDrvW;
+
+    __processArgs = self: x: let
+      rough  = x // {
+        url  = x.url or x.resolved;
+        hash = x.hash or x.integrity or x.sha1 or x.narHash or x.sha256 or null;
+      };
+      args = if rough.hash != null then rough else removeAttrs rough ["hash"];
+      args' = removeAttrs ( self.__thunk // args ) ["unpackAfter"];
+    in builtins.intersectAttrs self.__functionArgs args';
+
+    # Call inner without `unpackAfter' arg, preserving it as a tag in our result
     __functor = self: args: let
-      args' = let
-        rargs = removeAttrs args ["unpackAfter"];
-      in rargs // ( plock2TbFetchArgs rargs ).lib.fetchurlDrv;
-      # Hide `unpackAfter' for real call.
-      fetched = callWith ( self // {
-        __functionArgs = removeAttrs self.__functionArgs ["unpackAfter"];
-      } ) args';
-      upa = builtins.fetchTarball { url = fetched.outPath; };
-      unpackedFull = upa // { passthru.tarball = fetched; };
+      fetched = self.__innerFunction ( self.__processArgs self args );
+      # Unpack
+      unpacked      = builtins.fetchTarball { url = fetched.outPath; };
+      unpackedFull  = unpacked // { passthru.tarball = fetched; };
       doUnpackAfter = args.unpackAfter or self.__thunk.unpackAfter;
     in if doUnpackAfter then unpackedFull else fetched;
   };
 
-  fetchurlUnpackDrvW = fetchurlDrvW // { __thunk.unpackAfter = true; };
-  fetchurlNoteUnpackDrvW = fetchurlDrvW // {
-    __functor = self: args:
-      ( fetchurlDrvW.__functor self args ) // { needsUnpack = true; };
+  # Fetch a tarball using the given hash, and then unpack.
+  # This allows you to use the "packed" hash but still return a store-path to
+  # an unpacked tarball.
+  fetchurlUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
+    __thunk.unpackAfter = true;
   };
 
-  fetchGitW = {
-    __functionArgs = {
-      url        = false;
-      name       = true;
-      rev        = true;
-      ref        = true;
-      allRefs    = true;
-      shallow    = true;
-      submodules = true;
-    };
-    __thunk   = {
-      ref        = "HEAD";
-      submodules = false;
-      shallow    = false;
-      allRefs    = true;
-    };
-    __fetcher = builtins.fetchGit;
-    __functor = self: args: let
-      args' = args // ( plock2GitFetchArgs args ).builtins.fetchGit;
-    in callWith self args';
+  # Fetch a tarball using the given hash, and mark it explicitly as needing to
+  # be unpacked.
+  # FIXME: remove this and instead change logic in builders to look for
+  # `source.type == "file";' to detect if unpacking is required.
+  fetchurlNoteUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
+    __functor = self: x:
+      ( fetchurlDrvMaybeUnpackAfterW.__functor self x ) // {
+        needsUnpack = true;
+      };
   };
+
+
+# ---------------------------------------------------------------------------- #
 
   # Wraps `builtins.path' and automatically filters out `node_modules/' dirs.
   # You can always wipe out or redefine that filter.
-  # When using this with relative paths you need to set `cwd' to an absolute
+  # When using this with relative paths you need to set `basedir' to an absolute
   # path before calling:
-  #   ( lib.pathW // { __thunk.cwd = toString ./../../foo; }  ) "./baz"
+  #   ( lib.flocoPathFetcher // {
+  #       __thunk.basedir = toString ./../../foo; }
+  #   ) "./baz"
   #   or
-  #   let fetchFromFoo = lib.pathW // { __thunk.cwd = toString ./../../foo; };
-  #   in builtins.mapAttrs
+  #   let fetchFromPWD = lib.flocoPathFetcher // {
+  #         __thunk.basedir = toString ./.;
+  #       };
+  #   in builtins.mapAttrs ( k: _: fetchFromPWD k ) ( builtins.readDir ./. );
   #
   # NOTE: If you pass an attrset with `outPath' or `path.outPath' as your args,
   # this is essentially an accessor that just returns that `outPath'.
@@ -391,74 +374,68 @@
   # in `metaEnt' data ( this still applies `filter' if it is defined ).
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
-  pathW = {
-    __functionArgs = {
-      name      = true;
-      path      = true;
-      resolved  = true;
-      filter    = true;
-      recursive = true;
-      sha256    = true;
-      outPath   = true;
-      cwd       = false;
+  flocoPathFetcher = {
+
+    __functionMeta = let
+      prev = lib.libfetch.pathW.__functionMeta;
+    in prev // {
+      name = "flocoPathFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "laika#lib.libfetch.pathW";
+      signature = [yt.any yt.any];  # FIXME: return type
     };
+
+    # Add the arg `basedir'.
+    __functionArgs = ( lib.functionArgs flocoPathFetcher.__innerFunction ) // {
+      basedir = true;
+    };
+
     __thunk = {
+      # XXX: You likely want to set `basedir' here!
       filter = name: type: let
         bname = baseNameOf name;
       in ( type == "directory" -> ( bname != "node_modules" ) ) &&
          ( lib.libfilt.genericFilt name type );
     };
-    __fetcher = args: {
-      outPath = args.outPath or ( builtins.path ( removeAttrs args ["cwd"] ) );
-    };
-    __functor = self: {
-      path ? args.resolved or args.outPath or ""
-      , ...
-    } @ args: let
+
+    __innerFunction = lib.libfetch.pathW;
+
+    # Convert relative paths to absolute, and repackage returned store-path into
+    # a `sourceInfo:path' struct.
+    __processArgs = self: x: let
       # NOTE: `path' may be a set in the case where it is a derivation; so in
       # order to pass to `builtins.path' we need to make it a string.
-      args' = if lib.libpath.isAbspath ( path.outPath or path ) then args else {
-        path = "${args.cwd or self.__thunk.cwd}/${path}";
-        name = args.name or ( baseNameOf path );
-      };
-    in callWith self args';
-  };
+      p = if builtins.isString x then x else
+          x.path or x.resolved or x.outPath or "";
+      # Coerce an abspath
+      path = let
+        msg = "You must provide `flocoPathFetcher.__thunk.basedir', or " +
+              "pass `basedir' as an argument to fetch relative paths.";
+        basedir = x.basedir or self.__thunk.basedir or ( throw msg );
+      in if lib.libpath.isAbspath p then p else "${basedir}/${p}";
+      # `lib.libstr.baseName' handles store-path basenames.
+      name = x.name or ( lib.libfs.baseName p );
+    in lib.canPassStrict self.__innerFunction
+                         ( self.__thunk // { inherit name path; } );
 
-  fetchTreeW = {
-    __functionArgs = {
-      # Common
-      type    = false;
-      narHash = true;
-      name    = true;
-      # `fetchTarball' mode
-      url     = true;
-      # `fetchGit' mode
-      rev     = true;
-      ref     = true;
-      allRefs = true;
-      shallow = true;
-      # `path' mode
-      path    = true;
-    };
-    # Copy the thunk from other fetchers.
-    inherit (fetchGitW) __thunk;
-    __fetcher = builtins.fetchTree;
-    __functor = self: { type, ... } @ args: let
-      fa' =
-        if type == "path" then { path = false; } else
-        if type == "git"  then fetchGitW.__functionArgs else
-        if type == "tarball" then {
-          url     = false;
-          narHash = lib.flocoConfig.enableImpureFetchers;
-        } else throw "Unrecognized `fetchTree' type: ${type}";
-      fc = { type = false; narHash = true; };
-      args' = args // {
-        path    = plock2PathFetchArgs ( removeAttrs args ["type"] );
-        tarball = plock2TbFetchArgs   ( removeAttrs args ["type"] );
-        git     = plock2GitFetchArgs  ( removeAttrs args ["type"] );
-      }.${type}.builtins.fetchTree;
-      # Make `__functionArgs' reflect the right args for filtering by type.
-    in callWith ( self // { __functionArgs = fc // fa'; } ) args';
+    __functor = self: x: let
+      args    = self.__processArgs self x;
+      outPath = x.outPath or ( self.__innerFunction args );
+      # `filter' is a function so it cannot be added to `fetchInfo' if we want
+      # that record to be serialized.
+      # Instead we stash it in `passthru'.
+      # XXX: if users want to override args, and they had previously overridden
+      # the filter they need to refer to `passthru' to actually reproduce the
+      # original fetch with their overridden args.
+      # In practice I think it's incredibly unlikely that anyone will need to.
+      passthru' =
+        if args ? filter then { passthru.filter = args.filter; } else {};
+    in {
+      type      = "path";
+      fetchInfo = removeAttrs args ["filter"];
+      inherit outPath;
+      sourceInfo.outPath = outPath;
+    } // passthru';
   };
 
 
@@ -471,86 +448,88 @@
   # You likely want to create a fetcher for each `lockDir'/`metaSet'; but it
   # will check `entries.plock.lockDir' as a fallback.
   #
-  # The following examples will handle `cwd' properly for "dir"/path and
+  # The following examples will handle `basedir' properly for "dir"/path and
   # "link"/symlink fetchers:
   #   let
   #     lockDir      = toString ../../foo;
   #     plock        = lib.importJSON' "${lockDir}/package-lock.json";
-  #     flocoFetcher = lib.mkFlocoFetcher { cwd = lockDir; };
+  #     flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
   #   in builtins.mapAttrs ( _: flocoFetcher ) plock.packages
   #
-  # With `metaSet' it'll figure out `cwd' from the `entries.plock' attrs.
+  # With `metaSet' it'll figure out `basedir' from the `entries.plock' attrs.
   #   let
   #     flocoFetcher = lib.mkFlocoFetcher {};
   #     metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; }
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
   mkFlocoFetcher = {
-    tarballFetcher ? if enableImpureFetchers then tarballFetcherImpure
-                                             else tarballFetcherPure
-  , tarballFetcherPure   ? fetchers.tarballFetcherPure
-  , tarballFetcherImpure ? fetchers.tarballFetcherImpure
-  , urlFetcher  ? fetchers.urlFetcher
-  , gitFetcher  ? fetchers.gitFetcher
-  , dirFetcher  ? fetchers.dirFetcher
-  , linkFetcher ? fetchers.linkFetcher
-  , fetchers    ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
-                                      ( flocoConfig.fetchers or {} )
+    tarballFetcher ? fetchers.tarballFetcher
+  , fileFetcher    ? fetchers.fileFetcher
+  , gitFetcher     ? fetchers.gitFetcher
+  , pathFetcher    ? fetchers.pathFetcher
+  , fetchers       ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
+                                         ( flocoConfig.fetchers or {} )
   , flocoConfig          ? lib.flocoConfig
   , enableImpureFetchers ? flocoConfig.enableImpureFetchers
   , allowSubstitutes     ? flocoConfig.allowSubstitutedFetchers or true
-  , cwd            ? throw "You must set cwd for relative path fetching"
-  } @ cargs: args: let
+  , basedir              ? null  # Throws in `flocoPathFetcher' if needed.
+  } @ cargs: {
     fetchers = {
       # We don't carry pure/impure past argument handling because we're actually
       # going to fetch.
       inherit
-        urlFetcher
         gitFetcher
-        dirFetcher
-        linkFetcher
         tarballFetcher
+        fileFetcher
       ;
+      # If we are using `flocoPathFetcher', then inject `basedir'.
+      pathFetcher =
+        if pathFetcher.__functionMeta.name == "flocoPathFetcher" then
+        pathFetcher // {
+          __thunk = pathFetcher.__thunk // { inherit basedir; };
+        } else pathFetcher;
     };
-    sourceInfo = if args ? entSubtype then args else args.sourceInfo or {};
-    plent = args.entries.plock or args;
-    atype = args.type or sourceInfo.type or null;
-    type  = if atype != null then atype else
-            if builtins.elem entSubtype ["registry-tarball" "source-tarball"]
-            then "tarball" else entSubtype;
-    entSubtype = let
-      fromArgs = args.entSubtype or sourceInfo.entSubtype or null;
-      type'    = if atype == "tarball" then "registry-tarball" else atype;
-      guess    = typeOfEntry plent;
-      fromT    = if atype != null then type' else guess;
-    in if fromArgs != null then fromArgs else fromT;
-    cwd' = if ! ( builtins.elem type ["path" "symlink"] ) then {} else
-      if ( args ? cwd ) || ( cargs ? cwd )
-      then { __thunk.cwd = args.cwd or cargs.cwd; }
-      else if ( plent ? lockDir ) then { __thunk.cwd = plent.lockDir; } else {};
-    fetcher = ( fetcherForType fetchers entSubtype ) // cwd';
-    args' = if sourceInfo != {} then sourceInfo else plent;
-    fetched = fetcher ( { inherit type; } // args' );
-  # Don't refetch if `outPath' is defined ( basically only happens for flakes ).
-  in if sourceInfo ? outPath then sourceInfo else fetched;
 
+    # FIXME: a hot mess over here.
+    __innerFunction = fetchers: x: let
+      plent = if yt.NpmLock.package.check x then x else
+              x.entries.plock or null;
+      # Effectively these are our args.
+      fetchInfo = let
+        fallback = if plent == null then x else plent;
+      in x.fetchInfo or fallback;
+      # Determine the `flocoSourceType'.
+      type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
+      args = if builtins.isAttrs fetchInfo then { inherit type; } // fetchInfo
+                                           else fetchInfo;
+      # Select the right fetcher based on `type'.
+    in builtins.traceVerbose "using ${type}Fetcher"
+       ( lib.apply fetchers."${type}Fetcher" args );
+
+    __functor = self: x: self.__innerFunction self.fetchers x;
+  };
 
 # ---------------------------------------------------------------------------- #
 
 in {
   inherit
-    typeOfEntry
-    fetcherForType
+    identifyResolvedType
+    identifyPlentSourceType
     plockEntryHashAttr
 
-    plock2TbFetchArgs'    plock2TbFetchArgs
-    plock2GitFetchArgs'   plock2GitFetchArgs
-    plock2PathFetchArgs'  plock2PathFetchArgs
-    plock2LinkFetchArgs'  plock2LinkFetchArgs
-    plock2EntryFetchArgs' plock2EntryFetchArgs
+    plockEntryToGenericGitArgs
 
-    fetchGitW fetchTreeW pathW
-    fetchurlDrvW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
+    flocoGitFetcher
+    flocoTarballFetcher
+    flocoFileFetcher
+    flocoPathFetcher
+
+    fetchTreeOrUrlDrv
+
+    fetchurlDrvMaybeUnpackAfterW
+    fetchurlUnpackDrvW
+    fetchurlNoteUnpackDrvW
+
     mkFlocoFetcher
   ;
 }

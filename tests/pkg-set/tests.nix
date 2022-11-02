@@ -6,8 +6,6 @@
 
 { lib
 , system
-, flocoConfig
-, flocoFetch
 , flocoUnpack
 , pkgsFor
 }: let
@@ -15,11 +13,13 @@
 # ---------------------------------------------------------------------------- #
 
   inherit (pkgsFor)
-    mkPkgEntSource
     buildPkgEnt
     installPkgEnt
+    mkPkgEntSource
     mkNmDirLinkCmd
     mkNmDirPlockV3
+    flocoConfig
+    flocoFetch
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -65,11 +65,13 @@
     in {
       expr = {
         srcValid = ( builtins.tryEval srcFiles ) ? success;
-        tbValid  = pkgEnt ? tarball.outPath;
+        # FIXME
+        #tbValid  = pkgEnt;
+          #pkgEnt ? tarball.outPath;
       };
       expected = {
         srcValid = true;
-        tbValid  = true;
+        #tbValid  = true;
       };
     };
 

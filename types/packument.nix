@@ -4,10 +4,11 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ ytypes }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim // lib.ytypes.PkgInfo;
+  yt = ytypes // ytypes.Core // ytypes.Prim // ytypes.PkgInfo;
   inherit (yt) struct string list attrs option;
+  lib.test = patt: s: ( builtins.match patt s ) != null;
 
 # ---------------------------------------------------------------------------- #
 

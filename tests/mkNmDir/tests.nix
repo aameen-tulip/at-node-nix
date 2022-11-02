@@ -28,9 +28,8 @@
   msTreeD = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeD;
   msTreeP = builtins.mapAttrs ( p: key: flocoFetch metaSet.${key} ) treeP;
 
-  flocoConfig   = lib.mkFlocoConfig {};
+  flocoFetchCwd = lib.mkFlocoFetcher { basedir = lockDir; };
   flocoFetch    = lib.mkFlocoFetcher {};
-  flocoFetchCwd = lib.mkFlocoFetcher { cwd = lockDir; };
 
   sourceTree = builtins.mapAttrs ( p: flocoFetchCwd ) plock.packages;
 

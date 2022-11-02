@@ -17,7 +17,7 @@
 #
 # mkSourceTree { lockDir }
 #   or
-# mkSourceTree { plock, flocoFetch }  *** set CWD in `flocoFetch' or set
+# mkSourceTree { plock, flocoFetch }  *** set basedir in `flocoFetch' or set
 #                                         absolute paths as keys first.
 #
 # See `<at-node-nix>/tests/mkNmDir/tests.nix' for real examples.
@@ -36,7 +36,7 @@
 , flocoFetch
 
 , plock       ? lib.importJSON' "${lockDir}/package-lock.json"
-, lockDir     ? null  # You better have set `flocoFetch' CWD.
+, lockDir     ? null  # You better have set `flocoFetch' basedir.
 
 , npmSys ? lib.getNpmSys args
 # These are used by the `getNpmSys' fallback and must be declared for
@@ -49,7 +49,7 @@
 
   flocoFetch =
     if ! ( args ? lockDir ) then args.flocoFetch
-    else lib.mkFlocoFetcher { cwd = lockDir; inherit flocoConfig; };
+    else lib.mkFlocoFetcher { basedir = lockDir; inherit flocoConfig; };
 
   doFetch = pkey: plent: let
     hasBin = ( plent.bin or {} ) != {};

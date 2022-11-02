@@ -20,18 +20,12 @@
   inherit (yt.Packument.Structs)
     packument
   ;
-  inherit (yt.NpmLock.Strings)
-    relative_file_uri
-    git_uri
-    tarball_uri
-    resolved_uri
-  ;
   inherit (yt.NpmLock.Structs)
-    pkg_path
-    pkg_dir
-    pkg_link
-    pkg_tarball
-    pkg_git
+    pkg_path_v3
+    pkg_dir_v3
+    pkg_link_v3
+    pkg_tarball_v3
+    pkg_git_v3
     package
   ;
 
@@ -83,7 +77,7 @@
         # We skip the root entry on this one.
         tb = lib.optionalAttrs ( p.name != "" ) {
           "testPlockEntryTarball_${p.name}" = {
-            expr     = pkg_tarball ent;
+            expr     = pkg_tarball_v3 ent;
             expected = ent;
           };
         };
@@ -103,13 +97,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testPkgPath_0 = {
-      expr     = pkg_path.check { name = "foo"; version = "1.0.0"; };
+    testPkgPath3_0 = {
+      expr     = pkg_path_v3.check { name = "foo"; version = "1.0.0"; };
       expected = true;
     };
 
-    testPkgPath_1 = {
-      expr = pkg_path.check {
+    testPkgPath3_1 = {
+      expr = pkg_path_v3.check {
         version  = "1.0.0";
         link     = true;
         resolved = "../foo";
@@ -117,8 +111,8 @@
       expected = true;
     };
 
-    testPkgPath_2 = {
-      expr = pkg_path.check {
+    testPkgPath3_2 = {
+      expr = pkg_path_v3.check {
         version      = "1.0.0";
         dependencies = { bar = "^1.0.0"; };
       };
@@ -128,13 +122,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testPkgDir_0 = {
-      expr     = pkg_dir.check { name = "foo"; version = "1.0.0"; };
+    testPkgDir3_0 = {
+      expr     = pkg_dir_v3.check { name = "foo"; version = "1.0.0"; };
       expected = true;
     };
 
-    testPkgDir_1 = {
-      expr = pkg_dir.check {
+    testPkgDir3_1 = {
+      expr = pkg_dir_v3.check {
         version  = "1.0.0";
         link     = true;
         resolved = "../foo";
@@ -142,8 +136,8 @@
       expected = false;
     };
 
-    testPkgDir_2 = {
-      expr = pkg_dir.check {
+    testPkgDir3_2 = {
+      expr = pkg_dir_v3.check {
         version      = "1.0.0";
         dependencies = { bar = "^1.0.0"; };
       };
@@ -153,13 +147,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testPkgLink_0 = {
-      expr     = pkg_link.check { name = "foo"; version = "1.0.0"; };
+    testPkgLink3_0 = {
+      expr     = pkg_link_v3.check { name = "foo"; version = "1.0.0"; };
       expected = false;
     };
 
-    testPkgLink_1 = {
-      expr = pkg_link.check {
+    testPkgLink3_1 = {
+      expr = pkg_link_v3.check {
         version  = "1.0.0";
         link     = true;
         resolved = "../foo";
@@ -167,12 +161,28 @@
       expected = true;
     };
 
-    testPkgLink_2 = {
-      expr = pkg_link.check {
+    testPkgLink3_2 = {
+      expr = pkg_link_v3.check {
         version      = "1.0.0";
         dependencies = { bar = "^1.0.0"; };
       };
       expected = false;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testPkgGit3_0 = let
+      ent = {
+        version  = "5.0.0";
+        resolved = "git+ssh://git@github.com/lodash/lodash.git" +
+                   "#2da024c3b4f9947a48517639de7560457cd4ec6c";
+        license = "MIT";
+        engines.node = ">=4.0.0";
+      };
+    in {
+      expr     = pkg_git_v3 ent;
+      expected = ent;
     };
 
 

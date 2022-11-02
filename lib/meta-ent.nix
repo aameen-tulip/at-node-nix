@@ -77,18 +77,14 @@
   # order to read the `scripts' field.
   # FIXME: In impure mode actually go collect that info because `git' deps
   # often do have `scripts.build' routines.
-  # The routine that adds info from plock `sourceInfo' data already does this.
+  # The routine that adds info from plock `fetchInfo' data already does this.
   entHasBuild = ent: let
-    entSubtype = ent.sourceInfo.entSubtype or
-                 ent.sourceInfo.type or
-                 ( lib.libfetch.typeOfEntry ent );
-    isTb         = ! ( builtins.elem entSubtype ["path" "symlink" "git"] );
+    type = ent.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType ent );
     fromPjs = if ent ? entries.pjs
               then hasBuildFromScripts ent.entries.pjs.scripts
               else null;
-    fromSubtype = if entSubtype == null then null else
-                  if fromPjs == null then null else
-                  ( ! isTb ) && fromPjs;
+    fromSubtype = if fromPjs == null then null else
+                  ( ! ( builtins.elem type ["file" "tarball"] ) ) && fromPjs;
   in ent.hasBuild or fromSubtype;
 
 
@@ -134,7 +130,7 @@
   , version     ? baseNameOf key
   , scoped      ? lib.test "@[^@/]+/[^@/]+" ident
   , entFromtype ? "raw"
-  , sourceInfo
+  , fetchInfo
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
   , bin              ? {}
@@ -227,7 +223,7 @@
     pjsDir =
       if plent.pkey == "" then lockDir else
       # Fetch remote trees in impure mode
-      if haveTree && ( ! isLocal ) then
+      if haveTree && ( type != "path" ) then
         "${( ( lib.mkFlocoFetcher {} ) plent )}" else
       if plent.link or false then "${lockDir}/${plent.resolved}" else
       "${lockDir}/${plent.pkey}";
@@ -235,44 +231,44 @@
     tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
     pjs     = x.entries.pjs or ( lib.importJSON' pjsPath );
     fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      entries.pjs = pjs // ( lib.optionalAttrs isLocal { inherit pjsDir; } );
-    } // ( lib.optionalAttrs isLocal { sourceInfo.path = pjsDir; } );
-    isLocal     = ( entSubtype == "path" ) || ( entSubtype == "symlink" );
-    isRemoteSrc = ( entSubtype == "git" ) || ( entSubtype == "source-tarball" );
-    isTb        = ( entSubtype == "registry-tarball" ) ||
-                  ( entSubtype == "source-tarball" );
+      entries.pjs = pjs // ( lib.optionalAttrs ( type == "path" ) {
+        inherit pjsDir;
+      } );
+    } // ( lib.optionalAttrs ( type == "path" ) { fetchInfo.path = pjsDir; } );
+    isRemoteSrc = type != "path";
+    isTb        = builtins.elem type ["file" "tarball"];
     # FIXME: fetching from the registry manifest makes WAY more sense.
-    canFetch = ( entSubtype == "git" ) &&
+    canFetch = ( type == "git" ) &&
                ( lib.flocoConfig.enableImpureMeta &&
                  lib.flocoConfig.enableImpureFetchers );
-    haveTree   = isLocal || canFetch;
-    entSubtype =
+    haveTree = ( type == "path" ) || canFetch;
+    type =
       if builtins.isString x then x else
-      x.sourceInfo.entSubtype or ( lib.libfetch.typeOfEntry plent );
-    core = {
-      sourceInfo = {
-        type = if isLocal then "path" else if isTb then "tarball" else "git";
-        inherit entSubtype;
-      };
-    };
+      x.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType plent );
+    core.fetchInfo = { inherit type; };
     conds = let
       mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
     in builtins.foldl' mergeCond core [
       { c = isTb;               v.hasBuild = false;                }
       { c = haveTree && tryPjs; v = fromPjs;                       }
-      { c = ! isLocal;          v.sourceInfo.url = plent.resolved; }
+      {
+        c = type != "path";
+        v.fetchInfo.url =
+          if ! ( plent ? resolved ) then throw "missing resolved: ${lib.generators.toPretty {} plent} ${type} ${lib.generators.toPretty {} plent}" else
+          plent.resolved;
+      }
       {
         c = haveTree && ( plent.hasInstallScript or false );
         v.gypfile = builtins.pathExists "${pjsDir}/binding.gyp";
       }
       # This is NOT redundant alongside the `plockEntryHashAttrs' call.
-      { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity; }
-      { c = isLocal;            v.sourceInfo.path = pjsDir; }
+      { c = plent ? integrity;  v.fetchInfo.hash = plent.integrity; }
+      { c = type == "path";     v.fetchInfo.path = pjsDir; }
     ];
     forAttrs = builtins.foldl' lib.recursiveUpdate core [
       conds
       # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
-      { sourceInfo = lib.libfetch.plockEntryHashAttr plent; }
+      { fetchInfo = lib.libfetch.plockEntryHashAttr plent; }
     ];
     ec = builtins.addErrorContext "metaEntFromPlockSubtype";
   in if builtins.isString x then core else ec forAttrs;
@@ -362,7 +358,7 @@
       # handled by `metaEntFromPlockV3', and remaining fields are stashed in
       # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
       # to `metaEntMergeFromPlockSubtype' for further processing.
-      # The `*PlockSubtype' routine creates `sourceInfo', and will also process
+      # The `*PlockSubtype' routine creates `fetchInfo', and will also process
       # `entries.pjs' if it is provided ( or for local paths in the lock )
       # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
       # find the `package.json' on its own; you only need to inject it if you
@@ -435,7 +431,7 @@
   # For tarballs we know there's no build, but aside from that we don't
   # make assumptions here.
   metaEntIsSimple = {
-    hasBuild         ? ( attrs.sourceInfo.type or null ) != "tarball"
+    hasBuild         ? ( attrs.fetchInfo.type or null ) != "tarball"
   , hasInstallScript ? false
   , hasPrepare       ? false
   , hasBin           ? false

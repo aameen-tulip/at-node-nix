@@ -20,12 +20,14 @@
 #
 # ---------------------------------------------------------------------------- #
 
+  # XXX: Mainters Note: You must keep `enableImpureFetchers' assignment in sync
+  # with `tarballFetcher' purity detection since there is no self reference.
   defaultFlocoConfig = {
     # Used for querying manifests and packuments.
     # Must be an attrset of strings.
     registryScopes._default  = "https://registry.npmjs.org";
-    enableImpureMeta         = false;
-    enableImpureFetchers     = false;
+    enableImpureMeta         = ! lib.inPureEvalMode;
+    enableImpureFetchers     = ! lib.inPureEvalMode;
     allowSubstitutedFetchers = true;
     metaEntOverlays          = [];
     metaSetOverlays          = [];
@@ -33,17 +35,11 @@
     pkgSetOverlays           = [];
     # It's only possible to put these here because they are platform agnostic.
     # If you use system dependant fetchers override this.
-    fetchers = let
-      tarballFetcherPure   = lib.libfetch.fetchurlNoteUnpackDrvW;
-      tarballFetcherImpure = lib.libfetch.fetchTreeW;
-    in {
-      urlFetcher     = lib.libfetch.fetchurlDrvW;
-      gitFetcher     = lib.libfetch.fetchGitW;
-      dirFetcher     = lib.libfetch.pathW;
-      linkFetcher    = lib.libfetch.pathW;
-      tarballFetcher = if lib.inPureEvalMode then tarballFetcherPure
-                                             else tarballFetcherImpure;
-      inherit tarballFetcherPure tarballFetcherImpure;
+    fetchers = {
+      gitFetcher     = lib.libfetch.flocoGitFetcher;
+      pathFetcher    = lib.libfetch.flocoPathFetcher;
+      fileFetcher    = lib.libfetch.flocoFileFetcher;
+      tarballFetcher = lib.libfetch.flocoTarballFetcher;
     };
   };
 
@@ -85,14 +81,7 @@
   } @ args: let
     ni  = removeAttrs args ["enableImpure"];
     cfg = ni // {
-      inherit enableImpureMeta enableImpureFetchers;
-      # Define as a fixed point so changed propagate.
-      fetchers = {
-        tarballFetcher =
-          if cfg.enableImpureFetchers
-          then cfg.fetchers.tarballFetcherImpure
-          else cfg.fetchers.tarballFetcherPure;
-      } // fetchers;
+      inherit enableImpureMeta enableImpureFetchers fetchers;
     };
   in assert validateFlocoConfig cfg;
      cfg;

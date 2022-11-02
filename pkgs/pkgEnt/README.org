@@ -55,8 +55,7 @@ See [[file:../../lib/meta-ent.nix][metaEnt lib]] for more info.
     hasInstallScript = false;
     hasTest = false;
     scoped = true;
-    sourceInfo = {
-      entSubtype = "registry-tarball";
+    fetchInfo = {
       hash = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
       sha512 = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
       type = "tarball";

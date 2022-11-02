@@ -8,10 +8,11 @@
 # ---------------------------------------------------------------------------- #
 
 { system      ? builtins.currentSystem
-, pkgsFor     ? ( builtins.getFlake ( toString ../. ) ).legacyPackages.${system}
+, at-node-nix ? builtins.getFlake ( toString ../. )
+, pkgsFor     ? at-node-nix.legacyPackages.${system}
+, lib         ? at-node-nix.lib
 , writeText   ? pkgsFor.writeText
 , rime        ? builtins.getFlake "github:aakropotkin/rime"
-, lib         ? import ../lib { inherit (rime) lib; }
 
 , flocoUnpack ? pkgsFor.flocoUnpack
 , flocoConfig ? pkgsFor.flocoConfig

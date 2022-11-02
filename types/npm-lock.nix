@@ -6,14 +6,15 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ ytypes }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  yt = ytypes // ytypes.Core // ytypes.Prim;
   ur = yt.Uri;
   pi = yt.PkgInfo;
   inherit (yt) struct string list bool attrs option restrict;
   inherit (pi.Strings) identifier identifier_any version locator descriptor;
   inherit (ur.Strings) uri_ref scheme fragment;
+  lib.test = patt: s: ( builtins.match patt s ) != null;
 
 # ---------------------------------------------------------------------------- #
 
@@ -26,20 +27,51 @@
   #     "version": "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c",
   #     "from": "lodash@github:lodash/lodash"
   #   },
-  dep_field = let
+  dep_field_v3 = let
     cond = x: builtins.all identifier_any.check ( builtins.attrNames x );
   in restrict "dep_descriptors" cond ( attrs descriptor );
 
-  deps = {
-    dependencies     = option dep_field;
-    devDependencies  = option dep_field;
-    peerDependencies = option dep_field;
+  dep_ent_v1 = struct "deps_v1" {
+    version  = locator;
+    resolved = option resolved_uri;
+    from     = option descriptor;
+    dev      = option bool;
+    optional = option bool;
+    peer     = option bool;
+  };
+
+  dep_field_v1 = let
+    cond = x: builtins.all identifier_any.check ( builtins.attrNames x );
+  in restrict "dep_entries" cond ( attrs dep_ent_v1 );
+
+  deps_v2 = {
+    requires         = option dep_field_v3;
+    dependencies     = option ( yt.either dep_field_v3 dep_field_v1 );
+    devDependencies  = option dep_field_v3;
+    peerDependencies = option dep_field_v3;
     # FIXME
   };
+
+  deps_v1 = {
+    dependencies = option dep_field_v1;
+  };
+
+  deps_v3 = {
+    requires         = option dep_field_v3;
+    dependencies     = option dep_field_v3;
+    devDependencies  = option dep_field_v3;
+    peerDependencies = option dep_field_v3;
+    # FIXME
+  };
+
+  # FIXME
+  deps = deps_v2;
 
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: `pacote' will write absolute filepaths.
+  # For `resolved' it doesn't use `file:...', but for `from' it will.
   relative_file_uri = let
     cond = x: let
       m = builtins.match "(file:)?(\\.[^:#?]*)" x;
@@ -60,24 +92,10 @@
 
 # ---------------------------------------------------------------------------- #
 
-  identifyResolvedType = r: let
-    isPath = ( ! ( lib.liburi.Url.isType r ) ) && ( relative_file_uri.check r );
-    isGit  = let
-      data = ( lib.liburi.Url.fromString r ).scheme.data or null;
-    in ( lib.liburi.Url.isType r ) && ( data == "git" );
-    isFile = lib.libstr.isTarballUrl r;
-  in if isPath then { path = r; } else
-     if isGit  then { git = r; } else
-     if isFile then { file = r; } else
-     throw "(identifyResolvedType) unable to determine type of ${r}";
-
-
-# ---------------------------------------------------------------------------- #
-
   # Package Entries ( Plock v3 Only )
 
   # XXX: All are optional
-  pkg_any-fields = ( builtins.mapAttrs ( _: option ) {
+  pkg_any_fields_v3 = ( builtins.mapAttrs ( _: option ) {
     name     = identifier;
     version  = locator;
     resolved = resolved_uri;
@@ -91,14 +109,14 @@
     gypfile          = bool;
     optional         = bool;
     dev              = bool;
-  } ) // deps;
+  } ) // deps_v3;
 
 
 # ---------------------------------------------------------------------------- #
 
-  pkg_path = let
-    fconds = pkg_any-fields // {
-      resolved = option relative_file_uri;
+  pkg_path_v3 = let
+    fconds = pkg_any_fields_v3 // {
+      resolved = option ( yt.either relative_file_uri yt.FS.abspath );
       link     = option bool;
     };
     cond = x: let
@@ -106,39 +124,41 @@
     in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
   in restrict "package[path]" cond ( yt.attrs yt.any );
   
-  pkg_dir  = restrict "dir"  ( x: ! ( x.link or false) ) pkg_path;
-  pkg_link = restrict "link" ( x: x.link or false ) pkg_path;
+  pkg_dir_v3  = restrict "dir"  ( x: ! ( x.link or false) ) pkg_path_v3;
+  pkg_link_v3 = restrict "link" ( x: x.link or false ) pkg_path_v3;
 
 
 # ---------------------------------------------------------------------------- #
 
-  pkg_git = let
-    fconds = pkg_any-fields // { resolved = git_uri; };
+  pkg_git_v3 = let
+    fconds = pkg_any_fields_v3 // { resolved = git_uri; };
     cond = x: let
-      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
-    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+      fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
+      fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    in ( x ? resolved ) && fields;
   in restrict "package[git]" cond ( yt.attrs yt.any );
 
 
 # ---------------------------------------------------------------------------- #
 
-  pkg_tarball = let
+  pkg_tarball_v3 = let
     condHash = x: ( x ? integrity ) || ( x ? sha1 );
-    fconds = pkg_any-fields // {
+    fconds   = pkg_any_fields_v3 // {
       resolved  = tarball_uri;
       integrity = option yt.Strings.sha512_sri;
       sha1      = option yt.Strings.sha1_hash;
     };
     condFields = x: let
-      fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
-    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+      fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
+      fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    in ( x ? resolved ) && fields;
     cond = x: ( condHash x ) && ( condFields x );
   in restrict "package[tarball]" cond ( yt.attrs yt.any );
 
 
 # ---------------------------------------------------------------------------- #
 
-  package = yt.eitherN [pkg_dir pkg_link pkg_git pkg_tarball];
+  package = yt.eitherN [pkg_dir_v3 pkg_link_v3 pkg_git_v3 pkg_tarball_v3];
 
 
 # ---------------------------------------------------------------------------- #
@@ -155,16 +175,21 @@ in {
   };
   Structs = {
     inherit
-      pkg_path  # used by fetchers, not exposed to users.
-      pkg_dir
-      pkg_link
-      pkg_git
-      pkg_tarball
+      pkg_path_v3  # used by fetchers, not exposed to users.
+      pkg_dir_v3
+      pkg_link_v3
+      pkg_git_v3
+      pkg_tarball_v3
       package
     ;
   };
   inherit
-    identifyResolvedType
+    resolved_uri
+    pkg_dir_v3
+    pkg_link_v3
+    pkg_git_v3
+    pkg_tarball_v3
+    package
   ;
 }
 
