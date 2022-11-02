@@ -59,6 +59,19 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # Run a simple build that just creates a `build/' dir.
+    testCoerceDrvNan = let
+      nan = import ./nan.nix { inherit lib pkgsFor system; };
+    in {
+      # Ensure `build/' looks right, but drop a Darwin only file. 
+      expr = if isSameSystem then builtins.pathExists "${nan}/package.json" else
+             lib.isDerivation nan;
+      expected = true;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
     testPjsUtil = let
       checkPjsUtil = import ./pjs-util.nix {
         inherit (pkgsFor) stdenv pjsUtil jq nodejs;

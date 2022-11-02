@@ -16,6 +16,10 @@
 , meta             ? {}
 , system           ? stdenv.system
 , allowSubstitutes ? ( builtins.currentSystem or null ) != system
+, nodejs
+, jq
+, pjsUtil
+, patchNodePackageHook
 , ...
 } @ args: let
   drvAttrs = ( removeAttrs args ["lib" "stdenv" "unpackSafe"] ) // {
@@ -28,6 +32,10 @@
   in byName || byType;
 in if needsUnpack then unpackSafe drvAttrs else
    if lib.isDerivation src then src else stdenv.mkDerivation ( drvAttrs // {
+     nativeBuildInputs = let
+       given    = args.nativeBuildInputs or [];
+       defaults = [pjsUtil patchNodePackageHook nodejs jq];
+     in lib.unique ( given ++ ( lib.filter ( x: x != null ) defaults ) );
      dontConfigure = true;
      dontBuild     = true;
      installPhase  = ''
