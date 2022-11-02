@@ -423,6 +423,9 @@
   in if preferFt then ft else drv;
 
 
+  # FIXME: THESE TWO WRAPPERS ARE THE PROBLEM
+  # YOU NEED TO ALLOW `fetchurlDrvW' IN PURE MODE, AND THE WRAPPER BELOW DOESN'T
+  # ACTUALLY MANAGE THAT ( IT MAY LOOK LIKE IT DOES DON'T BE FOOLED )
   flocoTarballFetcher = {
     __functionMeta = {
       name = "flocoTarballFetcher";
@@ -462,8 +465,14 @@
       } // ( if x ? harHash then { inherit (x) narHash; } else {} );
       args' = self.__thunk // args;
     in builtins.intersectAttrs self.__functionArgs args';
-    __functor = self: x: flocoFTFunctor "file" self x;
+    __functor = self: x:
+      builtins.deepSeq ( throw "FIXME" ) (
+        flocoFTFunctor "file" self x );
   };
+  # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  # FIXME: THESE TWO WRAPPERS ARE THE PROBLEM
+  # YOU NEED TO ALLOW `fetchurlDrvW' IN PURE MODE, AND THE WRAPPER BELOW DOESN'T
+  # ACTUALLY MANAGE THAT ( IT MAY LOOK LIKE IT DOES DON'T BE FOOLED )
 
 
 # ---------------------------------------------------------------------------- #
