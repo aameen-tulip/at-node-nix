@@ -42,7 +42,6 @@
   # Fetchers and Filesystem helpers.
   inputs.laika.url = "github:aakropotkin/laika/main";
   inputs.laika.inputs.nixpkgs.follows = "/nixpkgs";
-  inputs.laika.inputs.ak-nix.follows  = "/ak-nix";
   inputs.laika.inputs.rime.follows    = "/rime";
 
 # ---------------------------------------------------------------------------- #

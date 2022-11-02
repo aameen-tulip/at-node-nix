@@ -91,7 +91,7 @@
       # FIXME: this is hideous.
       # Rewrite based on `pacote' fetcher.
       needsUnpack =
-       ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "tarball" ) ||
+       ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "file" ) ||
        ( ( fetchInfo ? needsUnpack ) && ( fetchInfo.needsUnpack == false ) );
       unpacked = if ! needsUnpack then fetched else
                  flocoUnpack { name = names.src; tarball = fetched; };

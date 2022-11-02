@@ -38,12 +38,8 @@
     fetchers = {
       gitFetcher     = lib.libfetch.flocoGitFetcher;
       pathFetcher    = lib.libfetch.flocoPathFetcher;
-      fileFetcher    = if   lib.libcfg.defaultFlocoConfig.enableImpureFetchers
-                       then lib.libfetch.flocoTarballFetcher
-                       else lib.libfetch.fetchurlNoteUnpackDrvW;
-      tarballFetcher = if   lib.libcfg.defaultFlocoConfig.enableImpureFetchers
-                       then lib.libfetch.flocoTarballFetcher
-                       else lib.libfetch.fetchurlNoteUnpackDrvW;
+      fileFetcher    = lib.libfetch.flocoFileFetcher;
+      tarballFetcher = lib.libfetch.flocoTarballFetcher;
     };
   };
 
@@ -85,16 +81,7 @@
   } @ args: let
     ni  = removeAttrs args ["enableImpure"];
     cfg = ni // {
-      inherit enableImpureMeta enableImpureFetchers;
-      # Define as a fixed point so changed propagate.
-      fetchers = {
-        fileFetcher = if enableImpureFetchers
-                      then lib.libfetch.fetchurlUnpackDrvW
-                      else lib.libfetch.fetchurlNoteUnpackDrvW;
-        tarballFetcher = if enableImpureFetchers
-                         then lib.libfetch.fetchurlUnpackDrvW
-                         else lib.libfetch.fetchurlNoteUnpackDrvW;
-      } // fetchers;
+      inherit enableImpureMeta enableImpureFetchers fetchers;
     };
   in assert validateFlocoConfig cfg;
      cfg;

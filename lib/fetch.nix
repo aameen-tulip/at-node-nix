@@ -8,7 +8,12 @@
 
   yt  = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
   plt = yt.NpmLock.Structs // yt.NpmLock;
-  inherit (lib.libfetch) fetchTreeGithubW fetchTreeGitW fetchGitW;
+  inherit (lib.libfetch)
+    fetchTreeGithubW
+    fetchTreeGitW
+    fetchGitW
+    fetchTreePathW
+  ;
 
 # ---------------------------------------------------------------------------- #
 #
@@ -331,9 +336,17 @@
 # ---------------------------------------------------------------------------- #
 
   flocoProcessGitArgs = self: x: let
-    args = if ! ( yt.NpmLock.pkg_git_v3.check x ) then x else
-           plockEntryToGenericGitArgs x;
-  in lib.canPassStrict self ( ( self.__thunk or {} ) // args );
+    rough =
+      if yt.NpmLock.pkg_git_v3.check x then plockEntryToGenericGitArgs x else
+      if x ? rev then x else
+      plockEntryToGenericGitArgs ( x // { resolved = x.url or x.resolved; } );
+    tas     = ( self.__thunk or {} ) // rough;
+    type    = if isGithubUrl rough.url then "github" else "git";
+    fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
+              lib.libfetch.fetchGitW;
+    args = if type != "github" then tas else
+           removeAttrs ( tas // { inherit type; } ) ["url"];
+  in lib.canPassStrict fetcher args;
 
 
 # ---------------------------------------------------------------------------- #
@@ -351,7 +364,14 @@
   flocoFTFunctor = type: self: x: let
     fetchInfo  = self.__processArgs self x;
     sourceInfo = self.__innerFunction fetchInfo;
-  in flocoProcessFTResult type fetchInfo sourceInfo;
+    result     = flocoProcessFTResult type fetchInfo sourceInfo;
+    msg = ''
+      flocoFetch(${type})
+        inputs:     ${builtins.toJSON ( x.__serial or x )}
+        fetchInfo:  ${builtins.toJSON fetchInfo}
+        sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
+    '';
+  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
 
 
 # ---------------------------------------------------------------------------- #
@@ -365,7 +385,7 @@
     pMissingRev = pure && ( ! ( args ? rev ) );
     # In pure mode we can fetch without `rev' if `narHash' is given.
     pMissingNarHash = pure && ( ! ( hash ? narHash ) );
-    isGithub        = isGithubUrl args.url;
+    isGithub        = ( args.type == "github" ) || ( isGithubUrl args.url );
     preferFTGithub  = ( args ? owner ) || ( args ? repo ) || isGithub;
     ftg = if preferFTGithub then fetchTreeGithubW else fetchTreeGitW;
   in if pMissingRev && pMissingNarHash then "nixpkgs#fetchgit" else
@@ -385,11 +405,22 @@
 
   flocoGitFetcher = lib.libfetch.fetchGitW // {
     __functionMeta = lib.libfetch.fetchGitW.__functionMeta // {
-      name = "flocoGitFetcher(fetchGitW)";
+      name = "flocoGitFetcher";
     };
+    __innerFunction = args:
+      if ( args.type or "git" ) == "github"
+      then lib.libfetch.fetchTreeGithubW args
+      else lib.libfetch.fetchGitW args;
+    __functionArgs =
+      ( builtins.mapAttrs ( _: _: true ) genericGitArgFields ) // {
+        resolved = true;
+      };
     __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
     __processArgs = flocoProcessGitArgs;
-    __functor     = flocoFTFunctor "git";
+    __functor     = self: x: let
+      fetchInfo  = self.__processArgs self x;
+      sourceInfo = self.__innerFunction fetchInfo;
+    in flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo sourceInfo;
   };
 
 
@@ -401,7 +432,7 @@
   fetchTreeOrUrlDrv = {
     url       ? fetchInfo.resolved
   , resolved  ? null
-  , hash      ? integrity
+  , hash      ? builtins.elemAt ( builtins.match "(sha(512|256|1)-)?(.*)" integrity ) 2
   , integrity ? fetchInfo.shasum
   , shasum    ? null
   , type      ? "file"
@@ -409,7 +440,8 @@
   , ...
   } @ fetchInfo: let
     ftLocked = ( fetchInfo ? narHash ) || lib.flocoConfig.enableImpureFetchers;
-    preferFt = ( fetchInfo ? type ) && ftLocked;
+    #preferFt = ( fetchInfo ? type ) && ftLocked;
+    preferFt = false;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
     # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
     ft = ( builtins.fetchTree { inherit url type; } ) // nh';
@@ -433,14 +465,20 @@
       innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
       signature = [yt.any yt.any];  # FIXME: return type
     };
-    __functionArgs  = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
+    __functionArgs  = {
+      type       = true;
+      url        = true;
+      resolved   = true;
+      integritry = true;
+      sha1       = true;
+      narHash    = ! lib.inPureEvalMode;
+    };
     __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
     __thunk = {};
     __processArgs = self: x: let
       args = {
         type = "tarball";
         url  = x.url or x.resolved;
-        hash = x.hash or x.integrity or x.shasum or "";
       } // ( if x ? harHash then { inherit (x) narHash; } else {} );
       args' = self.__thunk // args;
     in builtins.intersectAttrs self.__functionArgs args';
@@ -454,20 +492,34 @@
       innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
       signature = [yt.any yt.any];  # FIXME: return type
     };
-    __functionArgs  = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
-    __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
+    __functionArgs =
+      ( lib.functionArgs flocoFileFetcher.__innerFunction ) // {
+        integrity = true;
+        hash      = true;
+        sha1      = true;
+        resolved  = true;
+      };
+    __innerFunction =
+      if lib.flocoConfig.enableImpureFetchers
+      then { url, type, narHash ? null } @ fetchInfo: let
+        sourceInfo = builtins.fetchTree fetchInfo;
+      in {
+        type = "file";
+        inherit (sourceInfo) outPath;
+        inherit fetchInfo sourceInfo;
+      } else lib.libfetch.fetchurlDrvW;
     __thunk = {};
     __processArgs = self: x: let
       args = {
         type = "file";
         url  = x.url or x.resolved;
         hash = x.hash or x.integrity or x.shasum or null;
-      } // ( if x ? harHash then { inherit (x) narHash; } else {} );
-      args' = self.__thunk // args;
+      } // ( if x ? narHash then { inherit (x) narHash; } else {} );
+      args' = self.__thunk // (
+        if args.hash != null then args else removeAttrs args ["hash"]
+      );
     in builtins.intersectAttrs self.__functionArgs args';
-    __functor = self: x:
-      builtins.deepSeq ( throw "FIXME" ) (
-        flocoFTFunctor "file" self x );
+    __functor = self: x: flocoFTFunctor "file" self x;
   };
   # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   # FIXME: THESE TWO WRAPPERS ARE THE PROBLEM
@@ -488,8 +540,11 @@
   # in your config.
   fetchurlDrvMaybeUnpackAfterW = {
     #__functionArgs = hashFields // { name = true; url = false; };
-    __functionArgs = ( lib.functionArgs lib.libfetch.fetchurlDrv ) // {
+    __functionArgs = ( lib.functionArgs lib.libfetch.fetchurlDrvW ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
+      resolved    = true;
+      integritry  = true;
+      sha1        = true;
     };
 
     __thunk = {
@@ -498,13 +553,14 @@
       allowSubstitutes = true;
     };
 
-    __innerFunction = lib.libfetch.fetchurlDrv;
+    __innerFunction = lib.libfetch.fetchurlDrvW;
 
     __processArgs = self: x: let
-      args  = x // {
+      rough  = x // {
         url  = x.url or x.resolved;
-        hash = x.integrity or x.sha1 or x.hash or x.shasum or x.narHash;
+        hash = x.hash or x.integrity or x.sha1 or x.narHash or x.sha256 or null;
       };
+      args = if rough.hash != null then rough else removeAttrs rough ["hash"];
       args' = removeAttrs ( self.__thunk // args ) ["unpackAfter"];
     in builtins.intersectAttrs self.__functionArgs args';
 
@@ -626,57 +682,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # The `type = "path"' form of `builtins.fetchTree'.
-  # The only change here is we don't require `type' to be specified explicitly,
-  # and if additional fields appear in our argset we ignore them.
-  # Returns a set `{ type = "path"; sourceInfo = {...}; fetchInfo = {...}; }'.
-  fetchTreePathW = {
-    __functionMeta = {
-      name = "fetchTreePathW";
-      argTypes = let
-        ftpa = yt.struct {
-          type    = yt.option ( yt.enum ["path"] );
-          path    = yt.FS.abspath;
-          narHash = yt.option yt.Hash.Strings.sha256_sri;
-        };
-      in [ftpa];
-    };
-
-    __functionArgs = {
-      type    = true;
-      path    = false;
-      narHash = lib.flocoConfig.enableImpureFetchers;  # XXX: Probably FIXME
-    };
-
-    __innerFunction = builtins.fetchTree;
-
-    __processArgs = self: {
-      path
-    , type    ? "path"
-    , narHash ? null
-    , ...
-    } @ args: let
-      opt = if args ? narHash then { inherit narHash; } else {};
-    in assert type == "path";
-       { inherit type path; } // opt;
-
-    __processResult = self: {
-      latModified
-    , lastModifiedDate
-    , narHash
-    , outPath
-    } @ sourceInfo: { inherit outPath sourceInfo; type = "path"; };
-
-    __functor = self: args: let
-      fetchInfo = self.__processArgs self args;
-      result    = self.__processResult self ( self.__innerFunction fetchInfo );
-    in result // { inherit fetchInfo; };
-  };
-
-
-
-# ---------------------------------------------------------------------------- #
-
   # FIXME: don't wrap output here do that in `flocoFetch*'.
   fetchTreeW = {
     __functionArgs = {
@@ -788,14 +793,8 @@
       in x.fetchInfo or fallback;
       # Determine the `flocoSourceType'.
       type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
-      # FIXME: this belongs in `flocoTarballFetcher'.
-      url' = let
-        url = x.url or x.resolved or
-              fetchInfo.url or fetchInfo.resolved or null;
-      in if url == null then {} else { inherit url; };
-      args = if builtins.isAttrs fetchInfo then url' // {
-        inherit type;
-      } // fetchInfo else fetchInfo;
+      args = if builtins.isAttrs fetchInfo then { inherit type; } // fetchInfo
+                                           else fetchInfo;
       # Select the right fetcher based on `type'.
     in builtins.traceVerbose "using ${type}Fetcher"
        ( lib.apply fetchers."${type}Fetcher" args );
