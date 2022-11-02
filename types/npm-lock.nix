@@ -82,7 +82,12 @@
   git_uri = restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" )
                            uri_ref;
 
-  tarball_uri = restrict "tarball" yt.Strings.tarball_url.check uri_ref;
+  tarball_uri = let
+    tarballUrlCond = yt.Strings.tarball_url.check;
+    # Basically the only registry that doesn't put the tarball in the URL...
+    githubPkgCond = lib.test "https://npm.pkg.github.com/download/.*";
+    cond = s: ( tarballUrlCond s ) || ( githubPkgCond s );
+  in restrict "tarball" cond uri_ref;
 
   # link, dir, tarball, git
   #   "resolved": "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c",
@@ -141,6 +146,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # NOTE: the `tarball_uri' checker sort of sucks and if you're here debugging
+  # that's probably what you're looking for.
   pkg_tarball_v3 = let
     condHash = x: ( x ? integrity ) || ( x ? sha1 );
     fconds   = pkg_any_fields_v3 // {

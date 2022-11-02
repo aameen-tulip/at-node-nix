@@ -192,17 +192,16 @@
   fetchTreeOrUrlDrv = {
     url       ? fetchInfo.resolved
   , resolved  ? null
-  , hash      ?
-    builtins.elemAt ( builtins.match "(sha(512|256|1)-)?(.*)" integrity ) 2
-  , integrity ? fetchInfo.shasum
-  , shasum    ? null
+  , hash      ? if integrity != null then integrity else ""
+  , integrity ? fetchInfo.narHash or fetchInfo.sha1 or fetchInfo.sha256 or
+                fetchInfo.sha512 or fetchInfo.md5 or null
+  , sha1      ? null
   , type      ? "file"
   , narHash   ? null
   , ...
   } @ fetchInfo: let
     ftLocked = ( fetchInfo ? narHash ) || lib.flocoConfig.enableImpureFetchers;
-    #preferFt = ( fetchInfo ? type ) && ftLocked;
-    preferFt = false;
+    preferFt = ( fetchInfo ? type ) && ftLocked;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
     # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
     ft = ( builtins.fetchTree { inherit url type; } ) // nh';
@@ -225,13 +224,13 @@
       innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
       signature = [yt.any yt.any];  # FIXME: return type
     };
-    __functionArgs  = {
+    __functionArgs = lib.libfetch.fetchurlDrvW.__functionArgs // {
       type       = true;
       url        = true;
       resolved   = true;
       integritry = true;
       sha1       = true;
-      narHash    = ! lib.inPureEvalMode;
+      narHash    = true;
     };
     __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
     __thunk = {};
@@ -239,7 +238,7 @@
       args = {
         type = "tarball";
         url  = x.url or x.resolved;
-      } // ( if x ? harHash then { inherit (x) narHash; } else {} );
+      } // ( if x ? narHash then { inherit (x) narHash; } else {} );
       args' = self.__thunk // args;
     in builtins.intersectAttrs self.__functionArgs args';
     __functor = self: x: flocoFTFunctor "tarball" self x;

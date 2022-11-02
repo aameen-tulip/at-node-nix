@@ -1,21 +1,14 @@
 
 # If `src' is already a derivation do nothing.
-# If `src' is not a derivation and is a tarball `unpackSafe'.
+# If `src' is not a derivation and is a packed archive/tarball `unpackSafe'.
 # If `src' is not a derivaiton and is some other form of source, copy out.
 #
-# FIXME: `mkDerivation' copies twice which isn't great, but it does provide
-# a million other useful helpers like hooks so we're using it.
-# Write an `unpackPhase' that avoids double copying AND still patches.
-# XXX: Use `pjsUtil'.
-#
-# FIXME: this can't tell from `builtins.fetchTree { type = "file"; ... }'
-# whether a path is a tarball or not because the store path is always `*-source'
-# `builtins.fetchurl' on the other hand does work.
-# You can probably handle this in `libfetch' more gracefully.
+# NOTE: If we aren't sure whether a `src' is archived or not, err on the side
+# of `stdenv.mkDerivation' - the unpack routine there will cover either case.
+# The only downside is that you waste time copying redundantly.
 
 { lib
 , stdenv
-, nodejs           # For `patchShebangs'.
 , unpackSafe
 
 , name             ? meta.name or src.name or src.meta.name or src
@@ -28,13 +21,17 @@
   drvAttrs = ( removeAttrs args ["lib" "stdenv" "unpackSafe"] ) // {
     inherit name src system allowSubstitutes;
   };
-  isTarball = let
-    srcName = src.name or src.meta.name or src.outPath or src;
-  in lib.test ".*\\.(tar.xz|tar.lzma|txz|tar.*|tgz|tbz2|tbz)" srcName;
-in if lib.isDerivation src then src else
-   if isTarball then unpackSafe drvAttrs else
-   stdenv.mkDerivation ( drvAttrs // {
+  needsUnpack = let
+    srcName = src.name or src.meta.name or ( toString src );
+    byName  = lib.test ".*\\.(tar.xz|tar.lzma|txz|tar.*|tgz|tbz2|tbz)" srcName;
+    byType  = ( src.type or src.fetchInfo.type or null ) == "file";
+  in byName || byType;
+in if needsUnpack then unpackSafe drvAttrs else
+   if lib.isDerivation src then src else stdenv.mkDerivation ( drvAttrs // {
      dontConfigure = true;
      dontBuild     = true;
-     installPhase  = "cp -pr --reflink=auto -- . \"$out\";";
+     installPhase  = ''
+       pjsAddMod . "$out";
+     '';
+     preferLocal = true;
    } )
