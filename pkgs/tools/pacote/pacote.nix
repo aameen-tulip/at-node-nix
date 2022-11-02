@@ -61,7 +61,7 @@
   }
 
 , metaSet    ? lib.metaSetFromSerial ( import ./meta.nix )
-, pacote-src ? flocoFileFetcher metaSet.${metaSet.__meta.rootKey}.sourceInfo
+, pacote-src ? flocoFileFetcher metaSet.${metaSet.__meta.rootKey}.fetchInfo
 , mkNmDir    ? mkNmDirCopyCmd
 
 , system
@@ -74,11 +74,7 @@
   tree    = args.tree or metaSet.__meta.trees.prod;
   version = args.version or metaSet.${metaSet.__meta.rootKey}.version;
 
-  prepPkg = {
-    fetchInfo  ? ent.sourceInfo
-  , sourceInfo ? null  # TODO: deprecate
-  , ...
-  } @ ent: let
+  prepPkg = { fetchInfo, ... } @ ent: let
     meta = ent.__serial or ent;  # Needed by `mkNmDirCmd' for `bin' entries.
     src = let
       fetched = flocoFileFetcher fetchInfo;

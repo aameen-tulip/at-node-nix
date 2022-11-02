@@ -88,6 +88,9 @@
       inherit enableImpureMeta enableImpureFetchers;
       # Define as a fixed point so changed propagate.
       fetchers = {
+        fileFetcher = if enableImpureFetchers
+                      then lib.libfetch.fetchurlUnpackDrvW
+                      else lib.libfetch.fetchurlNoteUnpackDrvW;
         tarballFetcher = if enableImpureFetchers
                          then lib.libfetch.fetchurlUnpackDrvW
                          else lib.libfetch.fetchurlNoteUnpackDrvW;

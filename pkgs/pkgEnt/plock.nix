@@ -52,8 +52,7 @@
 #   hasBuild = false;
 #   hasInstallScript = false;
 #   scoped = true;
-#   sourceInfo = {
-#     entSubtype = "registry-tarball";
+#   fetchInfo = {
 #     hash = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
 #     sha512 = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
 #     type = "tarball";
@@ -72,7 +71,7 @@
   , version
   , entFromtype
   , scoped
-  , sourceInfo  # { type, entSubtype, hash, sha512|sha1, url|path|git-shit }
+  , fetchInfo  # { type, hash, sha512|sha1, url|path|git-shit }
   , depInfo      ? {}  # Not referenced
   , flocoFetch
   , flocoUnpack
@@ -82,25 +81,23 @@
     assert metaEnt ? _type -> metaEnt._type == "metaEnt"; let
     common = {
       inherit key ident version;
-      source = flocoFetch sourceInfo;
+      source = flocoFetch fetchInfo;
       meta   = metaEnt.__entries or metaEnt;
     };
     # FIXME: use `names.tarball' if you can.
     forTbs = let
-      tbUrl    = flocoFetch ( sourceInfo // { type = "file"; } );
-      fetched  = flocoFetch sourceInfo;
+      tbUrl   = flocoFetch ( fetchInfo // { type = "file"; } );
+      fetched = flocoFetch fetchInfo;
       # FIXME: this is hideous.
       # Rewrite based on `pacote' fetcher.
-      unpacked =
-        if ( fetched.fetchInfo.type == "tarball" ) ||
-           ( ( sourceInfo.type or null ) == "tarball" ) ||
-           ( ( sourceInfo ? needsUnpack ) &&
-             ( sourceInfo.needsUnpack == false ) )
-        then fetched
-        else flocoUnpack { name = names.src; tarball = fetched; };
-    in lib.optionalAttrs ( builtins.elem sourceInfo.type ["tarball" "file"] ) {
+      needsUnpack =
+       ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "tarball" ) ||
+       ( ( fetchInfo ? needsUnpack ) && ( fetchInfo.needsUnpack == false ) );
+      unpacked = if ! needsUnpack then fetched else
+                 flocoUnpack { name = names.src; tarball = fetched; };
+    in lib.optionalAttrs ( builtins.elem fetchInfo.type ["tarball" "file"] ) {
       # This may or may not become the source.
-      tarball = if ( fetched.needsUnpack or false ) then fetched  else tbUrl;
+      tarball = if needsUnpack then fetched  else tbUrl;
       source  = unpacked;
     };
   in common // forTbs;
@@ -126,7 +123,7 @@
   , nmDirCmd
   # If we have a local path we're building, also run the `prepare' script.
   , runScripts ? ["prebuild" "build" "postbuild"] ++
-                 ( lib.optional ( meta.sourceInfo.type == "path" ) "prepare" )
+                 ( lib.optional ( meta.fetchInfo.type == "path" ) "prepare" )
   , evalScripts
   , jq
   , nodejs

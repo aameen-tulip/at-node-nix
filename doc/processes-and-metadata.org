@@ -19,7 +19,7 @@ With that in mind it's good to know exactly what information we /really/ need to
 
 * Process Prerequisites
 ** Fetch Source
-- Create =sourceInfo= member ( ideally from =plock= input )
+- Create =fetchInfo= member ( ideally from =plock= input )
 - Handle unpacking if necessary, depending on a user's =flocoConfig= this may mean performing a dry run of unpacking to see if anything fails.
   See =lib.libfetch.fetchurlNoteUnpackDrvW= for details.
   + Executing an unpack routine may be deferred to a later build, install, or prepare process - but it must be identified and marked immediately.
@@ -131,7 +131,7 @@ They exist to provide information used by =mkPkgEntSource= and =(build|install|t
     _type
     scoped           ( bool ; true if `ident' begins with the pattern "@[^/]+/" )
     names            ( attrs ; fields indicating the names a package should use for various derivations. Ex: `built = "foo-built-1.0.0";' )
-    sourceInfo       ( attrs ; information used by `flocoFetch' to fetch a package. )
+    fetchInfo       ( attrs ; information used by `flocoFetch' to fetch a package. )
     depInfo          ( attrs ; "normalized" dependency information created from `package.json' or equivalent data )
     hasBin           ( bool )
     hasBuild         ( bool )
@@ -142,7 +142,7 @@ They exist to provide information used by =mkPkgEntSource= and =(build|install|t
   }
 #+END_SRC
 
-For the fields =sourceInfo= and =depInfo= there are sections below which detail these records.
+For the fields =fetchInfo= and =depInfo= there are sections below which detail these records.
 
 NOTE: As this project is prepared for release it's likely that some of these fields may change.
 I expect that the values in =depInfo= will be modified, and some fields may become optional.
@@ -161,9 +161,9 @@ See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to d
     hasInstallScript = false;
     hasTest          = false;
     scoped           = true;
-    # This package's `sourceInfo' field is for a tarball.
+    # This package's `fetchInfo' field is for a tarball.
     # Other types of sources such as "path" or "git" have different fields.
-    sourceInfo = {
+    fetchInfo = {
       entSubtype = "registry-tarball";
       hash       = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
       sha512     = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
@@ -209,6 +209,6 @@ See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to d
 
 *** Example
 
-** =sourceInfo=
+** =fetchInfo=
 
 ** =depInfo=

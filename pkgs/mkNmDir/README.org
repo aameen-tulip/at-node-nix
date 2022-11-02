@@ -156,9 +156,9 @@ The =mkSourceTree= form produces a script as a string, the =mkSourceTreeDrv= for
   + Uses prepared modules defined in a `pkgSet' collection.
     These are referenced by key using `lib.idealTreePlockV3'.
 - ~mkNmDirPlockV3 { metaSet = ...; }~
-  + Fetches sources from `<metaEnt>.sourceInfo' fields. Nothing is "built" or patched.
+  + Fetches sources from `<metaEnt>.fetchInfo' fields. Nothing is "built" or patched.
 - ~mkNmDirPlockV3 { lockDir = ...; }~ and ~mkNmDirPlockV3 { plock = ...; flocoFetch = ...; }~
-  + Fetches sources from `<metaEnt>.sourceInfo' fields. Nothing is "built" or patched.
+  + Fetches sources from `<metaEnt>.fetchInfo' fields. Nothing is "built" or patched.
   + This option is ideal if you're trying to modify `package-lock.json' manually.
 
 *** Overview

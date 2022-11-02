@@ -77,9 +77,9 @@
   # order to read the `scripts' field.
   # FIXME: In impure mode actually go collect that info because `git' deps
   # often do have `scripts.build' routines.
-  # The routine that adds info from plock `sourceInfo' data already does this.
+  # The routine that adds info from plock `fetchInfo' data already does this.
   entHasBuild = ent: let
-    type = ent.sourceInfo.type or ( lib.libfetch.identifyPlentSourceType ent );
+    type = ent.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType ent );
     fromPjs = if ent ? entries.pjs
               then hasBuildFromScripts ent.entries.pjs.scripts
               else null;
@@ -130,7 +130,7 @@
   , version     ? baseNameOf key
   , scoped      ? lib.test "@[^@/]+/[^@/]+" ident
   , entFromtype ? "raw"
-  , sourceInfo
+  , fetchInfo
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
   , bin              ? {}
@@ -234,7 +234,7 @@
       entries.pjs = pjs // ( lib.optionalAttrs ( type == "path" ) {
         inherit pjsDir;
       } );
-    } // ( lib.optionalAttrs ( type == "path" ) { sourceInfo.path = pjsDir; } );
+    } // ( lib.optionalAttrs ( type == "path" ) { fetchInfo.path = pjsDir; } );
     isRemoteSrc = type != "path";
     isTb        = builtins.elem type ["file" "tarball"];
     # FIXME: fetching from the registry manifest makes WAY more sense.
@@ -244,8 +244,8 @@
     haveTree = ( type == "path" ) || canFetch;
     type =
       if builtins.isString x then x else
-      x.sourceInfo.type or ( lib.libfetch.identifyPlentSourceType plent );
-    core.sourceInfo = { inherit type; };
+      x.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType plent );
+    core.fetchInfo = { inherit type; };
     conds = let
       mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
     in builtins.foldl' mergeCond core [
@@ -253,7 +253,7 @@
       { c = haveTree && tryPjs; v = fromPjs;                       }
       {
         c = type != "path";
-        v.sourceInfo.url =
+        v.fetchInfo.url =
           if ! ( plent ? resolved ) then throw "missing resolved: ${lib.generators.toPretty {} plent} ${type} ${lib.generators.toPretty {} plent}" else
           plent.resolved;
       }
@@ -262,13 +262,13 @@
         v.gypfile = builtins.pathExists "${pjsDir}/binding.gyp";
       }
       # This is NOT redundant alongside the `plockEntryHashAttrs' call.
-      { c = plent ? integrity;  v.sourceInfo.hash = plent.integrity; }
-      { c = type == "path";     v.sourceInfo.path = pjsDir; }
+      { c = plent ? integrity;  v.fetchInfo.hash = plent.integrity; }
+      { c = type == "path";     v.fetchInfo.path = pjsDir; }
     ];
     forAttrs = builtins.foldl' lib.recursiveUpdate core [
       conds
       # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
-      { sourceInfo = lib.libfetch.plockEntryHashAttr plent; }
+      { fetchInfo = lib.libfetch.plockEntryHashAttr plent; }
     ];
     ec = builtins.addErrorContext "metaEntFromPlockSubtype";
   in if builtins.isString x then core else ec forAttrs;
@@ -358,7 +358,7 @@
       # handled by `metaEntFromPlockV3', and remaining fields are stashed in
       # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
       # to `metaEntMergeFromPlockSubtype' for further processing.
-      # The `*PlockSubtype' routine creates `sourceInfo', and will also process
+      # The `*PlockSubtype' routine creates `fetchInfo', and will also process
       # `entries.pjs' if it is provided ( or for local paths in the lock )
       # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
       # find the `package.json' on its own; you only need to inject it if you
@@ -431,7 +431,7 @@
   # For tarballs we know there's no build, but aside from that we don't
   # make assumptions here.
   metaEntIsSimple = {
-    hasBuild         ? ( attrs.sourceInfo.type or null ) != "tarball"
+    hasBuild         ? ( attrs.fetchInfo.type or null ) != "tarball"
   , hasInstallScript ? false
   , hasPrepare       ? false
   , hasBin           ? false

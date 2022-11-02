@@ -106,7 +106,7 @@ cleanup() {
       echo "Keeping generated tree at:";
       echo "$dir";
     } >&2;
-    mv -f "$srcInfo" "$dir/sourceInfo.json";
+    mv -f "$srcInfo" "$dir/fetchInfo.json";
   else
     popd >/dev/null;
     rm -rf "$dir" "$srcInfo";
@@ -116,7 +116,7 @@ cleanup() {
 
 # ---------------------------------------------------------------------------- #
 
-# We stash the output of `pacote' which contains `sourceInfo' fields.
+# We stash the output of `pacote' which contains `fetchInfo' fields.
 $PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null|$JQ -c > "$srcInfo"||
   $PACOTE extract "$DESCRIPTOR" . --json;
 
@@ -161,7 +161,7 @@ jq_fail_dump_data() {
 # Unless `--dev' is provided, we drop the `devDependencies' field since we
 # really only care about the install deps.
 # This isn't required; but it cuts out superfulous metadata.
-# Additionally we add our `sourceInfo' metadata provided by `pacote' since the
+# Additionally we add our `fetchInfo' metadata provided by `pacote' since the
 # lockfile will treat it as a regular filepath otherwise ( `/tmp/XXX' ).
 $JQ                                          \
   --argjson gypfile "$_HAS_GYPFILE"          \

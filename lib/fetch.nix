@@ -335,6 +335,11 @@
            plockEntryToGenericGitArgs x;
   in lib.canPassStrict self ( ( self.__thunk or {} ) // args );
 
+
+# ---------------------------------------------------------------------------- #
+
+  # Fixup return value from `builtins.fetchTree' to align with `floco*Fetch'
+  # interfaces ( `{ fetchInfo, sourceInfo, outPath, type, passthru, meta }' ).
   flocoProcessFTResult = type: fetchInfo: sourceInfo:
     assert fetchInfo ? type -> type == fetchInfo.type;
     {
@@ -342,6 +347,7 @@
       inherit (sourceInfo) outPath;
     };
 
+  # Generic `builtins.fetchTree' functor for `floco*Fetcher'.
   flocoFTFunctor = type: self: x: let
     fetchInfo  = self.__processArgs self x;
     sourceInfo = self.__innerFunction fetchInfo;
@@ -389,25 +395,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  builtinsPathArgs = {
-    name   = yt.FS.Strings.filename;
-    path   = yt.FS.abspath;
-    filter = yt.function;
-  };
-
-  genericPathArgs = {
-    inherit (builtinsPathArgs) name path filter;
-    type  = yt.enum ["path"];
-    flake = yt.bool;
-    url   = yt.FlakeRef.Strings.path_ref;
-    # I made these up
-    basedir = yt.FS.abspath;
-    relpath = yt.NpmLock.relative_file_uri;  # FIXME: move this type
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   # In impure mode we can use `builtins.fetchTree' which is backed by sha256, or
   # we can use it if `narHash' is given.
   # In impure mode we will use `fetchTree'.
@@ -437,29 +424,46 @@
 
 
   flocoTarballFetcher = {
-
     __functionMeta = {
       name = "flocoTarballFetcher";
       from = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
       signature = [yt.any yt.any];  # FIXME: return type
     };
-
-    __functionArgs = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
-
+    __functionArgs  = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
     __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
-
-    __functor = self: args: let
-      sourceInfo = self.__innerFunction args;
-    in {
-      type = args.type or "file";
-      fetchInfo = args;
-      inherit sourceInfo;
-      inherit (sourceInfo) outPath;
-    };
-
+    __thunk = {};
+    __processArgs = self: x: let
+      args = {
+        type = "tarball";
+        url  = x.url or x.resolved;
+        hash = x.hash or x.integrity or x.shasum or "";
+      } // ( if x ? harHash then { inherit (x) narHash; } else {} );
+      args' = self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+    __functor = self: x: flocoFTFunctor "tarball" self x;
   };
 
+  flocoFileFetcher = {
+    __functionMeta = {
+      name = "flocoFileFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
+      signature = [yt.any yt.any];  # FIXME: return type
+    };
+    __functionArgs  = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
+    __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
+    __thunk = {};
+    __processArgs = self: x: let
+      args = {
+        type = "file";
+        url  = x.url or x.resolved;
+        hash = x.hash or x.integrity or x.shasum or null;
+      } // ( if x ? harHash then { inherit (x) narHash; } else {} );
+      args' = self.__thunk // args;
+    in builtins.intersectAttrs self.__functionArgs args';
+    __functor = self: x: flocoFTFunctor "file" self x;
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -475,7 +479,7 @@
   # in your config.
   fetchurlDrvMaybeUnpackAfterW = {
     #__functionArgs = hashFields // { name = true; url = false; };
-    __functionArgs = ( lib.functionArgs lib.fetchurlDrv ) // {
+    __functionArgs = ( lib.functionArgs lib.libfetch.fetchurlDrv ) // {
       unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
     };
 
@@ -485,7 +489,7 @@
       allowSubstitutes = true;
     };
 
-    __innerFunction = lib.fetchurlDrv;
+    __innerFunction = lib.libfetch.fetchurlDrv;
 
     __processArgs = self: x: let
       args  = x // {
@@ -771,10 +775,7 @@
               x.entries.plock or null;
       # Effectively these are our args.
       fetchInfo = let
-        # Handle any legacy usage of `sourceInfo'.
-        # TODO: drop support for this.
-        fallback = if x ? sourceInfo.type then x.sourceInfo else
-                   if plent == null then x else plent;
+        fallback = if plent == null then x else plent;
       in x.fetchInfo or fallback;
       # Determine the `flocoSourceType'.
       type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
@@ -807,7 +808,7 @@ in {
     flocoGitFetcher
 
     fetchTreeOrUrlDrv
-    flocoTarballFetcher
+    flocoTarballFetcher flocoFileFetcher
 
     fetchTreePathW
     fetchTreeW
