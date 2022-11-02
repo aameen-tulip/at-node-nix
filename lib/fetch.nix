@@ -120,41 +120,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Tarball Fetcher Argsets.
-
-  nixpkgsFetchurlArgs = {
-    name          = true;   # defaults to url basename
-    url           = false;  # real one is optional but only with `urls = [...]'
-    executable    = true;
-    recursiveHash = true;   # for a single file choose "false"
-    # One of the following
-    sha1          = true;
-    sha256        = true;
-    sha512        = true;
-    hash          = true;
-    md5           = true;
-    # ...
-  };
-
-  nixpkgsFetchzipArgs      = { url = false; sha256 = false; };
-  builtinsFetchTarballArgs = { url = false; sha256 = false; };
-  # XXX: accepts as a string not an attrset.
-  builtinsFetchurlArgs = { url = false; };
-
-  # This super-set can support any tarball/file fetcher.
-  genericTarballArgs = {
-    name  = yt.FS.Strings.filename;
-    type  = yt.enum ["file" "tarball"];
-    url   = yt.Uri.Strings.uri_ref;
-    flake = yt.option yt.bool;
-    inherit (yt.Hash.Sums) hash;
-    unpack     = yt.option yt.bool;
-    executable = yt.option yt.bool;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   # NOTE: the fetcher for `git' entries need to distinguish between `git',
   # `github', and `sourcehut' when processing these args.
   # They should not try to interpret the `builtins.fetchTree' type using
@@ -476,58 +441,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: don't wrap output here do that in `flocoFetch*'.
-  fetchTreeW = {
-    __functionArgs = {
-      # Common
-      type    = false;
-      narHash = true;
-      # `file'/`tarball'/`git' mode
-      url = true;
-      # `git'/`github' mode
-      rev = true;
-      ref = true;
-      # `git' mode
-      allRefs    = true;
-      shortRev   = true;
-      shallow    = true;
-      submodules = true;
-      # `github' mode
-      owner = true;
-      repo  = true;
-      # `path' mode
-      path = true;
-    };
-
-    # Copy the thunk from other fetchers.
-    inherit (fetchGitW) __thunk;
-
-    __innerFunction = builtins.fetchTree;
-
-    __processArgs = self: { type, ... } @ args: let
-      # Reform `__functionArgs' to reflect given type.
-      fa = if builtins.elem type ["tarball" "file"] then {
-        url = false;
-        # FIXME: only network URLs need `narHash'.
-        #narHash = lib.flocoConfig.enableImpureFetchers;
-      } else throw "Unrecognized `fetchTree' type: ${type}";
-      fc = { type = false; narHash = true; };
-      # Force `type' to appear, and inject the thunk from ``
-      args' = args // { inherit type; };
-    in builtins.intersectAttrs ( fa // fc ) args';
-
-    __functor = self: { type, ... } @ args: let
-      fetchInfo  = self.__processArgs self args;
-      sourceInfo = self.__innerFunction fetchInfo;
-    in if type == "path"   then fetchTreePathW args else
-       if type == "github" then fetchTreeGithubW args else
-       if type == "git"    then fetchTreeGitW args else
-       { inherit fetchInfo sourceInfo type; inherit (sourceInfo) outPath; };
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   # A wrapper for your wrapper.
   # This pulls fetchers from your `flocoConfig', and routes inputs to the
   # proper fetcher.
@@ -604,18 +517,19 @@ in {
     identifyPlentSourceType
     plockEntryHashAttr
 
-    # Git stuff
     plockEntryToGenericGitArgs
+
     flocoGitFetcher
-
-    fetchTreeOrUrlDrv
-    flocoTarballFetcher flocoFileFetcher
-
-    fetchTreeW
-
+    flocoTarballFetcher
+    flocoFileFetcher
     flocoPathFetcher
 
-    fetchurlDrvMaybeUnpackAfterW fetchurlUnpackDrvW fetchurlNoteUnpackDrvW
+    fetchTreeOrUrlDrv
+
+    fetchurlDrvMaybeUnpackAfterW
+    fetchurlUnpackDrvW
+    fetchurlNoteUnpackDrvW
+
     mkFlocoFetcher
   ;
 }
