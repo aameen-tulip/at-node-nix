@@ -259,20 +259,26 @@
       signature = [yt.any yt.any];  # FIXME: return type
     };
     __functionArgs =
-      ( lib.functionArgs flocoFileFetcher.__innerFunction ) // {
-        integrity = true;
-        hash      = true;
-        sha1      = true;
-        resolved  = true;
-      };
+      ( lib.functionArgs flocoFileFetcher.__innerFunction ) //
+      ( lib.optionalAttrs ( ! lib.flocoConfig.enableImpureFetchers ) {
+          integrity = true;
+          hash      = true;
+          sha1      = true;
+          resolved  = true;
+        } );
+    # FIXME: write a real `fetchTreeFileW'
     __innerFunction =
       if lib.flocoConfig.enableImpureFetchers
-      then { url, type, narHash ? null } @ fetchInfo: let
-        sourceInfo = builtins.fetchTree fetchInfo;
+      then { url, type, narHash ? null, ... } @ args: let
+        fetchInfo  = builtins.intersectAttrs {
+          url = false; type = false; narHash = true;
+        } args;
+        sourceInfo = builtins.fetchTree args;
       in {
         type = "file";
+        fetchInfo = fetchInfo // { inherit (sourceInfo) narHash; };
+        inherit sourceInfo;
         inherit (sourceInfo) outPath;
-        inherit fetchInfo sourceInfo;
       } else lib.libfetch.fetchurlDrvW;
     __thunk = {};
     __processArgs = self: x: let
@@ -285,7 +291,9 @@
         if args.hash != null then args else removeAttrs args ["hash"]
       );
     in builtins.intersectAttrs self.__functionArgs args';
-    __functor = self: x: flocoFTFunctor "file" self x;
+    __functor = self: x: let
+      rsl = flocoFTFunctor "file" self x;
+    in if rsl ? sourceInfo.sourceInfo then rsl.sourceInfo else rsl;
   };
 
 
