@@ -61,11 +61,11 @@
 
     testPjsUtil = let
       checkPjsUtil = import ./pjs-util.nix {
-        inherit (pkgsFor) stdenv pjsUtil jq;
+        inherit (pkgsFor) stdenv pjsUtil jq nodejs;
       };
       log   = builtins.readFile "${checkPjsUtil}";
       lines = builtins.filter builtins.isString ( builtins.split "\n" log );
-      passp = l: ( ( builtins.match "PASS: .*" l ) != null ) || ( l == "" );
+      passp = l: ( builtins.match "FAIL:.*" l ) == null;
       dumpLog  = builtins.traceVerbose "\n${log}";
       otherSys = checkPjsUtil ? outPath;
       sameSys  = dumpLog ( builtins.all passp lines );

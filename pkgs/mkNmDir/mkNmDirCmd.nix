@@ -306,7 +306,7 @@
         for bd in $( printf '%s\n' "''${_NM_FIXUP_BIN_DIRS[@]}"|sort -u; ); do
           for s in $( readlink -f "$bd/"*; ); do
             chmod 0755 "$s";
-            ''${PATCH_SHEBANGS:-patchShebangs} "$s";
+            ''${PATCH_NODE_SHEBANGS:-pjsPatchNodeShebangsForce} "$s";
           done
         done
       }
@@ -318,6 +318,10 @@
   # is essential ( possibly useful in overrides ).
   in {
     cmd = ''
+      source ${builtins.path {
+        path      = ../build-support/setup-hooks/pjs-util.sh;
+        recursive = false;
+      }}
       ${preHookDef}
       ${postHookDef}
       ${addBinsDef}
@@ -326,12 +330,26 @@
         ${addMods}
       }
       installNodeModules() {
+        local pdir;
         # Set `node_modules/' install path if unset.
         # The user can still override this in `preNmDir'.
-        if test -n "''${sourceRoot:-}"; then
-          : "''${node_modules_path:=$NIX_BUILD_TOP/$sourceRoot/node_modules}";
-        else
-          : "''${node_modules_path:=$PWD/node_modules}";
+        if test "$#" -gt 0; then
+          node_modules_path="$1";
+          shift;
+        fi
+        if test -z "''${node_modules_path:-}"; then
+          if test -r ./package.json; then
+            pdir="$PWD";
+          elif test -n "''${sourceRoot+y}" &&                 \
+              test -r "$PWD/$sourceRoot/package.json"; then
+            pdir="$PWD/$sourceRoot";
+          else
+            printf '%s'                                                       \
+              "Could not locate a package.json, and no 'node_modules_path' "  \
+              "var was set.\nFalling back to installation in PWD." >&2;
+            pdir="$PWD";
+          fi
+          node_modules_path="$pdir/node_modules";
         fi
         eval "''${preNmDirHook:-:}";
         echo "Installing Node Modules to '$node_modules_path'" >&2;

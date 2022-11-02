@@ -24,7 +24,83 @@ The purpose of this flake is to provide you with useful utilities for building
 Node.js+Nix projects in whatever context or toolkit you choose.
 While the =pkgSet= interfaces use pure Nix+Bash builders, you should view =pkgSet= and =metaSet= as abstractions which may be used with any setup - you just need to provide the bindings/implementations for their prototypes.
 
-During alpha phase this project was named =at-node-nix=. The released tool will be named "Floco". 
+During alpha phase this project was named =at-node-nix=. The released tool will be named "Floco".
+
+* Getting Started
+The best place to get started is going to be with the templates provided by the top level flake.
+The template =simple= is best for a trivial project, and doesn't try to magically convert any lock-files or other metadata.
+The default =project= template is intended for working on a =package-lock.json(v2/3)= project.
+
+#+BEGIN_SRC sh
+mkdir -p foo;
+cd foo;
+nix flake init --template github:aameen-tulip/at-node-nix;
+git init;
+git add *;
+
+# Run a build of the dummy project
+nix build -L;
+
+# Run tests on the dummy project
+nix build .#test -L --no-link;
+
+# Add a new dependency:
+NPM_CONFIG_LOCKFILE_VERSION=3  \
+npm i --ignore-scripts --package-lock-only foo --save-dev;
+
+# Modify and rebuild
+jq '.scripts.build|="foo --version|tee foo.log"' ./package.json > package.json~;
+mv ./package.json~ ./package.json;
+nix build -L;
+
+# generate a cache to help skip some dynamic lock processing.
+nix run .#regen-cache -- --dev --json > meta.json;
+git add meta.json;
+nix build -L;
+
+# see metadata for my package.
+nix eval --impure --json '.#metaSet."my-project/1.0.0".__serial'|jq;
+
+# See `node_modules/' setup script.
+nix eval --impure --raw .#pacakge.nmDirCmd;
+
+# See floco packaging metadata
+nix eval --json .#metaSet.__serial|jq;
+#+END_SRC
+
+** Examples
+Learning is best taken a piece at a time.
+There's a lot this framework can do, but you'll only grab a
+few modules for any given project so you can pick things up as you go.
+It might be hard to know where to start, so aside from the example above
+I recommend the templates, tests, and some real builders.
+
+Personally I think a good jumping off point is reading
+how we bootstrap [[./pkgs/tools/pacote/pacote.nix][pacote]]
+( click the link ), since it doesn't involve any overlays or
+package metadata collection.
+It's a barebones build with a lot of documentation, but it's
+still a lot to digest.
+
+There's no expectation that you'll absorb that yet, but it can help you
+write a first project using [[./templates/trivial-project][simple template]]
+since it's a self contained definition built on top of that template.
+I imagine you'll copy chunks from there until you are ready to explore more
+and replace it.
+
+Take a look at a trivial =node-gyp= build that manually creates
+a =node_modules/= tree as a way to get your feet wet:
+[[./tests/build-support/msgpack.nix][msgpack]].
+This looks very similar to the trivial template and is a good
+place to start playing with =buildGyp= and compare it to =evalScripts=. 
+
+There's similar simple projects out on the
+[[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
+repo especially under the ~pkgs/BINS/*~ directory.
+
+Past that read the =README.org= files under ~pkgs/~, and then
+explore the test suite examples and more of
+[[https://github.com/aakropotkin/flocoPackages][flocoPackages]]. 
 
 * Interfaces and Tools
 
@@ -33,24 +109,31 @@ A script that generates a static =metaSet= file from an Node.js package descript
 This metadata can be read from a file using =lib.libmeta.metaSetFromSerial= and used to generate builders ( or whatever else you care to use it for ).
 This is ideal for published modules whose =package.json= and =package-lock.json= file does not change.
 
-Personally I use it to write standalone builders for packages with =install= scripts, and in some cases I'll use it to generate and package modules with CLI tools or other standalone executables.
+Personally I use it to write standalone builders for packages with =install= scripts, and in some cases I'll use it to generate and package modules with CLI
+tools or other standalone executables.
 
 This has been exposed as a flake output as an "app", so ~nix run at-node-nix#genMeta -- @foo/bar@1.0.0;~ will allow you run this script from anywhere.
 
 For example, when developing a project you may run into registry tarballs who have install scripts or =node-gyp= builds with large dependency graphs.
-While =buildGyp= can generally build these modules without any dependencies in its working directory, you'll definitely encounter cases where you need to provide some =dependencies= members for a build to succeed.
-In such a case, you can use ~genMeta @foo/bar@4.2.0 > foo-bar-4.2.0-meta.nix;~ to provide the minimal =metaSet= required to run that install routine with a builder such as =mkPkgEntSource= and =installPkgEnt= along with =mkNmDirCmd*=.
+While =buildGyp= can generally build these modules without any dependencies in its working directory, you'll definitely encounter cases where you need to
+provide some =dependencies= members for a build to succeed.
+In such a case, you can use ~genMeta @foo/bar@4.2.0 > foo-bar-4.2.0-meta.nix;~ to provide the minimal
+=metaSet= required to run that install routine with a builder such as =mkPkgEntSource= and =installPkgEnt= along with =mkNmDirCmd*=.
 
 See ~nix run at-node-nix#genMeta -- --help~ for more info.
 
 *** TODO: allow =flocoConfig= to be passed to =genMeta=
-There is not currently a simple avenue for users to pass in a custom =flocoConfig=, but if you need to immediately read the ~<at-node-nix>/bin/genMeta.sh~ and you'll see that it's pretty trivial to do so if you invoke ~nix eval ...;~ manually.
+There is not currently a simple avenue for users to pass in a custom =flocoConfig=,
+but if you need to immediately read the ~<at-node-nix>/bin/genMeta.sh~ and you'll see
+that it's pretty trivial to do so if you invoke ~nix eval ...;~ manually.
 
 ** =ExtInfo=
-A "class-like" attrset made to be extensible into various forms of meta-data entries and collections; these are truly /functors/, meaning they are abstract data type that can act either as "records" or functions with self-reference ( so... basically but not technically a "classy thing" ).
+A "class-like" attrset made to be extensible into various forms of meta-data entries and collections;
+these are truly /functors/, meaning they are abstract data type that can act either as "records" or functions with self-reference ( so... basically but not technically a "classy thing" ).
 
 At bottom this is a good old fashioned recursive attrset, with a few functors that take =self= as an arg.
-It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do; but rolled into a single object with complementary usage.
+It's designed to be extended into whatever you might normally use =makeScope=, =lib.extends=, =lib.fix=, or similar ~lib/customization.nix~ and ~lib/fixed-points.nix~ routines to do;
+but rolled into a single object with complementary usage.
 
 This is the base that =meta(Ent|Set)= and several other constructs are built on.
 Note that while older routines used =extInfo= for =pkg(Ent|Set)= that usage was deprecated in favor of standard Nixpkgs patterns for easier interop. 
@@ -64,7 +147,8 @@ The most notable base routines are =__serial= and =__extend=.
 
 ** =metaEnt= and =metaSet=.
 Used to aggregate various types of package metadata into a common collection.
-The purpose of this attrset is to convert =package.json=, =package-lock.json=, =manifest.json=, =blub.json=, or whatever other metadata you've got into a uniform attrs that can later be transformed into derivations or otherwise processed by this code-base's utilities.
+The purpose of this attrset is to convert =package.json=, =package-lock.json=, =manifest.json=, =blub.json=, or whatever other
+metadata you've got into a uniform attrs that can later be transformed into derivations or otherwise processed by this code-base's utilities.
 - =metaEntFrom*=: These routines convert metadata focused on a single module/package into =metaEnt=.
   + =metaEntFromPjs=: Converts =package.json= data to =metaEnt=. TODO
   + =metaEntFromPlockV1=: Converts a single entry from =package-lock.json(v1/2)= to =metaEnt=.
@@ -100,12 +184,19 @@ For example to symlink unpacked sources from a =package-lock.json(v2/3)= into th
 These tarballs will be cached by Nix for reuse.
 
 ** =lib= Output
-The =lib= output contains routines which are not system dependendant and these never reference derivations, so you can freely access them "purely" even when =system= is unknown.
-In some cases these routines may bottom out into routines which accent derivations or =system= as args so that they can provide common interfaces for various routines ( =libfetch= for example ); but the expressions themselves are not system dependant.
+The =lib= output contains routines which are not system dependendant and these never reference derivations,
+so you can freely access them "purely" even when =system= is unknown.
+
+In some cases these routines may bottom out into routines which accept derivations or
+=system= as args so that they can provide common interfaces for various routines ( =libfetch= for example );
+but the expressions themselves are not system dependant.
 
 ** Hidden Gems and Miscellaneous Expressions
-Beyond that the =lib= and several ~pkgs/~ builders were designed for general-purpose use, or use with NPM and Yarn rather than =pkgSet= or =metaSet=, while I may not focus too much on documenting those expressions.
-I do advise readers to take a look at them, because they may save you a lot of pain and suffering if you were to try and implement similar routines from scratch.
+Beyond that the =lib= and several ~pkgs/~ builders were designed for general-purpose use, or use with NPM and
+Yarn rather than =pkgSet= or =metaSet=, while I may not focus too much on documenting those expressions.
+
+I do advise readers to take a look at them, because they may save you a lot of pain and suffering if you were to
+try and implement similar routines from scratch.
 
 * Footnotes
 [fn:ADT] https://www.cs.utexas.edu/~wcook/Drafts/2009/essay.pdf

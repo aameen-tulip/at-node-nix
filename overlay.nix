@@ -2,7 +2,8 @@
 #
 # Nixpkgs overlay.
 #
-# Depends on `rime.lib' which is an extension of `ak-nix' and `nixpkgs' libs.
+# Depends on `laika.lib' which is an extension of
+# `rime', `ak-nix', and `nixpkgs' libs.
 #
 #
 # ---------------------------------------------------------------------------- #
@@ -11,17 +12,90 @@ final: prev: let
 
 # ---------------------------------------------------------------------------- #
 
+  # Only these attrs are available for auto-calling.
+  # This helps eliminate accidental arg passing for things like `tree'.
+  flocoEnv = {
+    inherit (final)
+      config  # Nixpkgs config
+      stdenv
+      bash
+      coreutils
+      findutils
+      gnused
+      gnugrep
+      jq
+      xcbuild
+      writeTextFile
+      writeText
+      nix-gitignore
+      makeSetupHook
+      runCommandNoCC
+      gnutar
+      makeWrapper
+      nix
+      linkFarm
+      xorg
+
+      untarSanPerms
+      copyOut
+
+      lib
+      flocoConfig
+      pacote
+      system
+      npmSys
+
+      snapDerivation
+      unpackSafe
+      evalScripts
+      buildGyp
+      genericInstall
+      patch-shebangs
+      genSetBinPermissionsHook
+      coerceDrv
+
+      flocoFetch
+      flocoUnpack
+
+      mkNmDir
+
+      mkSourceTreeDrv
+      mkPkgEntSource
+      buildPkgEnt
+      installPkgEnt
+      testPkgEnt
+
+      _mkNmDirCopyCmd
+      _mkNmDirLinkCmd
+      _mkNmDirAddBinWithDirCmd
+      _mkNmDirAddBinNoDirsCmd
+      _mkNmDirAddBinCmd
+      mkNmDirCmdWith
+      mkNmDirCopyCmd
+      mkNmDirLinkCmd
+
+      mkNmDirPlockV3
+      mkNmDirSetupHook
+
+      pjsUtil
+      patchNodePackageHook
+      installGlobalNodeModuleHook
+
+      nodejs-14_x
+    ;
+
+    inherit (prev.xorg) lndir;
+    inherit (flocoEnv.nodejs) python;
+    inherit (flocoEnv.nodejs.pkgs) node-gyp npm yarn;
+    nodejs = prev.nodejs-14_x;
+
+  };
+
   # FIXME: this obfuscates the real dependency scope.
-  callPackageWith  = auto: prev.lib.callPackageWith ( final // {
-    inherit (final.lib) flocoConfig;
-    nodejs = prev.nodejs-14_x;
-  } // auto );
-  callPackagesWith = auto: prev.lib.callPackagesWith ( final // {
-    inherit (final.lib) flocoConfig;
-    nodejs = prev.nodejs-14_x;
-  } // auto );
-  callPackage  = callPackageWith {};
-  callPackages = callPackagesWith {};
+  callPackageWith  = auto: prev.lib.callPackageWith ( flocoEnv // auto );
+  callPackagesWith = auto: prev.lib.callPackagesWith ( flocoEnv // auto );
+  callPackage      = callPackageWith {};
+  callPackages     = callPackagesWith {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -36,6 +110,7 @@ in {
   lib = let
     unconfigured = prev.lib.extend ( import ./lib/overlay.lib.nix );
   in unconfigured.extend ( libFinal: libPrev: {
+
     flocoConfig = libPrev.mkFlocoConfig {
       # Most likely this will get populated by `stdenv'
       npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
@@ -46,9 +121,11 @@ in {
         ( builtins.currentSystem or null ) != final.system;
       enableImpureFetchers = false;
     };
+
   } );
 
   inherit (final.lib.flocoConfig) npmSys;
+  inherit (final.lib) flocoConfig;
 
 
 # ---------------------------------------------------------------------------- #
@@ -60,7 +137,7 @@ in {
 
   evalScripts = callPackage ./pkgs/build-support/evalScripts.nix;
 
-  buildGyp    = callPackageWith {
+  buildGyp = callPackageWith {
     python = prev.python3;
   } ./pkgs/build-support/buildGyp.nix;
 
@@ -102,6 +179,7 @@ in {
       flocoUnpack flocoConfig flocoFetch
     ;
   } ./pkgs/mkNmDir/mkSourceTree.nix;
+
   # { mkNmDir*, tree ( from `mkSourceTree' ) }
   mkSourceTreeDrv = prev.lib.callPackageWith {
     inherit (final)
@@ -135,9 +213,15 @@ in {
     mkNmDirCopyCmd
     mkNmDirLinkCmd
   ;
+
   mkNmDirPlockV3 = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
-  pjsUtil = callPackage ./pkgs/build-support/setup-hooks/pjs-util.nix {};
   mkNmDirSetupHook = callPackage ./pkgs/mkNmDir/mkNmDirSetupHook.nix;
+
+  inherit (callPackages ./pkgs/build-support/setup-hooks {})
+    pjsUtil
+    patchNodePackageHook
+    installGlobalNodeModuleHook
+  ;
 
   # NOTE: this package accepts `flakeRef' as an argument which should be set to
   # `self.sourceInfo.outPath' when exposed by the top level flake.

@@ -89,14 +89,19 @@
     forTbs = let
       tbUrl    = flocoFetch ( sourceInfo // { type = "file"; } );
       fetched  = flocoFetch sourceInfo;
-      unpacked = assert ( fetched.needsUnpack or false ); flocoUnpack {
-        name    = names.src;
-        tarball = fetched;
-      };
-    in lib.optionalAttrs ( sourceInfo.type == "tarball" ) {
+      # FIXME: this is hideous.
+      # Rewrite based on `pacote' fetcher.
+      unpacked =
+        if ( fetched.fetchInfo.type == "tarball" ) ||
+           ( ( sourceInfo.type or null ) == "tarball" ) ||
+           ( ( sourceInfo ? needsUnpack ) &&
+             ( sourceInfo.needsUnpack == false ) )
+        then fetched
+        else flocoUnpack { name = names.src; tarball = fetched; };
+    in lib.optionalAttrs ( builtins.elem sourceInfo.type ["tarball" "file"] ) {
       # This may or may not become the source.
       tarball = if ( fetched.needsUnpack or false ) then fetched  else tbUrl;
-      source  = if ( fetched.needsUnpack or false ) then unpacked else fetched;
+      source  = unpacked;
     };
   in common // forTbs;
 

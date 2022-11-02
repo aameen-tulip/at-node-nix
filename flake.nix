@@ -34,14 +34,10 @@
   inputs.ak-nix.url = "github:aakropotkin/ak-nix/main";
   inputs.ak-nix.inputs.nixpkgs.follows = "/nixpkgs";
 
-  # NPM fetcher and archiver.
-  inputs.pacote-src.url   = "github:npm/pacote/v13.3.0";
-  inputs.pacote-src.flake = false;
-
-  # URI, URL, and Flake Ref helpers.
-  inputs.rime.url = "github:aakropotkin/rime/main";
-  inputs.rime.inputs.ak-nix.follows  = "/ak-nix";
+  # URI helpers
+  inputs.rime.url = "github:aakropotkin/rime";
   inputs.rime.inputs.nixpkgs.follows = "/nixpkgs";
+  inputs.rime.inputs.ak-nix.follows  = "/ak-nix";
 
   # Fetchers and Filesystem helpers.
   inputs.laika.url = "github:aakropotkin/laika/main";
@@ -51,7 +47,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  outputs = { self, nixpkgs, ak-nix, pacote-src, rime, laika }: let
+  outputs = { self, nixpkgs, ak-nix, rime, laika }: let
 
 # ---------------------------------------------------------------------------- #
 
@@ -85,27 +81,26 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackage  = prev.lib.callPackageWith ( final // {
+      callPackageWith  = auto: nixpkgs.lib.callPackageWith ( final // {
         nodejs = prev.nodejs-14_x;
-      } );
-      callPackages = prev.lib.callPackagesWith ( final // {
+      } // auto );
+      callPackagesWith = auto: nixpkgs.lib.callPackagesWith ( final // {
         nodejs = prev.nodejs-14_x;
-      } );
-      nodeEnv =
-        callPackage ./pkgs/development/node-packages/pacote/node-env.nix {
-          libtool =
-            if final.stdenv.isDarwin then final.darwin.cctools else null;
-        };
-      pacotePkgs =
-        callPackage ./pkgs/development/node-packages/pacote/node-packages.nix {
-          inherit nodeEnv;
-          src = pacote-src;
-        };
+      } // auto );
+      callPackage  = callPackageWith {};
+      callPackages = callPackagesWith {};
+      pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {
+        mkNmDir = final.mkNmDirCopyCmd;
+      };
+      pacoteUtil   = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
     in {
-      pacote = pacotePkgs.package;
-      inherit (callPackages ./pkgs/tools/floco/pacote.nix {})
-        pacotecli pacote-manifest
-      ;
+      flocoPackages.pacote = final.lib.addFlocoPackages ( _: _: {
+        "pacote/${pacoteModule.version}" = pacoteModule;
+        pacote = pacoteModule;
+      } );
+      inherit pacoteModule;
+      pacote = pacoteModule.global;
+      inherit (pacoteUtil) pacotecli pacote-manifest;
     };
 
 
@@ -132,6 +127,8 @@
       };
     in nixpkgs.lib.composeExtensions base fixGenMeta;
 
+# ---------------------------------------------------------------------------- #
+
     # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
     overlays.default = nixpkgs.lib.composeExtensions overlays.deps
                                                      overlays.at-node-nix;
@@ -143,7 +140,7 @@
       pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
 
-      inherit (pkgsFor) pacote genMeta;
+      inherit (pkgsFor) pacote pacoteModule genMeta;
 
       tests = ( import ./tests {
         inherit system pkgsFor rime;
@@ -196,11 +193,20 @@
 # ---------------------------------------------------------------------------- #
 
     templates = let
-      project.path = ./templates/project;
-      project.description = "a simple JS project with Floco";
+      project.path        = ./templates/project;
+      project.description = "a package-lock.json(v3) project with Floco";
     in {
-      inherit project;
       default = project;
+      inherit project;
+
+      simple.path        = ./templates/project-trivial;
+      simple.description = "a simple JS project with Floco";
+
+      simple-bin.path        = ./templates/simple-bin;
+      simple-bin.description = "a simple JS executable with no deps";
+
+      tree-bin.path        = ./templates/tree-bin;
+      tree-bin.description = "a simple JS executable with tree.json file";
     };
 
 # ---------------------------------------------------------------------------- #

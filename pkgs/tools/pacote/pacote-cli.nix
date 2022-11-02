@@ -8,12 +8,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-  inherit (builtins) elem concatStringsSep;
-
-# ---------------------------------------------------------------------------- #
-
-  # cmd ::= resolve | manifest | packument | tarball | extract
-  pacotecli = cmd: flags @ { spec, dest ? null, ... }: let
+  # cmd  ::= resolve | manifest | packument | tarball | extract
+  # spec ::= "package locator", e.g. "lodash" or "/home/foo/bar" or "foo@1.0.0"
+  pacotecli = cmd: { spec, dest ? null, ... } @ flags: let
 
     name = flags.name or
            ( if flags ? dest then baseNameOf flags.dest else "source" );
@@ -33,9 +30,10 @@
       "--json"
       cmd
       spec
-    ] ++ ( if elem cmd ["tarball" "extract"] then ["$out"] else [] );
+    ] ++ ( if builtins.elem cmd ["tarball" "extract"] then ["$out"] else [] );
 
-    stdoutTo = if elem cmd ["tarball" "extract"] then "$manifest" else "$out";
+    stdoutTo = if builtins.elem cmd ["tarball" "extract"] then "$dist" else
+               "$out";
 
   in ( runCommandNoCC name {
     # `tarball' and `extract' dump `{ integrity, resolved, from }' to `stdout'.
@@ -50,14 +48,19 @@
     #       output, which might be all that really matters.
     # Ex: The hashes in the `meta' output for both "extract" calls align here.
     #   extract lodash --> tarball "file:./result" --> extract "file:./result"
-    outputs = ["out" "cache"] ++
-              ( if elem cmd ["tarball" "extract"] then ["manifest"] else [] );
+    outputs =
+      ["out" "cache"] ++
+      ( if builtins.elem cmd ["tarball" "extract"] then ["dist"] else [] );
 
     outputHashMode = if cmd == "extract" then "recursive" else "flat";
     outputHashAlgo = "sha256";
 
+    inherit pacoteFlags;
+    PACOTE = "${pacote}/bin/pacote";
+
   } ( setupCache + ''
-    ${pacote}/bin/pacote ${concatStringsSep " " pacoteFlags} > ${stdoutTo}
+    pacoteFlagsArray=( $pacoteFlags );
+    $PACOTE "''${pacoteFlagsArray[@]}" > ${stdoutTo}
   '' ) ) // { inherit pacote spec pacoteFlags; };
 
 
@@ -69,23 +72,7 @@
     peerDependencies = {};
     optionalDependencies = {};
     hasInstallScript = false;
-    ## main = "./index.js";
-    ## # NOTE: if `bin' is a filepath, rather than an attrset, you need to move
-    ## # that field to `directories.bin' and probably delete this field.
-    ## bin = {};
-    ## # These are `to-path = "from-path";' for installs.
-    ## directories = {
-    ##   lib      = "lib";
-    ##   bin      = "bin";  # XXX: see note above about `bin'
-    ##   man      = "man";
-    ##   doc      = "doc";
-    ##   test     = "test";
-    ##   examples = "examples";
-    ## };
   };
-
-
-# ---------------------------------------------------------------------------- #
 
   # Fetch a manifest
   # NOTE: this is basically only useful to generate info for local builds.
@@ -98,14 +85,6 @@
     full = pacotecli "manifest" { inherit spec; };
     scrubbed = removeAttrs full droppedFields;
   in fallbackFields // scrubbed;
-
-  # NOTE: you can very easily implement this in pure Nix.
-  # Pacote is just dropping fields from the registry manifest.
-  # NOTE: The registry manifest are `(<scope>/)?<pkg>/<version>', I don't
-  # think you leveraged that previously when writing the `packumenter'.
-  # NOTE: The manifest fills default `scripts.install' fields for packages
-  # with `bindings.gyp', and also has a `gypfile ::= true|false' field which
-  # you could use to determine `hasInstallScript'.
 
 
 # ---------------------------------------------------------------------------- #

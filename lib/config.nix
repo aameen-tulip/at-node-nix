@@ -36,11 +36,13 @@
     # It's only possible to put these here because they are platform agnostic.
     # If you use system dependant fetchers override this.
     fetchers = {
-      fileFetcher    = lib.libfetch.fetchurlDrvW;
       gitFetcher     = lib.libfetch.flocoGitFetcher;
       pathFetcher    = lib.libfetch.flocoPathFetcher;
-      tarballFetcher = if   lib.libcfg.enableImpureFetchers
-                       then lib.libfetch.fetchurlUnpackDrvW
+      fileFetcher    = if   lib.libcfg.defaultFlocoConfig.enableImpureFetchers
+                       then lib.libfetch.flocoTarballFetcher
+                       else lib.libfetch.fetchurlNoteUnpackDrvW;
+      tarballFetcher = if   lib.libcfg.defaultFlocoConfig.enableImpureFetchers
+                       then lib.libfetch.flocoTarballFetcher
                        else lib.libfetch.fetchurlNoteUnpackDrvW;
     };
   };

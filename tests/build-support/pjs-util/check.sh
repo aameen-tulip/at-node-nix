@@ -9,6 +9,9 @@
 
 set -u;
 
+: "${HEAD:=head}";
+: "${GREP:=grep}";
+
 : "${PJS_UTIL_SH:=${BASH_SOURCE[0]%/*}/../pjs-util.sh}";
 if test -z "$DONT_SOURCE"; then
   source "$PJS_UTIL_SH";
@@ -28,10 +31,10 @@ es=0;
 
 runTest() {
   if eval "$1"; then
-    echo "PASS: (pjs-util.sh) $1" >&2;
+    echo "PASS: (pjs-util.sh) $1";
     return 0;
   else
-    echo "FAIL: (pjs-util.sh) $1" >&2;
+    echo "FAIL: (pjs-util.sh) $1";
     set -x;
     eval "$1" >&2;
     set +x;
@@ -139,6 +142,77 @@ test_installModuleNm() {
 
 # --------------------------------------------------------------------------- #
 
+test_installBinsNm() {
+  export dontPatchShebangs=1;
+
+  installModuleNmNoBin "$EX1D" "$PWD/nm2/node_modules"||return 1;
+  installBinsNm "$EX1D" "$PWD/nm2/node_modules"||return 1;
+  test -x "$PWD/nm2/node_modules/.bin/foo"||return 1;
+  $HEAD -n1 "$PWD/nm2/node_modules/.bin/foo"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'&&return 1;
+
+  installModuleNmNoBin "$EX2D" "$PWD/nm3/node_modules"||return 1;
+  installBinsNm "$EX2D" "$PWD/nm3/node_modules"||return 1;
+  test -x "$PWD/nm3/node_modules/.bin/ex2"||return 1;
+  $HEAD -n1 "$PWD/nm3/node_modules/.bin/ex2"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'&&return 1;
+
+  installModuleNmNoBin "$EX3D" "$PWD/nm4/node_modules"||return 1;
+  installBinsNm "$EX3D" "$PWD/nm4/node_modules"||return 1;
+  test -x "$PWD/nm4/node_modules/.bin/foo"||return 1;
+  $HEAD -n1 "$PWD/nm4/node_modules/.bin/foo"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'&&return 1;
+  test -x "$PWD/nm4/node_modules/.bin/bar"||return 1;
+  $HEAD -n1 "$PWD/nm4/node_modules/.bin/bar"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'&&return 1;
+
+  unset dontPatchShebangs;
+  rm -rf "$PWD/nm2" "$PWD/nm3" "$PWD/nm4";
+}
+
+
+# --------------------------------------------------------------------------- #
+
+test_installBinsNm_patch() {
+  unset dontPatchShebangs;
+
+  installModuleNmNoBin "$EX1D" "$PWD/nm2/node_modules"||return 1;
+  installBinsNm "$EX1D" "$PWD/nm2/node_modules"||return 1;
+  test -x "$PWD/nm2/node_modules/.bin/foo"||return 1;
+  $HEAD -n1 "$PWD/nm2/node_modules/.bin/foo"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+
+  installModuleNmNoBin "$EX2D" "$PWD/nm3/node_modules"||return 1;
+  installBinsNm "$EX2D" "$PWD/nm3/node_modules"||return 1;
+  test -x "$PWD/nm3/node_modules/.bin/ex2"||return 1;
+  $HEAD -n1 "$PWD/nm3/node_modules/.bin/ex2"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+
+  installModuleNmNoBin "$EX3D" "$PWD/nm4/node_modules"||return 1;
+  installBinsNm "$EX3D" "$PWD/nm4/node_modules"||return 1;
+  test -x "$PWD/nm4/node_modules/.bin/foo"||return 1;
+  $HEAD -n1 "$PWD/nm4/node_modules/.bin/foo"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+  test -x "$PWD/nm4/node_modules/.bin/foo"||return 1;
+  $HEAD -n1 "$PWD/nm4/node_modules/.bin/foo"         \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+
+  rm -rf "$PWD/nm2" "$PWD/nm3" "$PWD/nm4";
+}
+
+
+# --------------------------------------------------------------------------- #
+
+test_installGlobal() {
+  installModuleGlobal "$EX1" "$PWD/nm2";
+  test -x "$PWD/nm2/bin/foo"||return 1;
+  test -x "$PWD/nm2/lib/node_modules/ex1/bin/bar.js"||return 1;
+  $HEAD -n1 "$PWD/nm2/bin/foo"                       \
+    |$GREP -q '^#!/nix/store.*/bin/node'||return 1;
+}
+
+# --------------------------------------------------------------------------- #
+
 runTest test_pjsBasename;
 runTest test_pjsHasScript;
 runTest test_pjsRunScript;
@@ -150,6 +224,11 @@ runTest test_pjsHasAnyBin;
 
 runTest test_pjsBinPairs;
 runTest test_pjsBinPaths;
+
+runTest test_installBinsNm;
+runTest test_installBinsNm_patch;
+
+runTest test_installGlobal;
 
 #runTest test_installModuleNm;
 

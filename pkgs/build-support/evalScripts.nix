@@ -65,12 +65,17 @@
 , jq
 , stdenv
 , pjsUtil
+, patchNodePackageHook
+, installGlobalNodeModuleHook
+, globalInstall ? false
 , ...
 } @ args:
 let
   mkDrvArgs = removeAttrs args [
     "ident"
     "nmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
+    "patchNodePackageHook" "installGlobalNodeModuleHook"
+    "doStrip"
     "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
@@ -90,12 +95,18 @@ in stdenv.mkDerivation ( {
 
   inherit name;
 
-  inherit skipMissing nmDirCmd;
+  inherit skipMissing globalInstall nmDirCmd;
+
+  outputs = let
+    prev   = args.outputs or ["out"];
+    global = if globalInstall then ["global"] else [];
+  in prev ++ global;
 
   nativeBuildInputs = let
     given    = args.nativeBuildInputs or [];
-    defaults = [pjsUtil nodejs jq];
-  in lib.unique( given ++ ( lib.filter ( x: x != null ) defaults ) );
+    gi       = if globalInstall then [installGlobalNodeModuleHook] else [];
+    defaults = [pjsUtil patchNodePackageHook nodejs jq] ++ gi;
+  in lib.unique ( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
   passAsFile =
     if 1024 <= ( builtins.stringLength nmDirCmd ) then ["nmDirCmd"] else [];
@@ -106,6 +117,10 @@ in stdenv.mkDerivation ( {
       source "$nmDirCmdPath";
     else
       eval "$nmDirCmd";
+      if [[ "$?" -ne 0 ]]; then
+        echo "Failed to execute nmDirCmd: \"$nmDirCmd\"" >&2;
+        exit 1;
+      fi
     fi
   '';
 
@@ -125,20 +140,24 @@ in stdenv.mkDerivation ( {
     }
   '';
 
-
   # You can override this
   preInstall = ''
     if test -n "''${node_modules_path:-}"; then
-      chmod -R +w "$node_modules_path";
-      rm -rf -- "$node_modules_path";
+      if test -e "$node_modules_path"; then
+        chmod -R +w "$node_modules_path";
+        rm -rf -- "$node_modules_path";
+      fi
+      unset node_modules_path;
     fi
   '';
 
   installPhase = lib.withHooks "install" ''
-    cp -pr --reflink=auto -- . "$out";
+    pjsAddMod . "$out";
   '';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
+
+  dontStrip = true;
 
 } // mkDrvArgs )
 

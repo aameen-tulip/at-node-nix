@@ -22,8 +22,8 @@
 {
   name  ? meta.names.tarball
 , meta  ? throw "I need 'meta' if 'name' is unspecified"
-, source # Original source code with unpatched shebangs. # XXX: See note below
-, prepared        # Final "built"/"prepared" tree. `src' clobbers common files.
+, source   # Original source code with unpatched shebangs. # XXX: See note below
+, prepared # Final "built"/"prepared" tree. `src' clobbers common files.
 , pacote
 , snapDerivation
 , coreutils

@@ -408,6 +408,62 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # In impure mode we can use `builtins.fetchTree' which is backed by sha256, or
+  # we can use it if `narHash' is given.
+  # In impure mode we will use `fetchTree'.
+  fetchTreeOrUrlDrv = {
+    url       ? fetchInfo.resolved
+  , resolved  ? null
+  , hash      ? integrity
+  , integrity ? fetchInfo.shasum
+  , shasum    ? null
+  , type      ? "file"
+  , narHash   ? null
+  , ...
+  } @ fetchInfo: let
+    ftLocked = ( fetchInfo ? narHash ) || lib.flocoConfig.enableImpureFetchers;
+    preferFt = ( fetchInfo ? type ) && ftLocked;
+    nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
+    # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
+    ft = ( builtins.fetchTree { inherit url type; } ) // nh';
+    # Works in pure mode and avoids tarball TTL.
+    drv = lib.libfetch.fetchurlDrvW {
+      inherit url hash;
+      unpack = type == "tarball";
+      #allowSubstitutes = ( system != ( builtins.currentSystem or null ) );
+      #preferLocalBuild = true;
+    };
+  in if preferFt then ft else drv;
+
+
+  flocoTarballFetcher = {
+
+    __functionMeta = {
+      name = "flocoTarballFetcher";
+      from = "at-node-nix#lib.libfetch";
+      innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
+      signature = [yt.any yt.any];  # FIXME: return type
+    };
+
+    __functionArgs = lib.functionArgs lib.libfetch.fetchTreeOrUrlDrv;
+
+    __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
+
+    __functor = self: args: let
+      sourceInfo = self.__innerFunction args;
+    in {
+      type = args.type or "file";
+      fetchInfo = args;
+      inherit sourceInfo;
+      inherit (sourceInfo) outPath;
+    };
+
+  };
+
+
+
+# ---------------------------------------------------------------------------- #
+
   # Wraps `fetchurlDrv'.
   # Since it isn't technically a builtin this wrapper is really just for
   # consistency with the other wrappers.
@@ -731,7 +787,8 @@
         inherit type;
       } // fetchInfo else fetchInfo;
       # Select the right fetcher based on `type'.
-    in lib.apply fetchers."${type}Fetcher" args;
+    in builtins.traceVerbose "using ${type}Fetcher"
+       ( lib.apply fetchers."${type}Fetcher" args );
 
     __functor = self: x: self.__innerFunction self.fetchers x;
   };
@@ -748,6 +805,9 @@ in {
     pickGitFetcherFromArgsPure pickGitFetcherFromArgsImpure
     plockEntryToGenericGitArgs
     flocoGitFetcher
+
+    fetchTreeOrUrlDrv
+    flocoTarballFetcher
 
     fetchTreePathW
     fetchTreeW
