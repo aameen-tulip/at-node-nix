@@ -58,53 +58,11 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: move to `ak-nix:lib.libenc'.
-  tagHash = {
-    __functionArgs = {
-      shasum    = true;
-      sha1      = true;
-      sha256    = true;
-      sha512    = true;
-      md5       = true;
-      integrity = true;
-      hash      = true;
-      narHash   = true;
-    };
-    __innerFunction = x: let
-      h = let
-        hfs = builtins.intersectAttrs tagHash.__functionArgs x;
-      in if builtins.isString x then x else
-         builtins.head ( builtins.attrValues hfs );
-      # NOTE: original implementation yanked `m[2]', I think for Nixpkgs hash.
-      m = builtins.match "(sha(512|256|1))-(.*)" h;
-      # Try to take a shortcut and ID using an SRI prefix.
-      fromSri  = { "${builtins.head m}_sri" = h; };
-      # Fallback to a full audit.
-      fromHash = lib.libtypes.discrTypes {
-        inherit (yt.Hash.Strings) sha1_hash sha256_hash sha512_hash md5_hash;
-      } h;
-    in if m == null then fromHash else fromSri;
-    __functor = self: let
-      cond = x: let
-        vt = lib.libtag.verifyTag x;
-        tags = [
-          "md5_hash"
-          "sha1_sri"   "sha1_hash"
-          "sha256_sri" "sha256_hash"
-          "sha512_sri" "sha512_hash"
-        ];
-      in vt.isTag && ( builtins.elem vt.name tags );
-      tt = yt.restrict "hash:tagged" cond ( yt.Core.attrs yt.Prim.string );
-    in yt.defun [yt.any tt] self.__innerFunction;
-  };
-
-# ---------------------------------------------------------------------------- #
-
   # Essentially an optimized `tagHash'.
   # XXX: I'm unsure of whether or not this works with v1 locks.
   plockEntryHashAttr = {
     __innerFunction = entry:
-      if entry ? integrity then tagHash entry.integrity else
+      if entry ? integrity then lib.libenc.tagHash entry.integrity else
       if entry ? sha1      then { sha1_hash = entry.sha1; } else {};
     __functionArgs = { sha1 = true; integrity = true; };
     __functor = self: self.__innerFunction;
@@ -112,22 +70,6 @@
 
 
 # ---------------------------------------------------------------------------- #
-
-  # FIXME: move these
-  Sums.hash = yt.sum {
-    shasum = yt.Hash.sha1;
-    inherit (yt.Hash) md5 sha1 sha256 sha512;
-    inherit (yt.Hash.String)
-      sha1_hash sha256_hash sha512_hash md5_hash
-      sha1_sri sha256_sri sha512_sri
-    ;
-    narHash   = yt.Strings.sha256_sri;   # FIXME: this uses a different charset
-    integrity = yt.eitherN [
-      yt.Strings.sha1_sri
-      yt.Strings.sha256_sri
-      yt.Strings.sha512_sri
-    ];
-  };
 
   # path tarball file git github
   # NOTE: `fetchTree { type = "indirect"; id = "foo"; }' works!
@@ -149,10 +91,31 @@
   #   relpath  ( string + struct )
   #   path     ( sumtype )
   #   file     ( sumtype )
-  #   md5 sri
-  #   narHash  ( check charset )
-  #   git reponame
-  #   fetchTree sourceInfo
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Fixup return value from `builtins.fetchTree' to align with `floco*Fetch'
+  # interfaces ( `{ fetchInfo, sourceInfo, outPath, type, passthru, meta }' ).
+  flocoProcessFTResult = type: fetchInfo: sourceInfo:
+    assert fetchInfo ? type -> type == fetchInfo.type;
+    {
+      inherit type fetchInfo sourceInfo;
+      inherit (sourceInfo) outPath;
+    };
+
+  # Generic `builtins.fetchTree' functor for `floco*Fetcher'.
+  flocoFTFunctor = type: self: x: let
+    fetchInfo  = self.__processArgs self x;
+    sourceInfo = self.__innerFunction fetchInfo;
+    result     = flocoProcessFTResult type fetchInfo sourceInfo;
+    msg = ''
+      flocoFetch(${type})
+        inputs:     ${builtins.toJSON ( x.__serial or x )}
+        fetchInfo:  ${builtins.toJSON fetchInfo}
+        sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
+    '';
+  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
 
 
 # ---------------------------------------------------------------------------- #
@@ -184,126 +147,9 @@
     type  = yt.enum ["file" "tarball"];
     url   = yt.Uri.Strings.uri_ref;
     flake = yt.option yt.bool;
-    inherit (Sums) hash;
+    inherit (yt.Hash.Sums) hash;
     unpack     = yt.option yt.bool;
     executable = yt.option yt.bool;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  nixpkgsFetchgitArgs = {
-    name = true;
-    url  = false;
-    # Options
-    branchName = true;
-    deepClone  = true;
-    fetchLFS   = true;
-    fetchSubmodules = true;
-    leaveDotGit     = true;
-    sparseCheckout  = true;
-    # One of
-    hash   = true;
-    sha256 = true;
-    md5    = true;
-    rev    = true;
-    # ...
-  };
-
-
-  # NOTE: If a hostname has a `git@' ( ssh ) prefix, it MUST use a ":", not
-  #       "/" to separate the hostname and path.
-  #       Nix's `fetchGit' and `fetchTree' do not use a ":" here, so replace
-  #       it with "/" - if you don't, you'll get an error:
-  #       "make sure you have access rights".
-  # builtins.fetchGit { url = "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c"; }
-  # builtins.fetchTree { type = "git"; url = "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c"; }
-  # NOTE: You must provide `type = "git";' for `fetchTree' it doesn't parse
-  #       the URI to try and guess ( flake refs will ).
-  # NOTE: You must leave the "<path>#<rev>" as is for the builtin fetchers -
-  #       a "<path>/<rev>" will not work; but I think flake inputs DO want it
-  #       replaced with a "/".
-  genericGitArgFields = {
-    name  = yt.FS.Strings.filename;  # for `nixpkgs.fetchgit' this is the outdir
-    type  = yt.enum ["git" "github" "sourcehut"];
-    url   = yt.FlakeRef.Strings.git_ref;
-    flake = yt.bool;
-    inherit (yt.Git) rev ref;  # `branchName' is alias of `ref' for `nixpkgs'
-    inherit (Sums) hash;   # nixpkgs accepts a slew of options.
-    allRefs    = yt.bool;  # nixpkgs: sparseCheckout
-    submodules = yt.bool;  # nixpkgs: fetchSubmodules
-    shallow    = yt.bool;  # nixpkgs: deepClone?
-    repo       = yt.Git.Strings.ref_component;
-    owner      = yt.Git.Strings.owner;
-  };
-
-  genericGitArgs' = pure: let
-    checkPresent = x: let
-      comm = builtins.intersectAttrs x genericGitArgFields;
-    in builtins.all ( k: comm.${k}.check x.${k} ) ( builtins.attrNames comm );
-    minimal = x: builtins.all ( p: p ) [
-      # `builtins.fetchTree { type = "github"; }' uses `{ owner, repo }'.
-      ( ( x.type or null ) == "github" -> ( x ? owner ) && ( x ? repo ) )
-      # Everything else requires a URL.
-      ( ( x.type or null ) != "github" -> x ? url )
-      # Require purifying info when `pure == true'.
-      ( pure && ( builtins.elem ( x.type or null ) ["github" "git"] )
-        ->
-        ( x ? rev ) || ( x ? hash.narHash ) ||
-        ( ( x.type == "github" ) && ( x ? ref ) ) )
-      # `builtins.fetchGit' requires `rev' in pure mode.
-      ( pure && ( ! ( x ? type ) ) -> ( x ? hash ) || ( x ? rev ) )
-    ];
-    tname = "fetchInfo:generic:git:${if pure then "" else "im"}pure";
-    cond = x: ( checkPresent x ) && ( minimal x );
-  in yt.restrict tname cond ( yt.attrs yt.any );
-
-
-  genericGitArgsPure   = genericGitArgs' true;
-  genericGitArgsImpure = genericGitArgs' false;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: move to `rime'.
-  isGithubUrl = url:
-    lib.test "([^@]+@)?github\\.com" ( lib.liburi.parseFullUrl url ).authority;
-
-  parseGitUrl = {
-    __functionArgs.url = false;
-    __innerFunction = { url }: let
-      parsed = lib.liburi.parseFullUrl url;
-      hp     = lib.liburi.parseServer parsed.authority;
-      repo = let
-        m = builtins.match "(.*)\\.git.*" ( baseNameOf parsed.path );
-      in if m == null then baseNameOf parsed.path else builtins.head m;
-    in {
-      inherit repo url;
-      inherit (parsed.scheme) transport;
-      type = if baseNameOf hp.hostport == "github" then "github" else "git";
-      user = hp.userinfo;
-      host = hp.hostport;
-      # XXX: There's a good chance you're going to bad results for any
-      # non-github hosts; but there's no real use case for the `owner' field
-      # outside of `github' so fuck it.
-      owner = let
-        s  = builtins.split "/${repo}\\.git" parsed.path;
-        s0 = builtins.head s;
-        d = if s0 == "" then dirOf parsed.path else s0;
-      in baseNameOf d;
-      # FIXME: I think flake-ref do `.../foo.git/<REV>?<QUERY>`
-      rev = if parsed.fragment != null then parsed.fragment else
-        if ( lib.test ".*rev=.*" parsed.query )
-        then ( lib.liburi.parseQuery parsed.query ).rev
-        else null;
-      # FIXME: ref
-    };
-    __processArgs = self: x:
-      if builtins.isString x then { url = x; } else {
-        url = x.url or x.resolved;
-      };
-    __functor = self: args:
-      self.__innerFunction ( self.__processArgs self args );
   };
 
 
@@ -317,7 +163,7 @@
   # are sure that we know the right `ref'/`branch'. Needs testing.
   plockEntryToGenericGitArgs = let
     inner = { resolved, ... } @ args: let
-      inherit (parseGitUrl resolved) owner rev repo type;
+      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type;
       allRefs' = let
         bname         = baseNameOf ( args.ref or "refs/heads/HEAD" );
         defaultBRefs  = ["HEAD" "master" "main"];
@@ -330,7 +176,8 @@
       name = repo;
       url  = resolved;
     } // allRefs';
-  in yt.defun [yt.NpmLock.Structs.pkg_git_v3 genericGitArgsPure] inner;
+  in yt.defun [yt.NpmLock.Structs.pkg_git_v3
+               lib.libfetch.genericGitArgsPure] inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -341,37 +188,12 @@
       if x ? rev then x else
       plockEntryToGenericGitArgs ( x // { resolved = x.url or x.resolved; } );
     tas     = ( self.__thunk or {} ) // rough;
-    type    = if isGithubUrl rough.url then "github" else "git";
+    type    = if lib.libfetch.isGithubUrl rough.url then "github" else "git";
     fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
               lib.libfetch.fetchGitW;
     args = if type != "github" then tas else
            removeAttrs ( tas // { inherit type; } ) ["url"];
   in lib.canPassStrict fetcher args;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Fixup return value from `builtins.fetchTree' to align with `floco*Fetch'
-  # interfaces ( `{ fetchInfo, sourceInfo, outPath, type, passthru, meta }' ).
-  flocoProcessFTResult = type: fetchInfo: sourceInfo:
-    assert fetchInfo ? type -> type == fetchInfo.type;
-    {
-      inherit type fetchInfo sourceInfo;
-      inherit (sourceInfo) outPath;
-    };
-
-  # Generic `builtins.fetchTree' functor for `floco*Fetcher'.
-  flocoFTFunctor = type: self: x: let
-    fetchInfo  = self.__processArgs self x;
-    sourceInfo = self.__innerFunction fetchInfo;
-    result     = flocoProcessFTResult type fetchInfo sourceInfo;
-    msg = ''
-      flocoFetch(${type})
-        inputs:     ${builtins.toJSON ( x.__serial or x )}
-        fetchInfo:  ${builtins.toJSON fetchInfo}
-        sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
-    '';
-  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
 
 
 # ---------------------------------------------------------------------------- #
@@ -385,7 +207,7 @@
       then lib.libfetch.fetchTreeGithubW args
       else lib.libfetch.fetchGitW args;
     __functionArgs =
-      ( builtins.mapAttrs ( _: _: true ) genericGitArgFields ) // {
+      ( builtins.mapAttrs ( _: _: true ) lib.libfetch.genericGitArgFields ) // {
         resolved = true;
       };
     __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
