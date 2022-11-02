@@ -376,33 +376,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Takes `genericGitArgFields' as its second argument.
-  # In pure mode we really get choosy based on which type of `hash' or `rev'
-  # was provided.
-  # Returns a flake-ref URI for non-builtins.
-  pickGitFetcherFromArgs' = pure: args: let
-    hash = args.hash or ( lib.apply tagHash args );
-    pMissingRev = pure && ( ! ( args ? rev ) );
-    # In pure mode we can fetch without `rev' if `narHash' is given.
-    pMissingNarHash = pure && ( ! ( hash ? narHash ) );
-    isGithub        = ( args.type == "github" ) || ( isGithubUrl args.url );
-    preferFTGithub  = ( args ? owner ) || ( args ? repo ) || isGithub;
-    ftg = if preferFTGithub then fetchTreeGithubW else fetchTreeGitW;
-  in if pMissingRev && pMissingNarHash then "nixpkgs#fetchgit" else
-     if pMissingNarHash then ftg else
-     # Regardless of purity, if a hash is given we'll assume the user meant for
-     # us to take advantage of it using `nixpkgs#fetchgit'.
-     if args ? hash then "nixpkgs#fetchgit" else
-     # Try to use `fetchTree{ type = "github"; }' whenver possible.
-     if preferFTGithub then fetchTreeGithubW else
-     fetchGitW;
-
-  pickGitFetcherFromArgsPure   = pickGitFetcherFromArgs' true;
-  pickGitFetcherFromArgsImpure = pickGitFetcherFromArgs' false;
-
-
-# ---------------------------------------------------------------------------- #
-
   flocoGitFetcher = lib.libfetch.fetchGitW // {
     __functionMeta = lib.libfetch.fetchGitW.__functionMeta // {
       name = "flocoGitFetcher";
@@ -432,7 +405,8 @@
   fetchTreeOrUrlDrv = {
     url       ? fetchInfo.resolved
   , resolved  ? null
-  , hash      ? builtins.elemAt ( builtins.match "(sha(512|256|1)-)?(.*)" integrity ) 2
+  , hash      ?
+    builtins.elemAt ( builtins.match "(sha(512|256|1)-)?(.*)" integrity ) 2
   , integrity ? fetchInfo.shasum
   , shasum    ? null
   , type      ? "file"
@@ -455,9 +429,8 @@
   in if preferFt then ft else drv;
 
 
-  # FIXME: THESE TWO WRAPPERS ARE THE PROBLEM
-  # YOU NEED TO ALLOW `fetchurlDrvW' IN PURE MODE, AND THE WRAPPER BELOW DOESN'T
-  # ACTUALLY MANAGE THAT ( IT MAY LOOK LIKE IT DOES DON'T BE FOOLED )
+# ---------------------------------------------------------------------------- #
+
   flocoTarballFetcher = {
     __functionMeta = {
       name = "flocoTarballFetcher";
@@ -485,11 +458,14 @@
     __functor = self: x: flocoFTFunctor "tarball" self x;
   };
 
+
+# ---------------------------------------------------------------------------- #
+
   flocoFileFetcher = {
     __functionMeta = {
       name = "flocoFileFetcher";
       from = "at-node-nix#lib.libfetch";
-      innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
+      innerName = "<laika#lib.libfetch.fetchurlDrvW|builtins.fetchTree>";
       signature = [yt.any yt.any];  # FIXME: return type
     };
     __functionArgs =
@@ -521,10 +497,6 @@
     in builtins.intersectAttrs self.__functionArgs args';
     __functor = self: x: flocoFTFunctor "file" self x;
   };
-  # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  # FIXME: THESE TWO WRAPPERS ARE THE PROBLEM
-  # YOU NEED TO ALLOW `fetchurlDrvW' IN PURE MODE, AND THE WRAPPER BELOW DOESN'T
-  # ACTUALLY MANAGE THAT ( IT MAY LOOK LIKE IT DOES DON'T BE FOOLED )
 
 
 # ---------------------------------------------------------------------------- #
@@ -811,14 +783,12 @@ in {
     plockEntryHashAttr
 
     # Git stuff
-    pickGitFetcherFromArgsPure pickGitFetcherFromArgsImpure
     plockEntryToGenericGitArgs
     flocoGitFetcher
 
     fetchTreeOrUrlDrv
     flocoTarballFetcher flocoFileFetcher
 
-    fetchTreePathW
     fetchTreeW
 
     flocoPathFetcher

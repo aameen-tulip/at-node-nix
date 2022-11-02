@@ -70,6 +70,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: `pacote' will write absolute filepaths.
+  # For `resolved' it doesn't use `file:...', but for `from' it will.
   relative_file_uri = let
     cond = x: let
       m = builtins.match "(file:)?(\\.[^:#?]*)" x;
@@ -114,7 +116,7 @@
 
   pkg_path_v3 = let
     fconds = pkg_any_fields_v3 // {
-      resolved = option relative_file_uri;
+      resolved = option ( yt.either relative_file_uri yt.FS.abspath );
       link     = option bool;
     };
     cond = x: let
