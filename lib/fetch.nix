@@ -132,19 +132,22 @@
   # are sure that we know the right `ref'/`branch'. Needs testing.
   plockEntryToGenericGitArgs = let
     inner = { resolved, ... } @ args: let
-      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type;
+      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
       allRefs' = let
-        bname         = baseNameOf ( args.ref or "refs/heads/HEAD" );
-        defaultBRefs  = ["HEAD" "master" "main"];
-        preferAllRefs = ! ( builtins.elem bname defaultBRefs );
-      in if type == "github" then {} else {
-        allRefs = args.allRefs or preferAllRefs;
+        bname        = baseNameOf ref;
+        defaultBRefs = ["HEAD" "master" "main"];
+        allRefs      = ! ( builtins.elem bname defaultBRefs );
+      in if ( type == "github" ) || ( ref == null ) then {} else {
+        inherit allRefs;
       };
+      owner' = if builtins.elem owner [null "" "."] then {} else
+               { inherit owner; };
+      ref' = if ref == null then {} else { inherit ref; };
     in {
-      inherit type repo owner rev;
+      inherit type repo rev;
       name = repo;
       url  = resolved;
-    } // allRefs';
+    } // allRefs' // owner' // ref';
   in yt.defun [yt.NpmLock.Structs.pkg_git_v3
                lib.libfetch.genericGitArgsPure] inner;
 

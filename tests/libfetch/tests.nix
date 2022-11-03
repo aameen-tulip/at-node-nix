@@ -131,8 +131,68 @@
       expected = true;
     };
 
-    # TODO: test that we parse `rev' from URLs
-    # TODO: test a non-github URI
+    testFlocoGitFetcher_1 = {
+      expr = let
+        fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
+      in fetched.fetchInfo.rev;
+      expected = "2da024c3b4f9947a48517639de7560457cd4ec6c";
+    };
+
+    testFlocoGitFetcher_2 = let
+      prep =
+        lib.libfetch.flocoGitFetcher.__processArgs lib.libfetch.flocoGitFetcher;
+      base = "git+https://code.tvl.fyi/depot.git";
+      ref  = "refs/heads/canon";
+      rev  = "57cf952ea98db70fcf50ec31e1c1057562b0a1df";
+      url  = "${base}?rev=${rev}&ref=${ref}";
+    in {
+      expr     = prep { inherit url; };
+      expected = {
+        url  = "git+https://code.tvl.fyi/depot.git?rev=57cf952ea98db70fcf50ec31e1c1057562b0a1df&ref=refs/heads/canon";
+        name = "depot";
+        inherit ref rev;
+        allRefs    = true;
+        shallow    = false;
+        submodules = false;
+      };
+    };
+
+    # NOTE: this fails if you try to include the params in `url'.
+    testFlocoGitFetcher_3 = let
+      fetched = lib.libfetch.flocoGitFetcher {
+        name = "depot";
+        url  = "https://code.tvl.fyi/depot.git";
+        ref  = "refs/heads/canon";
+        rev  = "57cf952ea98db70fcf50ec31e1c1057562b0a1df";
+      };
+    in {
+      expr = ( removeAttrs fetched ["outPath"] ) // {
+        sourceInfo = removeAttrs fetched.sourceInfo ["outPath"];
+      };
+      expected = {
+        fetchInfo = {
+          allRefs = true;
+          name = "depot";
+          ref = "refs/heads/canon";
+          rev = "57cf952ea98db70fcf50ec31e1c1057562b0a1df";
+          shallow = false;
+          submodules = false;
+          url = "https://code.tvl.fyi/depot.git";
+        };
+        # outPath = "/nix/store/...";
+        sourceInfo = {
+          lastModified = 1667488239;
+          lastModifiedDate = "20221103151039";
+          narHash = "sha256-8v2xS7pvkA1coe3Ys/eFxK3m3Uw+O9loJChOLbLI5bQ=";
+          # outPath = "/nix/store/...";
+          rev = "57cf952ea98db70fcf50ec31e1c1057562b0a1df";
+          revCount = 17351;
+          shortRev = "57cf952";
+          submodules = false;
+        };
+        type = "git";
+      };  # End Expected
+    };
 
 
 # ---------------------------------------------------------------------------- #
