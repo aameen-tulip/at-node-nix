@@ -44,9 +44,7 @@
     flocoConfig = let
       inherit (at-node-nix) lib;
       fromInput = lib.importJSON inputs.flocoConfig.outPath;
-      cfg = if inputs ? flocoConfig
-            then lib.recursiveUpdate lib.libcfg.defaultFlocoConfig fromInput
-            else lib.libcfg.defaultFlocoConfig;
+      cfg = if inputs ? flocoConfig then fromInput else {};
     in lib.mkFlocoConfig cfg;
 
 

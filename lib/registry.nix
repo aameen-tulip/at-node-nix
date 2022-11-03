@@ -20,8 +20,9 @@
   , name           ? meta.name  or ( dirOf key )
   , key            ? meta.key
   , meta           ? {}
-  , registryScopes ? flocoConfig.registryScopes
-  , flocoConfig    ? lib.flocoConfig or lib.libcfg.defaultFlocoConfig
+  , registryScopes ?
+    flocoConfig.registryScopes or { _default = "http://registry.npmjs.org"; }
+  , flocoConfig    ? lib.flocoConfig or {}
   , ...
   } @ args: let
     stripped = lib.yank "@?([^/]+)/?" scope;
@@ -73,7 +74,9 @@
       if arg == null then { scope = null; } else
       throw "registryForScope: arg must be a string (scope) or attrset";
     __thunk = let
-      flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
+      flocoConfig = lib.flocoConfig or {
+        _default = "https://registry.npmjs.org";
+      };
     in { inherit (flocoConfig) registryScopes; };
     __innerFunction = self: _registryForScope;
   };
@@ -108,7 +111,9 @@
       key            = true;
     };
     __thunk = let
-      flocoConfig = lib.flocoConfig or lib.libcfg.defaultFlocoConfig;
+      flocoConfig = lib.flocoConfig or {
+        _default = "https://registry.npmjs.org";
+      };
     in { inherit (flocoConfig) registryScopes; };
     __processArgs = self: arg: let
       regArgs = if builtins.isAttrs arg then self.__thunk // arg else

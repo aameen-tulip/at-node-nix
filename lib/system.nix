@@ -137,7 +137,7 @@
   , buildPlatform    ? if stdenv != null then stdenv.buildPlatform else
                        args.flocoConfig.buildPlatform or null
   , enableImpureMeta ? args.flocoConfig.enableImpureMeta or
-                       lib.libcfg.defaultFlocoConfig.enableImpureMeta # (false)
+                       lib.flocoConfig.enableImpureMeta # (false)
   , stdenv      ? args.pkgsFor.stdenv or args.pkgs.stdenv or null
   , npmSys      ? throw "(getNpmSys'): UNREACHABLE"
   , flocoConfig ? throw "(getNpmSys'): UNREACHABLE"
