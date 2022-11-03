@@ -31,11 +31,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1667494364,
-        "narHash": "sha256-F1lRG+u18qZ5wbtcENXDumMO+l6kT3eMdRLURbNPsZU=",
+        "lastModified": 1667496570,
+        "narHash": "sha256-J/IioaTshfrdPmg/dxVN4Diea6zM//uxDHN/opxDYKs=",
         "owner": "aakropotkin",
         "repo": "laika",
-        "rev": "8eda5597ff21ddc48e824f3475177f9b86f1c851",
+        "rev": "a62c4d14bf73cbe1944a27273a07120bef98d9f8",
         "type": "github"
       },
       "original": {

@@ -148,7 +148,8 @@
     in {
       expr     = prep { inherit url; };
       expected = {
-        url  = "git+https://code.tvl.fyi/depot.git?rev=57cf952ea98db70fcf50ec31e1c1057562b0a1df&ref=refs/heads/canon";
+        #url  = "git+https://code.tvl.fyi/depot.git?rev=57cf952ea98db70fcf50ec31e1c1057562b0a1df&ref=refs/heads/canon";
+        url  = "https://code.tvl.fyi/depot.git";
         name = "depot";
         inherit ref rev;
         allRefs    = true;

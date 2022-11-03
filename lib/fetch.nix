@@ -146,7 +146,7 @@
     in {
       inherit type repo rev;
       name = repo;
-      url  = resolved;
+      url  = lib.yankN 1 "(git\\+)?([^?#]+).*" resolved;
     } // allRefs' // owner' // ref';
   in yt.defun [yt.NpmLock.Structs.pkg_git_v3
                lib.libfetch.genericGitArgsPure] inner;
