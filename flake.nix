@@ -144,12 +144,15 @@
       tests = ( import ./tests {
         inherit system pkgsFor rime;
         inherit (pkgsFor)
-          lib
           writeText
           flocoUnpack
           flocoConfig
           flocoFetch
         ;
+        # Use typechecks for tests.
+        lib = pkgsFor.lib.extend ( _: prevLib: {
+          laikaConfig.typecheck = true;
+        } );
         keepFailed = false;
         doTrace    = true;
         limit      = 100;
