@@ -84,7 +84,7 @@
   Structs.fetched = yt.struct "fetchedSource" {
     type       = Enums.sourceType;
     outPath    = yt.FS.store_path;
-    sourceInfo = Structs.sourceInfo;
+    sourceInfo = yt.SourceInfo.sourceInfo;
     fetchInfo  = yt.attrs yt.any;
     passthru   = yt.option ( yt.attrs yt.any );
     meta       = yt.option ( yt.attrs yt.any );
@@ -173,6 +173,14 @@
       from      = "at-node-nix#lib.libfetch";
       innerName = "laika#lib.libfetch.<fetchTreeGithubW|fetchGitW>";
       signature = [yt.any Structs.fetched];
+      properties = {
+        # Inherit from wrapped
+        pure = lib.libfetch.fetchGitW.__functionMeta.properties.pure &&
+               lib.libfetch.fetchTreeGithubW.__functionMeta.properties.pure;
+        family    = "git";
+        builtin   = true;
+        typecheck = true;  # XXX make this a toggle like we do in `laika'.
+      };
     };
     __innerFunction = args:
       if ( args.type or "git" ) == "github"
@@ -185,9 +193,13 @@
     __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
     __processArgs = flocoProcessGitArgs;
     __functor     = self: x: let
-      fetchInfo  = self.__processArgs self x;
+      argt       = builtins.head self.__functionMeta.signature;
+      rslt       = builtins.elemAt self.__functionMeta.signature 1;
+      fetchInfo  = argt ( self.__processArgs self x );
       sourceInfo = self.__innerFunction fetchInfo;
-    in flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo sourceInfo;
+      fetched    = flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo
+                                                                    sourceInfo;
+    in rslt fetched;
   };
 
 
