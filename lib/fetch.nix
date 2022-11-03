@@ -168,8 +168,11 @@
 # ---------------------------------------------------------------------------- #
 
   flocoGitFetcher = lib.libfetch.fetchGitW // {
-    __functionMeta = lib.libfetch.fetchGitW.__functionMeta // {
-      name = "flocoGitFetcher";
+    __functionMeta = {
+      name      = "flocoGitFetcher";
+      from      = "at-node-nix#lib.libfetch";
+      innerName = "laika#lib.libfetch.<fetchTreeGithubW|fetchGitW>";
+      signature = [yt.any Structs.fetched];
     };
     __innerFunction = args:
       if ( args.type or "git" ) == "github"
@@ -208,13 +211,11 @@
     preferFt = ( fetchInfo ? type ) && ftLocked;
     nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
     # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
-    ft = ( builtins.fetchTree { inherit url type; } ) // nh';
+    ft = ( lib.libfetch.fetchTreeW { inherit url type; } ) // nh';
     # Works in pure mode and avoids tarball TTL.
     drv = lib.libfetch.fetchurlDrvW {
       inherit url hash;
       unpack = type == "tarball";
-      #allowSubstitutes = ( system != ( builtins.currentSystem or null ) );
-      #preferLocalBuild = true;
     };
   in if preferFt then ft else drv;
 
@@ -226,7 +227,7 @@
       name = "flocoTarballFetcher";
       from = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
-      signature = [yt.any yt.any];  # FIXME: return type
+      signature = [yt.any Structs.fetched];
     };
     __functionArgs = lib.libfetch.fetchurlDrvW.__functionArgs // {
       type       = true;
@@ -253,10 +254,10 @@
 
   flocoFileFetcher = {
     __functionMeta = {
-      name = "flocoFileFetcher";
-      from = "at-node-nix#lib.libfetch";
-      innerName = "<laika#lib.libfetch.fetchurlDrvW|builtins.fetchTree>";
-      signature = [yt.any yt.any];  # FIXME: return type
+      name      = "flocoFileFetcher";
+      from      = "at-node-nix#lib.libfetch";
+      innerName = "laika#lib.libfetch.<fetchurlDrvW|fetchTreeFileW>";
+      signature = [yt.any Structs.fetched];
     };
     __functionArgs =
       ( lib.functionArgs flocoFileFetcher.__innerFunction ) //
@@ -266,14 +267,13 @@
           sha1      = true;
           resolved  = true;
         } );
-    # FIXME: write a real `fetchTreeFileW'
     __innerFunction =
       if lib.flocoConfig.enableImpureFetchers
       then { url, type, narHash ? null, ... } @ args: let
         fetchInfo  = builtins.intersectAttrs {
           url = false; type = false; narHash = true;
         } args;
-        sourceInfo = builtins.fetchTree args;
+        sourceInfo = lib.libfetch.fetchTreeFileW args;
       in {
         type = "file";
         fetchInfo = fetchInfo // { inherit (sourceInfo) narHash; };
@@ -387,13 +387,11 @@
   # which helps avoid needlessly duplicating store paths.
   flocoPathFetcher = {
 
-    __functionMeta = let
-      prev = lib.libfetch.pathW.__functionMeta;
-    in prev // {
-      name = "flocoPathFetcher";
-      from = "at-node-nix#lib.libfetch";
+    __functionMeta = {
+      name      = "flocoPathFetcher";
+      from      = "at-node-nix#lib.libfetch";
       innerName = "laika#lib.libfetch.pathW";
-      signature = [yt.any yt.any];  # FIXME: return type
+      signature = [yt.any Structs.fetched];
     };
 
     # Add the arg `basedir'.
