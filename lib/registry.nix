@@ -317,7 +317,8 @@
   , treelock    ? false
   , existing    ? {}
   , type        ? "file"  # Some archives fail as `type = "tarball";'
-  } @ args: let
+  , minimizeFetchInfo ? false
+  } @ args: assert ( args ? minimizeFetchInfo ) -> treelock; let
     p = importFetchPackument args;
     registerVersion = version: let
       realVersion =
@@ -337,9 +338,10 @@
       fetchInfo' =
         if treelock && ( version != "latest" ) && ( ! lib.inPureEvalMode )
         then {
-          fetchInfo = fetchInfoUnlocked // {
-            inherit (builtins.fetchTree fetchInfoUnlocked) narHash;
-          };
+          fetchInfo =
+            ( if minimizeFetchInfo then {} else fetchInfoUnlocked ) // {
+              inherit (builtins.fetchTree fetchInfoUnlocked) narHash;
+            };
         } else {};
     in fetchInfo' // {
       from = { id = id_sb + "--" + id_v; type = "indirect"; };
