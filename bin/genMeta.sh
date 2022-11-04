@@ -245,11 +245,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
       # that tries fetchTree and falls back to unpackSafe + builtins.path.
       lib = prev.lib.extend ( _: libPrev: {
         flocoConfig = libPrev.flocoConfig // {
-          enableImpureMeta     = true;
-          enableImpureFetchers = builtins.getEnv "DO_SHA256" == "true";
-          fetchers = {
-            tarballFetcher = libPrev.libfetch.fetchurlNoteUnpackDrvW;
-          };
+          enableImpureMeta = true;
         };
       } );
     } );
