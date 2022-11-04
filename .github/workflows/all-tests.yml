@@ -10,6 +10,7 @@ on:
       - types/**
       - tests/**
       - pkgs/**
+      - bin/**
       - '!**/README*'
       
   pull_request:
@@ -21,6 +22,7 @@ on:
       - lib/**
       - tests/**
       - pkgs/**
+      - bin/**
       - '!**/README*'
       
 concurrency:

@@ -79,21 +79,22 @@
   # is why we have explicitly provided an alternative `check' as a part
   # of `mkCheckerDrv'.
   harness = let
-    name = "all-tests";
+    purity = if lib.inPureEvalMode then "pure" else "impure";
+    name = "at-node-nix tests (${system}, ${purity})";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
-    mkCheckerDrv = args: lib.libdbg.mkCheckerDrv {
-      inherit name keepFailed writeText;
-      check = lib.libdbg.checkerReport name harness.run;
+    mkCheckerDrv = {
+      __functionArgs  = lib.functionArgs lib.libdbg.mkCheckerDrv;
+      __innerFunction = lib.libdbg.mkCheckerDrv;
+      __processArgs   = self: args: self.__thunk // args;
+      __thunk = { inherit name keepFailed writeText; };
+      __functor = self: x: self.__innerFunction ( self.__processArgs self x );
     };
     checker = name: run: let
-      msg = lib.libdbg.checkerMsg name run;
-      rsl = lib.libdbg.checkerDefault name run;
-    in if doTrace then builtins.trace msg rsl else rsl;
+      rsl = lib.libdbg.checkerReport name run;
+      msg = builtins.trace rsl null;
+    in builtins.deepSeq msg rsl;
   };
-
-
-# ---------------------------------------------------------------------------- #
 
 in harness
 

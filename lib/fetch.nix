@@ -286,7 +286,7 @@
       integritry = true;
       sha1       = true;
       narHash    = true;
-    } else { url = true; resolved = true; };
+    } else { url = true; resolved = true; type = true; };
 
     __thunk = {};
 
@@ -355,7 +355,7 @@
       integritry = true;
       sha1       = true;
       narHash    = true;
-    } else { url = true; resolved = true; };
+    } else { url = true; resolved = true; type = true; };
 
     __thunk = {};
 
@@ -587,7 +587,8 @@
         if yt.NpmLock.package.check x then identifyPlentSourceType x else
         if x._type == "metaEnt" then identifyMetaEntSourceType x else
         throw "flocoFetch: cannot discern source typeof : ${pp x}";
-    in self."${st}Fetcher" ( x.fetchInfo or x );
+      ft = x.fetchInfo.type or x.type or st;
+    in self."${ft}Fetcher" ( x.fetchInfo or x );
   } // fetchers;
 
   mkFlocoFetcher = {
