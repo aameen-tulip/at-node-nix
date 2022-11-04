@@ -131,7 +131,7 @@
         fetchInfo:  ${builtins.toJSON fetchInfo}
         sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
     '';
-  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
+  in builtins.traceVerbose msg result;
 
 
 # ---------------------------------------------------------------------------- #
@@ -576,12 +576,12 @@
     __functor = self: x: let
       pp = lib.generators.toPretty {};
       st =
-        if x ? fetchInfo then identifyFetchInfoSourceType x else
-        if yt.NpmLock.package.check x then identifyPlentSourceType x else
+        if x ? fetchInfo then identifyFetchInfoSourceType x.fetchInfo else
         if x ? type then identifyFetchInfoSourceType x else
+        if yt.NpmLock.package.check x then identifyPlentSourceType x else
         if x._type == "metaEnt" then identifyMetaEntSourceType x else
         throw "flocoFetch: cannot discern source typeof : ${pp x}";
-    in self."${st}Fetcher" x;
+    in self."${st}Fetcher" ( x.fetchInfo or x );
   } // fetchers;
 
   mkFlocoFetcher = {
