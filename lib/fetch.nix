@@ -84,7 +84,7 @@
   Structs.fetched = yt.struct "fetchedSource" {
     type       = Enums.sourceType;
     outPath    = yt.FS.store_path;
-    sourceInfo = yt.SourceInfo.sourceInfo;
+    sourceInfo = yt.option yt.SourceInfo.sourceInfo;
     fetchInfo  = yt.attrs yt.any;
     passthru   = yt.option ( yt.attrs yt.any );
     meta       = yt.option ( yt.attrs yt.any );
@@ -306,9 +306,11 @@
     __postProcess = result:
       if yt.SourceInfo.sourceInfo.check result then result else {
         inherit (result) outPath;
-        narHash =
-          if yt.Hash.narHash.check result.outputHash then result.outputHash else
-          ( builtins.fetchTree { type = "path"; path = result; } ).narHash;
+        narHash = let
+          ft = builtins.fetchTree { type = "path"; path = result.outPath; };
+        in if yt.Hash.narHash.check result.outputHash
+           then result.outputHash
+           else if ! pure then ft.narHash else null;
       };
 
     __functor = self: x: let
@@ -321,9 +323,10 @@
       sourceInfo = self.__postProcess result;
       fetched = {
         type = "tarball";
-        inherit fetchInfo sourceInfo;
+        inherit fetchInfo;
         inherit (sourceInfo) outPath;
-      } // ( if result != sourceInfo then { passthru.drv = result; } else {} );
+      } // ( if result != sourceInfo then { passthru.drv = result; } else {} )
+      // ( if sourceInfo.narHash != null then { inherit sourceInfo; } else {} );
     in rslt fetched;
   };
 
@@ -372,9 +375,11 @@
     __postProcess = result:
       if yt.SourceInfo.sourceInfo.check result then result else {
         inherit (result) outPath;
-        narHash =
-          if yt.Hash.narHash.check result.outputHash then result.outputHash else
-          ( builtins.fetchTree { type = "path"; path = result; } ).narHash;
+        narHash = let
+          ft = builtins.fetchTree { type = "path"; path = result.outPath; };
+        in if yt.Hash.narHash.check result.outputHash
+           then result.outputHash
+           else if ! pure then ft.narHash else null;
       };
 
     __functor = self: x: let
@@ -386,10 +391,11 @@
       result     = self.__innerFunction fetchInfo;
       sourceInfo = self.__postProcess result;
       fetched = {
-        type = "file";
-        inherit fetchInfo sourceInfo;
+        type = "tarball";
+        inherit fetchInfo;
         inherit (sourceInfo) outPath;
-      } // ( if result != sourceInfo then { passthru.drv = result; } else {} );
+      } // ( if result != sourceInfo then { passthru.drv = result; } else {} )
+      // ( if sourceInfo.narHash != null then { inherit sourceInfo; } else {} );
     in rslt fetched;
   };
 
@@ -557,7 +563,7 @@
         pool = defaultFetchers // ( args.fetchers or {} ) // args;
       in builtins.intersectAttrs defaultFetchers pool;
       fetchers =
-        if ! ( fetchersNoConf.pathFetcher ? __thunk.basedir )
+        if ! ( fetchersNoConf.pathFetcher.__functionArgs ? basedir )
         then fetchersNoConf
         else fetchersNoConf // {
           pathFetcher = fetchersNoConf.pathFetcher // {
@@ -630,6 +636,7 @@ in {
     flocoTarballFetcher' flocoTarballFetcherUntyped flocoTarballFetcherTyped
     flocoFileFetcher'    flocoFileFetcherUntyped    flocoFileFetcherTyped
     flocoPathFetcher'    flocoPathFetcherUntyped    flocoPathFetcherTyped
+    flocoGitFetcher flocoTarballFetcher flocoFileFetcher flocoPathFetcher
 
     mkFlocoFetchers'
     mkFlocoFetcher
@@ -651,8 +658,7 @@ in {
         self // {
           fetchers = self.fetchers // {
             pathFetcher = self.fetchers.pathFetcher // {
-              __thunk = self.fetchers.pathFetcher.__thunk // {
-                inherit basedir;
+              __thunk = self.fetchers.pathFetcher.__thunk // {inherit basedir;
               };
             };
           };
