@@ -391,7 +391,7 @@
       result     = self.__innerFunction fetchInfo;
       sourceInfo = self.__postProcess result;
       fetched = {
-        type = "tarball";
+        type = "file";
         inherit fetchInfo;
         inherit (sourceInfo) outPath;
       } // ( if result != sourceInfo then { passthru.drv = result; } else {} )
