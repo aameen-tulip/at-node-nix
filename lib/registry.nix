@@ -311,45 +311,90 @@
   # flake registries, and a custom "fetchTree registry" which is effectively
   # a `flake.lock' with some added fields.
   flakeRegistryFromPackuments = {
-    registry           ? null
-  , includePrereleases ? false
-  , outputTreelock     ? false
-  , ident
+    ident
+  , registry    ? null
+  , versionCond ? version: lib.test "[^a-zA-Z+-]*" version  # Only keep releases
+  , treelock    ? false
+  , existing    ? {}
+  , type        ? "file"  # Some archives fail as `type = "tarball";'
   } @ args: let
     p = importFetchPackument args;
     registerVersion = version: let
       realVersion =
         if version == "latest" then ( packumentLatestVersion' p ).version
                                else version;
-      id_v = if version == "latest" then "latest" else
-             ( builtins.replaceStrings ["@" "."] ["_" "_"] version );
+      id_v' = v:
+        if v == "latest" then "latest" else
+        ( builtins.replaceStrings ["@" "."] ["_" "_"] v );
+      id_v = id_v' version;
       id_sb = let
         sb = lib.libparse.parseIdent ident;
       in if sb.scope == null then sb.bname else "${sb.scope}--${sb.bname}";
-    in {
-      from = {
-        id = id_sb + "--" + id_v;
+      fetchInfoUnlocked = {
+        inherit type;
+        url = p.versions.${realVersion}.dist.tarball;
+      };
+      fetchInfo' =
+        if treelock && ( version != "latest" ) && ( ! lib.inPureEvalMode )
+        then {
+          fetchInfo = fetchInfoUnlocked // {
+            inherit (builtins.fetchTree fetchInfoUnlocked) narHash;
+          };
+        } else {};
+    in fetchInfo' // {
+      from = { id = id_sb + "--" + id_v; type = "indirect"; };
+      to = if version != "latest" then fetchInfoUnlocked else {
+        id   = id_sb + "--" + ( id_v' realVersion );
         type = "indirect";
       };
-      to = {
-        type = "tarball";
-        url  = p.versions.${realVersion}.dist.tarball;
-      };
     };
-    latest   = registerVersion "latest";
-    releases = builtins.filter ( lib.test "[^a-zA-Z+-]*" )
-                               ( builtins.attrNames p.versions );
-    keeps = if includePrereleases then ( builtins.attrNames p.versions ) else
-            releases;
-    entries = [latest] ++ ( map registerVersion keeps );
-  in if outputTreelock then { treelockVersion = 1; trees  = entries; }
-                       else { version = 2;         flakes = entries; };
 
-  flakeRegistryFromNpm = ident:
-    flakeRegistryFromPackuments {
-      inherit ident;
-      registry = "https://registry.npmjs.org";
+    latest   = registerVersion "latest";
+    keeps = builtins.filter versionCond ( builtins.attrNames p.versions );
+    entries = [latest] ++ ( map registerVersion keeps );
+    merged = let
+      notLatest   = { from, ... }: ( baseNameOf from.id ) != "latest";
+      oldNodes    = existing.trees or existing.flakes or [];
+      oldVersions = builtins.filter notLatest oldNodes;
+      oldIds = map ( { from, ... }: from.id ) oldVersions;
+      pick = { from, to, ... } @ new: let
+        oldv' = builtins.filter ( old: from.id == old.from.id ) oldVersions;
+        oldv  = if oldv' == [] then null else builtins.head oldv;
+        condNoOld = ! ( builtins.elem from.id oldIds );
+        condFI    = ( new ? fetchInfo ) && ( ! ( oldv ? fetchInfo ) );
+        condFIT   = condFI && ( oldv.fetchInfo.type != "tarball" ) &&
+                              ( new.fetchInfo.type == "tarball" );
+        keep = ( ( oldv != null ) && condFIT ) || condNoOld;
+      in if keep then new else oldv;
+    in map pick entries;
+  in if treelock then { treelockVersion = 1; trees  = entries; }
+                 else { version = 2; flakes = entries; };
+
+
+  flakeRegistryFromNpm = {
+    __functionArgs   = lib.functionArgs flakeRegistryFromPackuments;
+    __innerFunction  = flakeRegistryFromPackuments;
+    __thunk.registry = "https://registry.npmjs.org";
+    __processArgs = self: x: let
+      attrs = if builtins.isAttrs x then x else
+              if builtins.isString x then { ident = x; } else
+              ( yt.either yt.string ( yt.attrs yt.any ) ) x;
+    in self.__thunk // attrs;
+    __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Flatten a list of `{ from, to, ... }' nodes to an attrset.
+  # FIXME: probably move to `rime'.
+  flattenLockNodes = lock: let
+    proc = acc: { from, to, ... } @ ent: acc // {
+      ${from.id} = if to.type == "indirect" then self.${to.id} else
+                   ent.fetchInfo or ent.to;
     };
+    self = builtins.foldl' proc {} ( lock.trees or lock.nodes or lock.flakes );
+  in self;
 
 
 # ---------------------------------------------------------------------------- #
@@ -512,12 +557,14 @@ in {
     packumenter
     extendWithLatestDeps'
     packumentClosure'
-    packumentClosure;
+    packumentClosure
+  ;
 
   inherit
     flakeRegistryFromPackuments
     flakeRegistryFromNpm
     flakeInputFromManifestTarball
+    flattenLockNodes
   ;
 
   inherit
