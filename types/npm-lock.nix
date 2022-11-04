@@ -152,8 +152,8 @@
     condHash = x: ( x ? integrity ) || ( x ? sha1 );
     fconds   = pkg_any_fields_v3 // {
       resolved  = tarball_uri;
-      integrity = option yt.Strings.sha512_sri;
-      sha1      = option yt.Strings.sha1_hash;
+      integrity = option yt.Hash.integrity;
+      sha1      = option yt.Hash.Strings.sha1_hash;
     };
     condFields = x: let
       fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );

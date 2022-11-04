@@ -8,12 +8,6 @@
 
   yt  = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
   plt = yt.NpmLock.Structs // yt.NpmLock;
-  inherit (lib.libfetch)
-    fetchTreeGithubW
-    fetchTreeGitW
-    fetchGitW
-    fetchTreePathW
-  ;
 
 # ---------------------------------------------------------------------------- #
 #
@@ -52,12 +46,18 @@
       git  = yt.NpmLock.Structs.pkg_git_v3;
       file = yt.NpmLock.Structs.pkg_tarball_v3;
     } ent;
-    fromTag = builtins.head ( builtins.attrNames tagged );
-    fromFetchInfo = let
-      t = ent.type or ent.fetchInfo.type or ent.sourceInfo.type or null;
-    in if builtins.elem t ["git" "github" "sourcehut"] then "git" else
-       if builtins.elem t ["file" "tarball"] then "file" else t;
-  in if fromFetchInfo != null then fromFetchInfo else fromTag;
+  in builtins.head ( builtins.attrNames tagged );
+
+  # FIXME: don't require `type'
+  identifyFetchInfoSourceType = { type, ... } @ fetchInfo:
+    if builtins.elem type ["git" "github" "sourcehut"] then "git" else
+    if builtins.elem type ["file" "tarball"] then "file" else type;
+
+  identifyMetaEntSourceType = { fetchInfo ? null, entries ? {}, ... } @ me:
+    if fetchInfo != null then identifyFetchInfoSourceType fetchInfo else
+    if ( entries.plent or null ) != null
+    then identifyPlentSourceType entries.plent
+    else throw "identifyMetaEntSourceType: Cannot discern 'sourceType'";
 
 
 # ---------------------------------------------------------------------------- #
@@ -84,7 +84,7 @@
   Structs.fetched = yt.struct "fetchedSource" {
     type       = Enums.sourceType;
     outPath    = yt.FS.store_path;
-    sourceInfo = yt.SourceInfo.sourceInfo;
+    sourceInfo = yt.option yt.SourceInfo.sourceInfo;
     fetchInfo  = yt.attrs yt.any;
     passthru   = yt.option ( yt.attrs yt.any );
     meta       = yt.option ( yt.attrs yt.any );
@@ -95,6 +95,18 @@
   #   relpath  ( string + struct )
   #   path     ( sumtype )
   #   file     ( sumtype )
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Return configured `laika' fetchers with explicitly specified settings.
+  # These differ from the default `lib.libfetch' routines which may depend on
+  # `laikaConfig' or runtime context.
+  laikaFetchersConfigured = { pure, typecheck }: let
+    pf = if pure      then "Pure"  else "Impure";
+    tf = if typecheck then "Typed" else "Untyped";
+  in lib.libfetch."${pf}${tf}";
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -119,7 +131,7 @@
         fetchInfo:  ${builtins.toJSON fetchInfo}
         sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
     '';
-  in builtins.deepSeq ( builtins.traceVerbose msg result ) result;
+  in builtins.traceVerbose msg result;
 
 
 # ---------------------------------------------------------------------------- #
@@ -146,6 +158,14 @@
     in {
       inherit type repo rev;
       name = repo;
+      # Simplify URL for processing as a struct.
+      # `builtins.fetch[Tree]Git' gets pissed off if you include URI params in
+      # the `url' string, it wants you to move them to attrs.
+      # We strip off the `data' portion of the scheme, and drop any params or
+      # fragments to get the "base" URL.
+      # NOTE: the `lib.ytypes.NpmLock.pkg_git_v3' expects a `git+<TRANSPORT>://'
+      # in the scheme, so keep that in mind if you serialize `fetchInfo' and
+      # try to recycle any `resolved' URI -> type discriminators.
       url  = lib.yankN 1 "(git\\+)?([^?#]+).*" resolved;
     } // allRefs' // owner' // ref';
   in yt.defun [yt.NpmLock.Structs.pkg_git_v3
@@ -170,212 +190,218 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flocoGitFetcher = lib.libfetch.fetchGitW // {
-    __functionMeta = {
-      name      = "flocoGitFetcher";
-      from      = "at-node-nix#lib.libfetch";
-      innerName = "laika#lib.libfetch.<fetchTreeGithubW|fetchGitW>";
-      signature = [yt.any Structs.fetched];
-      properties = {
-        # Inherit from wrapped
-        pure = lib.libfetch.fetchGitW.__functionMeta.properties.pure &&
-               lib.libfetch.fetchTreeGithubW.__functionMeta.properties.pure;
-        family    = "git";
-        builtin   = true;
-        typecheck = true;  # XXX make this a toggle like we do in `laika'.
+  flocoGitFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
+    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  in lfc.fetchGitW // {
+      __functionMeta = {
+        name      = "flocoGitFetcher";
+        from      = "at-node-nix#lib.libfetch";
+        innerName = "laika#lib.libfetch.<fetchTreeGithubW|fetchGitW>";
+        signature = [yt.any Structs.fetched];
+        properties = {
+          family  = "git";
+          builtin = true;
+          inherit typecheck pure;
+        };
       };
-    };
-    __innerFunction = args:
-      if ( args.type or "git" ) == "github"
-      then lib.libfetch.fetchTreeGithubW args
-      else lib.libfetch.fetchGitW args;
-    __functionArgs =
-      ( builtins.mapAttrs ( _: _: true ) lib.libfetch.genericGitArgFields ) // {
-        resolved = true;
-      };
-    __thunk = lib.libfetch.fetchGitW.__thunk // { allRefs = true; };
-    __processArgs = flocoProcessGitArgs;
-    __functor     = self: x: let
-      argt       = builtins.head self.__functionMeta.signature;
-      rslt       = builtins.elemAt self.__functionMeta.signature 1;
-      fetchInfo  = argt ( self.__processArgs self x );
-      sourceInfo = self.__innerFunction fetchInfo;
-      fetched    = flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo
-                                                                    sourceInfo;
-    in rslt fetched;
+      __innerFunction = args:
+        if ( args.type or "git" ) == "github"
+        then lfc.fetchTreeGithubW args
+        else lfc.fetchGitW args;
+      __functionArgs = let
+        # Accept all genericGitArgFields as optionals
+        tfields = builtins.mapAttrs ( _: _: true )
+                                    lib.libfetch.genericGitArgFields;
+      in tfields // { resolved = true; };
+      __thunk       = lfc.fetchGitW.__thunk // { allRefs = true; };
+      __processArgs = flocoProcessGitArgs;
+      __functor     = self: x: let
+        argt = if typecheck then builtins.head self.__functionMeta.signature
+                            else ( y: y );
+        rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
+                            else ( y: y );
+        fetchInfo  = argt ( self.__processArgs self x );
+        sourceInfo = self.__innerFunction fetchInfo;
+        fetched = flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo
+                                                                   sourceInfo;
+      in rslt fetched;
   };
 
-
-# ---------------------------------------------------------------------------- #
-
-  # In impure mode we can use `builtins.fetchTree' which is backed by sha256, or
-  # we can use it if `narHash' is given.
-  # In impure mode we will use `fetchTree'.
-  fetchTreeOrUrlDrv = {
-    url       ? fetchInfo.resolved
-  , resolved  ? null
-  , hash      ? if integrity != null then integrity else ""
-  , integrity ? fetchInfo.narHash or fetchInfo.sha1 or fetchInfo.sha256 or
-                fetchInfo.sha512 or fetchInfo.md5 or null
-  , sha1      ? null
-  , type      ? "file"
-  , narHash   ? null
-  , ...
-  } @ fetchInfo: let
-    ftLocked = ( fetchInfo ? narHash ) || lib.flocoConfig.enableImpureFetchers;
-    preferFt = ( fetchInfo ? type ) && ftLocked;
-    nh' = if fetchInfo ? narHash then { inherit narHash; } else {};
-    # Works in impure mode, or given a `narHash'. Uses tarball TTL. Faster.
-    ft = ( lib.libfetch.fetchTreeW { inherit url type; } ) // nh';
-    # Works in pure mode and avoids tarball TTL.
-    drv = lib.libfetch.fetchurlDrvW {
-      inherit url hash;
-      unpack = type == "tarball";
-    };
-  in if preferFt then ft else drv;
+  flocoGitFetcherUntyped = flocoGitFetcher' { typecheck = false; };
+  flocoGitFetcherTyped   = flocoGitFetcher' { typecheck = true; };
+  flocoGitFetcher        = flocoGitFetcher' {};
 
 
 # ---------------------------------------------------------------------------- #
 
-  flocoTarballFetcher = {
+  # NOTE: works for either "file" or "tarball".
+  # You can pick a specialized form using the `postFn' arg.
+  # I recommend `asGeneric*ArgsImpure' here since those routines
+  # doesn't use a real type checker.
+  # They just have an assert that freaks out if you're missing a hash field.
+  # Our inner fetchers will catch that anyway so don't sweat it.
+  plockEntryToGenericUrlArgs' = {
+    postFn    ? lib.libfetch.asGenericUrlArgsImpure
+  , typecheck ? false
+  }: let
+    inner = {
+      resolved
+    , sha1_hash ? plent.sha1 or null
+    , integrity ? null  # Almost always `sha512_sri` BUT NOT ALWAYS!
+    , ...
+    } @ plent: let
+      rough   = { url = resolved; inherit sha1_hash integrity; };
+      args    = lib.filterAttrs ( _: x: x != null ) rough;
+    in postFn args;
+    rtype = let
+      # Typecheck generic arg fields ( optional ).
+      cond = x: let
+        # Collect matching typecheckers and run them as we exit.
+        # The outer checker can just focus on fields.
+        tcs = builtins.intersectAttrs x lib.libfetch.genericUrlArgFields;
+        proc = acc: f: acc && ( tcs.${f}.check x.${f} );
+      in builtins.foldl' proc true ( builtins.attrNames tcs );
+    in if ! typecheck then yt.any else
+       yt.restrict "fetchInfo:generic:url:rough" cond ( yt.attrs yt.any );
+  in yt.defun [yt.NpmLock.Structs.pkg_tarball_v3 rtype] inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoTarballFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
+    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  in {
     __functionMeta = {
-      name = "flocoTarballFetcher";
-      from = "at-node-nix#lib.libfetch";
-      innerName = "at-node-nix#lib.libfetch.fetchTreeOrUrlDrv";
+      name      = "flocoTarballFetcher";
+      from      = "at-node-nix#lib.libfetch";
+      innerName = if pure then "laika#lib.libfetch.fetchurlDrvW" else
+                  "laika#lib.libfetch.fetchTreeTarballW";
       signature = [yt.any Structs.fetched];
     };
-    __functionArgs = lib.libfetch.fetchurlDrvW.__functionArgs // {
+
+    __functionArgs = if pure then {
       type       = true;
       url        = true;
       resolved   = true;
       integritry = true;
       sha1       = true;
       narHash    = true;
-    };
-    __innerFunction = lib.libfetch.fetchTreeOrUrlDrv;
+    } else { url = true; resolved = true; };
+
     __thunk = {};
+
+    __innerFunction = if pure then lfc.fetchurlDrvW else lfc.fetchTreeTarballW;
+
     __processArgs = self: x: let
-      args = {
+      plArgs = plockEntryToGenericUrlArgs' {
+        inherit typecheck;
+        postFn = lib.libfetch.asGenericTarballArgsImpure;
+      } ( self.__thunk // x );
+      rawArgs = lib.libfetch.asGenericTarballArgsImpure ( self.__thunk // x );
+      args = if x ? resolved then plArgs else rawArgs;
+    in lib.canPassStrict self.__innerFunction args;
+
+    # If we hit `fetchurlDrvW' we won't have a `sourceInfo' return.
+    # XXX: honestly we do more post-processing in `__functor'
+    __postProcess = result:
+      if yt.SourceInfo.sourceInfo.check result then result else {
+        inherit (result) outPath;
+        narHash = let
+          ft = builtins.fetchTree { type = "path"; path = result.outPath; };
+        in if yt.Hash.narHash.check result.outputHash
+           then result.outputHash
+           else if ! pure then ft.narHash else null;
+      };
+
+    __functor = self: x: let
+      argt = if typecheck then builtins.head self.__functionMeta.signature
+                          else ( y: y );
+      rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
+                          else ( y: y );
+      fetchInfo = argt ( self.__processArgs self x );
+      result     = self.__innerFunction fetchInfo;
+      sourceInfo = self.__postProcess result;
+      fetched = {
         type = "tarball";
-        url  = x.url or x.resolved;
-      } // ( if x ? narHash then { inherit (x) narHash; } else {} );
-      args' = self.__thunk // args;
-    in builtins.intersectAttrs self.__functionArgs args';
-    __functor = self: x: flocoFTFunctor "tarball" self x;
+        inherit fetchInfo;
+        inherit (sourceInfo) outPath;
+      } // ( if result != sourceInfo then { passthru.drv = result; } else {} )
+      // ( if sourceInfo.narHash != null then { inherit sourceInfo; } else {} );
+    in rslt fetched;
   };
+
+  flocoTarballFetcherUntyped = flocoTarballFetcher' { typecheck = false; };
+  flocoTarballFetcherTyped   = flocoTarballFetcher' { typecheck = true; };
+  flocoTarballFetcher        = flocoTarballFetcher' {};
 
 
 # ---------------------------------------------------------------------------- #
 
-  flocoFileFetcher = {
+  flocoFileFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
+    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  in {
     __functionMeta = {
       name      = "flocoFileFetcher";
       from      = "at-node-nix#lib.libfetch";
-      innerName = "laika#lib.libfetch.<fetchurlDrvW|fetchTreeFileW>";
+      innerName = if pure then "laika#lib.libfetch.fetchurlDrvW" else
+                  "laika#lib.libfetch.fetchTreeFileW";
       signature = [yt.any Structs.fetched];
     };
-    __functionArgs =
-      ( lib.functionArgs flocoFileFetcher.__innerFunction ) //
-      ( lib.optionalAttrs ( ! lib.flocoConfig.enableImpureFetchers ) {
-          integrity = true;
-          hash      = true;
-          sha1      = true;
-          resolved  = true;
-        } );
-    __innerFunction =
-      if lib.flocoConfig.enableImpureFetchers
-      then { url, type, narHash ? null, ... } @ args: let
-        fetchInfo  = builtins.intersectAttrs {
-          url = false; type = false; narHash = true;
-        } args;
-        sourceInfo = lib.libfetch.fetchTreeFileW args;
-      in {
-        type = "file";
-        fetchInfo = fetchInfo // { inherit (sourceInfo) narHash; };
-        inherit sourceInfo;
-        inherit (sourceInfo) outPath;
-      } else lib.libfetch.fetchurlDrvW;
+
+    __functionArgs = if pure then {
+      type       = true;
+      url        = true;
+      resolved   = true;
+      integritry = true;
+      sha1       = true;
+      narHash    = true;
+    } else { url = true; resolved = true; };
+
     __thunk = {};
+
+    __innerFunction = if pure then lfc.fetchurlDrvW else lfc.fetchTreeFileW;
+
     __processArgs = self: x: let
-      args = {
-        type = "file";
-        url  = x.url or x.resolved;
-        hash = x.hash or x.integrity or x.shasum or null;
-      } // ( if x ? narHash then { inherit (x) narHash; } else {} );
-      args' = self.__thunk // (
-        if args.hash != null then args else removeAttrs args ["hash"]
-      );
-    in builtins.intersectAttrs self.__functionArgs args';
+      plArgs = plockEntryToGenericUrlArgs' {
+        inherit typecheck;
+        postFn = lib.libfetch.asGenericFileArgsImpure;
+      } ( self.__thunk // x );
+      rawArgs = lib.libfetch.asGenericFileArgsImpure ( self.__thunk // x );
+      args = if x ? resolved then plArgs else rawArgs;
+    in lib.canPassStrict self.__innerFunction args;
+
+    # If we hit `fetchurlDrvW' we won't have a `sourceInfo' return.
+    # XXX: honestly we do more post-processing in `__functor'
+    __postProcess = result:
+      if yt.SourceInfo.sourceInfo.check result then result else {
+        inherit (result) outPath;
+        narHash = let
+          ft = builtins.fetchTree { type = "path"; path = result.outPath; };
+        in if yt.Hash.narHash.check result.outputHash
+           then result.outputHash
+           else if ! pure then ft.narHash else null;
+      };
+
     __functor = self: x: let
-      rsl = flocoFTFunctor "file" self x;
-    in if rsl ? sourceInfo.sourceInfo then rsl.sourceInfo else rsl;
+      argt = if typecheck then builtins.head self.__functionMeta.signature
+                          else ( y: y );
+      rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
+                          else ( y: y );
+      fetchInfo = argt ( self.__processArgs self x );
+      result     = self.__innerFunction fetchInfo;
+      sourceInfo = self.__postProcess result;
+      fetched = {
+        type = "tarball";
+        inherit fetchInfo;
+        inherit (sourceInfo) outPath;
+      } // ( if result != sourceInfo then { passthru.drv = result; } else {} )
+      // ( if sourceInfo.narHash != null then { inherit sourceInfo; } else {} );
+    in rslt fetched;
   };
 
-
-# ---------------------------------------------------------------------------- #
-
-  # Wraps `fetchurlDrv'.
-  # Since it isn't technically a builtin this wrapper is really just for
-  # consistency with the other wrappers.
-  # NOTE: You can't avoid unpacking in a platform dependant way in pure mode;
-  # with that in mind the best we can do is fetch the tarball and pass a message
-  # for builders to handle later.
-  # We add the field `needsUpack = true' in pure mode.
-  # In practice the best thing to do is to override this fetcher in pure mode
-  # in your config.
-  fetchurlDrvMaybeUnpackAfterW = {
-    #__functionArgs = hashFields // { name = true; url = false; };
-    __functionArgs = ( lib.functionArgs lib.libfetch.fetchurlDrvW ) // {
-      unpackAfter = true;  # Allows acting as a `tarballFetcher' in pure mode.
-      resolved    = true;
-      integritry  = true;
-      sha1        = true;
-    };
-
-    __thunk = {
-      unpack           = false;
-      unpackAfter      = false;
-      allowSubstitutes = true;
-    };
-
-    __innerFunction = lib.libfetch.fetchurlDrvW;
-
-    __processArgs = self: x: let
-      rough  = x // {
-        url  = x.url or x.resolved;
-        hash = x.hash or x.integrity or x.sha1 or x.narHash or x.sha256 or null;
-      };
-      args = if rough.hash != null then rough else removeAttrs rough ["hash"];
-      args' = removeAttrs ( self.__thunk // args ) ["unpackAfter"];
-    in builtins.intersectAttrs self.__functionArgs args';
-
-    # Call inner without `unpackAfter' arg, preserving it as a tag in our result
-    __functor = self: args: let
-      fetched = self.__innerFunction ( self.__processArgs self args );
-      # Unpack
-      unpacked      = builtins.fetchTarball { url = fetched.outPath; };
-      unpackedFull  = unpacked // { passthru.tarball = fetched; };
-      doUnpackAfter = args.unpackAfter or self.__thunk.unpackAfter;
-    in if doUnpackAfter then unpackedFull else fetched;
-  };
-
-  # Fetch a tarball using the given hash, and then unpack.
-  # This allows you to use the "packed" hash but still return a store-path to
-  # an unpacked tarball.
-  fetchurlUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
-    __thunk.unpackAfter = true;
-  };
-
-  # Fetch a tarball using the given hash, and mark it explicitly as needing to
-  # be unpacked.
-  # FIXME: remove this and instead change logic in builders to look for
-  # `source.type == "file";' to detect if unpacking is required.
-  fetchurlNoteUnpackDrvW = fetchurlDrvMaybeUnpackAfterW // {
-    __functor = self: x:
-      ( fetchurlDrvMaybeUnpackAfterW.__functor self x ) // {
-        needsUnpack = true;
-      };
-  };
+  flocoFileFetcherUntyped = flocoFileFetcher' { typecheck = false; };
+  flocoFileFetcherTyped   = flocoFileFetcher' { typecheck = true; };
+  flocoFileFetcher        = flocoFileFetcher' {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -400,20 +426,23 @@
   # in `metaEnt' data ( this still applies `filter' if it is defined ).
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
-  flocoPathFetcher = {
-
+  flocoPathFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
+    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  in {
     __functionMeta = {
       name      = "flocoPathFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "laika#lib.libfetch.pathW";
+      properties =
+        flocoPathFetcher.__innerFunction.__functionMeta.properties // {
+          inherit typecheck pure;
+        };
       signature = [yt.any Structs.fetched];
     };
-
     # Add the arg `basedir'.
     __functionArgs = ( lib.functionArgs flocoPathFetcher.__innerFunction ) // {
       basedir = true;
     };
-
     __thunk = {
       # XXX: You likely want to set `basedir' here!
       filter = name: type: let
@@ -421,9 +450,7 @@
       in ( type == "directory" -> ( bname != "node_modules" ) ) &&
          ( lib.libfilt.genericFilt name type );
     };
-
-    __innerFunction = lib.libfetch.pathW;
-
+    __innerFunction = lfc.pathW;
     # Convert relative paths to absolute, and repackage returned store-path into
     # a `sourceInfo:path' struct.
     __processArgs = self: x: let
@@ -441,10 +468,8 @@
       name = x.name or ( lib.libfs.baseName p );
     in lib.canPassStrict self.__innerFunction
                          ( self.__thunk // { inherit name path; } );
-
-    __functor = self: x: let
-      args    = self.__processArgs self x;
-      outPath = x.outPath or ( self.__innerFunction args );
+    # Convert the store-path returned by `pathW' to a `fetched' struct.
+    __processResult = self: args: outPath: let
       # `filter' is a function so it cannot be added to `fetchInfo' if we want
       # that record to be serialized.
       # Instead we stash it in `passthru'.
@@ -452,15 +477,30 @@
       # the filter they need to refer to `passthru' to actually reproduce the
       # original fetch with their overridden args.
       # In practice I think it's incredibly unlikely that anyone will need to.
-      passthru' =
-        if args ? filter then { passthru.filter = args.filter; } else {};
+      passthru' = if ! ( args ? filter ) then {} else {
+        passthru = { inherit (args) filter; };
+      };
     in {
       type      = "path";
       fetchInfo = removeAttrs args ["filter"];
       inherit outPath;
-      sourceInfo.outPath = outPath;
+      sourceInfo = { inherit outPath; };
     } // passthru';
+    # Entry point
+    __functor = self: x: let
+      argt = if typecheck then builtins.head self.__functionMeta.signature
+                          else ( y: y );
+      rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
+                          else ( y: y );
+      args    = argt ( self.__processArgs self x );
+      outPath = self.__innerFunction args;
+      fetched = self.__processResult self args outPath;
+    in rslt fetched;
   };
+
+  flocoPathFetcherUntyped = flocoPathFetcher' { typecheck = false; };
+  flocoPathFetcherTyped   = flocoPathFetcher' { typecheck = true; };
+  flocoPathFetcher        = flocoPathFetcher' {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -486,52 +526,97 @@
   #     metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; }
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
-  mkFlocoFetcher = {
-    tarballFetcher ? fetchers.tarballFetcher
-  , fileFetcher    ? fetchers.fileFetcher
-  , gitFetcher     ? fetchers.gitFetcher
-  , pathFetcher    ? fetchers.pathFetcher
-  , fetchers       ? lib.recursiveUpdate lib.libcfg.defaultFlocoConfig.fetchers
-                                         ( flocoConfig.fetchers or {} )
-  , flocoConfig          ? lib.flocoConfig
-  , enableImpureFetchers ? flocoConfig.enableImpureFetchers
-  , allowSubstitutes     ? flocoConfig.allowSubstitutedFetchers or true
-  , basedir              ? null  # Throws in `flocoPathFetcher' if needed.
-  } @ cargs: {
-    fetchers = {
-      # We don't carry pure/impure past argument handling because we're actually
-      # going to fetch.
-      inherit
-        gitFetcher
-        tarballFetcher
-        fileFetcher
-      ;
-      # If we are using `flocoPathFetcher', then inject `basedir'.
-      pathFetcher =
-        if pathFetcher.__functionMeta.name == "flocoPathFetcher" then
-        pathFetcher // {
-          __thunk = pathFetcher.__thunk // { inherit basedir; };
-        } else pathFetcher;
+
+  # XXX: This basically just processes args and merged configs.
+  mkFlocoFetchers' = {
+    __functionArgs = {
+      flocoConfig      = true;
+      fetchers         = true;
+
+      tarballFetcher   = true;
+      fileFetcher      = true;
+      gitFetcher       = true;
+      pathFetcher      = true;
+
+      pure             = true;
+      typecheck        = true;
+      basedir          = true;
+      allowSubstitutes = true;
     };
 
-    # FIXME: a hot mess over here.
-    __innerFunction = fetchers: x: let
-      plent = if yt.NpmLock.package.check x then x else
-              x.entries.plock or null;
-      # Effectively these are our args.
-      fetchInfo = let
-        fallback = if plent == null then x else plent;
-      in x.fetchInfo or fallback;
-      # Determine the `flocoSourceType'.
-      type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
-      args = if builtins.isAttrs fetchInfo then { inherit type; } // fetchInfo
-                                           else fetchInfo;
-      # Select the right fetcher based on `type'.
-    in builtins.traceVerbose "using ${type}Fetcher"
-       ( lib.apply fetchers."${type}Fetcher" args );
+    __functor = self: x: let
+      flocoConfig = x.flocoConfig or lib.flocoConfig or {};
+      args = flocoConfig.flocoFetchArgs // x;
+      # FIXME: these two aren't currently enforced.
+      pure             = args.pure or ( ! lib.inPureEvalMode );
+      allowSubstitutes = args.allowSubstitues or true;
+      typecheck        = args.typecheck or false;
+      defaultFetchers = let
+        fa = { inherit typecheck pure; };
+      in {
+        tarballFetcher = lib.libfetch.flocoTarballFetcher' fa;
+        fileFetcher    = lib.libfetch.flocoFileFetcher'    fa;
+        gitFetcher     = lib.libfetch.flocoGitFetcher'     fa;
+        pathFetcher    = lib.libfetch.flocoPathFetcher'    fa;
+      };
+      fetchersNoConf = let
+        pool = defaultFetchers // ( args.fetchers or {} ) // args;
+      in builtins.intersectAttrs defaultFetchers pool;
+      fetchers =
+        if ! ( fetchersNoConf.pathFetcher.__functionArgs ? basedir )
+        then fetchersNoConf
+        else fetchersNoConf // {
+          pathFetcher = fetchersNoConf.pathFetcher // {
+            __thunk = fetchersNoConf.pathFetcher.__thunk // {
+              basedir = x.basedir or null;  # Should throw internally if needed.
+            };
+          };
+        };
+    in { inherit typecheck pure fetchers; };
+  };  # End `mkFlocoFetchers''`
 
-    __functor = self: x: self.__innerFunction self.fetchers x;
+
+# ---------------------------------------------------------------------------- #
+
+  mkFlocoFetcher' = { fetchers, pure, typecheck }: {
+    __functor = self: x: let
+      pp = lib.generators.toPretty {};
+      st =
+        if x ? fetchInfo then identifyFetchInfoSourceType x.fetchInfo else
+        if x ? type then identifyFetchInfoSourceType x else
+        if yt.NpmLock.package.check x then identifyPlentSourceType x else
+        if x._type == "metaEnt" then identifyMetaEntSourceType x else
+        throw "flocoFetch: cannot discern source typeof : ${pp x}";
+    in self."${st}Fetcher" ( x.fetchInfo or x );
+  } // fetchers;
+
+  mkFlocoFetcher = {
+    inherit (mkFlocoFetchers') __functionArgs;
+    __processArgs   = self: mkFlocoFetchers';
+    __innerFunction = mkFlocoFetcher';
+    __functor = self: x: self.__innerFunction ( self.__processArgs self x );
   };
+
+
+# ---------------------------------------------------------------------------- #
+
+  ##  # FIXME: a hot mess over here.
+  ##  __innerFunction = fetchers: x: let
+  ##    plent = if yt.NpmLock.package.check x then x else
+  ##            x.entries.plock or null;
+  ##    # Effectively these are our args.
+  ##    fetchInfo = let
+  ##      fallback = if plent == null then x else plent;
+  ##    in x.fetchInfo or fallback;
+  ##    # Determine the `flocoSourceType'.
+  ##    type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
+  ##    args = if builtins.isAttrs fetchInfo then { inherit type; } // fetchInfo
+  ##                                         else fetchInfo;
+  ##    # Select the right fetcher based on `type'.
+  ##  in builtins.traceVerbose "using ${type}Fetcher"
+  ##     ( lib.apply fetchers."${type}Fetcher" args );
+
+  ##  __functor = self: x: self.__innerFunction self.fetchers x;
 
 # ---------------------------------------------------------------------------- #
 
@@ -539,21 +624,21 @@ in {
   inherit
     identifyResolvedType
     identifyPlentSourceType
+    identifyFetchInfoSourceType
+    identifyMetaEntSourceType
+
     plockEntryHashAttr
 
     plockEntryToGenericGitArgs
+    plockEntryToGenericUrlArgs'
 
-    flocoGitFetcher
-    flocoTarballFetcher
-    flocoFileFetcher
-    flocoPathFetcher
+    flocoGitFetcher'     flocoGitFetcherUntyped     flocoGitFetcherTyped
+    flocoTarballFetcher' flocoTarballFetcherUntyped flocoTarballFetcherTyped
+    flocoFileFetcher'    flocoFileFetcherUntyped    flocoFileFetcherTyped
+    flocoPathFetcher'    flocoPathFetcherUntyped    flocoPathFetcherTyped
+    flocoGitFetcher flocoTarballFetcher flocoFileFetcher flocoPathFetcher
 
-    fetchTreeOrUrlDrv
-
-    fetchurlDrvMaybeUnpackAfterW
-    fetchurlUnpackDrvW
-    fetchurlNoteUnpackDrvW
-
+    mkFlocoFetchers'
     mkFlocoFetcher
   ;
 }
@@ -564,3 +649,47 @@ in {
 #
 #
 # ============================================================================ #
+
+/*
+
+
+      __setPathFetcherBasedir = self: basedir:
+        assert self.fetchers.pathFetcher ? __thunk.basedir;
+        self // {
+          fetchers = self.fetchers // {
+            pathFetcher = self.fetchers.pathFetcher // {
+              __thunk = self.fetchers.pathFetcher.__thunk // {inherit basedir;
+              };
+            };
+          };
+        };
+
+      __fetchInfoFromArgs = self: x: let
+        plent = let
+          inherit (lib.ytypes.NpmLock.package) check;
+        in if check x then x else
+           if x ? entries.plent then x.entries.plent else null;
+        type = let
+          fromPlent = if plent == null then null else
+                      lib.libfetch.identifyPlentSourceType plent;
+          # FIXME: parse flake-ref/URI
+          fromString =
+            if builtins.isString x then identifyResolvedType x else null;
+          loc = self.from + "." + self.name;
+          pv  = lib.generators.toPretty {} x;
+        in if fromPlent != null then fromPlent else
+           if fromString != null then fromString else
+           throw "(${loc}): Unable to discern fetchInfo type of: '${pv}'";
+      in if x ? fetchInfo then x.fetchInfo else
+         if builtins.elem type ["git" "github"] then flocoProcessGitArgs x else
+         # FIXME
+         x // { inherit type; };
+         #if builtins.elem type ["file" "tarball"] then
+
+      # FIXME: iterate over signatures with `check'
+      __fetcherFromFetchInfo = self: { type, ... } @ fetchInfo: let
+        field = if builtins.elem type ["git" "github"] then "gitFetcher" else
+                "${type}Fetcher";
+      in self.fetchers.${field} or throw "No such fetcher: ${field}";
+
+*/

@@ -8,39 +8,24 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# registryScopes           ::= { scope ::= string, url ::= string }
-# enableImureMeta          ::= bool
-# enableImureFetchers      ::= bool
-# allowSubstitutedFetchers ::= bool
+# registryScopes      ::= { scope ::= string, url ::= string }
+# enableImureMeta     ::= bool
 # metaEntOverlays     ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
 # metaSetOverlays     ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
 # pkgEntOverlays      ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
 # pkgEntOverlays      ::= [overlay ::= ( final ::= attrs -> prev ::= attrs )]
+# flocoFetchArgs      ::= { pure ::= bool, typecheck ::= bool, ... }
+#                         see ./fetch.nix:mkFlocoFetcher for full list.
 #
 #
 # ---------------------------------------------------------------------------- #
 
-  # XXX: Mainters Note: You must keep `enableImpureFetchers' assignment in sync
-  # with `tarballFetcher' purity detection since there is no self reference.
-  defaultFlocoConfig = {
+  # XXX: Used as a base for constructing `flocoConfig'.
+  baseFlocoConfig = {
     # Used for querying manifests and packuments.
     # Must be an attrset of strings.
-    registryScopes._default  = "https://registry.npmjs.org";
-    enableImpureMeta         = ! lib.inPureEvalMode;
-    enableImpureFetchers     = ! lib.inPureEvalMode;
-    allowSubstitutedFetchers = true;
-    metaEntOverlays          = [];
-    metaSetOverlays          = [];
-    pkgEntOverlays           = [];
-    pkgSetOverlays           = [];
-    # It's only possible to put these here because they are platform agnostic.
-    # If you use system dependant fetchers override this.
-    fetchers = {
-      gitFetcher     = lib.libfetch.flocoGitFetcher;
-      pathFetcher    = lib.libfetch.flocoPathFetcher;
-      fileFetcher    = lib.libfetch.flocoFileFetcher;
-      tarballFetcher = lib.libfetch.flocoTarballFetcher;
-    };
+    registryScopes._default = "https://registry.npmjs.org";
+    enableImpureMeta = ! lib.inPureEvalMode;
   };
 
 
@@ -53,13 +38,10 @@
   validateFlocoConfig = cfg: let
     inherit (builtins) intersectAttrs all attrValues attrNames;
     hasDefaultFields = let
-      common = intersectAttrs cfg defaultFlocoConfig;
-      hasTop = ( attrNames common ) == ( attrNames defaultFlocoConfig );
+      common = intersectAttrs cfg baseFlocoConfig;
+      hasTop = ( attrNames common ) == ( attrNames baseFlocoConfig );
       hasReg = cfg ? registryScopes._default;
-      hasFetchers = let
-        cf = intersectAttrs cfg.fetchers defaultFlocoConfig.fetchers;
-      in ( attrNames cf ) == ( attrNames defaultFlocoConfig.fetchers );
-    in hasTop && hasReg && hasFetchers;
+    in hasTop && hasReg;
     regAllStrings = all builtins.isString ( attrValues cfg.registryScopes );
   in hasDefaultFields && regAllStrings;
 
@@ -68,28 +50,24 @@
 
   mkFlocoConfig' = {
     registryScopes
-  , enableImpure             ? ! lib.inPureEvalMode
-  , enableImpureMeta         ? enableImpure
-  , enableImpureFetchers     ? enableImpure
-  , allowSubstitutedFetchers
-  , metaEntOverlays
-  , metaSetOverlays
-  , pkgEntOverlays
-  , pkgSetOverlays
-  , fetchers
+  , enableImpure     ? ! lib.inPureEvalMode
+  , enableImpureMeta ? enableImpure
+  , metaEntOverlays  ? []
+  , metaSetOverlays  ? []
+  , pkgEntOverlays   ? []
+  , pkgSetOverlays   ? []
+  , flocoFetchArgs   ? { pure = ! enableImpure; }
   , ...
   } @ args: let
     ni  = removeAttrs args ["enableImpure"];
-    cfg = ni // {
-      inherit enableImpureMeta enableImpureFetchers fetchers;
-    };
+    cfg = ni // { inherit enableImpureMeta flocoFetchArgs; };
   in assert validateFlocoConfig cfg;
      cfg;
 
   mkFlocoConfig = args: let
     fargs    = lib.functionArgs mkFlocoConfig';
-    dftArgs  = builtins.intersectAttrs fargs defaultFlocoConfig;
-    noImpure = removeAttrs dftArgs ["enableImpureMeta" "enableImpureFetchers"];
+    dftArgs  = builtins.intersectAttrs fargs baseFlocoConfig;
+    noImpure = removeAttrs dftArgs ["enableImpureMeta"];
     allArgs  = lib.recursiveUpdate noImpure args;
   in mkFlocoConfig' allArgs;
 
@@ -98,7 +76,6 @@
 
 in {
   inherit
-    defaultFlocoConfig
     validateFlocoConfig
     mkFlocoConfig
   ;
