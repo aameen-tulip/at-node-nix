@@ -117,9 +117,7 @@ in {
       # Prefer fetching from original host rather than substitute.
       # NOTE: This only applies to fetchers that use derivations.
       #       Builtins won't be effected by this.
-      allowSubstitutedFetchers =
-        ( builtins.currentSystem or null ) != final.system;
-      enableImpureFetchers = false;
+      enableImpure = false;
     };
 
   } );
@@ -161,7 +159,7 @@ in {
     name             ? args.meta.names.source
   , tarball          ? args.outPath
   , flocoConfig      ? final.flocoConfig
-  , allowSubstitutes ? flocoConfig.allowSubstitutedFetchers
+  , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
   , ...
   } @ args: let
     source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
