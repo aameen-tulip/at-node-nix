@@ -365,9 +365,10 @@
         oldv  = if oldv' == [] then null else builtins.head oldv;
         condNoOld = ! ( builtins.elem from.id oldIds );
         condFI    = ( new ? fetchInfo ) && ( ! ( oldv ? fetchInfo ) );
-        condFIT   = condFI && ( oldv.fetchInfo.type != "tarball" ) &&
-                              ( new.fetchInfo.type == "tarball" );
-        keep = ( ( oldv != null ) && condFIT ) || condNoOld;
+        condFIT   = ( new ? fetchInfo ) && ( oldv ? fetchInfo )
+                    ( oldv.fetchInfo.type != "tarball" ) &&
+                    ( new.fetchInfo.type == "tarball" );
+        keep = condNoOld || ( ( oldv != null ) && ( condFI || condFIT ) );
       in if keep then new else oldv;
     in map pick entries;
   in if treelock then { treelockVersion = 1; trees  = entries; }
@@ -394,7 +395,7 @@
   flattenLockNodes = lock: let
     proc = acc: { from, to, ... } @ ent: acc // {
       ${from.id} = if to.type == "indirect" then self.${to.id} else
-                   ent.fetchInfo or ent.to;
+                   ( ent.to // ( ent.fetchInfo or {} ) );
     };
     self = builtins.foldl' proc {} ( lock.trees or lock.nodes or lock.flakes );
   in self;
