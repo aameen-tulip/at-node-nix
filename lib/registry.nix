@@ -366,7 +366,7 @@
         condNoOld = ! ( builtins.elem from.id oldIds );
         condFI    = ( new ? fetchInfo ) && ( ! ( oldv ? fetchInfo ) );
         condFIT   = ( new ? fetchInfo ) && ( oldv ? fetchInfo )
-                    ( oldv.fetchInfo.type != "tarball" ) &&
+                    ( oldv.to.type != "tarball" ) &&
                     ( new.fetchInfo.type == "tarball" );
         keep = condNoOld || ( ( oldv != null ) && ( condFI || condFIT ) );
       in if keep then new else oldv;

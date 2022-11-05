@@ -274,6 +274,11 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Common core shared by `flocoFileFetcher' and `flocoTarballFetcher'.
+  # This aligns with NPM's `fileFetcher' in `pacote', except that NPM doesn't
+  # split the fetch/unpack processes into two parts.
+  # In our case we /can/ and sometimes want to, so we have two distinct fetchers
+  # for each flow.
   flocoUrlFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
     lfc = laikaFetchersConfigured { inherit typecheck pure; };
     loc = "at-node-nix#lib.libfetch.flocoUrlFetcher";
@@ -368,7 +373,6 @@
       };
     in rslt fetched;
   };
-
 
 
 # ---------------------------------------------------------------------------- #
