@@ -311,19 +311,19 @@
   # flake registries, and a custom "fetchTree registry" which is effectively
   # a `flake.lock' with some added fields.
   flakeRegistryFromPackuments = {
-    ident
+    ident       ? assert args ? packument; packument.name
   , registry    ? null
   , versionCond ? version: lib.test "[^a-zA-Z+-]*" version  # Only keep releases
   , treelock    ? false
   , existing    ? {}
   , type        ? "file"  # Some archives fail as `type = "tarball";'
   , minimizeFetchInfo ? false
+  , packument         ? assert args ? ident; importFetchPackument args
   } @ args: assert ( args ? minimizeFetchInfo ) -> treelock; let
-    p = importFetchPackument args;
     registerVersion = version: let
-      realVersion =
-        if version == "latest" then ( packumentLatestVersion' p ).version
-                               else version;
+      realVersion = if version == "latest"
+                    then ( packumentLatestVersion' packument ).version
+                    else version;
       id_v' = v:
         if v == "latest" then "latest" else
         ( builtins.replaceStrings ["@" "."] ["_" "_"] v );
@@ -333,7 +333,7 @@
       in if sb.scope == null then sb.bname else "${sb.scope}--${sb.bname}";
       fetchInfoUnlocked = {
         inherit type;
-        url = p.versions.${realVersion}.dist.tarball;
+        url = packument.versions.${realVersion}.dist.tarball;
       };
       fetchInfo' =
         if treelock && ( version != "latest" ) && ( ! lib.inPureEvalMode )
@@ -350,9 +350,10 @@
         type = "indirect";
       };
     };
-
-    latest   = registerVersion "latest";
-    keeps = builtins.filter versionCond ( builtins.attrNames p.versions );
+    latest = registerVersion "latest";
+    keeps = let
+      vns = builtins.attrNames packument.versions;
+    in builtins.filter versionCond vns;
     entries = [latest] ++ ( map registerVersion keeps );
     merged = let
       notLatest   = { from, ... }: ( baseNameOf from.id ) != "latest";
