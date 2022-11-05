@@ -9,14 +9,14 @@
 # ---------------------------------------------------------------------------- #
 
   pkgsAsAttrsets = pkgs: let
-    inherit (builtins) mapAttrs head;
-    inherit (lib) groupBy;
-    ms        = m: if m.scope == null then "_" else m.scope;
-    gscope    = groupBy ms;
-    gname     = mapAttrs ( _: groupBy ( m: m.pname ) );
+    inherit (builtins) mapAttrs groupBy;
+    mscope    = m: if ( m.scope or null ) == null then "unscoped" else m.scope;
+    gscope    = builtins.groupBy mscope;
+    gname     = mapAttrs ( _: builtins.groupBy ( m: m.pname ) );
     gversion  = mapAttrs ( _: mapAttrs ( _: groupBy ( m: m.version ) ) );
-    toAttrs   = mapAttrs ( _: mapAttrs ( _: mapAttrs ( _: head ) ) );
-    scoped    = gscope pkgs;
+    toAttrs   = mapAttrs ( _: mapAttrs ( _: mapAttrs ( _: builtins.head ) ) );
+    plist     = if builtins.isList pkgs then pkgs else builtins.attrValues pkgs;
+    scoped    = gscope plist;
     named     = gname scoped;
     versioned = gversion named;
   in toAttrs versioned;
