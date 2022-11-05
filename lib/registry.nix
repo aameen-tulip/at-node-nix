@@ -362,16 +362,16 @@
       oldIds = map ( { from, ... }: from.id ) oldVersions;
       pick = { from, to, ... } @ new: let
         oldv' = builtins.filter ( old: from.id == old.from.id ) oldVersions;
-        oldv  = if oldv' == [] then null else builtins.head oldv;
+        oldv  = if oldv' == [] then null else builtins.head oldv';
         condNoOld = ! ( builtins.elem from.id oldIds );
         condFI    = ( new ? fetchInfo ) && ( ! ( oldv ? fetchInfo ) );
-        condFIT   = ( new ? fetchInfo ) && ( oldv ? fetchInfo )
+        condFIT   = ( new ? fetchInfo ) && ( oldv ? fetchInfo ) &&
                     ( oldv.to.type != "tarball" ) &&
-                    ( new.fetchInfo.type == "tarball" );
+                    ( new.to.type == "tarball" );
         keep = condNoOld || ( ( oldv != null ) && ( condFI || condFIT ) );
       in if keep then new else oldv;
     in map pick entries;
-  in if treelock then { treelockVersion = 1; trees  = entries; }
+  in if treelock then { treelockVersion = 1; trees  = merged; }
                  else { version = 2; flakes = entries; };
 
 
