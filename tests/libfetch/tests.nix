@@ -127,7 +127,8 @@
     testFlocoGitFetcher_0 = {
       expr = let
         fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
-      in ( lib.isStorePath fetched.outPath ) && ( fetched.type == "github" );
+      in ( lib.isStorePath fetched.outPath ) &&
+         ( fetched.type == "git" ) && ( fetched.fetchInfo.type == "github" );
       expected = true;
     };
 
@@ -171,6 +172,7 @@
         sourceInfo = removeAttrs fetched.sourceInfo ["outPath"];
       };
       expected = {
+        _type = "fetched";
         fetchInfo = {
           allRefs = true;
           name = "depot";
@@ -194,11 +196,6 @@
         type = "git";
       };  # End Expected
     };
-
-
-# ---------------------------------------------------------------------------- #
-
-
 
 
 # ---------------------------------------------------------------------------- #

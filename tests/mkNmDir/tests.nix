@@ -5,16 +5,20 @@
 # ---------------------------------------------------------------------------- #
 
 { lib
-, _mkNmDirCopyCmd
-, _mkNmDirLinkCmd
-, _mkNmDirAddBinWithDirCmd
-, _mkNmDirAddBinNoDirsCmd
-, _mkNmDirAddBinCmd
-, mkNmDirCmdWith
-, mkNmDirCopyCmd
-, mkNmDirLinkCmd
+, pkgsFor
 , ...
 } @ globalArgs: let
+
+  inherit (pkgsFor)
+    _mkNmDirCopyCmd
+    _mkNmDirLinkCmd
+    _mkNmDirAddBinWithDirCmd
+    _mkNmDirAddBinNoDirsCmd
+    _mkNmDirAddBinCmd
+    mkNmDirCmdWith
+    mkNmDirCopyCmd
+    mkNmDirLinkCmd
+  ;
 
 # ---------------------------------------------------------------------------- #
 

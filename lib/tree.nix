@@ -158,10 +158,72 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Doesn't handle any conditionals, just package identifiers.
+  # If a package appears multiple times at different versions we throw an error.
+  genMkNmDirArgsSimple' = { keyTree }: let
+    keys    = builtins.attrValues keyTree;
+    byId    = builtins.groupBy dirOf keys;
+    isUniq  = vs: builtins.all ( v: v == ( builtins.head vs ) ) vs;
+    allUniq = builtins.all isUniq ( builtins.attrValues byId );
+    proc    = acc: key: acc // { ${dirOf key} = false; };
+    fargs   = builtins.foldl' proc {} keys;
+    loc     = "at-node-nix#lib.libtree.genMkNmDirArgsSimple";
+  in if allUniq then fargs else
+     # If you need multiple versions of a package in a tree don't use "simple".
+     throw "(${loc}): Multiple versions of a package appeared in tree";
+
+  genMkNmDirArgsSimple = {
+    __functionArgs.keyTree = false;
+    __innerFunction = genMkNmDirArgsSimple';
+    # TODO: run typecheck or something
+    __processArgs = self: x: if x ? keyTree then x else { keyTree = x; };
+    __functor     = self: x: self.__innerFunction ( self.__processArgs self x );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: `mkAbstractTree'
+  #
+  # Form an abstract `node_modules/' tree which may use conditionals
+  # describe outpaths.
+  # For example:
+  #   {
+  #     "node_modules/@foo/bar" = {
+  #       ident   = i:   i == "@foo/bar";
+  #       version = v:   lib.libsemver.semverSatExact "4.2.0" v;  # `=='
+  #       os      = os:  builtins.elem os ["darwin"];
+  #       cpu     = cpu: builtins.elem cpu ["aarch64" "x86_64"];
+  #       node    = v:   lib.libsemver.semverSatGe "14" v;  # `>=14'
+  #       mode    = m:   m == "prod";  # `! dev'
+  #     };
+  #   }
+  #
+  # As input we can accept `package.json' ( normalized ) fields which align with
+  # those used by the NPM package registry.
+  # This means we expect fields to be normalized and semver strings to be
+  # "cleaned" BEFORE they are passed to us.
+  # These fields align precisely with those found in a `package-lock.json(v3)'.
+  # The `packages.*' field is ideal since it already "pins" version numbers,
+  # but you could also pass in ( cleaned ) descriptors.
+  # This input should yield the results given above:
+  #  {
+  #    "node_modules/@foo/bar" = {
+  #      version = "4.2.0";
+  #      os      = ["darwin"];
+  #      cpu     = ["arm64" "x64"];
+  #      node    = ">=14";
+  #    };
+  #  }
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     idealTreePlockV3
     treesFromPlockV3
+    genMkNmDirArgsSimple
   ;
 }
 

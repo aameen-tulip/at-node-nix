@@ -11,7 +11,6 @@
 , at-node-nix ? builtins.getFlake ( toString ../.. )
 , pkgsFor     ? at-node-nix.legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
-#, lib         ? pkgsFor.lib
 , lib         ? at-node-nix.lib
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
@@ -21,25 +20,13 @@
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  autoArgs = {
-    inherit lib pkgsFor;
-    inherit (pkgsFor)
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
-    ;
-  } // args;
+  auto = { inherit lib pkgsFor; } // args;
 
   tests = let
     testsFrom = file: let
       fn    = import file;
       fargs = builtins.functionArgs fn;
-      ts    = fn ( builtins.intersectAttrs fargs autoArgs );
+      ts    = fn ( builtins.intersectAttrs fargs auto );
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [

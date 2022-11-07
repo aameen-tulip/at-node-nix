@@ -75,35 +75,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # path tarball file git github
-  # NOTE: `fetchTree { type = "indirect"; id = "foo"; }' works!
-  Enums.sourceType = let
-    cond = x: ! ( builtins.elem x ["indirect" "sourcehut" "mercurial"] );
-  in yt.restrict "floco" cond yt.FlakeRef.Enums.ref_type;
-
-  # Required for `fetchurlDrv' to integrate.
-  Structs.drvSourceInfo = let
-    cond = x: x ? outPath;
-  in yt.restrict "sourceInfo[drv]" cond ( yt.attrs yt.any );
-
-  Structs.fetched = yt.struct "fetchedSource" {
-    type       = Enums.sourceType;
-    outPath    = yt.FS.store_path;
-    sourceInfo = yt.either yt.SourceInfo.sourceInfo Structs.drvSourceInfo;
-    fetchInfo  = yt.attrs yt.any;
-    passthru   = yt.option ( yt.attrs yt.any );
-    meta       = yt.option ( yt.attrs yt.any );
-  };
-
-  # TODO: types
-  #   barename ( no extensions )
-  #   relpath  ( string + struct )
-  #   path     ( sumtype )
-  #   file     ( sumtype )
-
-
-# ---------------------------------------------------------------------------- #
-
   # FIXME: move to `laika'
 
   # Return configured `laika' fetchers with explicitly specified settings.
@@ -122,7 +93,11 @@
   flocoProcessFTResult = type: fetchInfo: sourceInfo:
     assert fetchInfo ? type -> type == fetchInfo.type;
     {
-      inherit type fetchInfo sourceInfo;
+      _type = "fetched";
+      type  = if type == "github" then "git" else
+              if type == "tarball" then "file" else
+              type;
+      inherit fetchInfo sourceInfo;
       inherit (sourceInfo) outPath;
     };
 
@@ -203,7 +178,7 @@
         name      = "flocoGitFetcher";
         from      = "at-node-nix#lib.libfetch";
         innerName = "laika#lib.libfetch.<fetchTreeGithubW|fetchGitW>";
-        signature = [yt.any Structs.fetched];
+        signature = [yt.any yt.FlocoFetch.fetched];
         properties = {
           family  = "git";
           builtin = true;
@@ -287,7 +262,7 @@
       name      = "flocoUrlFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "laika#lib.libfetch.<fetchTreeW|fetchurlDrvW>";
-      signature = [yt.any Structs.fetched];
+      signature = [yt.any yt.FlocoFetch.fetched];
     };
 
     __functionArgs = {
@@ -361,14 +336,19 @@
       sourceInfo = self.__postProcess result;
       wasFT = fetchInfo ? type;
       fetched = {
-        type = fetchInfo.type or
-              ( if fetchInfo.unpack or false then "tarball" else "file" );
-        inherit fetchInfo;
+        _type = "fetched";
+        type  = "file";
+        fetchInfo = fetchInfo // {
+          type = if fetchInfo.unpack or false then "tarball" else "file";
+        };
         inherit (sourceInfo) outPath;
         sourceInfo = if sourceInfo.narHash != null then sourceInfo else
                      removeAttrs sourceInfo ["narHash"];
         passthru = ( if ! wasFT then { drv = result; } else {} ) // {
           fetcher = if wasFT then lfc.fetchTreeW else lfc.fetchurlDrvW;
+          unpacked =
+            if fetchInfo ? type then fetchInfo.type == "tarball" else
+            fetchInfo.unpack or false;
         };
       };
     in rslt fetched;
@@ -384,7 +364,7 @@
       name      = "flocoTarballFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.flocoUrlFetcher";
-      signature = [yt.any Structs.fetched];
+      signature = [yt.any yt.FlocoFetch.fetched];
     };
     __functionArgs = {
       type       = true;
@@ -415,7 +395,7 @@
       name      = "flocoFileFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.flocoUrlFetcher";
-      signature = [yt.any Structs.fetched];
+      signature = [yt.any yt.FlocoFetch.fetched];
     };
     __functionArgs = {
       type       = true;
@@ -474,7 +454,7 @@
         flocoPathFetcher.__innerFunction.__functionMeta.properties // {
           inherit typecheck pure;
         };
-      signature = [yt.any Structs.fetched];
+      signature = [yt.any yt.FlocoFetch.fetched];
     };
     # Add the arg `basedir'.
     __functionArgs = ( lib.functionArgs flocoPathFetcher.__innerFunction ) // {
@@ -518,6 +498,7 @@
         passthru = { inherit (args) filter; };
       };
     in {
+      _type     = "fetched";
       type      = "path";
       fetchInfo = removeAttrs args ["filter"];
       inherit outPath;
@@ -638,26 +619,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  ##  # FIXME: a hot mess over here.
-  ##  __innerFunction = fetchers: x: let
-  ##    plent = if yt.NpmLock.package.check x then x else
-  ##            x.entries.plock or null;
-  ##    # Effectively these are our args.
-  ##    fetchInfo = let
-  ##      fallback = if plent == null then x else plent;
-  ##    in x.fetchInfo or fallback;
-  ##    # Determine the `flocoSourceType'.
-  ##    type = x.type or fetchInfo.type or ( identifyPlentSourceType plent );
-  ##    args = if builtins.isAttrs fetchInfo then { inherit type; } // fetchInfo
-  ##                                         else fetchInfo;
-  ##    # Select the right fetcher based on `type'.
-  ##  in builtins.traceVerbose "using ${type}Fetcher"
-  ##     ( lib.apply fetchers."${type}Fetcher" args );
-
-  ##  __functor = self: x: self.__innerFunction self.fetchers x;
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     identifyResolvedType
@@ -689,47 +650,3 @@ in {
 #
 #
 # ============================================================================ #
-
-/*
-
-
-      __setPathFetcherBasedir = self: basedir:
-        assert self.fetchers.pathFetcher ? __thunk.basedir;
-        self // {
-          fetchers = self.fetchers // {
-            pathFetcher = self.fetchers.pathFetcher // {
-              __thunk = self.fetchers.pathFetcher.__thunk // {inherit basedir;
-              };
-            };
-          };
-        };
-
-      __fetchInfoFromArgs = self: x: let
-        plent = let
-          inherit (lib.ytypes.NpmLock.package) check;
-        in if check x then x else
-           if x ? entries.plent then x.entries.plent else null;
-        type = let
-          fromPlent = if plent == null then null else
-                      lib.libfetch.identifyPlentSourceType plent;
-          # FIXME: parse flake-ref/URI
-          fromString =
-            if builtins.isString x then identifyResolvedType x else null;
-          loc = self.from + "." + self.name;
-          pv  = lib.generators.toPretty {} x;
-        in if fromPlent != null then fromPlent else
-           if fromString != null then fromString else
-           throw "(${loc}): Unable to discern fetchInfo type of: '${pv}'";
-      in if x ? fetchInfo then x.fetchInfo else
-         if builtins.elem type ["git" "github"] then flocoProcessGitArgs x else
-         # FIXME
-         x // { inherit type; };
-         #if builtins.elem type ["file" "tarball"] then
-
-      # FIXME: iterate over signatures with `check'
-      __fetcherFromFetchInfo = self: { type, ... } @ fetchInfo: let
-        field = if builtins.elem type ["git" "github"] then "gitFetcher" else
-                "${type}Fetcher";
-      in self.fetchers.${field} or throw "No such fetcher: ${field}";
-
-*/

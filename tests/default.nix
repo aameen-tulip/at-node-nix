@@ -28,7 +28,7 @@
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  autoArgs = {
+  auto = {
     inherit lib pkgsFor;
 
     inherit limit;
@@ -54,7 +54,7 @@
     testsFrom = file: let
       fn    = import file;
       fargs = builtins.functionArgs fn;
-      ts    = fn ( builtins.intersectAttrs fargs autoArgs );
+      ts    = fn ( builtins.intersectAttrs fargs auto );
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
@@ -66,6 +66,7 @@
     ./libreg
     ./librange
     ./types
+    ./libtree
     # Derivations
     ./mkNmDir
     ./pkg-set

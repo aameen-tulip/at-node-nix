@@ -217,7 +217,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaEntFromPlockSubtype = x: let
+  metaEntFromPlockSubtype' = { pure ? true }: x: let
     plent = x.entries.plock or x;
     inherit (plent) lockDir;
     pjsDir =
@@ -238,9 +238,7 @@
     isRemoteSrc = type != "path";
     isTb        = builtins.elem type ["file" "tarball"];
     # FIXME: fetching from the registry manifest makes WAY more sense.
-    canFetch = ( type == "git" ) &&
-               ( lib.flocoConfig.enableImpureMeta &&
-                 lib.flocoConfig.enableImpureFetchers );
+    canFetch = ( type == "git" ) && ( ! pure );
     haveTree = ( type == "path" ) || canFetch;
     type =
       if builtins.isString x then x else
@@ -253,9 +251,11 @@
       { c = haveTree && tryPjs; v = fromPjs;                       }
       {
         c = type != "path";
-        v.fetchInfo.url =
-          if ! ( plent ? resolved ) then throw "missing resolved: ${lib.generators.toPretty {} plent} ${type} ${lib.generators.toPretty {} plent}" else
-          plent.resolved;
+        v.fetchInfo.url = let
+          pv = lib.generators.toPretty {} plent;
+        in if ! ( plent ? resolved )
+           then throw "missing resolved: ${type} ${pv}"
+           else plent.resolved;
       }
       {
         c = haveTree && ( plent.hasInstallScript or false );
@@ -272,6 +272,12 @@
     ];
     ec = builtins.addErrorContext "metaEntFromPlockSubtype";
   in if builtins.isString x then core else ec forAttrs;
+
+  metaEntFromPlockSubtype = metaEntFromPlockSubtype' {
+    pure = lib.flocoConfig.enableImpureMeta or true;
+  };
+  metaEntFromPlockSubtypePure   = metaEntFromPlockSubtype' { pure = true; };
+  metaEntFromPlockSubtypeImpure = metaEntFromPlockSubtype' { pure = false; };
 
   inherit (
     genMetaEntRules "FromPlockSubtype" metaWasPlock metaEntFromPlockSubtype
@@ -464,7 +470,10 @@ in {
     metaEntUpPlockGapsFromPjs
     metaEntExtendPlockGapsFromPjs
 
+    metaEntFromPlockSubtype'
     metaEntFromPlockSubtype
+    metaEntFromPlockSubtypePure
+    metaEntFromPlockSubtypeImpure
     metaEntAddFromPlockSubtype
     metaEntUpFromPlockSubtype
     metaEntExtendFromPlockSubtype

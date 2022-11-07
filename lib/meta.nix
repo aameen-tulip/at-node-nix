@@ -2,6 +2,8 @@
 
 { lib }: let
 
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+
 # ---------------------------------------------------------------------------- #
 
   # Metadata must be "flat" plain old data.
@@ -93,7 +95,7 @@
 
   extInfoExtras = [
     "__update" "__add" "__extend" "__serial" "__entries" "__unfix__"
-    "__updateEx" "__extendEx" "__new" "__thunkWith" "__thunksWith"
+    "__updateEx" "__extendEx" "__new" "__thunkWith"
   ];
 
   # The simplest type of serializer.
@@ -176,7 +178,6 @@
   #
   # `__thunkWith' passes fields from our attrset as arguments to a function
   # which accepts an attrset of named fields as its argument.
-  # This is literally just `callPackageWith' and is provided for convenience,
   # this does not modify our attrset in any way.
   # The argument to `__thunkWith' must be a function which accepts an attrset as
   # its argument.
@@ -186,24 +187,11 @@
   # given; the entries of the `metaExt' will be updated with these args, and
   # applied to the stashed function.
   # The resulting return value will be extended with the fields `override' and
-  # maybe `overrideDerivation' ( for derivations only ) which allow users to
-  # re-evaluate the thunk with modified args.
+  # which allow users to re-evaluate the thunk with modified args.
   # I strongly suggest reading the Nixpkgs' manual about "overrides" and
-  # `callPackage[s][With]' for more info.
-  #
-  # `__thunksWith' is just an alias for `callPackagesWith'.
-  # This one should be used on "functions that return functions/drvs".
-  # The arg to `__thunksWith' must be a function which takes a single attrset as
-  # as arg which returns an attrset of functions.
-  # The difference is the `override*' fields are added to members of the
-  # returned attrset rather than the return value itself.
-  # This is likely what you want to use on a file full of helper routines; for
-  # example you would evaluate THIS file ( `meta.nix' ) as:
-  #   ( mkExtInfo' {} {
-  #     inherit ( import <nixpkgs> {} ) lib;
-  #   } ).__thunksWith ./meta.nix {}
-  # NOTE: this example is just to show the usage; but because this file only
-  #       takes a single arg this example is pretty contrived.
+  # `callPackage[s][With]' for more info; when doing so keep in mind that we do
+  # not provide `overrideDerivation' in our simplified form of `callWithOv', but
+  # these routines are otherwise the same.
   #
   # `__unfix__' holds the original argument `info' as a recursively defined
   # attrset ( see `infoR' definition ) which is useful for "deep" overrides.
@@ -235,24 +223,41 @@
     __serial  ? serialDefault
   , __entries ? self:
       removeAttrs self ( extInfoExtras ++ ( builtins.attrNames extra ) )
+  , strict ? false  # Checks `__unfix__' before applying any extensions.
   , ...
   } @ extra: info: let
+    # Validates that our `extInfo' wasn't modified using `//'.
+    checkUnfix = entries: unfix: entries == ( lib.fix unfix );
+    runStrict  = self: after:
+      if ! strict then after else
+      if checkUnfix self.__entries self.__unfix__ then after else
+      throw "extInfo: ExtInfo was corrupted by a non-recursive update";
     infoR = asRecur info;
     self = ( infoR self ) // ( {
-      __update    = info': self.__new ( self // info' );
-      __add       = info': self.__new ( info' // self );
-      __extend    = g: self.__new ( lib.fixedPoints.extends g self.__unfix__ );
+      # Our original recursive set.
+      # NOTE: direct use of `//' will break the inner fixed point.
+      __unfix__ = infoR;
+      __extend  = g: let
+        after = self.__new ( lib.fixedPoints.extends g self.__unfix__ );
+      in runStrict self after;
       __serial    = __serial self;
       __entries   = __entries self;
-      __unfix__   = infoR;
+      __new       = mkExtInfo' extra;
       __updateEx  = extra': mkExtInfo' ( extra // extra' ) self;
       __extendEx  = extraR: mkExtInfo' ( extraR extra ) self;
-      __new       = mkExtInfo' extra;
-      __thunkWith = lib.callPackageWith self.__entries;
-      # Use this for functions which return other functions or drvs.
-      # It yields a `callPackages' equivalent.
-      __thunksWith = lib.callPackagesWith self.__entries;
-    } // ( builtins.mapAttrs ( _: fn: fn self ) extra ) );
+      __thunkWith = lib.callWithOvStrict self.__entries;
+      # Turn a non-recursive attrset into an extension, then apply it.
+      __update = info': self.__extend ( _: _: info' );
+      # Apply an "add" overlay which preserves existing keys.
+      __add = info': let
+        ov = final: prev: let
+          proc = acc: key: if prev ? ${key} then acc else acc // {
+            ${key} = info'.${key};
+          };
+        in builtins.foldl' proc {} ( builtins.attrNames info' );
+      in self.__extend ov;
+    } // ( builtins.mapAttrs ( _: fn: fn self )
+                             ( removeAttrs extra ["strict"] ) ) );
   in self;
 
   mkExtInfo = mkExtInfo' {};
@@ -299,9 +304,11 @@
   _metaWasFrom = allowedTypes: {
     inherit allowedTypes;
     __functionMeta = {
-      argTypes     = ["string" "set"];
-      destructures = true;
-      terminalArgs = { fromType = "string"; };
+      name      = "_metaWasFrom";
+      from      = "at-node-nix#lib.libmeta";
+      signature = let
+        arg1 = yt.either yt.string ( yt.attrs yt.any );
+      in [arg1 yt.string];
     };
     __functionArgs = { fromType = true; entFromType = true; __meta = true; };
     __processArgs = self: arg: let
@@ -468,10 +475,8 @@
   , key     ? "${ident}/${version}"
   , ...
   } @ members: let
-    args =
-      builtins.intersectAttrs ( lib.functionArgs mkMetaEntCore )
-                              ( { inherit ident version key; } // members );
-    core = mkMetaEntCore args;
+    args = { inherit ident version key; } // members;
+    core = lib.apply mkMetaEntCore args;
     base = core.__update members;
     # Add `names' either as a flat field or recursively.
     withNames = if recNames then base.__extend metaEntExtendWithNames else
@@ -554,14 +559,15 @@
       # XXX: Really just for REPL usage. Do not use this in routines.
       # FIXME: possible hide this behind a conditional for REPL only.
       __unkey = unkeyAttrs __entries;
-      # Apply a function to all entries.
-      __mapEnts = self: fn: self.__new ( builtins.mapAttrs fn self.__entries );
+      # Apply a function to all entries preservice self reference.
+      __mapEnts = self: fn:
+        self.__extend ( final: builtins.mapAttrs fn );
       # Apply function to entry if it exists, otherwise do nothing.
       # This may seem superfulous but in practice this is an incredibly common
       # pattern when trying to override meta-data.
-      __maybeApplyEnt = self: fn: field:
-        if ! ( self.__entries ? ${field} ) then self else
-          self.__update { ${field} = fn self.${field}; };
+      __maybeApplyEnt = self: fn: field: let
+        ov = final: prev: { ${field} = fn prev.${field}; };
+      in if ! ( self.__entries ? ${field} ) then self else self.__extend ov;
     };
   in lib.libmeta.mkExtInfo' extras membersR;
 

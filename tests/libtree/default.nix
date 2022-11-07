@@ -11,6 +11,7 @@
 , at-node-nix ? builtins.getFlake ( toString ../.. )
 , pkgsFor     ? at-node-nix.legacyPackages.${system}
 , writeText   ? pkgsFor.writeText
+#, lib         ? pkgsFor.lib
 , lib         ? at-node-nix.lib
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
@@ -20,13 +21,13 @@
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  auto = { inherit lib pkgsFor; } // args;
+  autoArgs = { inherit lib; } // args;
 
   tests = let
     testsFrom = file: let
       fn    = import file;
       fargs = builtins.functionArgs fn;
-      ts    = fn ( builtins.intersectAttrs fargs auto );
+      ts    = fn ( builtins.intersectAttrs fargs autoArgs );
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
@@ -40,7 +41,7 @@
   # of `mkCheckerDrv'.
   harness = let
     purity = if lib.inPureEvalMode then "pure" else "impure";
-    name = "flocoPackages-tests (${system}, ${purity})";
+    name = "at-node-nix tests (${system}, ${purity})";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = {
@@ -56,9 +57,11 @@
     in builtins.deepSeq msg rsl;
   };
 
+
 # ---------------------------------------------------------------------------- #
 
 in harness
+
 
 # ---------------------------------------------------------------------------- #
 #
