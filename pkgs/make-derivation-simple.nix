@@ -1,5 +1,5 @@
 /**
- * A nice minimal `mkDerivation' alternate which is nice for many of the
+ * A minimal `mkDerivation' alternate which is nice for many of the
  * trivial "symlink some junk" or "echo warning about Yarn being
  * literal malware" that we do in most of these builders.
  *
