@@ -90,7 +90,7 @@
   #       through the Nix source code to find out right now.
   _fetchPackument = { registry, ident, ... }: let
     url = builtins.unsafeDiscardStringContext "${registry}/${ident}";
-  in builtins.readFile ( builtins.fetchurl url );
+  in builtins.readFile ( builtins.fetchTree { inherit url; type = "file"; } );
 
   fetchPackument = {
     __functionMeta = {
@@ -151,7 +151,7 @@
         sha1 = shasum;
       } ) val.dist;
       fetchWith = {
-        fetchurl ? ( { url, ... }: builtins.fetchurl url )
+        fetchurl ? ( { url, ... }: builtins.fetchTree { inherit url; type = "file"; } )
       }: builtins.fetchurl fetchTarballArgs;
     in val // {
       inherit fetchTarballArgs fetchWith;
@@ -484,7 +484,7 @@
   fetchManifest = registryUrl: name: version: let
     url  = "${registryUrl}/${name}/${version}";
     urlS = builtins.unsafeDiscardStringContext url;
-  in builtins.readFile ( builtins.fetchurl urlS );
+  in builtins.readFile ( builtins.fetchTree { url = urlS; type = "file"; } );
 
   importFetchManifest = registryUrl: name: version:
     builtins.fromJSON ( fetchManifest registryUrl name version );
