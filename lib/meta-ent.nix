@@ -224,7 +224,7 @@
       if plent.pkey == "" then lockDir else
       # Fetch remote trees in impure mode
       if haveTree && ( type != "path" ) then
-        "${( ( lib.mkFlocoFetcher {} ) plent )}" else
+        "${( ( lib.mkFlocoFetcher { basedir = lockDir; } ) plent )}" else
       if plent.link or false then "${lockDir}/${plent.resolved}" else
       "${lockDir}/${plent.pkey}";
     pjsPath = "${pjsDir}/package.json";
@@ -242,7 +242,8 @@
     haveTree = ( type == "path" ) || canFetch;
     type =
       if builtins.isString x then x else
-      x.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType plent );
+      x.type or x.fetchInfo.type /* FIXME: handle tb and github */ or
+      ( lib.libfetch.identifyPlentSourceType plent );
     core.fetchInfo = { inherit type; };
     conds = let
       mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
