@@ -1,13 +1,10 @@
-
-preFixupPhases+=" installGlobalNodeModule";
-
 installGlobalNodeModule_setup() {
   if [[ ! -r ./package.json ]]; then
     echo "$PWD: Cannot locate Node Package to be installed" >&2;
     return 1;
   fi
 
-  _prefix="${global:-$out}";
+  _prefix="${1:-${globalPrefix:-$out}}";
   pdir="$PWD";
   nmdir="$_prefix/lib/node_modules";
   idir="$nmdir/$( $JQ -r ".name" ./package.json; )";
@@ -49,14 +46,14 @@ installGlobalNodeModule_runNmDirCmd() {
 
   export node_modules_path="$idir/node_modules";
 
-  if test -n "${nmDirCmdPath:-}"; then
+  if test -n "${globalNmDirCmdPath:-}"; then
     mkdir -p "$node_modules_path";
-    source "$nmDirCmdPath";
+    source "$globalNmDirCmdPath";
   else
     mkdir -p "$node_modules_path";
-    eval "${nmDirCmd:-:}";
+    eval "${globalNmDirCmd:-:}";
     if [[ "$?" -ne 0 ]]; then
-      echo "Failed to execute nmDirCmd: \"$nmDirCmd\"" >&2;
+      echo "Failed to execute nmDirCmd: \"$globalNmDirCmd\"" >&2;
       exit 1;
     fi
   fi
@@ -72,7 +69,11 @@ installGlobalNodeModule_runNmDirCmd() {
 }
 
 installGlobalNodeModule() {
-  installGlobalNodeModule_setup;
+  if test -n "${_INSTALLED_GLOBALLY:-}"; then
+    echo "WARNING: module was already installed globally, but " >&2;
+    echo "'installGlobalNodeModule' was called again" >&2;
+  fi
+  installGlobalNodeModule_setup "$@";
   runHook preInstallGlobalNodeModule;
   echo "Adding Module to $idir" >&2;
   pjsAddMod . "$idir";
@@ -82,4 +83,5 @@ installGlobalNodeModule() {
   installGlobalNodeModule_runNmDirCmd;
   runHook postInstallGlobalNodeModule;
   unset _prefix nmdir pdir bindir;
+  export _INSTALLED_GLOBALLY=1;
 }

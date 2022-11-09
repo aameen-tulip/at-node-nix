@@ -33,13 +33,49 @@
 
 # ---------------------------------------------------------------------------- #
 
+  drvs = {
+    msgpackGyp  = import ./msgpack.nix { inherit (pkgsFor) buildGyp; };
+    msgpackEval = import ./simple.nix { inherit (pkgsFor) evalScripts; };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
   tests = {
+
+    inherit drvs;
+
+# ---------------------------------------------------------------------------- #
+
+    # Run a simple build that just creates a `build/' dir.
+    testEvalScriptsMsgpack = let
+      msgpack = drvs.msgpackEval;
+      read    = readDirIfSameSystem "${msgpack}";
+    in {
+      # Ensure `build/' looks right, but drop a Darwin only file. 
+      expr = if builtins.isAttrs read then removeAttrs read ["gyp-mac-tool"]
+                                      else read;
+      expected = if isSameSystem then {
+        ".travis.yml" = "regular";
+        LICENSE = "regular";
+        "README.md" = "regular";
+        bin = "directory";
+        "binding.gyp" = "regular";
+        deps = "directory";
+        lib = "directory";
+        "package.json" = "regular";
+        run_tests = "regular";
+        src = "directory";
+        test = "directory";
+      } else "${msgpack}";
+    };
+
 
 # ---------------------------------------------------------------------------- #
 
     # Run a simple build that just creates a `build/' dir.
     testBuildGypMsgpack = let
-      msgpack = import ./msgpack.nix { inherit (pkgsFor) buildGyp; };
+      msgpack = drvs.msgpackGyp;
       read    = readDirIfSameSystem "${msgpack}/build";
     in {
       # Ensure `build/' looks right, but drop a Darwin only file. 

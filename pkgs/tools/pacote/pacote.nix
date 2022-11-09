@@ -122,13 +122,11 @@ in evalScripts {
     unpackCmdHooks+=( nodeUnpack );
   '';
   globalInstall = true;  # Activates additional `global' output for install.
-  # Passing a string suppresses auto-installation into workspace.
-  # We only care about installing to the `$global/lib/node_modules/' directory.
-  nmDirCmd = ( mkNmDir {
+  globalNmDirCmd = mkNmDir {
     tree         = pkgTree;
     assumeHasBin = false;
     handleBindir = false;
-  } ).cmd;
+  };
   # Don't run any scripts.
   runScripts = [];
   # Skip configure which just sets env vars we don't end up using.

@@ -58,6 +58,8 @@
 
 # A scipt that should install modules to `$node_modules_path/'
 , nmDirCmd ? ":"
+, dontRemoveNmDir ? false
+, globalNmDirCmd  ? nmDirCmd
 
 # If you ACTUALLY want to avoid this you can explicitly set to `null' but
 # honestly I never seen a `postInstall' that didn't call `node'.
@@ -68,13 +70,21 @@
 , patchNodePackageHook
 , installGlobalNodeModuleHook
 , globalInstall ? false
+, moduleInstall ? true
+, globalOutput  ? if moduleInstall then "global" else "out"
+, moduleOutput  ? if moduleInstall then "out" else null
+, disablePassAsFile ? false
 , ...
 } @ args:
+
+assert ( globalInstall && moduleInstall ) -> ( globalOutput != moduleOutput );
+
 let
+
   mkDrvArgs = removeAttrs args [
-    "ident"
-    "nmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
+    "nmDirCmd" "globalNmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
     "patchNodePackageHook" "installGlobalNodeModuleHook"
+    "globalOutput" "moduleOutput"
     "doStrip"
     "override" "overrideDerivation" "__functionArgs" "__functor"
     "nativeBuildInputs"  # We extend this
@@ -91,30 +101,67 @@ let
     if args.nmDirCmd ? __toString then toString args.nmDirCmd else
     throw "No idea how to treat this as a `node_modules/' directory builder.";
 
+  globalNmDirCmd =
+    if ! ( args ? globalNmDirCmd ) then nmDirCmd else
+    if builtins.isString args.globalNmDirCmd then args.globalNmDirCmd else
+    if args.globalNmDirCmd ? cmd then ''
+      ${args.globalNmDirCmd.cmd}
+      installNodeModules;
+    '' else
+    if args.globalNmDirCmd ? __toString then toString args.globalNmDirCmd else
+    throw "No idea how to treat this as a `node_modules/' directory builder.";
+
 in stdenv.mkDerivation ( {
 
   inherit name;
 
-  inherit skipMissing globalInstall nmDirCmd;
+  inherit
+    skipMissing dontRemoveNmDir
+    globalInstall moduleInstall
+    nmDirCmd globalNmDirCmd
+  ;
 
   outputs = let
-    prev   = args.outputs or ["out"];
-    global = if globalInstall then ["global"] else [];
-  in prev ++ global;
+    prev   = args.outputs or [];
+    global = if globalInstall then [globalOutput] else [];
+    module = if moduleInstall then [moduleOutput] else [];
+  in prev ++ module ++ global;
 
-  nativeBuildInputs = let
+nativeBuildInputs = let
     given    = args.nativeBuildInputs or [];
     gi       = if globalInstall then [installGlobalNodeModuleHook] else [];
     defaults = [pjsUtil patchNodePackageHook nodejs jq] ++ gi;
   in lib.unique ( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
-  passAsFile =
-    if 1024 <= ( builtins.stringLength nmDirCmd ) then ["nmDirCmd"] else [];
+  passAsFile = let
+    condLen  = ( 1024 * 1024 ) <= ( builtins.stringLength nmDirCmd );
+    fromNmd  = if condLen && ( ! disablePassAsFile ) then ["nmDirCmd"] else [];
+    fromArgs = let
+      msg = "evalScripts: disablePassAsFile is true, but args explicitly" +
+            "contain a 'passAsFile' value.";
+    in if ! ( disablePassAsFile && ( ( args.passAsFile or [] ) != [] ) )
+       then args.passAsFile or []
+       else throw msg;
+  in fromNmd ++ fromArgs;
 
   postUnpack = ''
     export node_modules_path="$PWD/$sourceRoot/node_modules";
     if test -n "''${nmDirCmdPath:-}"; then
-      source "$nmDirCmdPath";
+      if test r "$nmDirCmdPath"; then
+        source "$nmDirCmdPath";
+      else
+        {
+          echo "Node Modules dir command not readable at: $nmDirCmdPath";
+          echo "If you are using 'nix develop' you must pass your";
+          echo "'node_modules/' creation command as a non-temporary file.";
+          echo "This is a bug in Nix versions ~10-11.";
+          echo "You can correct the issue by removing 'passAsFile' from";
+          echo "your derivation, ( recommended ) use 'mkNmDirSetupHook',";
+          echo "or simply add 'disablePassAsFile = true;' to your call to";
+          echo "'evalScript' ( or related wrapper function ).";
+        } >&2;
+        exit 1;
+      fi
     else
       eval "$nmDirCmd";
       if [[ "$?" -ne 0 ]]; then
@@ -128,6 +175,9 @@ in stdenv.mkDerivation ( {
     if test -d "$node_modules_path"; then
       export PATH="$PATH:$node_modules_path/.bin";
       export NODE_PATH="$node_modules_path''${NODE_PATH:+:$NODE_PATH}";
+    elif test -d "./node_modules"; then
+      export PATH="$PATH:$PWD/node_modules/.bin";
+      export NODE_PATH="$PWD/node_modules:''${NODE_PATH:+:$NODE_PATH}";
     fi
   '';
 
@@ -142,17 +192,25 @@ in stdenv.mkDerivation ( {
 
   # You can override this
   preInstall = ''
-    if test -n "''${node_modules_path:-}"; then
-      if test -e "$node_modules_path"; then
-        chmod -R +w "$node_modules_path";
-        rm -rf -- "$node_modules_path";
+    echo "dontRemoveNmDir: ''${dontRemoveNmDir:-NULL}"
+    if test "''${dontRemoveNmDir:-0}" = 0; then
+      if test -n "''${node_modules_path:-}"; then
+        if test -e "$node_modules_path"; then
+          chmod -R +w "$node_modules_path";
+          rm -rf -- "$node_modules_path";
+        fi
+        unset node_modules_path;
       fi
-      unset node_modules_path;
     fi
   '';
 
   installPhase = lib.withHooks "install" ''
-    pjsAddMod . "$out";
+    if test "''${moduleInstall:-0}" != 0; then
+      pjsAddMod . "${"$" + moduleOutput}"
+    fi
+    if test "''${globalInstall:-0}" != 0; then
+      installGlobalNodeModule "${"$" + globalOutput}";
+    fi
   '';
 
   passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
