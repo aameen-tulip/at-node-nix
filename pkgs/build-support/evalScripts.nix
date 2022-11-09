@@ -27,11 +27,11 @@
 # to that package set.
 
 { lib
-, name    ? meta.names.installed or "${baseNameOf ident}-eval-${version}"
-, ident   ? meta.ident
-, version ? meta.version or ( lib.last ( lib.splitString "-" name ) )
+, name    ? meta.names.prepared or "${baseNameOf ident}-eval-${version}"
+, ident   ? args.meta.ident
+, version ? args.meta.version or ( lib.last ( lib.splitString "-" name ) )
 , src
-, meta    ? builtins.intersectAttrs { ident = true; version = true; } args
+, meta    ? lib.libmeta.mkMetaEntCore { inherit ident version; }
 
 # Scripts to be run during `builPhase'.
 # These are executed in the order they appear, and may appear multiple times.
@@ -81,16 +81,21 @@ assert ( globalInstall && moduleInstall ) -> ( globalOutput != moduleOutput );
 
 let
 
-  mkDrvArgs = removeAttrs args [
-    "nmDirCmd" "globalNmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
-    "patchNodePackageHook" "installGlobalNodeModuleHook"
-    "globalOutput" "moduleOutput"
-    "doStrip"
-    "override" "overrideDerivation" "__functionArgs" "__functor"
-    "meta"
-    "nativeBuildInputs"  # We extend this
-    "passthru"           # We extend this
-  ];
+  mkDrvArgs = let
+    dropped = removeAttrs args [
+      "nmDirCmd" "globalNmDirCmd" "nodejs" "jq" "stdenv" "lib" "pjsUtil"
+      "patchNodePackageHook" "installGlobalNodeModuleHook"
+      "globalOutput" "moduleOutput"
+      "doStrip"
+      "override" "overrideDerivation" "__functionArgs" "__functor"
+      "meta"
+      "nativeBuildInputs"  # We extend this
+      "passthru"           # We extend this
+    ];
+    meta' = if ( meta._type or null ) == "metaEnt" then {} else {
+      inherit meta;
+    };
+  in dropped // meta';
 
   nmDirCmd =
     if ! ( args ? nmDirCmd ) then ":" else
@@ -214,10 +219,12 @@ nativeBuildInputs = let
     fi
   '';
 
-  passthru = ( args.passthru or {} ) // {
+  passthru = let
+    metaEnt = if ( meta._type or null ) == "metaEnt" then meta else
+              lib.libmeta.mkMetaEntCore { inherit ident version; };
+  in ( args.passthru or {} ) // {
     inherit src nodejs nmDirCmd globalNmDirCmd;
   };
-  meta = meta.__serial or meta;  # FIXME: follow Nixpkgs' standard
 
   dontStrip = true;
 

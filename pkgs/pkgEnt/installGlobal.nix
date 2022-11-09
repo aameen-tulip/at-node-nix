@@ -39,7 +39,7 @@
 , key         ? args.meta.key or "${ident}/${version}"
 , src
 , globalNmDirCmd ? ":"
-, meta           ? lib.mkMetaEntCore { inherit ident version; }
+, meta           ? lib.libmeta.mkMetaEntCore { inherit ident version; }
 , evalScripts
 , ...
 } @ args: let
@@ -52,7 +52,7 @@ in evalScripts ( {
   postUnpack    = ":";
   dontBuild     = true;
   dontConfigure = true;
-} // args )
+} // mkDrvArgs )
 
 # ---------------------------------------------------------------------------- #
 #
