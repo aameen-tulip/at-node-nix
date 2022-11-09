@@ -155,8 +155,9 @@
 
 
   parseSemverStatements = str: let
-    ops   = ["," "&&" "||"];
-    sp    = builtins.split " ?(,|[|][|]|&&) ?" str;
+    ops   = [/*","*/ "&&" "||"];
+    #sp    = builtins.split " ?(,|[|][|]|&&) ?" str;
+    sp    = builtins.split " ?([|][|]|&&) ?" str;
     len   = builtins.length sp;
     # FIXME
     tok = { left, op, right }: {
@@ -320,7 +321,7 @@
   # the regex pattern is a clusterfuck though so rather than fooling with it
   # I'm going to split that thing up as I run into edge cases or fixes that
   # need to be applied.
-  parseSemver = v: let
+  parseSemverStatement = v: let
     parsed   = parseVersionConstraint' ( cleanVersion v );
     forMod   = semverConst { op = parsed.mod; arg1 = parsed.version; };
     forRange = semverConstRange parsed.from parsed.to;
@@ -339,6 +340,12 @@
      if parsed.type == "range" then forRange else
      if parsed.type == "mod" then forMod else
      throw "Unrecognized semver type: ${parsed.type}";
+
+  parseSemver = v: let
+    sp     = builtins.split " ?[|][|] ?" v;
+    parsed = map parseSemverStatement ( builtins.filter builtins.isString sp );
+  in builtins.foldl' semverConstOr ( builtins.head parsed )
+                                   ( builtins.tail parsed );
 
 
 # ---------------------------------------------------------------------------- #
@@ -373,6 +380,7 @@ in {
     tryParseSemverX
     parseSemverX
 
+    parseSemverStatement
     parseSemver
   ;
 }
