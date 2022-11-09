@@ -55,6 +55,10 @@ in {
   # `ak-nix', `rime', and `laika' have constructed the existing set.
   ytypes = prev.ytypes.extend ( import ../types/overlay.yt.nix );
 
+  # Probably going to change this name.
+  libfloco = callLib ./floco-flake.nix;
+
+
   inherit (final.libfetch)
     flocoPathFetcher
     flocoGitFetcher

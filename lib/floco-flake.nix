@@ -19,12 +19,13 @@
     metaSet
   , rootPriority ? "high"
   , depsPriority ? "low"
-  }: let
-    rootEnt = metaSet.${metaSet.__meta.rootKey} or null;
+  , rootKey      ? metaSet.__meta.rootKey or args.rootEnt.key or null
+  , rootEnt      ? if rootKey == null then null else metaSet.${rootKey} or null
+  } @ args: let
     lows    = metaSet.__entries or metaSet;
     highs   = if depsPriority == "high" then lows else
               if ( rootPriority == "high" ) && ( rootEnt != null ) then {
-                ${metaSet.__meta.rootKey} = rootEnt;
+                ${rootKey} = rootEnt;
               } else {};
   in final: prev: let
     lproc = acc: key: if prev ? ${key} then acc else acc // {
@@ -47,37 +48,46 @@
   , enablePlock ? true
   , enableCache ? true
   , metaSet     ? lib.mkMetaSet {}
-  }: let
+  } @ args: let
     # Metadata scraped from the lockfile without any overrides by the cache.
-    lockMeta = sarcodes.lib.metaSetFromPlockV3 {
-      lockDir = pdir;
-      inherit flocoConfig;
-    };
+    lockMeta = let
+      lm = lib.metaSetFromPlockV3 {
+        lockDir = pdir;
+        inherit flocoConfig;
+      };
+    in if builtins.pathExists "${pdir}/package-lock.json" then lm else {};
+
     # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
     cacheMeta = let
       mjp      = "${pdir}/meta.json";
       mnp      = "${pdir}/meta.nix";
-      metaJSON = nixpkgs.lib.importJSON mjp;
+      metaJSON = lib.importJSON mjp;
       metaRaw  = if builtins.pathExists mnp then import mnp else
                  if builtins.pathExists mjp then lib.importJSON mjp else {};
     in if metaRaw == {} then {} else lib.metaSetFromSerial metaRaw;
+
     # Merged cache + lockfile
-    metaSet = lockMeta.__extend ( _: _: cacheMeta.__entries or cacheMeta );
+    merged = let
+      co  = metaSetAsOverlay' { metaSet = cacheMeta; rootKey = null; };
+      lo  = metaSetAsOverlay' { metaSet = lockMeta; };
+      co' = if ( ! enableCache ) || ( cacheMeta == {} ) then [] else [co];
+      lo' = if ( ! enablePlock ) || ( lockMeta == {} ) then [] else [lo];
+      ov  = lib.composeManyExtensions ( co' ++ lo' );
+    in metaSet.__extend ov;
   in {
-    inherit cacheMeta lockMeta metaSet;
+    metaSet = merged;
+    inherit cacheMeta lockMeta;  # Included for debugging, may be empty.
   };
 
 
 # ---------------------------------------------------------------------------- #
 
-  defPkgOverlays' = {
-
-  }:
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
+
+  inherit
+    metaSetAsOverlay'
+    loadMetaFiles'
+  ;
 
 }
 
