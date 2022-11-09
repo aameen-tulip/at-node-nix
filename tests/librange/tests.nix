@@ -128,8 +128,33 @@
 
 # ---------------------------------------------------------------------------- #
 
-  
+    testParseSemver_0 = {
+      expr     = lib.librange.parseSemver ">3.0.0" "3.1.0";
+      expected = true;
+    };
 
+    testParseSemver_1 = {
+      expr     = lib.librange.parseSemver "<3.0.0" "3.1.0";
+      expected = false;
+    };
+  
+    testParseSemver_2 = {
+      expr     = lib.librange.parseSemver "<=3.0.0" "3.0.0";
+      expected = true;
+    };
+
+    testParseSemver_3 = {
+      expr     = lib.librange.parseSemver "3.x" "3.0.0";
+      expected = true;
+    };
+
+    testParseSemver_4 = {
+      expr     = lib.librange.parseSemver "3.x" "4.0.0";
+      expected = false;
+    };
+
+
+# ---------------------------------------------------------------------------- #
 
   };  # End Tests
 
