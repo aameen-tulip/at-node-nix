@@ -164,6 +164,23 @@
       expected = builtins.mapAttrs ( _: _: true ) sats;
     };
 
+    testParseSemver_6 = {
+      expr     = lib.librange.parseSemver "*" "4.0.0";
+      expected = true;
+    };
+
+    testParseSemver_7 = {
+      expr     = lib.librange.parseSemver "" "4.0.0";
+      expected = true;
+    };
+
+    # Remaining failures:
+    # "1 - 2" = "2.0.3"
+    # "1 - 3" = "3.0.1"
+    # "2 - 3" = "3.0.1"
+    # "^2.4.1 || ^3.0.0" = "3.3.3"
+    # "^3.0.0 || ^4.0.0" = "4.0.0"
+
 
 # ---------------------------------------------------------------------------- #
 

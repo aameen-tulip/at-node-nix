@@ -321,7 +321,7 @@
   # I'm going to split that thing up as I run into edge cases or fixes that
   # need to be applied.
   parseSemver = v: let
-    parsed   = parseVersionConstraint' v;
+    parsed   = parseVersionConstraint' ( cleanVersion v );
     forMod   = semverConst { op = parsed.mod; arg1 = parsed.version; };
     forRange = semverConstRange parsed.from parsed.to;
     forCmp = let
@@ -333,7 +333,8 @@
       ( lib.test "[^-]+\\.[xX*].*" v ) ||
       ( ( ( parsed.mod or null ) == "=" ) &&
         ( ! ( lib.test "[^0-9]+\\.[^0-9]+\\.[0-9]+(-.*)?" v ) ) );
-  in if isPartial then parseSemverX v else
+  in if builtins.elem v ["" "*"] then semverConstAny else
+     if isPartial then parseSemverX v else
      if parsed.type == "cmp" then forCmp else
      if parsed.type == "range" then forRange else
      if parsed.type == "mod" then forMod else
