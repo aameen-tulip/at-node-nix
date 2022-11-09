@@ -53,7 +53,9 @@ final: prev: let
       patch-shebangs
       genSetBinPermissionsHook
       coerceDrv
+
       installGlobal
+      mkBinPackage
 
       flocoFetch
       flocoUnpack
@@ -148,6 +150,7 @@ in {
   } ./pkgs/build-support/genericInstall.nix;
 
   installGlobal = callPackage ./pkgs/pkgEnt/installGlobal.nix;
+  mkBinPackage  = callPackage ./pkgs/pkgEnt/mkBinPackage.nix;
 
   patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
 
