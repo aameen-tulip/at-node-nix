@@ -24,6 +24,25 @@
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   inherit (yt.PkgInfo) RE;
 
+  inherit (lib.libsemver)
+    semverConst
+    semverConstsEq
+    semverConstRange
+    semverConstExact
+    semverConstTilde
+    semverConstCaret
+    semverConstGt
+    semverConstGe
+    semverConstLt
+    semverConstLe
+    semverConstAnd
+    semverConstOr
+    semverConstAny
+    semverConstFail
+
+    semverConstRangeEq
+  ;
+
 # ---------------------------------------------------------------------------- #
 
   tryYankVersionCore = str: let
@@ -274,10 +293,47 @@
     np    = "${ps.major}.${ps.minor}.${ps.patch}";
     nb    = if ps.preTag == null then "" else "-${ps.preTag}";
     b     = if ps.buildMeta == null then "" else "+${ps.buildMeta}";
-  in np + nb + b;
+  in if ps == null then null else np + nb + b;
 
   normalizeVersionRoundDown = normalizeVersion' parseSemverRoundDown;
   normalizeVersionRoundUp   = normalizeVersion' parseSemverRoundUp;
+  tryNormalizeVersionRoundDown = normalizeVersion' tryParseSemverRoundDown;
+  tryNormalizeVersionRoundUp   = normalizeVersion' tryParseSemverRoundUp;
+
+# ---------------------------------------------------------------------------- #
+
+  tryParseSemverX = v: let
+    from = tryNormalizeVersionRoundDown v;
+    to   = tryNormalizeVersionRoundUp   v;
+  in if ( from == null ) || ( to == null ) then null
+                                           else semverConstRange from to;
+
+  parseSemverX = let
+    argt = yt.PkgInfo.Strings.descriptor;
+  in yt.defun [argt yt.any] tryParseSemverX;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: legacy parseVersionConstraint' deprecation.
+  # The X parsing wasn't a part of my first draft of the regexes.
+  # the regex pattern is a clusterfuck though so rather than fooling with it
+  # I'm going to split that thing up as I run into edge cases or fixes that
+  # need to be applied.
+  parseSemver = v: let
+    parsed   = parseVersionConstraint' v;
+    forMod   = semverConst { op = parsed.mod; arg1 = parsed.version; };
+    forRange = semverConstRange parsed.from parsed.to;
+    forCmp = let
+      inherit (parsed) left right;
+      const1 = semverConst { inherit (left) op; arg1 = left.version; };
+      const2 = semverConst { inherit (right) op; arg1 = right.version; };
+    in if right.op == null then const1 else semverConstAnd const1 const2;
+  in if lib.test "[^-]+\\.[xX].*" v then parseSemverX v else
+     if parsed.type == "cmp" then forCmp else
+     if parsed.type == "range" then forRange else
+     if parsed.type == "mod" then forMod else
+     throw "Unrecognized semver type: ${parsed.type}";
 
 
 # ---------------------------------------------------------------------------- #
@@ -304,8 +360,15 @@ in {
 
     cleanVersion
 
+    tryNormalizeVersionRoundDown
+    tryNormalizeVersionRoundUp
     normalizeVersionRoundDown
     normalizeVersionRoundUp
+
+    tryParseSemverX
+    parseSemverX
+
+    parseSemver
   ;
 }
 
