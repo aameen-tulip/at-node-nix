@@ -21,7 +21,12 @@
     latestRelease
 
     normalizeVersion
+    parseSemver
   ;
+
+  sats =
+    builtins.foldl' ( a: b: a // b ) {} ( lib.importJSON ./data/sats.json );
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -151,6 +156,12 @@
     testParseSemver_4 = {
       expr     = lib.librange.parseSemver "3.x" "4.0.0";
       expected = false;
+    };
+
+    # A batch
+    testParseSemver_5 = {
+      expr     = builtins.mapAttrs parseSemver sats;
+      expected = builtins.mapAttrs ( _: _: true ) sats;
     };
 
 

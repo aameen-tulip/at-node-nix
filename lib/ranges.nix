@@ -275,7 +275,7 @@
     m    = builtins.match "([^-+]+)(-[^+]+(\\+.*)?)?" sv;
     core = builtins.head m;
     post = builtins.elemAt m 1;
-    sx   = builtins.replaceStrings [".x" ".X"] ["" ""] core;
+    sx   = builtins.replaceStrings [".x" ".X" ".*"] ["" "" ""] core;
   in if m == null then sv else
      if post == null then sx else
      "${sx}${post}";
@@ -329,7 +329,11 @@
       const1 = semverConst { inherit (left) op; arg1 = left.version; };
       const2 = semverConst { inherit (right) op; arg1 = right.version; };
     in if right.op == null then const1 else semverConstAnd const1 const2;
-  in if lib.test "[^-]+\\.[xX].*" v then parseSemverX v else
+    isPartial =
+      ( lib.test "[^-]+\\.[xX*].*" v ) ||
+      ( ( ( parsed.mod or null ) == "=" ) &&
+        ( ! ( lib.test "[^0-9]+\\.[^0-9]+\\.[0-9]+(-.*)?" v ) ) );
+  in if isPartial then parseSemverX v else
      if parsed.type == "cmp" then forCmp else
      if parsed.type == "range" then forRange else
      if parsed.type == "mod" then forMod else
