@@ -441,7 +441,7 @@
   # are provided, and it will add verious derivation names so that they may be
   # consistent across various types of builders.
   mkMetaEntCore = {
-    key         ? args.ident + "/" + args.version
+    key         ? "${args.ident}/${args.version}"
   , ident       ? dirOf args.key
   , version     ? baseNameOf args.key
   , entFromtype ? "raw"

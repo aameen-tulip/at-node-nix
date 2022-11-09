@@ -87,6 +87,7 @@ let
     "globalOutput" "moduleOutput"
     "doStrip"
     "override" "overrideDerivation" "__functionArgs" "__functor"
+    "meta"
     "nativeBuildInputs"  # We extend this
     "passthru"           # We extend this
   ];
@@ -213,7 +214,10 @@ nativeBuildInputs = let
     fi
   '';
 
-  passthru = ( args.passthru or {} ) // { inherit src nodejs nmDirCmd; };
+  passthru = ( args.passthru or {} ) // {
+    inherit src nodejs nmDirCmd globalNmDirCmd;
+  };
+  meta = meta.__serial or meta;  # FIXME: follow Nixpkgs' standard
 
   dontStrip = true;
 

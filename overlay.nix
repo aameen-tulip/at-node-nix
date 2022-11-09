@@ -53,6 +53,7 @@ final: prev: let
       patch-shebangs
       genSetBinPermissionsHook
       coerceDrv
+      installGlobal
 
       flocoFetch
       flocoUnpack
@@ -145,6 +146,8 @@ in {
     impure      = final.flocoConfig.enableImpureMeta;
     python      = prev.python3;
   } ./pkgs/build-support/genericInstall.nix;
+
+  installGlobal = callPackage ./pkgs/pkgEnt/installGlobal.nix;
 
   patch-shebangs = callPackage ./pkgs/build-support/patch-shebangs.nix {};
 
