@@ -198,7 +198,6 @@ nativeBuildInputs = let
 
   # You can override this
   preInstall = ''
-    echo "dontRemoveNmDir: ''${dontRemoveNmDir:-NULL}"
     if test "''${dontRemoveNmDir:-0}" = 0; then
       if test -n "''${node_modules_path:-}"; then
         if test -e "$node_modules_path"; then
@@ -207,6 +206,8 @@ nativeBuildInputs = let
         fi
         unset node_modules_path;
       fi
+    else
+      echo "Builder's 'node_modules' was not deleted and will be installed" >&2;
     fi
   '';
 
