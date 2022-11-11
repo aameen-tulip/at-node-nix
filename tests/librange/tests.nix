@@ -174,12 +174,11 @@
       expected = true;
     };
 
-    # Remaining failures:
+    # Remaining failures ( normal ranges work, this is a rare combination of
+    # "partial ranges" nested inside of a range ):
     # "1 - 2" = "2.0.3"
     # "1 - 3" = "3.0.1"
     # "2 - 3" = "3.0.1"
-    # "^2.4.1 || ^3.0.0" = "3.3.3"
-    # "^3.0.0 || ^4.0.0" = "4.0.0"
 
 
 # ---------------------------------------------------------------------------- #
