@@ -14,7 +14,7 @@
   getVersionInfo = {
     __functionMeta.name = "getVersionInfo";
     __functionMeta.from = "at-node-nix#lib.libsat";
-    __functionMeta.doc = "Fetch version details for package from registry";
+    __functionMeta.doc  = "Fetch version details for package from registry";
 
     __functionArgs = {
       ident   = true;
@@ -81,18 +81,29 @@
     __functionMeta.name = "getDepSats";
     __functionMeta.from = "at-node-nix#lib.libsat";
     __functionMeta.doc =
-      "Fetch dependency sat conditionals for package from registry";
+      "Create an attrset filter to select packages which satisfy dependency " +
+      "descriptors of a given package.\n" +
+      "Customize this routine by overriding `__lookupMetal', and by setting " +
+      "`__thunk.{dev,optional,peer,registry}' fields.";
 
     __functionArgs = {
-      ident   = true;
-      version = true;
-      key     = true;
+      registry = true;
+      ident    = true;
+      version  = true;
+      key      = true;
     };
 
     __thunk.registry = "https://registry.npmjs.org";
     __thunk.dev      = true;
     __thunk.optional = true;
     __thunk.peer     = false;
+
+    # Fetch package metadata to read dependency info from.
+    # By default we query package registries, but in practice you will likely
+    # replace this method with an alternative implementation which pulls info
+    # from local projects or an existing `metaSet' blob.
+    __lookupMeta = { registry }: x:
+      ( getVersionInfo // { inherit registry; } ) x;
 
     __collectDeps = {
       dependencies         ? {}
@@ -135,12 +146,19 @@
       builtins.any ( c: c x ) ( builtins.attrValues conds );
 
     __functor = self: x: let
-      vinfo = ( getVersionInfo // { inherit (self.__thunk) registry; } ) x;
-      deps  = self.__collectDeps ( self.__thunk // vinfo );
+      # Fetch package metadata with dependency info.
+      meta = self.__lookupMeta {
+        registry = x.registry or self.__thunk.registry;
+      } x;
+      # Scrape out dependencies.
+      deps  = self.__collectDeps ( self.__thunk // meta );
+      # Convert dependency info to semver conditionals.
       conds = self.__genSemverConds deps;
+      # Merge conditionals into a single predicate which includes checking
+      # of `ident'.
+      # This predicate is intended for processing attrsets - see example above.
     in self.__innerFunction conds;
-
-  };
+  };  # End `getDepSats'
 
 
 # ---------------------------------------------------------------------------- #
