@@ -1,6 +1,6 @@
 # ============================================================================ #
 #
-#
+# Satisfy me
 #
 # ---------------------------------------------------------------------------- #
 
@@ -17,9 +17,9 @@
     __functionMeta.doc = "Fetch version details for package from registry";
 
     __functionArgs = {
-      ident = true;
+      ident   = true;
       version = true;
-      key = true;
+      key     = true;
     };
 
     __thunk.registry = "https://registry.npmjs.org";
@@ -63,9 +63,9 @@
       if builtins.isString x then { key = x; } else
       lib.canPassStrict self.__innerFunction x;
     __innerFunction = {
-      ident      ? dirOf args.key
-    , version    ? baseNameOf args.key
-    , key        ? "${args.ident}/${args.version}"
+      ident   ? dirOf args.key
+    , version ? baseNameOf args.key
+    , key     ? "${args.ident}/${args.version}"
     } @ args: ( ident == depIdent ) && ( semverCond version );
     __toString = self: "${self.ident}@${descriptor}";
     __functor  = self: x: let
@@ -84,9 +84,9 @@
       "Fetch dependency sat conditionals for package from registry";
 
     __functionArgs = {
-      ident = true;
+      ident   = true;
       version = true;
-      key = true;
+      key     = true;
     };
 
     __thunk.registry = "https://registry.npmjs.org";
@@ -111,12 +111,26 @@
     __genSemverConds = builtins.mapAttrs mkSatCond;
 
     # Intended for use as a filter as:
-    #   lib.filterAttrs ( key: _: ( getDepSats "lodash" "4.x" ) key ) {
-    #     "@foo/bar/4.2.0" = ...;
-    #     "lodash/4.17.21" = ...;
+    #   lib.filterAttrs ( key: ent: ( getDepSats "bunyan" "1.8.15" ) key ) {
+    #     "dtrace-provider/1.8.8"     = { ... };
+    #     "dtrace-provider/0.8.8"     = { ... };
+    #     "moment/2.29.4"             = { ... };
+    #     "moment/3.0.1"              = { ... };
+    #     "mv/2.1.1"                  = { ... };
+    #     "safe-json-stringify/1.2.0" = { ... };
+    #     "@foo/bar/4.2.0"            = { ... };
     #     ...
-    #   };
-    # ==> { "lodash/4.17.21" = ...; }
+    #   }
+    # ==> {
+    #     "dtrace-provider/0.8.8"     = { ... };
+    #     "moment/2.29.4"             = { ... };
+    #     "mv/2.1.1"                  = { ... };
+    #     "safe-json-stringify/1.2.0" = { ... };
+    #   }
+    #
+    # Alternatively this would also work and would read info from entries
+    # rather than the keys ( may trigger network fetches in impure mode ):
+    #   lib.filterAttrs ( key: ent: ( getDepSats "bunyan" "1.8.15" ) ent ) ...
     __innerFunction = conds: x:
       builtins.any ( c: c x ) ( builtins.attrValues conds );
 
@@ -127,6 +141,19 @@
     in self.__innerFunction conds;
 
   };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # A REPL session running SAT over registry pulls.
+  # This process should become a `genericClosure' operator:
+
+  # wants = lib.filterAttrs ( _: getDepSats "bunyan" "1.8.15" ) metaS.__entries;
+  #
+  # pulls = builtins.mapAttrs ( ident: versions:
+  #   let latestV = lib.librange.latestRelease ( map baseNameOf versions );
+  # in fp."${ident}/${latestV}" )
+  # ( builtins.groupBy ( k: dirOf k ) ( builtins.attrNames wants ) );
 
 
 # ---------------------------------------------------------------------------- #
