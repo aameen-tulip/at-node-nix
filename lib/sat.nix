@@ -13,7 +13,7 @@
   # FIXME: move to `libreg'
   getVersionInfo = {
     __functionMeta.name = "getVersionInfo";
-    __functionMeta.from = "at-node-nix#lib";
+    __functionMeta.from = "at-node-nix#lib.libsat";
     __functionMeta.doc = "Fetch version details for package from registry";
 
     __functionArgs = {
@@ -79,7 +79,7 @@
 
   getDepSats = {
     __functionMeta.name = "getDepSats";
-    __functionMeta.from = "at-node-nix#lib";
+    __functionMeta.from = "at-node-nix#lib.libsat";
     __functionMeta.doc =
       "Fetch dependency sat conditionals for package from registry";
 
