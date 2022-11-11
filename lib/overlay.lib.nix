@@ -48,6 +48,7 @@ in {
   libsys     = callLib  ./system.nix;
   libmeta    = callLibs [./meta.nix ./meta-ent.nix];
   libdep     = callLib  ./depinfo.nix;
+  libsat     = callLib  ./sat.nix;
   # `laika' provides a base.
   libfetch = prev.libfetch // ( callLib  ./fetch.nix );
   # `ak-nix' provides a base.
