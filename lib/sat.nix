@@ -111,7 +111,7 @@
     __genSemverConds = builtins.mapAttrs mkSatCond;
 
     # Intended for use as a filter as:
-    #   lib.filterAttrs ( key: _: ( getDepSats "lodash" "4.x" ) ) {
+    #   lib.filterAttrs ( key: _: ( getDepSats "lodash" "4.x" ) key ) {
     #     "@foo/bar/4.2.0" = ...;
     #     "lodash/4.17.21" = ...;
     #     ...
