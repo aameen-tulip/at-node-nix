@@ -9,7 +9,7 @@ in {
 # ---------------------------------------------------------------------------- #
 
   Enums.fetchType =
-    yt.enum "source-type" cond ["file" "tarball" "git" "github" "path"];
+    yt.enum "source-type" ["file" "tarball" "git" "github" "path"];
 
   # Project types recognized by NPM.
   # These are used to determine which lifecycle scripts are run.
@@ -26,7 +26,7 @@ in {
   };
 
 
-  Structs.fetched = yt.structs "fetched" {
+  Structs.fetched = yt.struct "fetched" {
     _type     = yt.restrict "_type[fetched]" ( s: s == "fetched" ) yt.string;
     type      = yt.FlocoFetch.Enums.sourceType;
     outPath   = yt.FS.store_path;

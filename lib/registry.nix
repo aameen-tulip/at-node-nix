@@ -8,7 +8,7 @@
 
   inherit (lib.flocoConfig) registryScopes;
   dftReg = registryScopes._default;
-  yt = lib.ytypes;
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
 
 # ---------------------------------------------------------------------------- #
 

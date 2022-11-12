@@ -112,15 +112,17 @@
 
 # ---------------------------------------------------------------------------- #
 
-  parsePkgJsonNameField = name: let
-    inherit (builtins) substring stringLength;
-    dropStr1 = str: substring 1 ( stringLength str ) str;
-  in {
-    _type = "";
-    ident = yt.PkgInfo.Strings.identifier name;
-    bname = baseNameOf name;
-    scope =
-      if ( substring 0 1 name ) == "@" then dropStr1 ( dirOf name ) else null;
+  # FIXME: move to `libparse'
+  parseNodeNames = identish: let
+    m     = builtins.match "((@([^@/]+)/)?([^@/])[^@/]+).*" identish;
+    ident = builtins.head m;
+    scope = builtins.elemAt m 2;
+    sl    = builtins.elemAt m 3;
+  in yt.PkgInfo.Structs.node_names {
+    _type = "NodeNames";
+    inherit ident scope;
+    bname = baseNameOf ident;
+    sdir  = if scope == null then "unscoped/${sl}" else scope;
   };
 
 
@@ -148,22 +150,19 @@
 
 # ---------------------------------------------------------------------------- #
 
-  mkPkgInfo = { ident ? args.name, version, ... } @ args:
-    let inherit ( parsePkgJsonNameField ident ) bname scope;
-    in args // {
-      inherit bname scope ident;
-      _type = "pkginfo";
-
-      localTarballName =
-        asLocalTarballName { inherit bname scope version; };
-      registryTarballName =
-        asNpmRegistryTarballName { inherit bname version; };
-
-      scopeDir = if scope != null then "@${scope}/" else "";
-      node2nixName =
-        if scope != null then "_at_${scope}_slash_${bname}-${version}"
-                         else "${bname}-${version}";
-    };
+  mkPkgInfo = { ident ? args.name, version, ... } @ args: let
+    inherit (lib.parseIdent ident) bname scope;
+  in args // {
+    inherit bname scope ident;
+    _type = "pkginfo";
+    localTarballName = asLocalTarballName { inherit bname scope version; };
+    registryTarballName =
+      asNpmRegistryTarballName { inherit bname version; };
+    scopeDir     = if scope != null then "@${scope}/" else "";
+    node2nixName =
+      if scope != null then "_at_${scope}_slash_${bname}-${version}"
+                       else "${bname}-${version}";
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -391,7 +390,7 @@ in {
 
   # Names
   inherit
-    parsePkgJsonNameField
+    parseNodeNames
     node2nixName
     asLocalTarballName
     asNpmRegistryTarballName

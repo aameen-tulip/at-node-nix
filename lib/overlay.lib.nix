@@ -59,6 +59,10 @@ in {
   # Probably going to change this name.
   libfloco = callLib ./floco-flake.nix;
 
+  inherit (final.libpkginfo)
+    parseNodeNames
+  ;
+
 
   inherit (final.libfetch)
     flocoPathFetcher

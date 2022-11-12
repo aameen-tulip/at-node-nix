@@ -173,6 +173,7 @@
     id_part     = restrict "id_part" ( lib.test RE.id_part_old_p ) string;
     id_part_new = restrict_new_s Strings.id_part;
 
+    bname = Strings.id_part;
     scope = Strings.id_part;
     # Either "" or "@foo/", but never "@foo"
     scopedir = restrict "scopedir" ( lib.test "(@${RE.id_part_old_p1}+/)?" )
@@ -207,6 +208,15 @@
 
     key = restrict "pkg-key" ( lib.test RE.key ) string;
 
+    # used in `flocoPackages' to shard subdirs.
+    sdir = let
+      cond = x: ( Strings.scope.check x ) ||
+                ( ( builtins.match "unscoped/." x ) != null );
+    in restrict "shard-dir" cond string;
+
+
+# ---------------------------------------------------------------------------- #
+
   };  # End Strings
 
 
@@ -229,6 +239,12 @@
       scope    = yt.option ( yt.either Strings.scope Structs.scope );
       scopedir = Strings.scopedir;
     };
+    node_names = yt.struct "node-names" {
+      _type = yt.option ( yt.enum ["NodeNames"] );
+      ident = Strings.identifier;
+      scope = yt.eitherN [yt.nil Strings.scope];
+      inherit (Strings) sdir bname;
+    };
   };  # End Structs
 
 
@@ -248,12 +264,22 @@
 
 # ---------------------------------------------------------------------------- #
 
+  Eithers = {
+    identifier = yt.either Strings.identifier Structs.identifier;
+    scope      = yt.eitherN [yt.nil Strings.scope Structs.scope];
+  };
+
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     RE
     Strings
     Structs
     Sums
+    Eithers
   ;
   inherit (Strings)
     identifier
@@ -261,6 +287,9 @@ in {
     descriptor
     scope
     scopedir
+    key
+    bname
+    version
   ;
 }
 
