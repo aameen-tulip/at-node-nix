@@ -468,7 +468,7 @@
     inherit (packumentSemverClosure) __functionArgs;
     __innerFunction = packumentSemverClosure;
     __functor = self: x: let
-      close = packumentSemverClosure x;
+      close = self.__innerFunction x;
     in close.__serial close;
   };
 
