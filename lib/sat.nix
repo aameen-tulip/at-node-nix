@@ -54,20 +54,23 @@
 # ---------------------------------------------------------------------------- #
 
   mkSatCond = depIdent: descriptor: let
-    semverCond = lib.librange.parseSemverStatement descriptor;
+    semverCond = let
+      try = lib.librange.parseSemver descriptor;
+    in if try == null then throw "Failed to parse descriptor: ${descriptor}"
+                      else try;
   in {
     __functionMeta.name = "satisfySemver";
     __functionMeta.from = "at-node-nix#lib.libsat";
     ident = depIdent;
-    __processArgs = self: x:
-      if builtins.isString x then { key = x; } else
-      lib.canPassStrict self.__innerFunction x;
+    __toString = self: "${self.ident}@${descriptor}";
     __innerFunction = {
       ident   ? dirOf args.key
     , version ? baseNameOf args.key
     , key     ? "${args.ident}/${args.version}"
     } @ args: ( ident == depIdent ) && ( semverCond version );
-    __toString = self: "${self.ident}@${descriptor}";
+    __processArgs = self: x:
+      if builtins.isString x then { key = x; } else
+      lib.canPassStrict self.__innerFunction x;
     __functor  = self: x: let
       args = self.__processArgs self x;
     in self.__innerFunction args;
@@ -157,7 +160,7 @@
     __innerFunction = conds: let
       pp = lib.generators.toPretty { allowPrettyValues = true; };
     in {
-      __functionMeta.name = "identSemverCondSet";
+      __functionMeta.name = "satSemverCondSet";
       __functionMeta.from = "at-node-nix.lib.libsat";
       __errMsg = self: kind: let
         loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
@@ -258,7 +261,7 @@
   packumentClosureInit = getDepSats // {
     inherit (lib) packumenter;
     __thunk        = getDepSats.__thunk // { dev = false; };
-    __functionArgs = { ident = false; version = true; };
+    __functionArgs = { ident = true; version = true; key = true; };
     __processArgs  = self: x: let
       forAttrs = {
         key     ? null
@@ -338,13 +341,14 @@
       key = toString satisfied;
       n   = passthru.final key;
     in {
-      runs  = runs // { ${key} = n; };
+      runs  = runs ++ [n];
       passthru = n.passthru // {
         # FIXME: handle "follows"
         conds = mergeConds passthru.conds n.passthru.conds;
         final = n.passthru.final // {
-          packumenter = mergePackumenters prev.passthru.packumenter.packuments
-                                          n.passthru.final.packumenter;
+          packumenter =
+            mergePackumenters prev.passthru.final.packumenter.packuments
+                              n.passthru.final.packumenter;
         };
       };
     };
@@ -352,13 +356,68 @@
       inherit passthru;
       runs = [prev];
     } ( builtins.attrValues sats );
-    updateAllPackumenters = acc: { passthru, ... } @ run: run // {
+    updateAllPackumenters = { passthru, ... } @ run: run // {
       passthru = passthru // {
-        final = passthru.final // { inherit (nexts) packumenter; };
+        final = passthru.final // {
+          inherit (nexts.passthru.final) packumenter;
+        };
       };
     };
-  in {};
+  in map updateAllPackumenters nexts.runs;
 
+
+
+# ---------------------------------------------------------------------------- #
+
+  packumentSemverClosure = {
+    __functionMeta.name = "packumentSemverClosure";
+    __functionMeta.from = "at-node-nix#lib.libsat";
+    __functionArgs = packumentClosureInit.__functionArgs // {
+      startSet = true;
+    };
+    __innerFunction = startSet: assert builtins.isList startSet;
+      builtins.genericClosure {
+        inherit startSet;
+        operator = packumentClosureOp;
+      };
+
+    __mergePackumenterCaches = close: let
+      proc = p: { passthru, ... }: p // {
+        packuments = p.packuments // passthru.final.packumenter.packuments;
+      };
+      init = ( builtins.head close ).passthru.final.packumenter;
+      merged = builtins.foldl' proc init ( builtins.tail close );
+    in if ( builtins.length close ) <= 1 then init else merged;
+
+    # NOTE: `conds' are reachable from `<ENT>.sats.<IDENT>.passthru.cond'
+    __cleanEntry = {
+      key
+    , ident
+    , version
+    , sats
+    , passthru  # dropped `{ final, conds }'
+    } @ ent: { inherit key ident version sats; };
+
+    __isFlat = close: let
+      proc = idents: { ident, ... }:
+        if ( idents == false ) || ( idents ? ${ident} ) then false else
+        idents // { ${ident} = null; };
+      check = builtins.foldl' proc {} close;
+    in check != false;
+
+    __functor = self: x: let
+      startSet    = x.startSet or [( packumentClosureInit x )];
+      close       = self.__innerFunction startSet;
+      packumenter = self.__mergePackumenterCaches close;
+      clean       = map self.__cleanEntry close;
+      packages    = lib.listToAttrsBy "key" clean;
+    in {
+      inherit packages;
+      roots    = map ( e: e.key ) startSet;
+      isFlat   = self.__isFlat close;
+      passthru = { inherit packumenter startSet; };
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -369,6 +428,8 @@ in {
     mkSatCond
     getDepSats
     packumentClosureInit
+    packumentClosureOp
+    packumentSemverClosure
   ;
 }
 
