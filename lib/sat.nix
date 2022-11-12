@@ -71,7 +71,7 @@
     __functor  = self: x: let
       args = self.__processArgs self x;
     in self.__innerFunction args;
-    passthru = { inherit descriptor; };
+    passthru = { inherit semverCond descriptor; };
   };
 
 
@@ -119,9 +119,21 @@
        ( lib.optionalAttrs optional optionalDependencies ) //
        ( lib.optionalAttrs peer peerDependencies );
 
+    # If you want to get at "the real" underlying conditionals they're stashed
+    # in `.conds.<IDENT>.passthru.semverCond'.
+    # Feel free to replace this subroutine with an unwrapped parser, just be
+    # sure you also replace `__innerFunction' to reflect that change.
     __genSemverConds = builtins.mapAttrs mkSatCond;
 
-    # Intended for use as a filter as:
+    # This produces a functor that does "best effort"/"do what I mean"
+    # application of a set of semver conditionals onto its arguments.
+    # This functory is polymorphic and you'll want to peep at the implemenations
+    # below to see what's avialable.
+    #
+    # If you feel like this routine is too complicated, wipe out
+    # `__innerFuncion' to better suit your use case.
+    #
+    # One applied example uses the functor as a filter over keyed fields:
     #   lib.filterAttrs ( key: ent: ( getDepSats "bunyan" "1.8.15" ) key ) {
     #     "dtrace-provider/1.8.8"     = { ... };
     #     "dtrace-provider/0.8.8"     = { ... };
@@ -142,8 +154,75 @@
     # Alternatively this would also work and would read info from entries
     # rather than the keys ( may trigger network fetches in impure mode ):
     #   lib.filterAttrs ( key: ent: ( getDepSats "bunyan" "1.8.15" ) ent ) ...
-    __innerFunction = conds: x:
-      builtins.any ( c: c x ) ( builtins.attrValues conds );
+    __innerFunction = conds: let
+      pp = lib.generators.toPretty { allowPrettyValues = true; };
+    in {
+      __functionMeta.name = "identSemverCondSet";
+      __functionMeta.from = "at-node-nix.lib.libsat";
+      __errMsg = self: kind: let
+        loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+        kinds = builtins.mapAttrs ( _: msg: "(${loc}): ${msg}" ) {
+          accessor = "out of ideas for reading key from value";
+        };
+      in kinds.${kind} or "(${loc}): ${kind}";
+      inherit conds;
+      # Read the example above, the arg processor in the conditionals is working
+      # a bit of magic here.
+      __forKey = self: x:
+        builtins.any ( c: c x ) ( builtins.attrValues self.conds );
+      # Implements the example above.
+      __forAttrsByKey = self: lib.filterAttrs ( self.__forKey self );
+
+      # TODO: there's several types of possible accessors here.
+      # For example "filter a packument's sub-fields", or
+      # "set true/false on entries of `{ <IDENT> = <VERSION> }'".
+      # You might filter a list of version numbers keyed by ident.
+      # Handle these accessors as you find the need for them, just try to keep
+      # it organized.
+      __forAttrsByIdent = self: x: let
+        die = throw "${self.__errMsg self "accessor"} for value '${pp x}'";
+        common  = builtins.intersectAttrs self.conds x;
+        valType =
+          builtins.typeOf ( builtins.head ( builtins.attrValues common ) );
+        forString = ident: str: let
+          key = if yt.PkgInfo.Strings.key.check str then str else
+                "${ident}/${str}";
+        in self.conds.${ident} key;
+        # TODO: This is a really naive assumption and needs more cases for list
+        forList = ident: xs:
+          builtins.filter ( forString ident ) xs;
+        forAttrs = ident: y:
+          if y ? key then self.conds.${ident} y.key else
+          if y ? version then self.conds.${ident} "${ident}/${y.version}" else
+          if y ? __toString then forString ( toString y ) else
+          die;
+      in if common == {} then {} else
+         if valType == "string" then builtins.mapAttrs forString common else
+         if valType == "list" then builtins.mapAttrs forList common else
+         if valType == "set" then builtins.mapAttrs forAttrs common else
+         die;
+
+      # FIXME: naive/unchecked assumptions about inner values.
+      __processArgs = self: x: let
+        die = throw "${self.__errMsg self "accessor"} for values '${pp x}'";
+        forAttrs = let
+          keys = builtins.attrNames x;
+        in if keys == [] then {} else
+           if yt.PkgInfo.Strings.key.check ( builtins.head keys )
+           then self.__forAttrsByKey self
+           else self.__forAttrsByIdent self;
+      in if builtins.isList x then {
+        inner = builtins.filter ( self.__forKey self );
+        args  = x;
+      } else if builtins.isAttrs then {
+        inner = forAttrs;
+        args  = x;
+      } else die;
+
+      __functor = self: x: let
+        pargs = self.__processArgs self x;
+      in pargs.inner pargs.args;
+    };  # End `__innerFunction'
 
     __functor = self: x: let
       # Fetch package metadata with dependency info.
@@ -176,7 +255,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  packumentClosureOp = getDepSats // {
+  packumentClosureInit = getDepSats // {
     inherit (lib) packumenter;
     __thunk        = getDepSats.__thunk // { dev = false; };
     __functionArgs = { ident = false; version = true; };
@@ -233,9 +312,53 @@
     in {
       key = "${args.ident}/${args.version}";
       inherit (args) ident version;
-      inherit conds sats final;
+      inherit  sats;
+      passthru = { inherit final conds; };
     };
   };
+
+
+# ---------------------------------------------------------------------------- #
+
+  packumentClosureOp = {
+    key
+  , ident
+  , version
+  , sats
+  # Contains the "final" state of the `packumentClosure' env at the
+  # end of the previous run ( Use this to recycle the `packumenter' cache ).
+  # Also carries `conds', being the conditionals generated by the previous run,
+  # this can be used to detect if we can "follow" an ancestor's resolution.
+  , passthru
+  } @ prev: let
+    mergePackumenters = a: b:
+      a // { packuments = a.packuments // b.packuments; };
+    mergeConds = a: b: a // b;  # FIXME
+    proc = { passthru, runs }: satisfied: let
+      key = toString satisfied;
+      n   = passthru.final key;
+    in {
+      runs  = runs // { ${key} = n; };
+      passthru = n.passthru // {
+        # FIXME: handle "follows"
+        conds = mergeConds passthru.conds n.passthru.conds;
+        final = n.passthru.final // {
+          packumenter = mergePackumenters prev.passthru.packumenter.packuments
+                                          n.passthru.final.packumenter;
+        };
+      };
+    };
+    nexts = builtins.foldl' proc {
+      inherit passthru;
+      runs = [prev];
+    } ( builtins.attrValues sats );
+    updateAllPackumenters = acc: { passthru, ... } @ run: run // {
+      passthru = passthru // {
+        final = passthru.final // { inherit (nexts) packumenter; };
+      };
+    };
+  in {};
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -245,7 +368,7 @@ in {
     getVersionInfo
     mkSatCond
     getDepSats
-    packumentClosureOp
+    packumentClosureInit
   ;
 }
 
