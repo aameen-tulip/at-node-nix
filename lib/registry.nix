@@ -229,43 +229,72 @@
    * A lazily evaluated extensible packument database.
    * Packuments will not be fetched twice.
    *   let
-   *     pr   = packumenter;
-   *     pr'  = pr.extend ( pr.lookup "lodash" );
-   *     pr'' = pr.extend ( pr.lookup "3d-view" );
+   *     pr  = packumenter;
+   *     pr' = pr.__cache ( pr.__lookup {
+   #       ident = "lodash";
+   #       registry = "https://registry.npmjs.org";
+   #     } );
+   *     pr'' = pr'.__cache ( pr.__lookup {
+   #       ident = "3d-view";
+   #       registry = "https://registry.npmjs.org";
+   #     } );
    *   in pr''.packuments
    *
    * Or use the packumenter itself as a function:
    *   let
    *     pr   = packumenter;
    *     pr'  = pr "lodash";
-   *     pr'' = pr "lodash";
+   *     pr'' = pr' "3d-view";
    *   in pr''.packuments;
    *
    * This is particularly useful with `builtins.foldl'':
    *   ( builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"] ).packuments
    */
-  packumenter = lib.makeExtensible ( final: {
+  packumenter = {
+    __functionMeta.name = "packumenter";
+    __functionMeta.from = "at-node-nix#lib.libreg";
+
     packuments = {};
-    registry = "https://registry.npmjs.org/";
+
+    __thunk.registry = "https://registry.npmjs.org/";
+
     # Create an override extending a packumenter with a packument
-    lookup = str: let
-      ident = let
-        pi = lib.ytypes.PkgInfo;
-        lp = lib.libparse;
-      in if pi.Strings.identifier.check str then str else
-         lib.yank "((@[^/@]+/)?[^@/]+).*" str;
-      fetchPack = prev: let
-        raw = importFetchPackument { inherit (prev) registry; inherit ident; };
-      in addPackumentExtras raw;
-      addPack = final: prev:
-        if ( prev.packuments ? ${ident} ) then {} else {
-          packuments = prev.packuments // { ${ident} = fetchPack prev; };
-        };
-    in addPack;
-    __functor = self: str: self.extend ( self.lookup str );
-  } );
+    __lookup = self: { registry, ident }: let
+      raw   = importFetchPackument { inherit registry ident; };
+      extra = addPackumentExtras raw;
+    in self.${ident} or extra;
+
+    __processArgs = self: x: let
+      pp  = lib.generators.toPretty { allowPrettyValues = true; };
+      loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      pi  = lib.ytypes.PkgInfo;
+      lp  = lib.libparse;
+      str =
+        if builtins.istString x then x else
+        x.ident or x.name or (
+          if x ? key then dirOf x.key else
+          if x ? scope then ( if x.scope == null
+                              then x.bname
+                              else "@${x.scope}/${x.bname}" ) else
+          throw "(${loc}): No idea how to use '${pp x}' as an ident."
+        );
+      ident = if pi.Strings.identifier.check x then x else
+              lib.yank "((@[^/@]+/)?[^@/]+).*" str;
+    in self.__thunk // { inherit ident; };
+
+    __cache = self: packument: self // {
+      packuments = { ${packument._id} = packument; } // self.packuments;
+    };
+
+    __functor = self: x: let
+      args      = self.__processArgs self x;
+      packument = self.__lookup self args;
+    in self.__cache self packument;
+  };
 
 
+  # FIXME: you only collect `dependencies' here and likely want to collect
+  # more than that.
   extendWithLatestDeps' = pr: let
     inherit (builtins) mapAttrs attrNames attrValues foldl' filter;
     depsFor = x: x.latest.dependencies or {};
@@ -296,9 +325,9 @@
 
   # That's right ladies and gentlemen, you've stubmled upon the mythic
   # "Y Combinator" in the wild.
-  packumentClosure' = prev: packages:
-    let pr = builtins.foldl' ( x: x ) prev ( lib.toList packages );
-    in lib.converge extendWithLatestDeps' pr;
+  packumentClosure' = prev: packages: let
+    pr = builtins.foldl' ( x: x ) prev ( lib.toList packages );
+  in lib.converge extendWithLatestDeps' pr;
 
   packumentClosure = packumentClosure' packumenter;
 

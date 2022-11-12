@@ -38,9 +38,9 @@
           version = builtins.elemAt descKeyMatch 2;
         } else throw "Invalid package locator: ${x}";
       procAttrs = {
-        ident ? dirOf x.key
+        ident   ? dirOf x.key
       , version ? baseNameOf x.key
-      , key ? "${ident}/${key}"
+      , key     ? "${ident}/${key}"
       }: { inherit ident version; };
       rough = if builtins.isAttrs x then x else fromString;
     in lib.canPassStrict self.__innerFunction ( self.__thunk // rough );
@@ -83,7 +83,7 @@
     __functionMeta.doc =
       "Create an attrset filter to select packages which satisfy dependency " +
       "descriptors of a given package.\n" +
-      "Customize this routine by overriding `__lookupMetal', and by setting " +
+      "Customize this routine by overriding `__lookupMeta', and by setting " +
       "`__thunk.{dev,optional,peer,registry}' fields.";
 
     __functionArgs = {
@@ -176,11 +176,76 @@
 
 # ---------------------------------------------------------------------------- #
 
+  packumentClosureOp = getDepSats // {
+    inherit (lib) packumenter;
+    __thunk        = getDepSats.__thunk // { dev = false; };
+    __functionArgs = { ident = false; version = true; };
+    __processArgs  = self: x: let
+      forAttrs = {
+        key     ? null
+      , ident   ? dirOf key
+      , version ? if args ? key then baseNameOf key else "latest"
+      } @ args: {
+        packumenter = self.packumenter // {
+          __thunk = self.packumenter.__thunk // {
+            inherit (self.__thunk) registry;
+          };
+        };
+        inherit ident version;
+      };
+    in if builtins.isAttrs x then forAttrs x else
+       if lib.ytypes.PkgInfo.identifier.check x then forAttrs { ident = x; }
+                                                else forAttrs { key = x; };
+    __lookupMeta = { packumenter, ident, version }: let
+      p = lib.packumenter ident;
+    in {
+      packumenter = p;
+      versionInfo = p.packuments.${ident}.versions.${version};
+    };
+
+    __filterVersions = self: ident: cond: let
+      versions   = self.packumenter.packuments.${ident}.versions;
+      dropLatest = removeAttrs versions ["latest"];
+      keys       = map ( v: "${ident}/${v}" ) ( builtins.attrNames dropLatest );
+      satisfy    = map baseNameOf ( builtins.filter cond keys );
+      latest     = lib.latestVersion satisfy;
+    in {
+      inherit ident satisfy latest;
+      __toString = filtered: "${filtered.ident}/${filtered.latest}";
+      passthru = {
+        inherit cond;
+        versionInfos = let
+          proc = acc: v: acc // { ${v} = versions.${v}; };
+        in builtins.foldl' proc { latest = versions.${latest}; } satisfy;
+      };
+    };
+
+    __functor = self: x: let
+      args  = self.__processArgs self x;
+      meta  = self.__lookupMeta args;
+      deps  = self.__collectDeps ( self.__thunk // meta.versionInfo );
+      conds = self.__genSemverConds deps;
+      final = self // {
+        packumenter = builtins.foldl' ( p: p ) meta.packumenter
+                                               ( builtins.attrNames deps );
+      };
+      sats  = builtins.mapAttrs ( self.__filterVersions final ) conds;
+    in {
+      key = "${args.ident}/${args.version}";
+      inherit (args) ident version;
+      inherit conds sats final;
+    };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     getVersionInfo
     mkSatCond
     getDepSats
+    packumentClosureOp
   ;
 }
 
