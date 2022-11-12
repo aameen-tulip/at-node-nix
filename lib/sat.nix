@@ -1,6 +1,6 @@
 # ============================================================================ #
 #
-# Satisfy me
+# Satisfies me
 #
 # ---------------------------------------------------------------------------- #
 
@@ -59,7 +59,7 @@
     in if try == null then throw "Failed to parse descriptor: ${descriptor}"
                       else try;
   in {
-    __functionMeta.name = "satisfySemver";
+    __functionMeta.name = "satisfiesSemver";
     __functionMeta.from = "at-node-nix#lib.libsat";
     ident = depIdent;
     __toString = self: "${self.ident}@${descriptor}";
@@ -84,7 +84,7 @@
     __functionMeta.name = "getDepSats";
     __functionMeta.from = "at-node-nix#lib.libsat";
     __functionMeta.doc =
-      "Create an attrset filter to select packages which satisfy dependency " +
+      "Create an attrset filter to select packages which satisfies dependency " +
       "descriptors of a given package.\n" +
       "Customize this routine by overriding `__lookupMeta', and by setting " +
       "`__thunk.{dev,optional,peer,registry}' fields.";
@@ -289,16 +289,16 @@
       versions   = self.packumenter.packuments.${ident}.versions;
       dropLatest = removeAttrs versions ["latest"];
       keys       = map ( v: "${ident}/${v}" ) ( builtins.attrNames dropLatest );
-      satisfy    = map baseNameOf ( builtins.filter cond keys );
-      latest     = lib.latestVersion satisfy;
+      satisfies    = map baseNameOf ( builtins.filter cond keys );
+      latest     = lib.latestVersion satisfies;
     in {
-      inherit ident satisfy latest;
+      inherit ident satisfies latest;
       __toString = filtered: "${filtered.ident}/${filtered.latest}";
       passthru = {
         inherit cond;
         versionInfos = let
           proc = acc: v: acc // { ${v} = versions.${v}; };
-        in builtins.foldl' proc { latest = versions.${latest}; } satisfy;
+        in builtins.foldl' proc { latest = versions.${latest}; } satisfies;
       };
     };
 
@@ -396,7 +396,16 @@
     , version
     , sats
     , passthru  # dropped `{ final, conds }'
-    } @ ent: { inherit key ident version sats; };
+    } @ ent: {
+      inherit key ident version sats;
+      __serial = self: {
+        inherit (self) ident version;
+        sats = builtins.mapAttrs ( key: sat: {
+          inherit (sat.passthru.cond.passthru) descriptor;
+          inherit (sat) satisfies;
+        } ) self.sats;
+      };
+    };
 
     __isFlat = close: let
       proc = idents: { ident, ... }:
@@ -416,7 +425,51 @@
       roots    = map ( e: e.key ) startSet;
       isFlat   = self.__isFlat close;
       passthru = { inherit packumenter startSet; };
+      __serial = self: {
+        inherit (self) roots isFlat;
+        packages = builtins.mapAttrs ( _: p: p.__serial p ) self.packages;
+      };
     };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Run a packument closure and strip the full output down to values which
+  # can be written to JSON.
+  # In practice this is usually the function you'll want to call when scraping
+  # meta-data for a project as opposed to the full routine above.
+  #
+  #   packumentSemverClosureSerial { ident = "bunyan"; version = "1.8.15"; }
+  #   ==>
+  #   {
+  #     isFlat   = true;  # true every package resolves to exactly one version.
+  #     roots    = ["bunyan/1.8.15"];
+  #     packages = {
+  #       "glob/6.0.4" = {  # the "resolved" version's key
+  #         ident = "glob"; version = "6.0.4";
+  #         sats = {  # dependency resolution info.
+  #           inflight = {
+  #             descriptor = "^1.0.4";
+  #             satisfies = ["1.0.4" "1.0.5" "1.0.6"];  # all usable versions.
+  #           };
+  #           inherits  = { ... };
+  #           minimatch = { ... };
+  #           ...
+  #         };
+  #       };
+  #       "bunyan/1.8.15"    = { ... };
+  #       "concat-map/0.0.1" = { ... };
+  #       ...
+  #     };
+  #   }
+  #
+  packumentSemverClosureSerial = {
+    inherit (packumentSemverClosure) __functionArgs;
+    __innerFunction = packumentSemverClosure;
+    __functor = self: x: let
+      close = packumentSemverClosure x;
+    in close.__serial close;
   };
 
 
@@ -430,6 +483,7 @@ in {
     packumentClosureInit
     packumentClosureOp
     packumentSemverClosure
+    packumentSemverClosureSerial
   ;
 }
 
