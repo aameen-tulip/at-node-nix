@@ -12,6 +12,7 @@
 : "${CUT:=cut}";
 
 : "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
+: "${EXTRA_NPM_FLAGS:=}";
 
 _es=0;
 
@@ -121,8 +122,13 @@ $PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null|$JQ -c > "$srcInfo"||
   $PACOTE extract "$DESCRIPTOR" . --json;
 
 # Produce a lockfile
-NPM_CONFIG_LOCKFILE_VERSION=3                                    \
-  $NPM install --package-lock-only --ignore-scripts >/dev/null;
+NPM_CONFIG_LOCKFILE_VERSION=3  \
+  $NPM install                 \
+    --package-lock-only        \
+    --ignore-scripts           \
+    --legacy-peer-deps         \
+    ${EXTRA_NPM_FLAGS[@]}      \
+  >/dev/null;
 
 _HAS_GYPFILE=;
 if test -r ./binding.gyp; then
