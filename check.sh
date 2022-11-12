@@ -21,6 +21,8 @@ trap '_es="$?"; exit "$_es";' HUP EXIT INT QUIT ABRT;
 nix_w flake check $NIX_FLAGS --system "$SYSTEM";
 nix_w flake check $NIX_FLAGS --system "$SYSTEM" --impure;
 
+nix_w eval .#lib --apply 'lib: builtins.deepSeq lib true';
+
 echo "Testing 'genMeta' Script" >&2;
 # Gen Meta
 BKEY="$( $NIX run .#genMeta -- '@babel/cli' --json|$JQ -r '.__meta.rootKey'; )";
