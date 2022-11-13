@@ -270,7 +270,7 @@
       pi  = lib.ytypes.PkgInfo;
       lp  = lib.libparse;
       str =
-        if builtins.istString x then x else
+        if builtins.isString x then x else
         x.ident or x.name or (
           if x ? key then dirOf x.key else
           if x ? scope then ( if x.scope == null
