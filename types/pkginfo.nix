@@ -241,7 +241,7 @@
     };
     node_names = yt.struct "node-names" {
       _type = yt.option ( yt.enum ["NodeNames"] );
-      ident = Strings.identifier;
+      ident = Strings.identifier_any;
       scope = yt.eitherN [yt.nil Strings.scope];
       inherit (Strings) sdir bname;
     };
