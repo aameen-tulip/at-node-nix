@@ -91,8 +91,8 @@
       # FIXME: this is hideous.
       # Rewrite based on `pacote' fetcher.
       needsUnpack =
-       ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "file" ) ||
-       ( ( fetchInfo ? needsUnpack ) && ( fetchInfo.needsUnpack == false ) );
+        ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "file" ) ||
+        ( ( fetchInfo ? needsUnpack ) && ( fetchInfo.needsUnpack == false ) );
       unpacked = if ! needsUnpack then fetched else
                  flocoUnpack { name = names.src; tarball = fetched; };
     in lib.optionalAttrs ( builtins.elem fetchInfo.type ["tarball" "file"] ) {
@@ -132,7 +132,6 @@
   } @ args: let
     args' = {
       inherit name version src runScripts;
-      dontConfigure = true;
     } // ( removeAttrs args [
       "evalScripts"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
@@ -227,7 +226,6 @@
   } @ args: let
     args' = {
       inherit name version src runScripts;
-      dontConfigure = true;
     } // ( removeAttrs args [
       "evalScripts"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
