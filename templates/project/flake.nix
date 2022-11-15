@@ -56,8 +56,8 @@
         proc    = acc: k: if prev ? ${k} then acc else acc // {
           ${k} = metaSet.${k};
         };
-        ents  = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
-        keeps = bultins.foldl' proc {} ents;
+        ents  = removeAttrs metaSet.__entries ["__meta"];
+        keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
         # `mkPkgEntSource' fetches and unpacks for us.
       in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
     };
@@ -92,8 +92,8 @@
           proc    = acc: k: if prev ? ${k} then acc else acc // {
             ${k} = metaSet.${k};
           };
-          ents  = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
-          keeps = bultins.foldl' proc {} ents;
+          ents  = removeAttrs metaSet.__entries ["__meta"];
+          keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
         in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
       };
 
