@@ -53,7 +53,11 @@
     overlays.lockPackages = final: prev: {
       flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
         metaSet = final.lib.metaSetFromPlockV3 { lockDir = toString ./.; };
-        keeps   = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
+        proc    = acc: k: if prev ? ${k} then acc else acc // {
+          ${k} = metaSet.${k};
+        };
+        ents  = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
+        keeps = bultins.foldl' proc {} ents;
         # `mkPkgEntSource' fetches and unpacks for us.
       in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
     };
@@ -85,8 +89,11 @@
     in if metaRaw == {} then {} else {
         flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
           metaSet = final.lib.metaSetFromSerial metaRaw;
-          # Only add new definitions, don't clobber existing ones.
-          keeps = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
+          proc    = acc: k: if prev ? ${k} then acc else acc // {
+            ${k} = metaSet.${k};
+          };
+          ents  = removeAttrs metaSet.__entries ( builtins.attrNames fpPrev );
+          keeps = bultins.foldl' proc {} ents;
         in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
       };
 
