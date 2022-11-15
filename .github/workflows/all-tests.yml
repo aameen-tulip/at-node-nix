@@ -12,7 +12,7 @@ on:
       - pkgs/**
       - bin/**
       - '!**/README*'
-      - templates/projects/*
+      - templates/project/*
       
   pull_request:
     types: [opened, synchronize, reopened]
@@ -25,7 +25,7 @@ on:
       - pkgs/**
       - bin/**
       - '!**/README*'
-      - templates/projects/*
+      - templates/project/*
       
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
