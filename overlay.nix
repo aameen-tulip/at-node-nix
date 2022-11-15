@@ -131,7 +131,8 @@ in {
 
 # ---------------------------------------------------------------------------- #
 
-  snapDerivation = callPackage ./pkgs/make-derivation-simple.nix;
+  # Trust me, you want to pass the `{}' here.
+  snapDerivation = callPackage ./pkgs/make-derivation-simple.nix {};
 
   # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
   unpackSafe  = callPackage ./pkgs/build-support/unpackSafe.nix;
