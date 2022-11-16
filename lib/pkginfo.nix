@@ -60,8 +60,8 @@
         m         = builtins.match "((@([^@/]+)(/.*)?)|[^@/]+)" str;
         scopeAt   = builtins.elemAt m 2;
         scopeBare = builtins.head m;
-        scope = if scopeAt == null then scopeBare else scopeAt;
-      in if m == null then Scope.empty else {
+        scope     = if scopeAt == null then scopeBare else scopeAt;
+      in if ( m == null ) || ( scope == "unscoped" ) then Scope.empty else {
         inherit scope;
         scopedir = "@${scope}/";
       };
@@ -122,7 +122,7 @@
     _type = "NodeNames";
     inherit ident scope;
     bname = baseNameOf ident;
-    sdir  = if scope == null then "unscoped/${sl}" else scope;
+    sdir  = if scope == null then "unscoped/${sl}" else scope; # shard dir
   };
 
 
@@ -217,7 +217,7 @@
   in builtins.concatLists ( map processPath packages );
 
   # Given a path to a project dir or `package.json', return list of ws paths.
-  readWorkspacePackages = p: let pjp = pkgJsonForPath p; in
+  readWorkspacePackages = p: let pjp = pjsForPath p; in
     workspacePackages ( dirOf pjp ) ( lib.importJSON' pjp );
 
   # Make workspace paths absolute.
@@ -233,23 +233,23 @@
   # This is implemented naively, but allows use to directory names and filepaths
   # interchangeably to refer to projects.
   # This is analogous to Nix's `path/to/ --> path/to/default.nix' behavior.
-  pkgJsonForPath = p: let
+  pjsForPath = p: let
     p' = builtins.unsafeDiscardStringContext ( toString p );
-    m = builtins.match "(.*)/" p';
-    s = if ( m == null ) then p' else ( builtins.head m );
-  in if ( p' == "" ) then "package.json" else
-    if ( ( baseNameOf p ) == "package.json" ) then s else "${s}/package.json";
+    s  = lib.yankN 1 "(\\./)?(.*[^/]|.?)/?" p';
+  in if ( builtins.elem s ["" "."] ) then "package.json" else
+     if ( ( baseNameOf s ) == "package.json" ) then s else
+     "${s}/package.json";
 
-  # Reads a `package.json' after `pkgJsonForPath' ( see docs above ).
-  pkgJsonFromPath = p: let
-    pjs = pkgJsonForPath p;
+  # Reads a `package.json' after `pjsForPath' ( see docs above ).
+  pjsFromPath = p: let
+    pjs = pjsForPath p;
   in assert builtins.pathExists pjs;
      lib.importJSON' pjs;
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Like `pkgJsonFromPath', except that if we don't find `package.json'
+  # Like `pjsFromPath', except that if we don't find `package.json'
   # initially, we will check two layers of subdirectories.
   # This is intended to locate a `package.json' symlink which may exist in a
   # `linkToPath' Drv such as:
@@ -276,12 +276,12 @@
   getPkgJson = x: let
     inherit (builtins) isAttrs filter concatLists length head typeOf;
     inherit (lib.libfs) mapSubdirs;
-    fromDrvRoot = pkgJsonFromPath x.outPath;
+    fromDrvRoot = pjsFromPath x.outPath;
     pjsInSubdirs = let
       dirs1 = listSubdirs x.outPath;
       dirs2 = concatLists ( mapSubdirs listSubdirs x.outPath );
       finds = filter dirHasPackageJson ( dirs1 ++ dirs2 );
-      found = pkgJsonFromPath ( head finds );
+      found = pjsFromPath ( head finds );
       ns    = length finds;
     in if ns == 1 then found else
        if 1 < ns  then throw "Found multiple package.json files in subdirs" else
@@ -429,8 +429,8 @@ in {
 
   # `package.json' locators
   inherit
-    pkgJsonForPath
-    pkgJsonFromPath
+    pjsForPath
+    pjsFromPath
     getPkgJson
   ;
 
@@ -455,7 +455,7 @@ in {
     normalizeWorkspaces
   ;
 
-  readPkgInfo = path: mkPkgInfo ( pkgJsonFromPath path );
+  readPkgInfo = path: mkPkgInfo ( pjsFromPath path );
 }
 
 # ---------------------------------------------------------------------------- #

@@ -41,10 +41,10 @@ let
   readYarnDir = dir:
     let
       yarnLock = readYarnLock ( ( toString dir ) + "/yarn.lock" );
-      pkgJson = importJSON' ( ( toString dir ) + "/package.json" );
-      wsPackages = readWorkspacePackages pkgJson;
+      pjs = importJSON' ( ( toString dir ) + "/package.json" );
+      wsPackages = readWorkspacePackages pjs;
       selfPackage =
-        if pkgJson ? name then ( ( toString dir ) + "/package.json" ) else [];
+        if pjs ? name then ( ( toString dir ) + "/package.json" ) else [];
     in {
       inherit yarnLock;
       packagePaths = wsPackages ++ selfPackage;

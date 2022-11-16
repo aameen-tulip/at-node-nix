@@ -1,31 +1,42 @@
 #! /usr/bin/env bash
 set -eu;
+set -o pipefail;
 
+: "${REALPATH:=realpath}";
 : "${NIX:=nix}";
-: "${NIX_FLAGS:=-L --show-trace}";
+: "${NIX_FLAGS:=--no-warn-dirty}";
+: "${NIX_CMD_FLAGS:=-L --show-trace}";
 : "${SYSTEM:=$( $NIX eval --raw --impure --expr builtins.currentSystem; )}";
 : "${GREP:=grep}";
 : "${JQ:=jq}";
 
-export NIX_CONFIG='
-warn-dirty = false
-';
-
-nix_w() {
-  { $NIX "$@" 3>&2 2>&1 1>&3|$GREP -v 'warning: unknown flake output'; }  \
-    3>&2 2>&1 1>&3;
-}
+SDIR="$( $REALPATH "${BASH_SOURCE[0]}" )";
+SDIR="${SDIR%/*}";
+: "${FLAKE_REF:=$SDIR}";
 
 trap '_es="$?"; exit "$_es";' HUP EXIT INT QUIT ABRT;
 
-nix_w flake check $NIX_FLAGS --system "$SYSTEM";
-nix_w flake check $NIX_FLAGS --system "$SYSTEM" --impure;
+nix_w() {
+  {
+    {
+      $NIX $NIX_FLAGS "$@" 3>&2 2>&1 1>&3||exit 1;
+    }|$GREP -v 'warning: unknown flake output';
+  } 3>&2 2>&1 1>&3;
+}
 
-nix_w eval .#lib --apply 'lib: builtins.deepSeq lib true';
+nix_w flake check "$FLAKE_REF" $NIX_CMD_FLAGS --system "$SYSTEM";
+nix_w flake check "$FLAKE_REF" $NIX_CMD_FLAGS --system "$SYSTEM" --impure;
+
+# Swallow traces
+nix_w eval "$FLAKE_REF#lib"      \
+      --apply 'lib: builtins.deepSeq lib true' 2>/dev/null;
 
 echo "Testing 'genMeta' Script" >&2;
 # Gen Meta
-BKEY="$( $NIX run .#genMeta -- '@babel/cli' --json|$JQ -r '.__meta.rootKey'; )";
+BKEY="$(
+  nix_w run "$FLAKE_REF#genMeta" -- '@babel/cli' --json  \
+    |$JQ -r '.__meta.rootKey';
+)";
 case "$BKEY" in
   @babel/cli/*) echo "PASS: genMeta"; ;;
   *)
