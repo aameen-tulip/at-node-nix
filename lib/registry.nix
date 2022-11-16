@@ -560,7 +560,7 @@
     __functionArgs  =
       ( lib.functionArgs defVInfoMeta.__innerFunction ) // { clean = true; };
 
-    __cleanVInfo = { trust, vinfo, ... }: let
+    __cleanVersionInfo = { trust, vinfo, ... }: let
       gypfile' = if trust then { inherit (vinfo) gypfile; } else {};
       cleaned  = normalizeVInfo vinfo;
     in cleaned // gypfile';
@@ -575,7 +575,7 @@
       args    = st0 ( self.__processArgs self x );
       rsl     = self.__innerFunction args;
       doClean = x.clean or self.__thunk.clean or false;
-      vinfo   = if doClean then self.__cleanVInfo rsl else rsl.vinfo;
+      vinfo   = if doClean then self.__cleanVersionInfo rsl else rsl.vinfo;
       final   = st1 ( rsl // { inherit vinfo; } );
       loc     = "${self.__functionMeta.from}.${self.__functionMeta.name}";
       ec      = "(${loc}): called with ${lib.generators.toPretty {} x}";
@@ -624,7 +624,7 @@
   , hasInstallScript ? args.vinfo.hasInstallScript or false
   , gypfile          ? args.vinfo.gypfile or false
 
-  , narHash          ? src.narHash
+  , narHash ? src.narHash
   , src ? builtins.fetchTree ( {
       type = "tarball";
       url  = dist.tarball;
@@ -651,23 +651,48 @@
       if builtins.isString pjs.bin then { ${bname} = pjs.bin; } else
       if pjs ? directories.bin     then forBindir else
       throw "Bad 'bin' type: ${builtins.typeOf ( pjs.bin or null )}";
-  in {
-    binsEquivalent = packBinNorm == getBinPairs;
-    binsSame = ( pjs.bin or null ) == ( args.bin or args.vinfo.bin or null );
-    expected = {
+
+    binsSame  = ( pjs.bin or null ) == ( args.bin or args.vinfo.bin or null );
+    binsEquiv = binsSame || ( packBinNorm == getBinPairs );
+    scriptsSame  =
+      ( args.scripts or args.vinfo.scripts or null ) == ( pjs.scripts or null );
+    scriptsEquiv = scriptsSame ||
+                   ( hasGypfile &&
+                     ( ( scripts.install or null ) ==
+                       ( pjs.scripts.install or "node-gyp rebuild" ) ) );
+    actuallyHasInstallScript = ( pjs ? scripts.install )     ||
+                               ( pjs ? scripts.preinstall )  ||
+                               ( pjs ? scripts.postinstall );
+    equiv =
+      binsEquiv && scriptsEquiv &&
+      ( hasGypfile == gypfile ) &&
+      ( hasInstallScript == actuallyHasInstallScript );
+    registry = {
       inherit hasInstallScript gypfile;
       bin     = args.bin or args.vinfo.bin or null;
       scripts = args.scripts or args.vinfo.scripts or null;
     };
-    actual = {
-      hasInstallScript = ( pjs ? scripts.install )     ||
-                         ( pjs ? scripts.preinstall )  ||
-                         ( pjs ? scripts.postinstall ) ||
-                         hasGypfile;
-      gypfile = hasGypfile;
-      bin     = pjs.bin or null;
-      scripts = pjs.scripts or null;
+    tarball = {
+      hasInstallScript = actuallyHasInstallScript;
+      gypfile          = hasGypfile;
+      bin              = pjs.bin or null;
+      scripts          = pjs.scripts or null;
     };
+    diff = let
+      d = lib.filterAttrs ( f: v: v != registry.${f} ) tarball;
+    in builtins.mapAttrs ( f: v: {
+      tarball  = v;
+      registry = registry.${f};
+    } ) d;
+    ediff = let
+      drops = ( if scriptsEquiv then ["scripts"] else [] ) ++
+              ( if binsEquiv then ["bin"] else [] );
+    in removeAttrs diff drops;
+  in {
+    inherit
+      binsSame binsEquiv scriptsSame scriptsEquiv equiv
+      registry tarball diff ediff
+    ;
   };
 
 

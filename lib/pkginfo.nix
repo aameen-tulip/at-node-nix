@@ -287,7 +287,7 @@
        if 1 < ns  then throw "Found multiple package.json files in subdirs" else
        throw "Could not find package.json in subdirs";
     fromPath = let
-      pjp = "${lib.coercePath x}/package.json";
+      pjp = ( lib.coercePath x ) + "/package.json";
     in if ( builtins.pathExists pjp ) then ( lib.importJSON' pjp )
                                       else pjsInSubdirs;
   in if lib.isCoercibleToPath x then fromPath else if isAttrs x then x else
@@ -301,9 +301,57 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pkgJsonHasBin = x: let
+  pjsHasBin = x: let
     pjs = getPkgJson x;
-  in ( pjs ? bin ) || ( pjs ? directories.bin );
+  in ( ( pjs.bin or {} ) != {} ) || ( ( pjs.directories.bin or {} ) != {} );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # XXX: IFD, maybe impure depending on path
+  pjsBinPairsFromDir = {
+    absdir ? src + "/${bindir}"
+  , bindir ? if directories != null then directories.bin else
+             lib.yank "${src}/(.*)" args.absdir
+  , directories ? args.pjs.directories or null
+  , src ? throw (
+      "(at-node-nix#lib.libpkginfo.pjsBinPairsFromDir): " +
+      "You must pass either `absdir' + `bindir' or `src' + directories."
+    )
+  } @ args: let
+    ents  = builtins.readDir absdir;
+    files = lib.filterAttrs ( _: type: type != "directory" ) ents;
+    proc  = acc: fname: acc // {
+      ${lib.libfs.baseNameOfDropExt fname} = "${bindir}/${fname}";
+    };
+  in builtins.foldl' proc {} ( builtins.attrNames files );
+
+
+  # Normalize `bin' or `directories.bin' field to pairs of `{ <BIN> = <PATH>; }'
+  # where any "./" prefix has been stripped from `<PATH>' values.
+  # This may be used to check equivalence between various forms.
+  #
+  # Set `ifd' and `pure' to restrict reading the filesystem, or "unlocked"
+  # paths; this is needed for `directories.bin', and `bin' as a string if the
+  # caller omits the `ident'/`bname' args.
+  pjsBinPairs' = let
+    loc = "at-node-nix#lib.libpkginfo.pjsBinPairs'";
+  in { ifd ? ! pure, pure ? lib.inPureEvalMode }: {
+    bin         ? null
+  , directories ? {}
+  , bname ? baseNameOf ident
+  , ident ?
+    if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
+    if pure && ( ! ( lib.isStorePath src ) )
+    then throw "(${loc}): Cannot read non-store path in pure mode."
+    else ( lib.importJSON ( src + "/package.json" ) ).name
+  , src ? throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
+                  "must pass `src' as an arg." )
+  } @ pjs: let
+    stripDS = lib.yank "\\./(.*)";
+  in if builtins.isAttrs bin  then builtins.mapAttrs ( _: stripDS ) bin else
+     if builtins.isString bin then { ${bname} = stripDS bin; } else
+     pjsBinPairsFromDir { inherit src directories; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -358,11 +406,9 @@
       "preinstall" "install" "postinstall"
     ];
     asPath = lib.libpath.coercePath x;
-    isDir = let
-      inherit (lib.libpath) isCoercibleToPath categorizePath;
-    in ( pjs != x ) && ( isCoercibleToPath x ) &&
-       ( ( categorizePath asPath ) == "directory" );
-    hasGyp = isDir && ( builtins.pathExists "${asPath}/binding.gyp" );
+    isDir = ( pjs != x ) && ( lib.libpath.isCoercibleToPath x ) &&
+            ( ( lib.libpath.categorizePath asPath ) == "directory" );
+    hasGyp = isDir && ( builtins.pathExists ( asPath + "/binding.gyp" ) );
   in explicit || scripted || hasGyp;
 
 
@@ -376,7 +422,7 @@ in {
 
   inherit
     mkPkgInfo
-    pkgJsonHasBin
+    pjsHasBin
     rewriteDescriptors
     hasInstallScript
   ;
@@ -386,6 +432,12 @@ in {
     pkgJsonForPath
     pkgJsonFromPath
     getPkgJson
+  ;
+
+  # Normalize fields
+  inherit
+    pjsBinPairsFromDir
+    pjsBinPairs'
   ;
 
   # Names

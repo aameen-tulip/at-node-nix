@@ -64,6 +64,41 @@
       };
     };
 
+
+# ---------------------------------------------------------------------------- #
+
+    testPjsBinPairs_0 = {
+      expr = lib.libpkginfo.pjsBinPairs' {} {
+        src             = ./data;
+        directories.bin = "bin";
+      };
+      expected = {
+        bar = "bin/bar.js";
+        foo = "bin/foo.sh";
+        baz = "bin/baz";
+        # A subdirectory "sub/quux" should NOT be treated as a "bin".
+      };
+    };
+
+    testPjsBinPairs_1 = {
+      expr = lib.libpkginfo.pjsBinPairs' {} {
+        bin.foo = "./hey.js";
+        bin.bar = "./bin/bar.js";
+      };
+      expected = { bar = "bin/bar.js"; foo = "hey.js"; };
+    };
+
+    testPjsBinPairs_2 = {
+      expr = lib.libpkginfo.pjsBinPairs' {} {
+        bname = "quux";
+        bin = "./bin/bar.js";
+      };
+      expected.quux = "bin/bar.js";
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
   };  # End Tests
 
 
