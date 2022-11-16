@@ -245,6 +245,10 @@
       scope = yt.eitherN [yt.nil Strings.scope];
       inherit (Strings) sdir bname;
     };
+
+    # FIXME: make a real definiton.
+    package_json = yt.restrict "package.json" ( yt.attrs yt.any );
+
   };  # End Structs
 
 

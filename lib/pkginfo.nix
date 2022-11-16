@@ -6,10 +6,6 @@
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   pi = yt.PkgInfo;
-  inherit (lib) isType setType;
-  inherit (lib.libfs) listSubdirs listDirsRecursive;
-  inherit (lib.libpath) coercePath;
-  inherit (lib.libstr) test;
 
 # ---------------------------------------------------------------------------- #
 
@@ -172,14 +168,15 @@
   # NOTE: In `.nix' files, "\*" ==> "*", so the "escaped" glob in the example
   #       above is written as : hasGlob "foo/\\*/bar" ==> false
   #       When reading from a file however, the examples above are "accurate".
-  hasGlob = p: let g = "[^\\]\\*"; in
-    ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+  hasGlob = p:
+    lib.test ".*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
 
-  hasDoubleGlob = p: let g = "[^\\]\\*\\*"; in
-    ( builtins.match "(.+${g}.*|.*${g}.+|\\*\\*)" p ) != null;
+  hasDoubleGlob = p:
+    lib.test ".*\\*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
 
-  hasSingleGlob = p: let g = "[^\\\\*]\\*"; in
-    ( builtins.match "(.+${g}.*|.*${g}.+|\\*)" p ) != null;
+  hasSingleGlob = p: let
+    esc = builtins.replaceStrings ["\\*"] [""] p;
+  in lib.test ".*[^*]\\*[^*].*|.*[^*]\\*|\\*" esc;
 
 
 # ---------------------------------------------------------------------------- #
@@ -194,7 +191,7 @@
     ! ( ( type == "directory" ) && ( ( baseNameOf name ) == "node_modules" ) );
 
   # Non-Recursive
-  dirHasPackageJson = p: builtins.pathExists "${coercePath p}/package.json";
+  dirHasPjs = p: builtins.pathExists "${lib.coercePath p}/package.json";
 
 
 # ---------------------------------------------------------------------------- #
@@ -202,9 +199,10 @@
   # Expand globs in workspace paths for a `package.json' file.
   # XXX: This only supports globs at the end of paths.
   processWorkspacePath = p: let
-    dirs = if ( hasSingleGlob p ) then ( listSubdirs ( dirOf p ) )
-           else if ( hasDoubleGlob p ) then ( listDirsRecursive ( dirOf p ) )
-           else [p];
+    dirs =
+      if ( hasSingleGlob p ) then ( lib.libfs.listSubdirs ( dirOf p ) ) else
+      if ( hasDoubleGlob p ) then ( lib.libfs.listDirsRecursive ( dirOf p ) )
+      else [p];
     process = builtins.filter ( x: x != null );
     msg = "processGlobEnd: Only globs at the end of paths arg handled: ${p}";
   in if ( hasGlob ( dirOf p ) ) then throw msg else ( process dirs );
@@ -274,24 +272,26 @@
   # pain in the ass.
   # This function already does a ton of heavy lifting.
   getPkgJson = x: let
-    inherit (builtins) isAttrs filter concatLists length head typeOf;
-    inherit (lib.libfs) mapSubdirs;
-    fromDrvRoot = pjsFromPath x.outPath;
+    d            = lib.coercePath x;
+    fromDrvRoot  = pjsFromPath d;
     pjsInSubdirs = let
-      dirs1 = listSubdirs x.outPath;
-      dirs2 = concatLists ( mapSubdirs listSubdirs x.outPath );
-      finds = filter dirHasPackageJson ( dirs1 ++ dirs2 );
-      found = pjsFromPath ( head finds );
-      ns    = length finds;
+      dirs1 = lib.libfs.listSubdirs d;
+      dirs2 = let
+        subsubs = lib.libfs.mapSubdirs lib.listSubdirs d;
+      in builtins.concatLists subsubs;
+      finds = builtins.filter dirHasPjs ( dirs1 ++ dirs2 );
+      found = pjsFromPath ( builtins.head finds );
+      ns    = builtins.length finds;
     in if ns == 1 then found else
        if 1 < ns  then throw "Found multiple package.json files in subdirs" else
        throw "Could not find package.json in subdirs";
     fromPath = let
-      pjp = ( lib.coercePath x ) + "/package.json";
-    in if ( builtins.pathExists pjp ) then ( lib.importJSON' pjp )
-                                      else pjsInSubdirs;
-  in if lib.isCoercibleToPath x then fromPath else if isAttrs x then x else
-     throw "Cannot get package.json from type: ${typeOf x}";
+      pjsp = d + "/package.json";
+    in if ( builtins.pathExists pjsp ) then ( lib.importJSON' pjsp )
+                                       else pjsInSubdirs;
+  in if lib.isCoercibleToPath x then fromPath else
+     if builtins.isAttrs x then x else
+     throw "Cannot get package.json from type: ${builtins.typeOf x}";
 
 
 # ---------------------------------------------------------------------------- #
@@ -301,9 +301,50 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pjsHasBin = x: let
-    pjs = getPkgJson x;
-  in ( ( pjs.bin or {} ) != {} ) || ( ( pjs.directories.bin or {} ) != {} );
+  pjsHasBin' = { pure ? lib.inPureEvalMode, ifd ? true }: {
+    __functionMeta = {
+      name = "pjsHasBin";
+      from = "at-node-nix#lib.libpkginfo";
+      signature = let
+        # FIXME: package_json type is phony.
+        tp = yt.Typeclasses.pathlike;
+        ts = yt.PkgInfo.Structs.package_json;
+        t0 = if pure then ts else yt.either tp ts;
+      in [t0 yt.bool];
+      properties = { inherit pure ifd; };
+    };
+    __functionArgs  = {
+      directories = true;
+      bin         = true;
+      outPath     = true;
+      pjs         = true;
+    };
+    __innerFunction = pjs: ( pjs.bin or pjs.directories.bin or {} ) != {};
+    __processArgs = self: x: let
+      loc      = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      pjs'     = getPkgJson x;
+      ifdMsg   = "(${loc}): Cannot read from derivation when `ifd = false'.";
+      pureMsg  = "(${loc}): Cannot read unlocked path when `pure = true'.";
+      fromIFD  = if ! ifd then throw ifdMsg else pjs';
+      fromRead = let
+        p = lib.coercePath x;
+      in if ( ! pure ) || ( lib.isStorePath p ) || ( ! ( lib.isAbspath p ) )
+         then pjs'
+         else throw pureMsg;
+      forAttrs =
+        if ! ( ( lib.isDerivation x ) || ( lib.isCoercibleToPath x ) ) then x
+        else if lib.isDerivation x then fromIFD else fromRead;
+    in x.pjs or ( if builtins.isAttrs x then forAttrs else fromRead );
+    __functor = self: x: let
+      loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      pjs = self.__processArgs self x;
+      pp  = lib.generators.toPretty { allowPrettyValues = true; };
+      ec  = builtins.addErrorContext "(${loc}): called with ${pp x}";
+      rsl = self.__innerFunction pjs;
+    in ec rsl;
+  };
+
+  pjsHasBin = {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -336,10 +377,10 @@
   # caller omits the `ident'/`bname' args.
   pjsBinPairs' = let
     loc = "at-node-nix#lib.libpkginfo.pjsBinPairs'";
-  in { ifd ? ! pure, pure ? lib.inPureEvalMode }: {
+  in { ifd ? true, pure ? lib.inPureEvalMode }: {
     bin         ? null
   , directories ? {}
-  , bname ? baseNameOf ident
+  , bname       ? baseNameOf ident
   , ident ?
     if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
     if pure && ( ! ( lib.isStorePath src ) )
@@ -422,7 +463,6 @@ in {
 
   inherit
     mkPkgInfo
-    pjsHasBin
     rewriteDescriptors
     hasInstallScript
   ;
@@ -431,6 +471,8 @@ in {
   inherit
     pjsForPath
     pjsFromPath
+    pjsHasBin'
+    pjsHasBin
     getPkgJson
   ;
 
