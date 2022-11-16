@@ -595,7 +595,7 @@
   , narHash  ? null
   , trust    ? false
   } @ args: let
-    nh'     = if args ? narHash then { inherit narHash; } else {};
+    nh'     = if args ? narHash then { inherit (args) narHash; } else {};
     narHash = args.narHash or fetched.narHash;
     url     = "${registry}/${ident}/${version}";
     fetched = builtins.fetchTree ( { type = "file"; inherit url; } // nh' );
@@ -631,11 +631,11 @@
     } // ( if args ? narHash then { inherit narHash; } else {} ) )
   , ...
   } @ args: let
-    pjs        = lib.importJSON "${src}/package.json";
-    hasGypfile = builtins.pathExists "${src}/binding.gyp";
+    pjs        = lib.importJSON ( src + "/package.json" );
+    hasGypfile = builtins.pathExists ( src + "/binding.gyp" );
     bname      = baseNameOf pjs.ident;
     forBindir  = let
-      ents  = builtins.readDir pjs.directories.bin;
+      ents  = builtins.readDir ( src + "/${pjs.directories.bin}" );
       files = lib.filterAttrs ( _: type: type != "directory" ) ents;
       proc = acc: fname: acc // {
         ${lib.libfs.baseNameOfDropExt fname} =
