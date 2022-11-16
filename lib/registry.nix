@@ -150,7 +150,7 @@
     addNiVers = vers: val: val // nid // { reference = vers; };
     addTarInfoVers = val: let
       fetchTarballArgs = ( { tarball, integrity ? "", shasum ? "", ... }: {
-        url = tarball;
+        url  = tarball;
         hash = integrity;
         sha1 = shasum;
       } ) val.dist;
@@ -227,10 +227,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: updates to `importFetchPackument' and new parsers turned this
-  # implementation into a bit of a mess.
-  # This is due for a rewrite.
-
   /**
    * A lazily evaluated extensible packument database.
    * Packuments will not be fetched twice.
@@ -299,8 +295,9 @@
   };
 
 
+  # TODO: deprecate in favor of `libsat'?
   # FIXME: you only collect `dependencies' here and likely want to collect
-  # more than that.
+  # more than that. ( `libsat' fixes this )
   extendWithLatestDeps' = pr: let
     inherit (builtins) mapAttrs attrNames attrValues foldl' filter;
     depsFor = x: x.latest.dependencies or {};
@@ -329,8 +326,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # That's right ladies and gentlemen, you've stubmled upon the mythic
-  # "Y Combinator" in the wild.
+  # TODO: deprecate in favor of `libsat'
   packumentClosure' = prev: packages: let
     pr = builtins.foldl' ( x: x ) prev ( lib.toList packages );
   in lib.converge extendWithLatestDeps' pr;
@@ -439,6 +435,7 @@
 # ---------------------------------------------------------------------------- #
 
   # FIXME: use `lib.generators.toPretty'
+  # FIXME: use `checkPermsDrv' from `flocoPackages' to avoid crashes.
   flakeInputFromVInfoTarball = {
     name       ? null  # We don't use these, but I'm listing them for reference.
   , version    ? null
@@ -466,14 +463,16 @@
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
     id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] _id;
     maybeId = if withId then { inherit id; } else {};
+    # FIXME: this will crash if bad directory perms are written in tarball.
+    #ff = builtins.fetchTree { url = _resolved; type = "file"; };
     ft = builtins.fetchTree { url = _resolved; type = "tarball"; };
     maybeNarHash = if lookupNar then { inherit (ft) narHash; } else {};
     maybeToString =
       if withToString then {
         __toString = self: ''
           inputs.${id} = {
-            type = "${self.type}";
-            url = "${self.url}";
+            type  = "${self.type}";
+            url   = "${self.url}";
             flake = false;
         '' + ( if self ? narHash
                then "  narHash = \"${self.narHash}\";\n" else "" ) + ''
@@ -583,9 +582,93 @@
     in builtins.addErrorContext ec final;
   };
 
+
+# ---------------------------------------------------------------------------- #
+
+  # XXX: Impure unless `narHash' is passed.
+  fetchVInfoMetaNoChecks = {
+    ident    ? dirOf key
+  , version  ? baseNameOf key
+  , key      ? "${ident}/${version}"
+  , registry ? lib.registryForScope { inherit ident; }
+  , clean    ? true
+  , narHash  ? null
+  , trust    ? false
+  } @ args: let
+    nh'     = if args ? narHash then { inherit narHash; } else {};
+    narHash = args.narHash or fetched.narHash;
+    url     = "${registry}/${ident}/${version}";
+    fetched = builtins.fetchTree ( { type = "file"; inherit url; } // nh' );
+  in defVInfoMeta {
+    inherit ident version url registry trust narHash clean;
+    vinfo = lib.importJSON fetched.outPath;
+  };
+
+
   # TODO: Define `mkVInfoMeta'
   #  - fill missing trust/narHash
   #  - allow impure fetching
+  mkVInfoMeta' = { pure ? true, ifd ? false }: {
+    __functionArgs = {
+
+    };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  auditVInfoWithIFD = {
+    dist             ? args.vinfo.dist
+  , scripts          ? args.vinfo.scripts or {}
+  , bin              ? args.vinfo.bin or {}
+  , hasInstallScript ? args.vinfo.hasInstallScript or false
+  , gypfile          ? args.vinfo.gypfile or false
+
+  , narHash          ? src.narHash
+  , src ? builtins.fetchTree ( {
+      type = "tarball";
+      url  = dist.tarball;
+    } // ( if args ? narHash then { inherit narHash; } else {} ) )
+  , ...
+  } @ args: let
+    pjs        = lib.importJSON "${src}/package.json";
+    hasGypfile = builtins.pathExists "${src}/binding.gyp";
+    bname      = baseNameOf pjs.ident;
+    forBindir  = let
+      ents  = builtins.readDir pjs.directories.bin;
+      files = lib.filterAttrs ( _: type: type != "directory" ) ents;
+      proc = acc: fname: acc // {
+        ${lib.libfs.baseNameOfDropExt fname} =
+          "${pjs.directories.bin}/${fname}";
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames files );
+    packBinNorm =
+      if builtins.isAttrs ( bin ) then bin else
+      if builtins.isString bin then { ${bname} = bin; } else
+      throw "Bad 'bin' type: ${builtins.typeOf bin}";
+    getBinPairs =
+      if builtins.isAttrs ( pjs.bin or {} ) then pjs.bin or {} else
+      if builtins.isString pjs.bin then { ${bname} = pjs.bin; } else
+      if pjs ? directories.bin     then forBindir else
+      throw "Bad 'bin' type: ${builtins.typeOf ( pjs.bin or null )}";
+  in {
+    binsEquivalent = packBinNorm == getBinPairs;
+    binsSame = ( pjs.bin or null ) == ( args.bin or args.vinfo.bin or null );
+    expected = {
+      inherit hasInstallScript gypfile;
+      bin     = args.bin or args.vinfo.bin or null;
+      scripts = args.scripts or args.vinfo.scripts or null;
+    };
+    actual = {
+      hasInstallScript = ( pjs ? scripts.install )     ||
+                         ( pjs ? scripts.preinstall )  ||
+                         ( pjs ? scripts.postinstall ) ||
+                         hasGypfile;
+      gypfile = hasGypfile;
+      bin     = pjs.bin or null;
+      scripts = pjs.scripts or null;
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -706,6 +789,8 @@ in {
   inherit
     defVInfoMeta'
     defVInfoMeta
+    fetchVInfoMetaNoChecks
+    auditVInfoWithIFD
   ;
 }
 
