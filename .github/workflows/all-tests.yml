@@ -91,23 +91,27 @@ jobs:
           echo "# ---------------------------------------------------------------------------- #" >&2;
           nix flake check head --show-trace --impure;
 
-      - name: Project Template
-        if: always()
-        run: |
-          mkdir -p project;
-          cd project;
-          nix flake init --template head#project;
-          git init;
-          git add .;
-
-          echo "Build Package:" >&2;
-          nix build --no-link -L;
-          echo "# ---------------------------------------------------------------------------- #" >&2;
-          echo "Test Package:" >&2;
-          nix build --no-link -L;
-
-          cd -;
-          rm -rf ./project;
+      # FIXME: `flocoPackages' is too big and hits the GHA
+      # RAM limit. 
+      # This needs to be fixed in that repo but because our template
+      # references it GHA kills us. 
+      # JFC: The template is fine and any box with real hardware can
+      # consume `flocoPackages' without issues.
+      #- name: Project Template
+      #  if: always()
+      #  run: |
+      #    mkdir -p project;
+      #    cd project;
+      #    nix flake init --template head#project;
+      #    git init;
+      #    git add .;
+      #    echo "Build Package:" >&2;
+      #    nix build --no-link -L;
+      #    echo "# ---------------------------------------------------------------------------- #" >&2;
+      #    echo "Test Package:" >&2;
+      #    nix build .#test --no-link -L;
+      #    cd -;
+      #    rm -rf ./project;
 
       - name: Gen Meta
         if: always()
