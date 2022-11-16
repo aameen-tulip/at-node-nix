@@ -74,7 +74,7 @@
     hasInstallScript = false;
   };
 
-  # Fetch a manifest
+  # Fetch a manifest ( contains shas and list of files in a tarball )
   # NOTE: this is basically only useful to generate info for local builds.
   # If you want this info from a registry package use their endpoint to avoid
   # "import from derivation" headaches.

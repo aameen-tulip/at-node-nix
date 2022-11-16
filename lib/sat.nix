@@ -25,7 +25,7 @@
     __thunk.registry = "https://registry.npmjs.org";
 
     __innerFunction = { ident, version, registry }:
-      lib.libreg.importCleanManifest registry ident version;
+      lib.libreg.importCleanVInfo registry ident version;
 
     __processArgs = self: x: let
       curryVersion = version: { ident = x; inherit version; };

@@ -131,9 +131,13 @@
 
   # Tail calls `builtins.fromJSON' after fetching.
   importFetchPackument = fetchPackument // {
+    __cleanVersionInfo = normalizeVInfo;
     __functor = self: arg: let
       wrapFP = fetchPackument // { inherit (self) __thunk; };
-    in builtins.fromJSON ( wrapFP arg );
+      json   = builtins.fromJSON ( wrapFP arg );
+    in json // {
+      versions = builtins.mapAttrs ( _: self.__cleanVersionInfo ) json.versions;
+    };
   };
 
 
@@ -151,7 +155,9 @@
         sha1 = shasum;
       } ) val.dist;
       fetchWith = {
-        fetchurl ? ( { url, ... }: builtins.fetchTree { inherit url; type = "file"; } )
+        fetchurl ? ( { url, ... }: builtins.fetchTree {
+          inherit url; type = "file";
+        } )
       }: builtins.fetchurl fetchTarballArgs;
     in val // {
       inherit fetchTarballArgs fetchWith;
@@ -433,7 +439,7 @@
 # ---------------------------------------------------------------------------- #
 
   # FIXME: use `lib.generators.toPretty'
-  flakeInputFromManifestTarball = {
+  flakeInputFromVInfoTarball = {
     name       ? null  # We don't use these, but I'm listing them for reference.
   , version    ? null
   , dist       ? {}
@@ -456,7 +462,7 @@
     # but I've left it optional in case someone needs it.
   , lookupNar ? true
   , ...  # `engines' and a few other obnoxious fields should get tossed.
-  } @ manifest: let
+  } @ vinfo: let
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
     id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] _id;
     maybeId = if withId then { inherit id; } else {};
@@ -485,7 +491,7 @@
 
   # FIXME: Make this name parser part of `metaEnt.names'.
   #
-  # Given an input `id' created by `flakeInputFromManifestTarball', return an
+  # Given an input `id' created by `flakeInputFromVInfoTarball', return an
   # attrset with all the delicious nuggets of info therein.
   # Notably this makes it easy to convert to the `node2nix' names, which is
   # useful for replacing those `fetchurl' invocations with `fetchTree' calls.
@@ -510,22 +516,22 @@
 
 # ---------------------------------------------------------------------------- #
 
-  fetchManifest = registryUrl: name: version: let
+  fetchVInfo = registryUrl: name: version: let
     url  = "${registryUrl}/${name}/${version}";
     urlS = builtins.unsafeDiscardStringContext url;
   in builtins.readFile ( builtins.fetchTree { url = urlS; type = "file"; } );
 
-  importFetchManifest = registryUrl: name: version:
-    builtins.fromJSON ( fetchManifest registryUrl name version );
+  importFetchVInfo = registryUrl: name: version:
+    builtins.fromJSON ( fetchVInfo registryUrl name version );
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Drop junk fields from manifests, and add explicit handlers for a few fields
+  # Drop junk fields from vinfos, and add explicit handlers for a few fields
   # that we actually care about.
   # FIXME: This could probably be shortened using `builtins.intersectAttrs'.
   # FIXME: Create a `metaEnt' from this.
-  normalizeManifest = manifest: let
+  normalizeVInfo = vinfo: let
     removes = [
       "_npmOperationalInternal"
       "maintainers"
@@ -538,6 +544,9 @@
       "keywords"
       "author"
       "bugs"
+      # XXX: DO NOT SAVE THIS FIELD!
+      "gypfile"  # See note below about `gypfile' field.
+      # XXX: DO NOT SAVE THIS FIELD!
     ];
     # Subfields
     removesDist = [  # dist.<ATTR>
@@ -546,32 +555,42 @@
       "unpackedSize"
       "fileCount"
     ];
-    dist = removeAttrs ( manifest.dist or {} ) removesDist;
-    san  = ( removeAttrs manifest removes ) // { inherit dist; };
+    dist = removeAttrs ( vinfo.dist or {} ) removesDist;
+    san  = ( removeAttrs vinfo removes ) // { inherit dist; };
     # Missing `install' scripts are automatically added by the NPM registry
     # for projects with `binding.gyp' in the root.
-    # This SHOULD be in the manifest already if we pulled from a "standard"
+    # This SHOULD be in the vinfo already if we pulled from a "standard"
     # registry, but because I can't find anywhere that actually specifies
     # whether or not this is always added for all implementations of "NPM style
     # registries" - I am making this explicit.
     #
     # NOTE: This is not "bullet-proof", there's no real spec for registries.
-    # We have no guarantees that the `scripts' or `gypfile' fields will be present.
+    # We have no guarantees that the `scripts' or `gypfile' fields will
+    # be present.
     # As a practical matter we're covering NPM, Verdaccio, and GitHub Packages.
+    # XXX: This is important.
+    # The `gypfile' field recorded in the NPM registry does NOT indicate that
+    # the tarball contains a `binding.gyp' file.
+    # This means the field is context dependant and should be ignored in
+    # registry queries, but preserved from `package-lock.json' files.
+    # This was a pretty fucking bad idea and there's a fat NPM issue thread
+    # spanning ~2 years covering the variety of issues it has caused.
+    # v8.x of NPM seemed to be hit particularly hard and will incorrectly run
+    # `node-gyp rebuild;' in some installs depending on cache contents...
     hasInstallScript = ( san ? scripts.install )      ||
                        ( san ? scripts.preinstall )   ||
-                       ( san ? scripts.postinstall )  ||
-                       ( san.gypfile or false );
-    gypfile = san.gypfile or false;
-  in { inherit hasInstallScript gypfile; } // san;
+                       ( san ? scripts.postinstall );
+    result = { inherit hasInstallScript; } // san;
+  in assert ! ( result ? gypfile );
+     result;
 
 
 # ---------------------------------------------------------------------------- #
 
-  importCleanManifest = registryUrl: name: version:
-    normalizeManifest ( importFetchManifest registryUrl name version );
+  importCleanVInfo = registryUrl: name: version:
+    normalizeVInfo ( importFetchVInfo registryUrl name version );
 
-  importManifestNpm = importCleanManifest "https://registry.npmjs.org";
+  importVInfoNpm = importCleanVInfo "https://registry.npmjs.org";
 
 
 # ---------------------------------------------------------------------------- #
@@ -596,16 +615,16 @@ in {
   inherit
     flakeRegistryFromPackuments
     flakeRegistryFromNpm
-    flakeInputFromManifestTarball
+    flakeInputFromVInfoTarball
     flattenLockNodes
   ;
 
   inherit
-    fetchManifest
-    importFetchManifest
-    normalizeManifest
-    importCleanManifest
-    importManifestNpm
+    fetchVInfo
+    importFetchVInfo
+    normalizeVInfo
+    importCleanVInfo
+    importVInfoNpm
   ;
 }
 

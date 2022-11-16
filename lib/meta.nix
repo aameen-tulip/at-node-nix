@@ -276,7 +276,7 @@
     "yarn.lock(v1)"
     "yarn.lock(v2)"
     "yarn.lock(v3)"
-    "manifest"
+    "vinfo"
     "packument"
     "raw"                    # Fallback/Default for manual entries
   ];

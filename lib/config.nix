@@ -22,7 +22,7 @@
 
   # XXX: Used as a base for constructing `flocoConfig'.
   baseFlocoConfig = {
-    # Used for querying manifests and packuments.
+    # Used for querying packuments and abbreviated version info.
     # Must be an attrset of strings.
     registryScopes._default = "https://registry.npmjs.org";
     enableImpureMeta = ! lib.inPureEvalMode;

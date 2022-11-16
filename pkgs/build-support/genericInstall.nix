@@ -58,7 +58,8 @@
   # You may need to add meta hints to hooks to account for neanderthals that
   # hide the `binding.gyp' file in a subdirectory - because `npmjs.org'
   # does not detect these and will not contain correct `gypfile' fields in
-  # registry manifests.
+  # registry version info.
+  # XXX: DO NOT USE THE FIELDS RECORDED IN THE NPM REGISTRY FOR `gypfile'!
   gyp =
     buildGyp ( { inherit name version nodejs jq xcbuild stdenv; } // args' );
 

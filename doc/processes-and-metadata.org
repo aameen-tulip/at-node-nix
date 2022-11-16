@@ -66,7 +66,7 @@ With that in mind it's good to know exactly what information we /really/ need to
  - This is a fuzzy one that's a bit of a catch all for getting a module ready for consumption.
  - Some packages explicitly define =[pre|post]prepare= scripts which should be run for "local" and =git= modules.
    + These generally overlap with steps run before "publishing" a module.
-     There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM manifest data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur.
+     There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM Packument data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur.
  - We also use this opportunity to handle any fixup/patching required by Nix as well in cases where there was no build/install routine where we had an opportunity to perform those steps.
 
 ** Test Module
@@ -112,7 +112,7 @@ In practice you will almost always have additional fields added by =lib.libmeta.
     key          ( string ; "<IDENT>/<VERSION>" )
     ident        ( string ; package identifier, being the "name" field from `package.json' )
     version      ( string )
-    entFromtype  ( string ; enum of ["package.json" "package-lock.json" "yarn.lock" "manifest" "packument" "raw" ...] )
+    entFromtype  ( string ; enum of ["package.json" "package-lock.json" "yarn.lock" "vinfo" "packument" "raw" ...] )
     _type        ( string ; always equal to "metaEnt". this field is not serialized and is automatically added by `mkMetaEnt' )
   }
 #+END_SRC

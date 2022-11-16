@@ -45,7 +45,14 @@ in {
   , configureFlags ? []  # as: node-gyp ... configure <HERE>
   , buildFlags     ? []  # as: node-gyp ... build     <HERE>
   # NOTE: `install' script is overridden by `node-gyp' invocation
-  , runScripts     ? ["preinstall" "postinstall"]
+  # NOTE: `[pre|post]prepare' scripts are NOT necessary when building registry
+  # tarballs, which is presumed to be the use case here.
+  # If you are building a `path' or `git' project you may want to turn those on
+  # here - but if you do so keep in mind that the `node_modules/' dir is
+  # supposed to only contain `dependendencies' and `optionalDependencies' during
+  # this phase, while `prepare' scripts need `devDependencies'.
+  # Keep that in mind if you write your own wrapper.
+  , runScripts ? ["preinstall" "postinstall"]
   # `--ensure' skips audit of Node.js system headers.
   # Rationale:
   # We aren't concerned with mismatching because we know our inputs were built
@@ -76,8 +83,26 @@ in {
   , python   ? nodejs.python or null  # XXX: strongly advise using python3
   , xcbuild
   , ...
-  } @ args:
-    evalScripts ( ( removeAttrs args ( builtins.attrNames gypArgs ) ) // {
+  } @ args: let
+
+    gypFlagToEnvVar = arg: let
+      noDash = lib.yank "--?(.*)" arg;
+      lobars = builtins.replaceStrings ["-"] ["_"] noDash;
+      sp     = lib.splitString "=" lobars;
+      h      = lib.toLower ( builtins.head sp );
+      t      = if ( builtins.length sp ) <= 1 then "1" else
+               builtins.concatStringsSep "=" ( builtins.tail sp );
+    in {
+      "npm_config_${h}" = t;
+    };
+
+    npmCfgVars = let
+      allFlags = gypFlags ++ configureFlags ++ buildFlags;
+    in builtins.foldl' ( acc: s: acc // ( gypFlagToEnvVar s ) ) {} allFlags;
+
+    args' = ( removeAttrs args ( builtins.attrNames gypArgs ) ) // npmCfgVars;
+
+  in evalScripts ( args' // {
       nativeBuildInputs = let
         given    = args.nativeBuildInputs or [];
         defaults = [pjsUtil nodejs node-gyp python jq] ++
@@ -86,31 +111,25 @@ in {
 
       buildPhase = lib.withHooks "build" ''
         case " $runScripts " in
-          preinstall) pjsRunScript preinstall; ;;
+          *\ preinstall\ *) pjsRunScript preinstall; ;;
           *) :; ;;
         esac
 
-        export BUILDTYPE="$buildType"
-        GYP_FLAGS=( $gypFlags );
-        GYP_CFG_FLAGS=( $configureFlags );
-        GYP_BUILD_FLAGS=( $buildFlags );
+          export BUILDTYPE="$buildType"
+          for v in "''${!npm_config_@}" "''${!NPM_CONFIG_@}"; do
+            eval export "$v";
+          done
 
-        if pjsHasScript install; then
-          _PKG_NAME="$( jq -r '.name' ./package.json )";
-          cat >&2 <<EOF
-        buildGyp: WARNING: $_PKG_NAME install script is being overridden.
-          Original: $( jq -r '.scripts.install' ./package.json; )
-          Override: |
-            node-gyp $GYP_FLAGS configure $GYP_CFG_FLAGS;
-            node-gyp $GYP_FLAGS build $GYP_BUILD_FLAGS;
-        EOF
-        fi
-
-        node-gyp $GYP_FLAGS configure $GYP_CFG_FLAGS;
-        node-gyp $GYP_FLAGS build $GYP_BUILD_FLAGS;
+          if pjsHasScript install; then
+            pjsRunScript install;
+          else
+            if test -r ./binding.gyp; then
+              node-gyp rebuild;
+            fi
+          fi
 
         case " $runScripts " in
-          postinstall) pjsRunScript postinstall; ;;
+          *\ postinstall\ *) pjsRunScript postinstall; ;;
           *) :; ;;
         esac
       '';

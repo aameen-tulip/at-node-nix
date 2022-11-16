@@ -138,7 +138,7 @@
   , hasBuild         ? entHasBuild ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
-  , gypfile          ? false
+  , gypfile          ? false  # XXX: do not read this field from registries
   , hasTest          ? entHasTestScript    ent
   , scripts          ? {}
   , os               ? null
@@ -175,14 +175,15 @@
           depInfo
         ;
       };
-      manifest = {
+      # XXX: DO NOT READ `gypfile' field from registries!
+      vinfo = {
         # TODO: This list is incomplete. See `libreg' for full list of fields.
         inherit
           bin
           scripts
-          gypfile
         ;
       };
+      # XXX: DO NOT READ `gypfile' field from registries!
       packument = {
         # TODO
       };
@@ -237,7 +238,7 @@
     } // ( lib.optionalAttrs ( type == "path" ) { fetchInfo.path = pjsDir; } );
     isRemoteSrc = type != "path";
     isTb        = builtins.elem type ["file" "tarball"];
-    # FIXME: fetching from the registry manifest makes WAY more sense.
+    # FIXME: fetching from the registry packument makes WAY more sense.
     canFetch = ( type == "git" ) && ( ! pure );
     haveTree = ( type == "path" ) || canFetch;
     type =

@@ -3,12 +3,12 @@
 , pkgs         ? nixpkgs.legacyPackages.${system}
 , lib          ? ( builtins.getFlake ( toString ../../.. ) ).lib
 , writeText    ? pkgs.writeText
-# This prints each manifest filepath before processing it.
+# This prints each vinfo filepath before processing it.
 , enableTraces ? true
 , ...
 } @ args:
 let
-  inherit (lib.libreg) flakeInputFromManifestTarball;
+  inherit (lib.libreg) flakeInputFromVInfoTarball;
 
   _trace = if enableTraces then builtins.trace else ( _: x: x );
 
@@ -23,10 +23,10 @@ let
     };
     process = f: let
       js = lib.importJSON' "${src}/${f}";
-      fi = flakeInputFromManifestTarball ( js // { withToString = true; } );
+      fi = flakeInputFromVInfoTarball ( js // { withToString = true; } );
     in _trace f toString fi;
-    manifests = builtins.attrNames ( builtins.readDir src );
-    decls = builtins.concatStringsSep "\n" ( map process manifests );
+    vinfos = builtins.attrNames ( builtins.readDir src );
+    decls = builtins.concatStringsSep "\n" ( map process vinfos );
   in writeText "flake.inputs.nix" decls;
 
 # If `dir' isn't passed in initially, return the funtion.

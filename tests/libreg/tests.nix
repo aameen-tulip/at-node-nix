@@ -13,8 +13,8 @@
     packumenter
     packumentClosure
     flakeRegistryFromPackuments
-    normalizeManifest
-    importCleanManifest
+    normalizeVInfo
+    importCleanVInfo
   ;
 
 # ---------------------------------------------------------------------------- #

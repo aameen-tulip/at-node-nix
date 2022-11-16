@@ -11,7 +11,7 @@
   # Optionals: Will fall back to reading files in flake's root dir.
   # ? flocoConfig
   # ? packument    "file+https://registry.npmjs.org/@foo/bar"
-  # ? manifest     "file+https://registry.npmjs.org/@foo/bar/1.0.0"
+  # ? vinfo        "file+https://registry.npmjs.org/@foo/bar/1.0.0"
   # ? source       Any source tree.
   #                ex: "https://registry.npmjs.org/@foo/bar/-/-bar-1.0.0.tgz"
   # ? metaSet      serialized JSON or Nix expression.
