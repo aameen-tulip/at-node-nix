@@ -31,6 +31,12 @@
 
 # ---------------------------------------------------------------------------- #
 
+  getDefaultRegistry =
+    ( lib.flocoConfig or baseFlocoConfig ).registryScopes._default;
+
+
+# ---------------------------------------------------------------------------- #
+
   # Check to see a config is valid.
   # We care about it having the default fields, and some basic type checking.
   # Users are free to add additional fields ( except `enableImpure' ), so we
@@ -76,6 +82,7 @@
 
 in {
   inherit
+    getDefaultRegistry
     validateFlocoConfig
     mkFlocoConfig
   ;

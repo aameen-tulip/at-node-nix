@@ -21,7 +21,7 @@
   , key            ? meta.key
   , meta           ? {}
   , registryScopes ?
-    flocoConfig.registryScopes or { _default = "http://registry.npmjs.org"; }
+    flocoConfig.registryScopes or { _default = lib.getDefaultRegistry; }
   , flocoConfig    ? lib.flocoConfig or {}
   , ...
   } @ args: let
@@ -75,7 +75,7 @@
       throw "registryForScope: arg must be a string (scope) or attrset";
     __thunk = let
       flocoConfig = lib.flocoConfig or {
-        _default = "https://registry.npmjs.org";
+        registryScopes._default = lib.getDefaultRegistry;
       };
     in { inherit (flocoConfig) registryScopes; };
     __innerFunction = self: _registryForScope;
@@ -112,7 +112,7 @@
     };
     __thunk = let
       flocoConfig = lib.flocoConfig or {
-        _default = "https://registry.npmjs.org";
+        registryScopes._default = lib.getDefaultRegistry;
       };
     in { inherit (flocoConfig) registryScopes; };
     __processArgs = self: arg: let
@@ -214,10 +214,10 @@
       packument = true;
     };
     __processArgs = self: arg: let
-      ifp = arg.importFetchPackument or self.__thunk.importFetchPackument;
+      ifp  = arg.importFetchPackument or self.__thunk.importFetchPackument;
       ifpT = if ! ( builtins.isAttrs ifp ) then ifp else
              ifp // { __thunk = ifp.__thunk // self.__thunk; };
-      ifpArgs = removeAttrs ( self.__thunk // arg ) ["importFetchPackument"];
+      ifpArgs  = removeAttrs ( self.__thunk // arg ) ["importFetchPackument"];
       fallback = if builtins.isString arg then ifpT arg else
                  if yt.Packument.packument.check arg then arg else ifp ifpArgs;
     in arg.packument or fallback;
@@ -262,7 +262,7 @@
 
     packuments = {};
 
-    __thunk.registry = "https://registry.npmjs.org/";
+    __thunk.registry = lib.getDefaultRegistry;
 
     # Create an override extending a packumenter with a packument
     __lookup = self: { registry, ident }: let
@@ -413,7 +413,7 @@
   flakeRegistryFromNpm = {
     __functionArgs   = lib.functionArgs flakeRegistryFromPackuments;
     __innerFunction  = flakeRegistryFromPackuments;
-    __thunk.registry = "https://registry.npmjs.org";
+    __thunk.registry = lib.getDefaultRegistry;
     __processArgs = self: x: let
       attrs = if builtins.isAttrs x then x else
               if builtins.isString x then { ident = x; } else
@@ -527,10 +527,85 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Abstract info about `version_abbrev' aka "VInfo".
+  # This wraps the actual `vinfo' data indicating how it can be fetched, whether
+  # the integrity of the data has been audited, etc.
+  # This is essentially the contents of a `package.json' file wrapped in a fat
+  # "this info is only partially trustworthy" lens.
+  defVInfoMeta' = {
+    ident    ? vinfo.name
+  , version  ? vinfo.version
+  , registry ? null
+  , url      ? null
+  , narHash  ? null
+  , trust    ? false
+  , vinfo
+  } @ args: let
+    pu  = lib.liburi.parseFullUrl args.url;
+    nh' = if narHash != null then { inherit narHash; } else {};
+  in {
+    inherit ident version vinfo trust;
+    _type    = "vinfoMeta";
+    registry = args.registry or "${pu.scheme.transport}://${pu.authority}";
+    url      = args.url or "${registry}/${ident}/${version}";
+  } // nh';
+
+
+  # Here we are just defining the record, scrubbing, and typechecking.
+  # Fetching and any pure/impure handling can live in `mkVInfoMeta'
+  defVInfoMeta = {
+    __functionMeta.name = "defVInfoMeta";
+    __functionMeta.from = "at-node-nix#lib.libreg";
+    __functionMeta.signature = [( yt.attrs yt.any ) yt.Packument.vinfo_meta];
+    __innerFunction = defVInfoMeta';
+    __functionArgs  =
+      ( lib.functionArgs defVInfoMeta.__innerFunction ) // { clean = true; };
+
+    __cleanVInfo = { trust, vinfo, ... }: let
+      gypfile' = if trust then { inherit (vinfo) gypfile; } else {};
+      cleaned  = normalizeVInfo vinfo;
+    in cleaned // gypfile';
+
+    # FIXME: clean here not in `__functor'.
+    __processArgs = self: x: removeAttrs x ["clean"];
+    __thunk.clean = true;
+
+    __functor = self: x: let
+      st0     = builtins.head self.__functionMeta.signature;
+      st1     = builtins.elemAt self.__functionMeta.signature 1;
+      args    = st0 ( self.__processArgs self x );
+      rsl     = self.__innerFunction args;
+      doClean = x.clean or self.__thunk.clean or false;
+      vinfo   = if doClean then self.__cleanVInfo rsl else rsl.vinfo;
+      final   = st1 ( rsl // { inherit vinfo; } );
+      loc     = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      ec      = "(${loc}): called with ${lib.generators.toPretty {} x}";
+    in builtins.addErrorContext ec final;
+  };
+
+  # TODO: Define `mkVInfoMeta'
+  #  - fill missing trust/narHash
+  #  - allow impure fetching
+
+
+# ---------------------------------------------------------------------------- #
+
   # Drop junk fields from vinfos, and add explicit handlers for a few fields
   # that we actually care about.
   # FIXME: This could probably be shortened using `builtins.intersectAttrs'.
-  # FIXME: Create a `metaEnt' from this.
+  #
+  # NOTE: Information held by the NPM registry is not always accurate.
+  # For example several packages are listed as having scripts that don't
+  # actually exist in the real `package.json', and at runtime NPM only refers
+  # to packument metadata to fetch other packuments for performing semver
+  # resolution and fetching tarballs.
+  # For builds the information in `package.json' and the tarballs' contents are
+  # used - this matters especially for `gypfile', `hasInstallScript', `bin',
+  # and `scripts'.
+  # In the majority of cases the info is accurate ( except for `gypfile' ), but
+  # enough popular packages like `@datadog/*', `fsevents', etc are all plagued
+  # by this issue to the point that you shouldn't try to construct a `metaEnt'
+  # from this info unless you've audited its accuracy beforehand.
   normalizeVInfo = vinfo: let
     removes = [
       "_npmOperationalInternal"
@@ -568,7 +643,8 @@
     # We have no guarantees that the `scripts' or `gypfile' fields will
     # be present.
     # As a practical matter we're covering NPM, Verdaccio, and GitHub Packages.
-    # XXX: This is important.
+    #
+    # XXX: This is important!
     # The `gypfile' field recorded in the NPM registry does NOT indicate that
     # the tarball contains a `binding.gyp' file.
     # This means the field is context dependant and should be ignored in
@@ -625,6 +701,11 @@ in {
     normalizeVInfo
     importCleanVInfo
     importVInfoNpm
+  ;
+
+  inherit
+    defVInfoMeta'
+    defVInfoMeta
   ;
 }
 

@@ -19,15 +19,13 @@
 let
   evalScriptsArgs = builtins.functionArgs ( import ./evalScripts.nix );
   gypArgs = {  # bool is `isOptional' arg
-    pjsUtil        = false;
-    evalScripts    = false;
-    buildType      = true;
-    configureFlags = true;
-    buildFlags     = true;
-    gypFlags       = true;
-    node-gyp       = true;
-    python         = true;
-    xcbuild        = false;
+    pjsUtil     = false;
+    evalScripts = false;
+    buildType   = true;
+    gypFlags    = true;
+    node-gyp    = true;
+    python      = true;
+    xcbuild     = false;
   };
 
 in {
@@ -42,8 +40,6 @@ in {
   # The function to be called by our functor.
   __innerFunction = {
     buildType      ? "Release"
-  , configureFlags ? []  # as: node-gyp ... configure <HERE>
-  , buildFlags     ? []  # as: node-gyp ... build     <HERE>
   # NOTE: `install' script is overridden by `node-gyp' invocation
   # NOTE: `[pre|post]prepare' scripts are NOT necessary when building registry
   # tarballs, which is presumed to be the use case here.
@@ -78,7 +74,7 @@ in {
   # and any other fallbacks which reference `nodejs.*' attributes manually.
   , stdenv
   , jq
-  , nodejs
+  , nodejs   # matching the host platform
   , node-gyp ? nodejs.pkgs.node-gyp or null
   , python   ? nodejs.python or null  # XXX: strongly advise using python3
   , xcbuild
@@ -96,9 +92,8 @@ in {
       "npm_config_${h}" = t;
     };
 
-    npmCfgVars = let
-      allFlags = gypFlags ++ configureFlags ++ buildFlags;
-    in builtins.foldl' ( acc: s: acc // ( gypFlagToEnvVar s ) ) {} allFlags;
+    npmCfgVars =
+      builtins.foldl' ( acc: s: acc // ( gypFlagToEnvVar s ) ) {} gypFlags;
 
     args' = ( removeAttrs args ( builtins.attrNames gypArgs ) ) // npmCfgVars;
 
