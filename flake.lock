@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1668647152,
-        "narHash": "sha256-MTh2Ok1b2IhHVRlhv4DHVK5cmLXi59cR10SBSbZcEzs=",
+        "lastModified": 1668670491,
+        "narHash": "sha256-sXDYbbPJUwaoKqRoW7RTHV35LY1KfaQy05UX8G0soIo=",
         "owner": "aakropotkin",
         "repo": "ak-nix",
-        "rev": "4f7184814f023388c2876c8964f551d768e207e9",
+        "rev": "45d5a5b3ea94978c54f43fb3fd8573bac73788e4",
         "type": "github"
       },
       "original": {
@@ -31,11 +31,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1668647330,
-        "narHash": "sha256-teQiy3ZJwIQbj7+a2fjilhbccFGmeN/o+SeXuf/7AUQ=",
+        "lastModified": 1668671289,
+        "narHash": "sha256-fX9sdLD+2Xb5ndw7xzJkG1TDlrosJULsrhj0EF9LcUY=",
         "owner": "aakropotkin",
         "repo": "laika",
-        "rev": "f49224d2639164a72b492075363836037680ece8",
+        "rev": "2f2642c1e0f9dca367843ae2eb9ae579cac778a6",
         "type": "github"
       },
       "original": {
@@ -69,11 +69,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1668647297,
-        "narHash": "sha256-fBEqiYx2nOwpraIIOHjmqAqFFGJC69szadMnhxKZ0MU=",
+        "lastModified": 1668671157,
+        "narHash": "sha256-lcO9LrLX1svghrVu6fw1pRCpQORfTj8IoLt979gcu8I=",
         "owner": "aakropotkin",
         "repo": "rime",
-        "rev": "0bbe92c4391592b7085a58a1b79b49e3e285c7f4",
+        "rev": "115f523815a620d217a0e7de00b032301f9522fe",
         "type": "github"
       },
       "original": {
