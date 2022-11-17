@@ -28,8 +28,11 @@ nix_w flake check "$FLAKE_REF" $NIX_CMD_FLAGS --system "$SYSTEM";
 nix_w flake check "$FLAKE_REF" $NIX_CMD_FLAGS --system "$SYSTEM" --impure;
 
 # Swallow traces
-nix_w eval "$FLAKE_REF#lib"      \
-      --apply 'lib: builtins.deepSeq lib true' 2>/dev/null;
+check_lib() {
+  nix_w eval "$FLAKE_REF#lib" --apply 'lib: builtins.deepSeq lib true';
+}
+check_lib 2>/dev/null||check_lib;
+
 
 echo "Testing 'genMeta' Script" >&2;
 # Gen Meta
