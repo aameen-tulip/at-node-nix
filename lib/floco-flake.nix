@@ -22,11 +22,11 @@
   , rootKey      ? metaSet.__meta.rootKey or args.rootEnt.key or null
   , rootEnt      ? if rootKey == null then null else metaSet.${rootKey} or null
   } @ args: let
-    lows    = metaSet.__entries or metaSet;
-    highs   = if depsPriority == "high" then lows else
-              if ( rootPriority == "high" ) && ( rootEnt != null ) then {
-                ${rootKey} = rootEnt;
-              } else {};
+    lows  = metaSet.__entries or metaSet;
+    highs = if depsPriority == "high" then lows else
+            if ( rootPriority == "high" ) && ( rootEnt != null ) then {
+              ${rootKey} = rootEnt;
+            } else {};
   in final: prev: let
     lproc = acc: key: if prev ? ${key} then acc else acc // {
       ${key} = lows.${key};
@@ -55,12 +55,12 @@
         lockDir = pdir;
         inherit flocoConfig;
       };
-    in if builtins.pathExists "${pdir}/package-lock.json" then lm else {};
+    in if builtins.pathExists ( pdir + "/package-lock.json" ) then lm else {};
 
     # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
     cacheMeta = let
-      mjp      = "${pdir}/meta.json";
-      mnp      = "${pdir}/meta.nix";
+      mjp      = pdir + "/meta.json";
+      mnp      = pdir + "/meta.nix";
       metaJSON = lib.importJSON mjp;
       metaRaw  = if builtins.pathExists mnp then import mnp else
                  if builtins.pathExists mjp then lib.importJSON mjp else {};
