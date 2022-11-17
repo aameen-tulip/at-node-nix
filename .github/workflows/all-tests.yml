@@ -97,21 +97,21 @@ jobs:
       # references it GHA kills us. 
       # JFC: The template is fine and any box with real hardware can
       # consume `flocoPackages' without issues.
-      #- name: Project Template
-      #  if: always()
-      #  run: |
-      #    mkdir -p project;
-      #    cd project;
-      #    nix flake init --template head#project;
-      #    git init;
-      #    git add .;
-      #    echo "Build Package:" >&2;
-      #    nix build --no-link -L;
-      #    echo "# ---------------------------------------------------------------------------- #" >&2;
-      #    echo "Test Package:" >&2;
-      #    nix build .#test --no-link -L;
-      #    cd -;
-      #    rm -rf ./project;
+      - name: Project Template
+        if: always()
+        run: |
+          mkdir -p project;
+          cd project;
+          nix flake init --template head#project;
+          git init;
+          git add .;
+          echo "Build Package:" >&2;
+          nix build --no-link -L;
+          echo "# ---------------------------------------------------------------------------- #" >&2;
+          echo "Test Package:" >&2;
+          nix build .#test --no-link -L;
+          cd -;
+          rm -rf ./project;
 
       - name: Gen Meta
         if: always()
