@@ -20,7 +20,7 @@ in evalScripts {
   };
   nmDirCmd = ''
     mkdir -p "$node_modules_path";
-    cp -r --reflink=auto -- ${nan} $node_modules_path/nan;
+    cp -r --reflink=auto -- ${nan} "$node_modules_path/nan";
     chmod -R +w "$node_modules_path";
   '';
   runScripts = [
