@@ -603,8 +603,8 @@
         if x ? fetchInfo then identifyFetchInfoSourceType x.fetchInfo else
         if x ? type then identifyFetchInfoSourceType x else
         if yt.NpmLock.package.check x then identifyPlentSourceType x else
-        if x._type == "metaEnt" then identifyMetaEntSourceType x else
-        throw "flocoFetch: cannot discern source typeof : ${pp x}";
+        if ( x._type or null ) == "metaEnt" then identifyMetaEntSourceType x
+        else throw "flocoFetch: cannot discern source typeof : ${pp x}";
       ft = x.fetchInfo.type or x.type or st;
     in self."${ft}Fetcher" ( x.fetchInfo or x );
   } // fetchers;

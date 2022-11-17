@@ -228,33 +228,40 @@
 # ---------------------------------------------------------------------------- #
 
   /**
-   * A lazily evaluated extensible packument database.
-   * Packuments will not be fetched twice.
-   *   let
-   *     pr  = packumenter;
-   *     pr' = pr.__cache ( pr.__lookup {
-   #       ident = "lodash";
-   #       registry = "https://registry.npmjs.org";
-   #     } );
-   *     pr'' = pr'.__cache ( pr.__lookup {
-   #       ident = "3d-view";
-   #       registry = "https://registry.npmjs.org";
-   #     } );
-   *   in pr''.packuments
-   *
-   * Or use the packumenter itself as a function:
-   *   let
-   *     pr   = packumenter;
-   *     pr'  = pr "lodash";
-   *     pr'' = pr' "3d-view";
-   *   in pr''.packuments;
-   *
-   * This is particularly useful with `builtins.foldl'':
-   *   ( builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"] ).packuments
    */
   packumenter = {
     __functionMeta.name = "packumenter";
     __functionMeta.from = "at-node-nix#lib.libreg";
+    __functionMeta.doc  = ''
+A lazily evaluated extensible packument database.
+Packuments will not be fetched twice.
+  let
+    pr0 = packumenter;
+    pr1 = pr0.__cache ( pr0.__lookup {
+      ident = "lodash";
+      registry = "https://registry.npmjs.org";
+    } );
+    pr2 = pr1.__cache ( pr1.__lookup {
+      ident = "3d-view";
+      registry = "https://registry.npmjs.org";
+    } );
+  in pr2.packuments
+
+Or use the packumenter itself as a function:
+  let
+    pr0 = packumenter;
+    pr1 = pr0 "lodash";
+    pr2 = pr1 "3d-view";
+  in pr2.packuments;
+
+This is particularly useful with builtins.foldl':
+  ( builtins.foldl' ( x: x ) packumenter ["lodash" "3d-view"] ).packuments
+
+SEE ALSO:
+  lib.libreg.importFetchPackument
+  lib.libreg.flakeRegistryFromPackument
+  lib.libsat.packumentSemverClosure
+    '';
 
     packuments = {};
 
@@ -341,7 +348,7 @@
   # preferable here since it can use a common record to output flake inputs,
   # flake registries, and a custom "fetchTree registry" which is effectively
   # a `flake.lock' with some added fields.
-  flakeRegistryFromPackuments = {
+  flakeRegistryFromPackument = {
     ident       ? assert args ? packument; packument.name
   , registry    ? null
   , versionCond ? version: lib.test "[^a-zA-Z+-]*" version  # Only keep releases
@@ -407,8 +414,8 @@
 
 
   flakeRegistryFromNpm = {
-    __functionArgs   = lib.functionArgs flakeRegistryFromPackuments;
-    __innerFunction  = flakeRegistryFromPackuments;
+    __functionArgs   = lib.functionArgs flakeRegistryFromPackument;
+    __innerFunction  = flakeRegistryFromPackument;
     __thunk.registry = lib.getDefaultRegistry;
     __processArgs = self: x: let
       attrs = if builtins.isAttrs x then x else
@@ -797,7 +804,7 @@ in {
   ;
 
   inherit
-    flakeRegistryFromPackuments
+    flakeRegistryFromPackument
     flakeRegistryFromNpm
     flakeInputFromVInfoTarball
     flattenLockNodes

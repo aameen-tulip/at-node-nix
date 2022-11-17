@@ -12,7 +12,6 @@
     importFetchPackument
     packumenter
     packumentClosure
-    flakeRegistryFromPackuments
     normalizeVInfo
     importCleanVInfo
   ;
