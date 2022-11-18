@@ -158,8 +158,11 @@
       ( ( ! ( x ? resolved ) ) || ( relative_file_uri.check x.resolved ) );
   in restrict "dir" cond pkg_path_v3;
 
-  # Never contains `pkg_any_fields' which are instead held by a `dir' entry
-  # at the "resolved" field's path.
+  # Almost never contains `pkg_any_fields' which are instead held by a `dir'
+  # entry at the "resolved" field's path.
+  # The only time they will is for NPM workspaces, in which case links may
+  # record `version', `dependencies', `licenses', and a few others.
+  # You want to STRICTLY interpret the "link" flag here.
   pkg_link_v3 = let
     # XXX: NOT a `file:' URI! Those are `dir' ltypes.
     cond = x: ( x ? resolved ) && ( yt.FS.Strings.relpath.check x.resolved ) &&
