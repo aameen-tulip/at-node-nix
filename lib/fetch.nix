@@ -24,15 +24,15 @@
   # This rough approximation helps us limit the number of fetchers we require
   # users to define - at a minimum they must define at least the 3 named here.
   identifyResolvedType = r: let
-    isPath = ( ! ( lib.liburi.Url.isType r ) ) &&
-             ( yt.NpmLock.Strings.relative_file_uri.check r );
+    isPath = ( yt.NpmLock.Strings.relative_file_uri.check r ) ||
+             ( yt.FS.Strings.relpath.check r );
     isGit = let
       data = ( lib.liburi.Url.fromString r ).scheme.data or null;
     in ( lib.liburi.Url.isType r ) && ( data == "git" );
     isFile = yt.NpmLock.Strings.tarball_uri.check r;
-  in if isPath   then { path = r; } else
-     if isGit    then { git = r; } else
+  in if isGit    then { git = r; }  else  # first to avoid conflict for https:
      if isFile   then { file = r; } else
+     if isPath   then { path = r; } else  # check this last, most permissive
      throw "(identifyResolvedType) unable to determine type of ${r}";
 
 
@@ -57,7 +57,7 @@
     if fetchInfo != null then identifyFetchInfoSourceType fetchInfo else
     if ( entries.plent or null ) != null
     then identifyPlentSourceType entries.plent
-    else throw "identifyMetaEntSourceType: Cannot discern 'sourceType'";
+    else throw "identifyMetaEntSourceType: Cannot discern 'lifecycleType'";
 
 
 # ---------------------------------------------------------------------------- #

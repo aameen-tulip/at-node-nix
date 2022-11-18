@@ -72,10 +72,13 @@
 
   # FIXME: `pacote' will write absolute filepaths.
   # For `resolved' it doesn't use `file:...', but for `from' it will.
+  # NOTE: the note above is useful for a "general purpose" typdef, but
+  # NPM's `package-lock.json' uses the "file:" scheme to distinguish
+  # between "link" and "dir" ltype, and we need to follow their usage.
   relative_file_uri = let
     cond = x: let
-      m = builtins.match "(file:)?(\\.[^:#?]*)" x;
-      p = builtins.elemAt m 1;
+      m = builtins.match "file:(\\.[^:#?]*)" x;
+      p = builtins.head m;
     in ( m != null ) && ( ur.Strings.path_segments.check p );
   in restrict "uri[relative]" cond string;
 
@@ -89,10 +92,20 @@
     cond = s: ( tarballUrlCond s ) || ( githubPkgCond s );
   in restrict "tarball" cond uri_ref;
 
+
+# ---------------------------------------------------------------------------- #
+
   # link, dir, tarball, git
   #   "resolved": "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c",
   #   "resolved": "https://registry.npmjs.org/typescript/-/typescript-4.8.2.tgz",
-  resolved_uri = yt.eitherN [relative_file_uri git_uri tarball_uri];
+  resolved_uri_types = [
+    git_uri
+    relative_file_uri      # dir
+    tarball_uri
+    yt.FS.Strings.relpath  # link
+  ];
+
+  resolved_uri = yt.eitherN resolved_uri_types;
 
 
 # ---------------------------------------------------------------------------- #
@@ -119,18 +132,39 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # XXX: this form is used by fetchers, but is NOT an accurate way to detect
+  # either of the real entires.
+  # The real entries explicitly use the "link" field.
   pkg_path_v3 = let
     fconds = pkg_any_fields_v3 // {
-      resolved = option ( yt.either relative_file_uri yt.FS.abspath );
-      link     = option bool;
+      resolved =
+        yt.option ( yt.either relative_file_uri yt.FS.Strings.relpath );
+      link = yt.option yt.bool;
     };
     cond = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
     in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
-  in restrict "package[path]" cond ( yt.attrs yt.any );
+  in restrict "package[dir]" cond ( yt.attrs yt.any );
+
   
-  pkg_dir_v3  = restrict "dir"  ( x: ! ( x.link or false) ) pkg_path_v3;
-  pkg_link_v3 = restrict "link" ( x: x.link or false ) pkg_path_v3;
+  pkg_dir_v3  = let
+    # Resolved may only appear with "file:" URI scheme.
+    # Only "link" entries use bare relative paths.
+    # "resolved": "file:../eslint-config",
+    # If the field is omitted then its key in the `package.*' attrset is its
+    # path ( relative to the `lockDir' ).
+    cond = x: 
+      ( ! ( x.link or false ) ) &&
+      ( ( ! ( x ? resolved ) ) || ( relative_file_uri.check x.resolved ) );
+  in restrict "dir" cond pkg_path_v3;
+
+  # Never contains `pkg_any_fields' which are instead held by a `dir' entry
+  # at the "resolved" field's path.
+  pkg_link_v3 = let
+    # XXX: NOT a `file:' URI! Those are `dir' ltypes.
+    cond = x: ( x ? resolved ) && ( yt.FS.Strings.relpath.check x.resolved ) &&
+              ( ( x.link or false ) == true );
+  in restrict "link" cond pkg_path_v3;
 
 
 # ---------------------------------------------------------------------------- #
@@ -165,7 +199,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  package = yt.eitherN [pkg_dir_v3 pkg_link_v3 pkg_git_v3 pkg_tarball_v3];
+  plent_types = [pkg_git_v3 pkg_tarball_v3 pkg_link_v3 pkg_path_v3];
+  package     = yt.eitherN plent_types;
 
 
 # ---------------------------------------------------------------------------- #
@@ -192,10 +227,12 @@ in {
   };
   inherit
     resolved_uri
+    resolved_uri_types
     pkg_dir_v3
     pkg_link_v3
     pkg_git_v3
     pkg_tarball_v3
+    plent_types
     package
   ;
 }

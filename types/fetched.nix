@@ -13,7 +13,7 @@ in {
 
   # Project types recognized by NPM.
   # These are used to determine which lifecycle scripts are run.
-  Enums.sourceType = let
+  Enums.lifecycleType = let
     cond = x: builtins.elem x ["file" "path" "git"];
   in yt.restrict "npm" cond yt.FlocoFetch.Enums.fetchType;
 
@@ -28,7 +28,7 @@ in {
 
   Structs.fetched = yt.struct "fetched" {
     _type     = yt.restrict "_type[fetched]" ( s: s == "fetched" ) yt.string;
-    type      = yt.FlocoFetch.Enums.sourceType;
+    type      = yt.FlocoFetch.Enums.lifecycleType;
     outPath   = yt.FS.store_path;
     passthru  = yt.option ( yt.attrs yt.any );
     meta      = yt.option ( yt.attrs yt.any );
@@ -47,7 +47,7 @@ in {
 
   inherit (yt.FlocoFetch.Enums)
     fetchType
-    sourceType
+    lifecycleType
   ;
   inherit (yt.FlocoFetch.Eithers)
     sourceInfo

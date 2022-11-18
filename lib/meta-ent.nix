@@ -23,6 +23,8 @@
   inherit (lib) genMetaEntRules;
   inherit (lib.libmeta) metaWasPlock;
 
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+
 # ---------------------------------------------------------------------------- #
 
   # original metadata sources such as `package.json' are stashed as members
@@ -214,6 +216,35 @@
        if lib.hasPrefix "__" name then value else
        forEnt;
   in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
+
+
+# ---------------------------------------------------------------------------- #
+
+  discrPlentV3 = lib.libtypes.discrTypes {
+    git     = yt.NpmLock.pkg_git_v3;
+    tarball = yt.NpmLock.pkg_tarball_v3;
+    link    = yt.NpmLock.pkg_link_v3;
+    dir     = yt.NpmLock.pkg_dir_v3;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  fetchInfoFromPlockV3' = { pure ? lib.inPureEvalMode, ifd ? true }: plent: let
+    # "Lifecycle Type" indicating the category of `pacote'/NPM source tree
+    # as it relates to the execution of lifecycle scripts.
+    # For example, NPM will run `build', `prepare', and `prepack' scripts for
+    # local paths and `git' "ltypes", but only runs `install' scripts
+    # for tarballs.
+    # Because we use a variety of backends to perform fetching, it would be
+    # inappropriate to call these "fetcher types" or "source tree types" like
+    # NPM and `pacote' do - so instead we highlight that they explicitly effect
+    # the execution of lifecycle scripts in our builders.
+    ltype = lib.tagName ( discrPlentV3 plent );
+  in {
+    inherit ltype;
+  };
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -488,6 +519,11 @@ in {
 
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'
+  ;
+
+  inherit
+    discrPlentV3
+    fetchInfoFromPlockV3'
   ;
 }
 
