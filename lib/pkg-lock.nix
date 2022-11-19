@@ -11,6 +11,7 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # TODO: move to `ak-nix'
   mkTypeChecker = { __functionMeta, ... }: let
     argt = builtins.head __functionMeta.signature;
     rslt = builtins.elemAt __functionMeta.signature 1;
@@ -20,34 +21,23 @@
       ok      = type.checkToBool checked;
       err'    = if ok then {} else { err = type.toError v checked; };
     in err' // { inherit type checked ok; };
-    bothToError = { arg_info, rsl_info }: let a = arg_info; r = rsl_info; in
-      if a.ok then "Typecheck of result failed:\n${r.err}" else
-      if r.ok then "Typecheck of inputs failed:\n${a.err}" else
-      "Typecheck of inputs and result failed.\n" +
-      "Input Error: ${a.err}\nResult Error:\n ${r.err}\n";
-    # Curried
-    checkType = { args, result ? null } @ cargs: let
+  in lib.libtypes.typedef' {
+    inherit name;
+    checkType = { args, result ? null }: let
       arg_info = checkOne argt args;
       rsl_info = checkOne rslt result;
-    in if ! ( cargs ? result ) then {
-      inherit (arg_info) ok;
-      inherit arg_info;
-      __functor = self: { result }: {
-        inherit (self) arg_info;
-        rsl_info = checkOne rslt { inherit result; };
-        ok       = self.ok && rsl_info.ok;
-      };
-    } else {
+    in {
       inherit arg_info rsl_info;
       ok = arg_info.ok && rsl_info.ok;
     };
-  in lib.libtypes.typedef' {
-    inherit name checkType;
-    toError = { args, result }: { ok, arg_info, rsl_info }:
-      if ok then "no errors." else bothToError { inherit arg_info rsl_info; };
-    def = {
-      inherit argt rslt name;
-    };
+    toError = { args, result }: { ok, arg_info, rsl_info }: let
+      a = arg_info; r = rsl_info;
+    in if ok then "no errors." else
+       if a.ok then "Typecheck of result failed:\n${r.err}" else
+       if r.ok then "Typecheck of inputs failed:\n${a.err}" else
+       "Typecheck of inputs and result failed.\n" +
+       "Input Error: ${a.err}\nResult Error:\n ${r.err}\n";
+    def = { inherit argt rslt name checkOne; };
   };
 
 
@@ -127,9 +117,31 @@
         tcs  = builtins.intersectAttrs x lib.libfetch.genericUrlArgFields;
         proc = acc: f: acc && ( tcs.${f}.check x.${f} );
       in builtins.foldl' proc true ( builtins.attrNames tcs );
-    in if ! typecheck then yt.any else
-       yt.restrict "fetchInfo:generic:url:rough" cond ( yt.attrs yt.any );
-  in yt.defun [yt.NpmLock.Structs.pkg_file_v3 rtype] inner;
+    in yt.restrict "fetchInfo:generic:url:rough" cond ( yt.attrs yt.any );
+    # Configured functor based on `typecheck' setting.
+    funk = {
+      __functionMeta = {
+        name = "plockEntryToGenericUrlArgs";
+        from = "at-node-nix#lib.libplock";
+        properties = { pure = true; inherit typecheck; };
+        signature = [yt.NpmLock.Structs.pkg_file_v3 rtype];
+      };
+      __functionArgs.resolved  = false;
+      __functionArgs.integrity = true;
+      __functionArgs.sha1      = true;
+      __functionArgs.shasum    = true;
+      __innerFunction = inner;
+      __functor = self: args: let
+        result  = self.__innerFunction args;
+        checked = if ! typecheck then result else
+                  self.__typeCheck self { inherit args result; };
+      in postFn checked;
+    };
+    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
+                                else { _typeChecker = mkTypeChecker funk; };
+  # Even if `typecheck' is false we will stash a partially applied typechecker
+  # as a field that can run without the functor.
+  in funk // typechecker';
 
 
 # ---------------------------------------------------------------------------- #
@@ -170,6 +182,7 @@
       # try to recycle any `resolved' URI -> type discriminators.
       url  = lib.yankN 1 "(git\\+)?([^?#]+).*" resolved;
     } // allRefs' // owner' // ref';
+    # Configured functor based on `typecheck' setting.
     funk = {
       __functionMeta = {
         name = "plockEntryToGenericGitArgs";
@@ -184,15 +197,15 @@
       __innerFunction = inner;
       __functor = self: args: let
         result = self.__innerFunction args;
-      in if ! typecheck then result else
-         self.__typeCheck self { inherit args result; };
+        checked = if ! typecheck then result else
+                  self.__typeCheck self { inherit args result; };
+      in postFn checked;
     };
+    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
+                                else { _typeChecker = mkTypeChecker funk; };
   # Even if `typecheck' is false we will stash a partially applied typechecker
   # as a field that can run without the functor.
-  in funk // (
-    if typecheck then { __typeCheck  = mkTypeChecker; }
-                 else { _typeChecker = mkTypeChecker funk; }
-  );
+  in funk // typechecker';
 
 
 # ---------------------------------------------------------------------------- #
