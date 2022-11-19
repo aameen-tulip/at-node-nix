@@ -82,6 +82,8 @@ in {
   ;
 
   inherit (final.libplock)
+    discrPlentFetcherFamily
+    identifyPlentFetcherFamily
     supportsPlV1
     supportsPlV3
     resolveDepForPlockV1

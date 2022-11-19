@@ -82,6 +82,7 @@
     in ( m != null ) && ( ur.Strings.path_segments.check p );
   in restrict "uri[relative]" cond string;
 
+
   git_uri = restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" )
                            uri_ref;
 
@@ -91,6 +92,12 @@
     githubPkgCond = lib.test "https://npm\\.pkg\\.github\\.com/download/.*";
     cond = s: ( tarballUrlCond s ) || ( githubPkgCond s );
   in restrict "tarball" cond uri_ref;
+
+
+  # "path" ltype, but if I export the name "path_uri" from this file I'd
+  # absolutely shoot myself in the foot later - so its getting a gross name.
+  dir_or_link_uri =
+    yt.either relative_file_uri yt.FS.Strings.relpath;
 
 
 # ---------------------------------------------------------------------------- #
@@ -137,9 +144,8 @@
   # The real entries explicitly use the "link" field.
   pkg_path_v3 = let
     fconds = pkg_any_fields_v3 // {
-      resolved =
-        yt.option ( yt.either relative_file_uri yt.FS.Strings.relpath );
-      link = yt.option yt.bool;
+      resolved = yt.option dir_or_link_uri;
+      link     = yt.option yt.bool;
     };
     cond = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
@@ -185,7 +191,7 @@
 
   # NOTE: the `tarball_uri' checker sort of sucks and if you're here debugging
   # that's probably what you're looking for.
-  pkg_tarball_v3 = let
+  pkg_file_v3 = let
     condHash = x: ( x ? integrity ) || ( x ? sha1 );
     fconds   = pkg_any_fields_v3 // {
       resolved  = tarball_uri;
@@ -197,12 +203,12 @@
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     in ( x ? resolved ) && fields;
     cond = x: ( condHash x ) && ( condFields x );
-  in restrict "package[tarball]" cond ( yt.attrs yt.any );
+  in restrict "package[file]" cond ( yt.attrs yt.any );
 
 
 # ---------------------------------------------------------------------------- #
 
-  plent_types = [pkg_git_v3 pkg_tarball_v3 pkg_link_v3 pkg_path_v3];
+  plent_types = [pkg_git_v3 pkg_file_v3 pkg_link_v3 pkg_dir_v3];
   package     = yt.eitherN plent_types;
 
 
@@ -216,6 +222,7 @@ in {
       git_uri
       tarball_uri
       resolved_uri
+      dir_or_link_uri
     ;
   };
   Structs = {
@@ -224,17 +231,18 @@ in {
       pkg_dir_v3
       pkg_link_v3
       pkg_git_v3
-      pkg_tarball_v3
+      pkg_file_v3
       package
     ;
   };
   inherit
+    pkg_any_fields_v3
     resolved_uri
     resolved_uri_types
     pkg_dir_v3
     pkg_link_v3
     pkg_git_v3
-    pkg_tarball_v3
+    pkg_file_v3
     plent_types
     package
   ;

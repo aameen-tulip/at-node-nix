@@ -148,7 +148,7 @@
       expr = let
         # We know that all of these are registry tarballs.
         haveResolved = lib.filterAttrs ( _: v: v ? resolved ) plv2-it.packages;
-        identify = v: lib.libfetch.identifyResolvedType v.resolved;
+        identify = v: lib.libfetch.identifyResolvedFetcherFamily v.resolved;
         idrs = builtins.mapAttrs ( _: identify ) haveResolved;
         types = map builtins.attrNames ( builtins.attrValues idrs );
       in builtins.all ( t: t == ["file"] ) types;
@@ -161,7 +161,7 @@
       expr = let
         haveResolved =
           lib.filterAttrs ( _: v: v ? resolved ) plv2-fetch.packages;
-        identify = v: lib.libfetch.identifyResolvedType v.resolved;
+        identify = v: lib.libfetch.identifyResolvedFetcherFamily v.resolved;
         idrs = builtins.mapAttrs ( _: identify ) haveResolved;
       in builtins.concatMap builtins.attrNames ( builtins.attrValues idrs );
       expected = ["git" "path" "file"];
@@ -169,7 +169,7 @@
 
     # Test a dir ( should be flagged in the same cases as `link' ).
     testIdentifyResolvedType_2 = {
-      expr     = lib.libfetch.identifyResolvedType "../projd";
+      expr     = lib.libfetch.identifyResolvedFetcherFamily "../projd";
       expected = { path = "../projd"; };
     };
 

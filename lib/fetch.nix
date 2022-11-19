@@ -23,67 +23,23 @@
   # Selecting the correct fetcher for each subtype is deferred to the fetchers.
   # This rough approximation helps us limit the number of fetchers we require
   # users to define - at a minimum they must define at least the 3 named here.
-  identifyResolvedType = r: let
-    isPath = ( yt.NpmLock.Strings.relative_file_uri.check r ) ||
-             ( yt.FS.Strings.relpath.check r );
-    isGit = let
-      data = ( lib.liburi.Url.fromString r ).scheme.data or null;
-    in ( lib.liburi.Url.isType r ) && ( data == "git" );
-    isFile = yt.NpmLock.Strings.tarball_uri.check r;
-  in if isGit    then { git = r; }  else  # first to avoid conflict for https:
-     if isFile   then { file = r; } else
-     if isPath   then { path = r; } else  # check this last, most permissive
-     throw "(identifyResolvedType) unable to determine type of ${r}";
+  identifyResolvedFetcherFamily = resolved:
+    lib.tagName ( lib.libtypes.discrTypes {
+      git  = yt.NpmLock.Strings.git_uri;
+      file = yt.NpmLock.Strings.tarball_uri;
+      path = yt.NpmLock.Strings.dir_or_link_uri;
+    } resolved );
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Given a package entry from a `package-lock.json(v[23])', return one of
-  # "file", "path", or "git" indicating the source type.
-  identifyPlentSourceType = ent: let
-    tagged = lib.libtypes.discrTypes {
-      path = yt.NpmLock.Structs.pkg_path_v3;
-      git  = yt.NpmLock.Structs.pkg_git_v3;
-      file = yt.NpmLock.Structs.pkg_tarball_v3;
-    } ent;
-  in builtins.head ( builtins.attrNames tagged );
-
-  # FIXME: don't require `type'
-  identifyFetchInfoSourceType = { type, ... } @ fetchInfo:
+  # FIXME: don't require `type', just use it as one of many fields that can be
+  # used to infer.
+  identifyFetchInfoFetcherFamily = { type, ... } @ fetchInfo:
     if builtins.elem type ["git" "github" "sourcehut"] then "git" else
     if builtins.elem type ["file" "tarball"] then "file" else type;
 
-  identifyMetaEntSourceType = { fetchInfo ? null, entries ? {}, ... } @ me:
-    if fetchInfo != null then identifyFetchInfoSourceType fetchInfo else
-    if ( entries.plent or null ) != null
-    then identifyPlentSourceType entries.plent
-    else throw "identifyMetaEntSourceType: Cannot discern 'lifecycleType'";
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Essentially an optimized `tagHash'.
-  # XXX: I'm unsure of whether or not this works with v1 locks.
-  plockEntryHashAttr = {
-    __innerFunction = entry:
-      if entry ? integrity then lib.libenc.tagHash entry.integrity else
-      if entry ? sha1      then { sha1_hash = entry.sha1; } else {};
-    __functionArgs = { sha1 = true; integrity = true; };
-    __functor = self: self.__innerFunction;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: move to `laika'
-
-  # Return configured `laika' fetchers with explicitly specified settings.
-  # These differ from the default `lib.libfetch' routines which may depend on
-  # `laikaConfig' or runtime context.
-  laikaFetchersConfigured = { pure, typecheck }: let
-    pf = if pure      then "Pure"  else "Impure";
-    tf = if typecheck then "Typed" else "Untyped";
-  in lib.libfetch."${pf}${tf}";
+  fi2ff = identifyFetchInfoFetcherFamily;
 
 
 # ---------------------------------------------------------------------------- #
@@ -117,49 +73,15 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # NOTE: the fetcher for `git' entries need to distinguish between `git',
-  # `github', and `sourcehut' when processing these args.
-  # They should not try to interpret the `builtins.fetchTree' type using
-  # `identify(Resolved|PlentSource)Type' which conflates all three `git' types.
-  # XXX: I'm not sure we can get away with using `type = "github";' unless we
-  # are sure that we know the right `ref'/`branch'. Needs testing.
-  plockEntryToGenericGitArgs = let
-    inner = { resolved, ... } @ args: let
-      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
-      allRefs' = let
-        bname        = baseNameOf ref;
-        defaultBRefs = ["HEAD" "master" "main"];
-        allRefs      = ! ( builtins.elem bname defaultBRefs );
-      in if ( type == "github" ) || ( ref == null ) then {} else {
-        inherit allRefs;
-      };
-      owner' = if builtins.elem owner [null "" "."] then {} else
-               { inherit owner; };
-      ref' = if ref == null then {} else { inherit ref; };
-    in {
-      inherit type repo rev;
-      name = repo;
-      # Simplify URL for processing as a struct.
-      # `builtins.fetch[Tree]Git' gets pissed off if you include URI params in
-      # the `url' string, it wants you to move them to attrs.
-      # We strip off the `data' portion of the scheme, and drop any params or
-      # fragments to get the "base" URL.
-      # NOTE: the `lib.ytypes.NpmLock.pkg_git_v3' expects a `git+<TRANSPORT>://'
-      # in the scheme, so keep that in mind if you serialize `fetchInfo' and
-      # try to recycle any `resolved' URI -> type discriminators.
-      url  = lib.yankN 1 "(git\\+)?([^?#]+).*" resolved;
-    } // allRefs' // owner' // ref';
-  in yt.defun [yt.NpmLock.Structs.pkg_git_v3
-               lib.libfetch.genericGitArgsPure] inner;
-
-
-# ---------------------------------------------------------------------------- #
-
   flocoProcessGitArgs = self: x: let
+    # TODO: `resolved' should be handled by `libplock', not here.
     rough =
-      if yt.NpmLock.pkg_git_v3.check x then plockEntryToGenericGitArgs x else
-      if x ? rev then x else
-      plockEntryToGenericGitArgs ( x // { resolved = x.url or x.resolved; } );
+      if yt.NpmLock.pkg_git_v3.check x
+      then lib.libplock.plockEntryToGenericGitArgs x
+      else if x ? rev then x else
+      lib.libplock.plockEntryToGenericGitArgs ( x // {
+        resolved = x.url or x.resolved;
+      } );
     tas     = ( self.__thunk or {} ) // rough;
     type    = if lib.libfetch.isGithubUrl rough.url then "github" else "git";
     fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
@@ -171,8 +93,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flocoGitFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
-    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  flocoGitFetcher' = { typecheck ? false, pure ? lib.inPureEvalMode }: let
+    lfc = lib.libfetch.laikaFetchersConfigured { inherit typecheck pure; };
   in lfc.fetchGitW // {
       __functionMeta = {
         name      = "flocoGitFetcher";
@@ -215,47 +137,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # NOTE: works for either "file" or "tarball".
-  # You can pick a specialized form using the `postFn' arg.
-  # I recommend `asGeneric*ArgsImpure' here since those routines
-  # doesn't use a real type checker.
-  # They just have an assert that freaks out if you're missing a hash field.
-  # Our inner fetchers will catch that anyway so don't sweat it.
-  plockEntryToGenericUrlArgs' = {
-    postFn    ? lib.libfetch.asGenericUrlArgsImpure
-  , typecheck ? false
-  }: let
-    inner = {
-      resolved
-    , sha1_hash ? plent.sha1 or null
-    , integrity ? null  # Almost always `sha512_sri` BUT NOT ALWAYS!
-    , ...
-    } @ plent: let
-      rough   = { url = resolved; inherit sha1_hash integrity; };
-      args    = lib.filterAttrs ( _: x: x != null ) rough;
-    in postFn args;
-    rtype = let
-      # Typecheck generic arg fields ( optional ).
-      cond = x: let
-        # Collect matching typecheckers and run them as we exit.
-        # The outer checker can just focus on fields.
-        tcs = builtins.intersectAttrs x lib.libfetch.genericUrlArgFields;
-        proc = acc: f: acc && ( tcs.${f}.check x.${f} );
-      in builtins.foldl' proc true ( builtins.attrNames tcs );
-    in if ! typecheck then yt.any else
-       yt.restrict "fetchInfo:generic:url:rough" cond ( yt.attrs yt.any );
-  in yt.defun [yt.NpmLock.Structs.pkg_tarball_v3 rtype] inner;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Common core shared by `flocoFileFetcher' and `flocoTarballFetcher'.
   # This aligns with NPM's `fileFetcher' in `pacote', except that NPM doesn't
   # split the fetch/unpack processes into two parts.
   # In our case we /can/ and sometimes want to, so we have two distinct fetchers
   # for each flow.
-  flocoUrlFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
-    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  flocoUrlFetcher' = { typecheck ? false, pure ? lib.inPureEvalMode }: let
+    lfc = lib.libfetch.laikaFetchersConfigured { inherit typecheck pure; };
     loc = "at-node-nix#lib.libfetch.flocoUrlFetcher";
   in {
     __functionMeta = {
@@ -301,7 +189,7 @@
        throw "(${loc}): Args are not suitable for any available fetcher";
 
     __processArgs = self: x: let
-      plArgs = plockEntryToGenericUrlArgs' {
+      plArgs = lib.libplock.plockEntryToGenericUrlArgs' {
         inherit typecheck;
         postFn = lib.libfetch.asGenericUrlArgsImpure;
       } ( self.__thunk // x );
@@ -359,7 +247,7 @@
 
   # NOTE: in `passthru' the `fetcher' field will be `fetchTreeW' not
   # `fetchTreeTarballW' beacuse it is set by the wrapped function.
-  flocoTarballFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: {
+  flocoTarballFetcher' = { typecheck ? false, pure ? lib.inPureEvalMode }: {
     __functionMeta = {
       name      = "flocoTarballFetcher";
       from      = "at-node-nix#lib.libfetch";
@@ -390,7 +278,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flocoFileFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: {
+  flocoFileFetcher' = { typecheck ? false, pure ? lib.inPureEvalMode }: {
     __functionMeta = {
       name      = "flocoFileFetcher";
       from      = "at-node-nix#lib.libfetch";
@@ -443,8 +331,8 @@
   # in `metaEnt' data ( this still applies `filter' if it is defined ).
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
-  flocoPathFetcher' = { typecheck ? false, pure ? ! lib.inPureEvalMode }: let
-    lfc = laikaFetchersConfigured { inherit typecheck pure; };
+  flocoPathFetcher' = { typecheck ? false, pure ? lib.inPureEvalMode }: let
+    lfc = lib.libfetch.laikaFetchersConfigured { inherit typecheck pure; };
   in {
     __functionMeta = {
       name      = "flocoPathFetcher";
@@ -565,8 +453,7 @@
     __functor = self: x: let
       flocoConfig = x.flocoConfig or lib.flocoConfig or {};
       args = flocoConfig.flocoFetchArgs // x;
-      # FIXME: these two aren't currently enforced.
-      pure             = args.pure or ( ! lib.inPureEvalMode );
+      pure             = args.pure or lib.inPureEvalMode;
       allowSubstitutes = args.allowSubstitues or true;
       typecheck        = args.typecheck or false;
       defaultFetchers = let
@@ -599,12 +486,14 @@
   mkFlocoFetcher' = { fetchers, pure, typecheck }: {
     __functor = self: x: let
       pp = lib.generators.toPretty {};
+      forPlent = lib.libplock.identifyPlentFetcherFamily x;
+      forMeta  = lib.libmeta.identifyMetaEntFetcherFamily x;
       st =
-        if x ? fetchInfo then identifyFetchInfoSourceType x.fetchInfo else
-        if x ? type then identifyFetchInfoSourceType x else
-        if yt.NpmLock.package.check x then identifyPlentSourceType x else
-        if ( x._type or null ) == "metaEnt" then identifyMetaEntSourceType x
-        else throw "flocoFetch: cannot discern source typeof : ${pp x}";
+        if x ? fetchInfo then identifyFetchInfoFetcherFamily x.fetchInfo else
+        if x ? type then identifyFetchInfoFetcherFamily x else
+        if yt.NpmLock.package.check x then forPlent else
+        if ( x._type or null ) == "metaEnt" then forMeta else throw
+        "flocoFetch: cannot discern source typeof : ${pp x}";
       ft = x.fetchInfo.type or x.type or st;
     in self."${ft}Fetcher" ( x.fetchInfo or x );
   } // fetchers;
@@ -621,15 +510,8 @@
 
 in {
   inherit
-    identifyResolvedType
-    identifyPlentSourceType
-    identifyFetchInfoSourceType
-    identifyMetaEntSourceType
-
-    plockEntryHashAttr
-
-    plockEntryToGenericGitArgs
-    plockEntryToGenericUrlArgs'
+    identifyResolvedFetcherFamily
+    identifyFetchInfoFetcherFamily
 
     flocoUrlFetcher'
 

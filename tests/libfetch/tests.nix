@@ -94,22 +94,22 @@
 # ---------------------------------------------------------------------------- #
 
     testIdentifyPlentSourceType_path_0 = {
-      expr = lib.libfetch.identifyPlentSourceType proj2.entries.plock;
+      expr = lib.libfetch.identifyPlentFetcherFamily proj2.entries.plock;
       expected = "path";
     };
 
     testIdentifyPlentSourceType_path_1 = {
-      expr = lib.libfetch.identifyPlentSourceType projd.entries.plock;
+      expr = lib.libfetch.identifyPlentFetcherFamily projd.entries.plock;
       expected = "path";
     };
 
     testIdentifyPlentSourceType_file = {
-      expr = lib.libfetch.identifyPlentSourceType ts.entries.plock;
+      expr = lib.libfetch.identifyPlentFetcherFamily ts.entries.plock;
       expected = "file";
     };
 
     testIdentifyPlentSourceType_git = {
-      expr = lib.libfetch.identifyPlentSourceType lodash.entries.plock;
+      expr = lib.libfetch.identifyPlentFetcherFamily lodash.entries.plock;
       expected = "git";
     };
 

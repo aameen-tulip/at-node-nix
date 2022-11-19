@@ -6,7 +6,50 @@
 
 { lib }: let
 
+  yt = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
   inherit (lib.libdep) pinnableFields;
+
+# ---------------------------------------------------------------------------- #
+
+  mkTypeChecker = { __functionMeta, ... }: let
+    argt = builtins.head __functionMeta.signature;
+    rslt = builtins.elemAt __functionMeta.signature 1;
+    name = __functionMeta.name or "<LAMBDA>";
+    checkOne = type: v: let
+      checked = type.checkType v;
+      ok      = type.checkToBool checked;
+      err'    = if ok then {} else { err = type.toError v checked; };
+    in err' // { inherit type checked ok; };
+    bothToError = { arg_info, rsl_info }: let a = arg_info; r = rsl_info; in
+      if a.ok then "Typecheck of result failed:\n${r.err}" else
+      if r.ok then "Typecheck of inputs failed:\n${a.err}" else
+      "Typecheck of inputs and result failed.\n" +
+      "Input Error: ${a.err}\nResult Error:\n ${r.err}\n";
+    # Curried
+    checkType = { args, result ? null } @ cargs: let
+      arg_info = checkOne argt args;
+      rsl_info = checkOne rslt result;
+    in if ! ( cargs ? result ) then {
+      inherit (arg_info) ok;
+      inherit arg_info;
+      __functor = self: { result }: {
+        inherit (self) arg_info;
+        rsl_info = checkOne rslt { inherit result; };
+        ok       = self.ok && rsl_info.ok;
+      };
+    } else {
+      inherit arg_info rsl_info;
+      ok = arg_info.ok && rsl_info.ok;
+    };
+  in lib.libtypes.typedef' {
+    inherit name checkType;
+    toError = { args, result }: { ok, arg_info, rsl_info }:
+      if ok then "no errors." else bothToError { inherit arg_info rsl_info; };
+    def = {
+      inherit argt rslt name;
+    };
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -18,6 +61,189 @@
 
   supportsPlV3 = { lockfileVersion, ... }:
     ( lockfileVersion == 2 ) || ( lockfileVersion == 3 );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Given a package entry from a `package-lock.json(v[23])', return the entry
+  # "tagged" as "file", "path", or "git" indicating the fetcher family to be
+  # used by `flocoFetch'.
+  #   discrPlentFetcherFamily { link = true; resolved = "../foo"; }
+  #   => { path = { link - true; resolved = "../foo"; }; }
+  discrPlentFetcherFamily = lib.libtypes.discrTypes {
+    git  = yt.NpmLock.Structs.pkg_git_v3;
+    file = yt.NpmLock.Structs.pkg_file_v3;
+    path = yt.NpmLock.Structs.pkg_path_v3;
+  };
+
+  # Just returns the tag name.
+  identifyPlentFetcherFamily = ent: lib.tagName ( discrPlentFetcherFamily ent );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # These are the "source types" recognized by NPM.
+  # We refer to them as "lifecycle types" because in this context we are
+  # strictly interested in the way NPM treats different types of sources when
+  # triggering "lifecycle scripts".
+  discrPlentLifecycleV3' = lib.libtypes.discrTypes {
+    git     = yt.NpmLock.Structs.pkg_git_v3;
+    tarball = yt.NpmLock.Structs.pkg_file_v3;
+    link    = yt.NpmLock.Structs.pkg_link_v3;
+    dir     = yt.NpmLock.Structs.pkg_dir_v3;
+  };
+
+  discrPlentLifecycleV3 =
+    yt.defun [yt.NpmLock.package yt.FlocoFetch.Sums.tag_lifecycle_plent]
+             discrPlentLifecycleV3';
+
+
+# ---------------------------------------------------------------------------- #
+
+  # NOTE: works for either "file" or "tarball".
+  # You can pick a specialized form using the `postFn' arg.
+  # I recommend `asGeneric*ArgsImpure' here since those routines
+  # doesn't use a real type checker.
+  # They just have an assert that freaks out if you're missing a hash field.
+  # Our inner fetchers will catch that anyway so don't sweat it.
+  plockEntryToGenericUrlArgs' = {
+    postFn    ? lib.libfetch.asGenericUrlArgsImpure
+  , typecheck ? false
+  }: let
+    inner = {
+      resolved
+    , sha1_hash ? plent.sha1 or plent.shasum or null
+    , integrity ? null  # Almost always `sha512_sri` BUT NOT ALWAYS!
+    , ...
+    } @ plent: let
+      rough   = { url = resolved; inherit sha1_hash integrity; };
+      args    = lib.filterAttrs ( _: x: x != null ) rough;
+    in postFn args;
+    rtype = let
+      # Typecheck generic arg fields ( optional ).
+      cond = x: let
+        # Collect matching typecheckers and run them as we exit.
+        # The outer checker can just focus on fields.
+        tcs  = builtins.intersectAttrs x lib.libfetch.genericUrlArgFields;
+        proc = acc: f: acc && ( tcs.${f}.check x.${f} );
+      in builtins.foldl' proc true ( builtins.attrNames tcs );
+    in if ! typecheck then yt.any else
+       yt.restrict "fetchInfo:generic:url:rough" cond ( yt.attrs yt.any );
+  in yt.defun [yt.NpmLock.Structs.pkg_file_v3 rtype] inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # NOTE: the fetcher for `git' entries need to distinguish between `git',
+  # `github', and `sourcehut' when processing these args.
+  # They should not try to interpret the `builtins.fetchTree' type using
+  # `identify(Resolved|Plen)FetcherFamily' which conflates all three
+  # `git' types.
+  # XXX: I'm not sure we can get away with using `type = "github";' unless we
+  # are sure that we know the right `ref'/`branch'. Needs testing.
+  plockEntryToGenericGitArgs' = {
+    postFn    ? ( x: x )
+  , typecheck ? false
+  }: let
+    inner = { resolved, ... } @ args: let
+      inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
+      allRefs' = let
+        bname        = baseNameOf ref;
+        defaultBRefs = ["HEAD" "master" "main"];
+        allRefs      = ! ( builtins.elem bname defaultBRefs );
+      in if ( type == "github" ) || ( ref == null ) then {} else {
+        inherit allRefs;
+      };
+      owner' = if builtins.elem owner [null "" "."] then {} else
+               { inherit owner; };
+      ref' = if ref == null then {} else { inherit ref; };
+    in {
+      inherit type repo rev;
+      name = repo;
+      # Simplify URL for processing as a struct.
+      # `builtins.fetch[Tree]Git' gets pissed off if you include URI params in
+      # the `url' string, it wants you to move them to attrs.
+      # We strip off the `data' portion of the scheme, and drop any params or
+      # fragments to get the "base" URL.
+      # NOTE: the `lib.ytypes.NpmLock.pkg_git_v3' expects a `git+<TRANSPORT>://'
+      # in the scheme, so keep that in mind if you serialize `fetchInfo' and
+      # try to recycle any `resolved' URI -> type discriminators.
+      url  = lib.yankN 1 "(git\\+)?([^?#]+).*" resolved;
+    } // allRefs' // owner' // ref';
+    funk = {
+      __functionMeta = {
+        name = "plockEntryToGenericGitArgs";
+        from = "at-node-nix#lib.libplock";
+        properties = { pure = true; inherit typecheck; };
+        signature = [
+          yt.NpmLock.Structs.pkg_git_v3
+          lib.libfetch.genericGitArgsPure
+        ];
+      };
+      __functionArgs.resolved = false;
+      __innerFunction = inner;
+      __functor = self: args: let
+        result = self.__innerFunction args;
+      in if ! typecheck then result else
+         self.__typeCheck self { inherit args result; };
+    };
+  # Even if `typecheck' is false we will stash a partially applied typechecker
+  # as a field that can run without the functor.
+  in funk // (
+    if typecheck then { __typeCheck  = mkTypeChecker; }
+                 else { _typeChecker = mkTypeChecker funk; }
+  );
+
+
+# ---------------------------------------------------------------------------- #
+
+  plockEntryToGenericPathArgs' = {
+    postFn    ? ( x: x )
+  , typecheck ? false
+  , basedir
+  }: let
+    inner = { resolved, link ? false } @ args: let
+    in {};
+  in #yt.defun [yt.NpmLock.Structs.pkg_git_v3 rtype] inner;
+    inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Responsible for preparing `fetchInfo' structs to be passed to `flocoFetch'.
+  # This is pretty simple since the `package-lock.json' writes integrity for
+  # archives rather than their contents.
+  # In pure mode the info in the lock means that `fetchurlDrv' is the only
+  # valid "file" family fetcher which simplifies things.
+  #
+  # `git' vs. `github' vs. `https' ( file ) is the actually annoying one since
+  # you have to rewrite `ssh+git://git@...' to `https://', and distinguish it
+  # from `https://' of tarballs.
+  fetchInfoFromPlentV3' = {
+    pure      ? lib.inPureEvalMode
+  , ifd       ? true
+  , typecheck ? false
+  }: {
+    lockDir
+  , postFn  ? ( x: x )  # Applied to generic argset before returning
+  }: let
+    toGenericArgs = lib.matchLam {
+      git  = plockEntryToGenericGitArgs' { inherit typecheck; };
+      file = plockEntryToGenericUrlArgs' { inherit typecheck; };
+      # TODO: processor for path args doesn't typecheck
+      path = lib.libfetch.processGenericPathArgs {
+        __thunk.basedir = lockDir;
+      };
+    };
+  in {
+    pkey
+  , plent
+  }: let
+    byFF        = discrPlentFetcherFamily plent;
+    ftype       = lib.tagName byFF;
+    genericArgs = toGenericArgs byFF;
+  in postFn {
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -98,6 +324,19 @@
     ident   = plent.name or ( lookupRelPathIdentV3 plock path );
     version = plent.version or ( realEntry plock path ).version;
   in "${ident}/${version}";
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Essentially an optimized `tagHash'.
+  # XXX: I'm unsure of whether or not this works with v1 locks.
+  plockEntryHashAttr = {
+    __innerFunction = entry:
+      if entry ? integrity then lib.libenc.tagHash entry.integrity else
+      if entry ? sha1      then { sha1_hash = entry.sha1; } else {};
+    __functionArgs = { sha1 = true; integrity = true; };
+    __functor = self: self.__innerFunction;
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -337,6 +576,17 @@
 
 in {
   inherit
+    discrPlentFetcherFamily
+    identifyPlentFetcherFamily
+    discrPlentLifecycleV3'
+    discrPlentLifecycleV3
+    fetchInfoFromPlentV3'
+
+    plockEntryHashAttr
+    plockEntryToGenericUrlArgs'
+    plockEntryToGenericGitArgs'
+  ;
+  inherit
     supportsPlV1
     supportsPlV3
     realEntry
@@ -355,6 +605,7 @@ in {
     getKeyPlV3'
     getKeyPlV3
   ;
+  inherit mkTypeChecker;
 }
 
 # ---------------------------------------------------------------------------- #
