@@ -211,6 +211,8 @@
   plent_types = [pkg_git_v3 pkg_file_v3 pkg_link_v3 pkg_dir_v3];
   package     = yt.eitherN plent_types;
 
+  plock_pkey = yt.either yt.FS.Strings.relpath ( yt.enum [""] );
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -245,6 +247,7 @@ in {
     pkg_file_v3
     plent_types
     package
+    plock_pkey
   ;
 }
 

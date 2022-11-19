@@ -97,7 +97,7 @@
   # They just have an assert that freaks out if you're missing a hash field.
   # Our inner fetchers will catch that anyway so don't sweat it.
   plockEntryToGenericUrlArgs' = {
-    postFn    ? lib.libfetch.asGenericUrlArgsImpure
+    postFn    ? ( x: x )
   , typecheck ? false
   }: let
     inner = {
@@ -107,8 +107,10 @@
     , ...
     } @ plent: let
       rough   = { url = resolved; inherit sha1_hash integrity; };
-      args    = lib.filterAttrs ( _: x: x != null ) rough;
-    in postFn args;
+      prep    = lib.filterAttrs ( _: x: x != null ) rough;
+      generic = lib.libfetch.asGenericUrlArgsImpure prep;
+    in removeAttrs generic ["flake" "sha"];
+
     rtype = let
       # Typecheck generic arg fields ( optional ).
       cond = x: let
@@ -210,15 +212,96 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # XXX: YO STOP RIGHT NOW. You want to read this:
+  #
+  # NPM explicitly labels "file:" URI in cases where the entry should be trated
+  # as a "file" for Lifecycle.
+  # Stop and re-read that, and be reminded that "file" essentially means
+  # "treat this like a registry tarball" and do not execute any build/prepare
+  # lifecycle scripts.
+  # This is important because the lifecycle and fetcher MUST NOT BE CONFLATED
+  # here because they mean very different things to the build system.
+  #
+  # XXX: "path" fetcher does not imply "run builds/prepare" ( they call it the
+  # "dir" fetcher ).
+
+  #yt.defun [yt.NpmLock.Structs.pkg_git_v3 rtype] inner;
   plockEntryToGenericPathArgs' = {
     postFn    ? ( x: x )
   , typecheck ? false
-  , basedir
   }: let
-    inner = { resolved, link ? false } @ args: let
-    in {};
-  in #yt.defun [yt.NpmLock.Structs.pkg_git_v3 rtype] inner;
-    inner;
+    inner = {
+      resolved ? _pkey
+    , link     ? false
+    , _lockDir
+    , _pkey
+    , ...
+    } @ args: let
+      tagged = lib.discr [  # A list is used to prevent sorting by keys.
+        { uri_abs = lib.test "file:/.*"; }
+        { uri_rel = lib.test "file:.*"; }
+        { abspath = lib.ytypes.FS.abspath.check; }
+        { relpath = lib.ytypes.FS.Strings.relpath.check; }
+      ] resolved;
+      tname = lib.tagName tagged;
+      # `pkey' is relative, so all `link' entries and any entry without
+      # `resolved' don't need to be checked with regex.
+      isRelpathByPkey     = ! ( ( args ? resolved ) || link );
+      isRelpathByResolved = builtins.elem tname ["uri_rel" "relpath"];
+      isRelpath = isRelpathByPkey || isRelpathByResolved;
+      noUri     = if isRelpathByPkey then resolved else
+                  lib.yankN 1 "(file:)?(.*)" resolved;
+      abspath =
+        if _pkey == "" then _lockDir else
+        if ! isRelpath then noUri else
+        lib.libpath.realpathRel' _lockDir noUri;
+      # TODO: apply filter to `file:' entries?
+    in {
+      type      = "path";
+      path      = abspath;
+      recursive = true;
+      #url       = "path:" + abspath;
+      #basedir   = _lockDir;
+    };
+    # Configured functor based on `typecheck' setting.
+    funk = {
+      __functionMeta = {
+        name = "plockEntryToGenericPathArgs";
+        from = "at-node-nix#lib.libplock";
+        properties = { inherit typecheck; };
+        signature = let
+          argt = yt.struct {
+            lockDir = yt.FS.abspath;
+            #pkey    = yt.FS.Strings.relpath;
+            pkey    = yt.NpmLock.plock_pkey;
+            plent   = yt.NpmLock.Structs.pkg_path_v3;
+          };
+          # FIXME: this routine lies about being "generic" but the generic
+          # routine in `laika' is incomplete so this is alright for now.
+          rtype = yt.struct "fetchInfo:builtins.path" {
+            inherit (lib.libfetch.genericPathFetchFields) type path recursive;
+          };
+        in [argt rtype];
+      };
+      # TODO: arg processor to curry
+      __functionArgs.lockDir   = false;
+      __functionArgs.pkey      = false;
+      __functionArgs.resolved  = false;
+      __functionArgs.link      = true;
+      __innerFunction = inner;
+      __functor = self: args: let
+        args'  = args.plent // { _lockDir = args.lockDir; _pkey = args.pkey; };
+        result = self.__innerFunction args';
+        checked = if ! typecheck then result else
+                  self.__typeCheck self { inherit args result; };
+      in postFn checked;
+    };
+    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
+                                else { _typeChecker = mkTypeChecker funk; };
+  # Even if `typecheck' is false we will stash a partially applied typechecker
+  # as a field that can run without the functor.
+  in funk // typechecker';
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -244,19 +327,14 @@
       git  = plockEntryToGenericGitArgs' { inherit typecheck; };
       file = plockEntryToGenericUrlArgs' { inherit typecheck; };
       # TODO: processor for path args doesn't typecheck
-      path = lib.libfetch.processGenericPathArgs {
-        __thunk.basedir = lockDir;
-      };
+      path = plockEntryToGenericPathArgs' { inherit typecheck; };
     };
-  in {
-    pkey
-  , plent
-  }: let
-    byFF        = discrPlentFetcherFamily plent;
-    ftype       = lib.tagName byFF;
-    genericArgs = toGenericArgs byFF;
-  in postFn {
-  };
+  in { pkey, plent }: let
+    byFF  = discrPlentFetcherFamily plent;
+    ftype = lib.tagName byFF;
+    prep  = if ftype == "path" then { path = { inherit lockDir pkey plent; }; }
+                               else byFF;
+  in postFn ( toGenericArgs prep );
 
 
 # ---------------------------------------------------------------------------- #
