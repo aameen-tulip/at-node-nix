@@ -60,7 +60,7 @@
 '';
     };
     __functor = self: arg:
-      self.__innerFunction self ( self.__processArgs self arg );
+      self.__innerFunction ( self.__processArgs self arg );
     __functionArgs = ( lib.functionArgs _registryForScope ) // {
       name = true;
       key  = true;
@@ -78,7 +78,7 @@
         registryScopes._default = lib.getDefaultRegistry;
       };
     in { inherit (flocoConfig) registryScopes; };
-    __innerFunction = self: _registryForScope;
+    __innerFunction = _registryForScope;
   };
 
 # ---------------------------------------------------------------------------- #
@@ -100,7 +100,7 @@
       thunkMembers = { registryScopes = yt.attrs yt.string; };
     };
     __functor = self: arg:
-      self.__innerFunction self ( self.__processArgs self arg );
+      self.__innerFunction ( self.__processArgs self arg );
     __functionArgs = {
       flocoConfig    = true;
       registryScopes = true;
@@ -126,7 +126,7 @@
         regArgs.ident or regArgs.meta.ident or regArgs.name or regArgs.meta.name
         or ( dirOf ( regArgs.key or regArgs.meta.key ) );
     in { inherit ident registry; } // regArgs;
-    __innerFunction = self: _fetchPackument;
+    __innerFunction = _fetchPackument;
   };
 
   # Tail calls `builtins.fromJSON' after fetching.
@@ -207,7 +207,7 @@
       thunkMembers = { importFetchPackument = yt.function; };
     };
     __functor = self: arg:
-      self.__innerFunction self ( self.__processArgs self arg );
+      self.__innerFunction ( self.__processArgs self arg );
     __thunk = { inherit (lib.libreg) importFetchPackument; };
     __functionArgs = fetchPackument.__functionArgs // {
       importFetchPackument = true;
@@ -221,7 +221,7 @@
       fallback = if builtins.isString arg then ifpT arg else
                  if yt.Packument.packument.check arg then arg else ifp ifpArgs;
     in arg.packument or fallback;
-    __innerFunction = self: packumentLatestVersion';
+    __innerFunction = packumentLatestVersion';
   };
 
 
