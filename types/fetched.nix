@@ -32,11 +32,6 @@ in {
   Enums.fetcher_family =
     yt.enum "type[fetcher_family]" ["file" "git" "path"];
 
-  # Project types recognized by NPM.
-  # These are used to determine which lifecycle scripts are run.
-  Enums.lifecycle_type =
-    yt.enum "type[lifecycle]" ["file" "dir" "link" "git"];
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -80,7 +75,7 @@ in {
 
   Structs.fetched = yt.struct "fetched" {
     _type      = yt.restrict "_type[fetched]" ( s: s == "fetched" ) yt.string;
-    ltype      = yt.FlocoFetch.Enums.lifecycle_type;
+    ltype      = yt.Npm.Enums.lifecycle_type;
     ffamily    = yt.FlocoFetch.Enums.fetcher_family;
     outPath    = yt.FS.store_path;
     passthru   = yt.option ( yt.attrs yt.any );
@@ -98,20 +93,9 @@ in {
 
 # ---------------------------------------------------------------------------- #
 
-  Sums.tag_lifecycle_plent = yt.sum "lifecycle->plent" {
-    git     = yt.NpmLock.pkg_git_v3;
-    tarball = yt.NpmLock.pkg_tarball_v3;
-    link    = yt.NpmLock.pkg_link_v3;
-    dir     = yt.NpmLock.pkg_dir_v3;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   inherit (yt.FlocoFetch.Enums)
     fetcher_family
     fetch_info_type
-    lifecycle_type
   ;
   inherit (yt.FlocoFetch.Eithers)
     source_info_floco

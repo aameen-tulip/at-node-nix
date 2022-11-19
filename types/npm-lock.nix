@@ -16,7 +16,7 @@
   inherit (ur.Strings) uri_ref scheme fragment;
   lib.test = patt: s: ( builtins.match patt s ) != null;
 
-  lock_uris = import ./npm/lock/uri.nix { inherit ytypes; };
+  _lock_uris = import ./npm/lock/uri.nix { inherit ytypes; };
 
 # ---------------------------------------------------------------------------- #
 
@@ -35,7 +35,7 @@
 
   dep_ent_v1 = struct "deps_v1" {
     version  = locator;
-    resolved = option lock_uris.resolved_uri;
+    resolved = option _lock_uris.resolved_uri;
     from     = option descriptor;
     dev      = option bool;
     optional = option bool;
@@ -78,7 +78,7 @@
   pkg_any_fields_v3 = ( builtins.mapAttrs ( _: option ) {
     name     = identifier;
     version  = locator;
-    resolved = lock_uris.resolved_uri;
+    resolved = _lock_uris.resolved_uri;
     license  = string;
     engines  = yt.either ( yt.attrs string ) ( yt.list string );
     bin      = yt.attrs string;
@@ -99,7 +99,7 @@
   # The real entries explicitly use the "link" field.
   pkg_path_v3 = let
     fconds = pkg_any_fields_v3 // {
-      resolved = yt.option lock_uris.Strings.path_uri;
+      resolved = yt.option _lock_uris.Strings.path_uri;
       link     = yt.option yt.bool;
     };
     cond = x: let
@@ -117,7 +117,7 @@
     # path ( relative to the `lockDir' ).
     cond = x: 
       ( ! ( x.link or false ) ) &&
-      ( ( ! ( x ? resolved ) ) || ( lock_uris.dir_uri.check x.resolved ) );
+      ( ( ! ( x ? resolved ) ) || ( _lock_uris.dir_uri.check x.resolved ) );
   in restrict "dir" cond pkg_path_v3;
 
   # Almost never contains `pkg_any_fields' which are instead held by a `dir'
@@ -127,7 +127,7 @@
   # You want to STRICTLY interpret the "link" flag here.
   pkg_link_v3 = let
     # XXX: NOT a `file:' URI! Those are `dir' ltypes.
-    cond = x: ( x ? resolved ) && ( lock_uris.link_uri.check x.resolved ) &&
+    cond = x: ( x ? resolved ) && ( _lock_uris.link_uri.check x.resolved ) &&
               ( ( x.link or false ) == true );
   in restrict "link" cond pkg_path_v3;
 
@@ -135,7 +135,7 @@
 # ---------------------------------------------------------------------------- #
 
   pkg_git_v3 = let
-    fconds = pkg_any_fields_v3 // { resolved = lock_uris.git_uri; };
+    fconds = pkg_any_fields_v3 // { resolved = _lock_uris.git_uri; };
     cond = x: let
       fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
@@ -150,9 +150,9 @@
   pkg_file_v3 = let
     condHash = x:
       ( x ? integrity ) || ( x ? sha1 ) ||
-      ( lock_uris.Strings.path_uri.check x );  # Local paths don't need hash.
+      ( _lock_uris.Strings.path_uri.check x );  # Local paths don't need hash.
     fconds   = pkg_any_fields_v3 // {
-      resolved  = lock_uris.file_uri;
+      resolved  = _lock_uris.file_uri;
       integrity = option yt.Hash.integrity;
       sha1      = option yt.Hash.Strings.sha1_hash;
     };
@@ -169,17 +169,36 @@
   plent_types = [pkg_git_v3 pkg_file_v3 pkg_link_v3 pkg_dir_v3];
   package     = yt.eitherN plent_types;
 
-  plock_pkey = yt.either yt.FS.Strings.relpath ( yt.enum [""] );
+  pkey = yt.either yt.FS.Strings.relpath ( yt.enum [""] );
 
 
 # ---------------------------------------------------------------------------- #
 
+  Sums.tag_lifecycle_plent = yt.sum "lifecycle->plent" {
+    git  = yt.NpmLock.pkg_git_v3;
+    file = yt.NpmLock.pkg_file_v3;
+    link = yt.NpmLock.pkg_link_v3;
+    dir  = yt.NpmLock.pkg_dir_v3;
+  };
+
+
+# ---------------------------------------------------------------------------- #
 
 in {
-  Strings = lock_uris.Strings // {
+
+  Enums = ( _lock_uris.Enums or {} ) // {
     # Add some
   };
-  Structs = {
+  Sums = ( _lock_uris.Sums or {} ) // {
+    inherit Sums;
+  };
+  Eithers = ( _lock_uris.Eithers or {} ) // {
+    inherit pkey;
+  };
+  Strings = ( _lock_uris.Strings or {} ) // {
+    # Add some
+  };
+  Structs = ( _lock_uris.Structs or {} ) // {
     inherit
       pkg_path_v3  # used by fetchers, not exposed to users.
       pkg_dir_v3
@@ -197,10 +216,10 @@ in {
     pkg_file_v3
     plent_types
     package
-    plock_pkey
+    pkey
   ;
 
-  inherit (lock_uris)
+  inherit (_lock_uris)
     file_uri
     link_uri
     git_uri
@@ -208,6 +227,7 @@ in {
     resolved_uri
     _resolved_uri_types
   ;
+
 }
 
 

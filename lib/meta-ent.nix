@@ -269,12 +269,17 @@
      if yt.NpmLock.package.check plent' then fromPlent else
      if yt.FlocoFetch.fetched.check x then x.ltype else
      if yt.FlocoFetch.fetch_info_floco.check x then fromFi else
-     throw ( "(metaEntFromLifecycle): cannot infer lifecycle type from '"
+     throw ( "(identifyLifecycle): cannot infer lifecycle type from '"
              "${lib.generators.toPretty { allowPrettyValues = true; } x}'" );
 
 
 # ---------------------------------------------------------------------------- #
 
+  metaEntFromLifecycleStrict' = lib.matchLam {
+    git = {
+
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -305,7 +310,7 @@
       inherit hasBin;
       depInfo          = lib.libdep.depInfoEntFromPlockV3 pkey plent;
       hasInstallScript = plent.hasInstallScript or false;
-      ltype            = identifyLifecycleType
+      ltype            = identifyLifecycle;
       entFromtype      = "package-lock.json(v${toString lockfileVersion})";
       entries = {
         __serial = false;
@@ -459,15 +464,6 @@ in {
     metaEntAddPlockGapsFromPjs
     metaEntUpPlockGapsFromPjs
     metaEntExtendPlockGapsFromPjs
-
-    metaEntFromLifecycleType'
-    metaEntFromLifecycleType
-    metaEntFromLifecycleTypePure
-    metaEntFromLifecycleTypeImpure
-    metaEntAddFromLifecycleType
-    metaEntUpFromLifecycleType
-    metaEntExtendFromLifecycleType
-    metaEntMergeFromLifecycleType
 
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'

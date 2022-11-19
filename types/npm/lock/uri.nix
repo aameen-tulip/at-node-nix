@@ -16,14 +16,15 @@
 #         This is the type used for registry tarballs, and path dirs when the
 #         `--install-links' flag is active.
 # - dir:  Implies that a tree is a path directory.
-#         `prepare', and `install'scripts will be run.
+#         `prepare', and `install' scripts will be run.
 #         In the `floco' framework we also run `build' scripts for this type.
 # - link: A symlink to a `dir' tree.
 #         `prepare', `prepack', and `install' scripts will be run.
 #         In the `floco' framework we also run `build' scripts for this type.
 # - git:  A checkout of a `git' repository.
-#         NPM and `floco' treat these the same as `link' trees for the purposes
-#         of lifecycle execution.
+#         NPM only runs `prepare' and `install' but not `prepack'.
+#
+# See [[file:../lifecycle.nix]] for details.
 #
 # Reference data under: tests/libfetch/data/proj2/package-lock.json
 #
