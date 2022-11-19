@@ -315,7 +315,12 @@
   # `git' vs. `github' vs. `https' ( file ) is the actually annoying one since
   # you have to rewrite `ssh+git://git@...' to `https://', and distinguish it
   # from `https://' of tarballs.
-  fetchInfoFromPlentV3' = {
+  #
+  # This "Generic" form aims to return as much information as possible, and in
+  # practice you'll likely prefer a narrower scraper for your use case.
+  # With that in mind you might see this routine as a reference spec for more
+  # optimized "practical" scrapers.
+  fetchInfoGenericFromPlentV3' = {
     pure      ? lib.inPureEvalMode
   , ifd       ? true
   , typecheck ? false
@@ -323,10 +328,15 @@
     lockDir
   , postFn  ? ( x: x )  # Applied to generic argset before returning
   }: let
+    # These "generic" arg sets are the fully exploded set of what we can infer
+    # from the package lock entry.
+    #
+    # The `postFn' is our hook to filter those giant blobs down to something
+    # more reasonable before they become part of the `metaEnt' or get sent
+    # to fetchers.
     toGenericArgs = lib.matchLam {
       git  = plockEntryToGenericGitArgs' { inherit typecheck; };
       file = plockEntryToGenericUrlArgs' { inherit typecheck; };
-      # TODO: processor for path args doesn't typecheck
       path = plockEntryToGenericPathArgs' { inherit typecheck; };
     };
   in { pkey, plent }: let
@@ -335,6 +345,13 @@
     prep  = if ftype == "path" then { path = { inherit lockDir pkey plent; }; }
                                else byFF;
   in postFn ( toGenericArgs prep );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # A practical implementation of `fetchInfo*FromPlentV3' that aims to satisfy
+  # Nix builtin fetchers whenever possible.
+  fetchInfoBuiltinFromPlentV3' = TODO: null;
 
 
 # ---------------------------------------------------------------------------- #
@@ -671,11 +688,15 @@ in {
     identifyPlentFetcherFamily
     discrPlentLifecycleV3'
     discrPlentLifecycleV3
-    fetchInfoFromPlentV3'
 
     plockEntryHashAttr
+
     plockEntryToGenericUrlArgs'
     plockEntryToGenericGitArgs'
+    plockEntryToGenericPathArgs'
+
+    fetchInfoGenericFromPlentV3'
+    fetchInfoBuiltinFromPlentV3'
   ;
   inherit
     supportsPlV1
@@ -697,6 +718,9 @@ in {
     getKeyPlV3
   ;
   inherit mkTypeChecker;
+
+  # TODO: make configurable
+  fetchInfoFromPlentV3' = fetchInfoGenericFromPlentV3';
 }
 
 # ---------------------------------------------------------------------------- #
