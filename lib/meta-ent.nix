@@ -260,95 +260,20 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: this is a complete clusterfuck
-  metaEntFromLifecycleType' = { pure ? true }: x: let
-    plent = x.entries.plock or x;
-    inherit (plent) lockDir;
-    pjsDir =
-      if plent.pkey == "" then lockDir else
-      # Fetch remote trees in impure mode
-      if haveTree && ( type != "path" ) then
-        "${( ( lib.mkFlocoFetcher { basedir = lockDir; } ) plent )}" else
-      if plent.link or false then lockDir + "/${plent.resolved}" else
-      lockDir + "/${plent.pkey}";
-
-    type = 0;  # FIXME
-
-    pjsPath = pjsDir + "/package.json";
-    tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
-    pjs     = x.entries.pjs or ( lib.importJSON' pjsPath );
-    fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      entries.pjs = pjs // ( lib.optionalAttrs ( type == "path" ) {
-        inherit pjsDir;
-      } );
-    } // ( lib.optionalAttrs ( type == "path" ) { fetchInfo.path = pjsDir; } );
-    isRemoteSrc = type != "path";
-    isTb        = builtins.elem type ["file" "tarball"];
-    # FIXME: fetching from the registry packument makes WAY more sense.
-    canFetch = ( type == "git" ) && ( ! pure );
-    haveTree = ( type == "path" ) || canFetch;
-
-    # IDENTIFY LIFECYCLE
-    ltype = let
-      plentFF   = lib.libfetch.identifyPlentFetcherFamily plent;
-      fromPlent = if plentFF != "path" then plentFF else
-                  if plent.link or false then "link" else "dir";
-      fromFi    = ""; # FIXME
-    in
-      if builtins.isString x then x else
-      if yt.NpmLock.package.check x then fromPlent else
-      if yt.FlocoFetch.fetched.check x then x.ltype else
-      if yt.FlocoFetch.fetch_info_floco.check x then fromFi else
-      throw ( "(metaEntFromLifecycleType'): cannot infer lifecycle type from '"
-              "${lib.generators.toPretty { allowPrettyValues = true; } x}'" );
-
-    core = { inherit ltype; };
-    conds = let
-      mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
-    in builtins.foldl' mergeCond core [
-      { c = isTb;               v.hasBuild = false;                }
-      { c = haveTree && tryPjs; v = fromPjs;                       }
-      {
-        c = type != "path";
-        v.fetchInfo.url = let
-          pv = lib.generators.toPretty {} plent;
-        in if ! ( plent ? resolved )
-           then throw "missing resolved: ${type} ${pv}"
-           else plent.resolved;
-      }
-      {
-        c = haveTree && ( plent.hasInstallScript or false );
-        v.gypfile = builtins.pathExists ( pjsDir + "/binding.gyp" );
-      }
-      # This is NOT redundant alongside the `plockEntryHashAttrs' call.
-      { c = plent ? integrity;  v.fetchInfo.hash = plent.integrity; }
-      { c = type == "path";     v.fetchInfo.path = pjsDir; }
-    ];
-    forAttrs = builtins.foldl' lib.recursiveUpdate core [
-      conds
-    ];
-    ec = builtins.addErrorContext "metaEntFromLifecycleType";
-  in if builtins.isString x then core else ec forAttrs;
-
-
-
-  metaEntFromLifecycleType = metaEntFromLifecycleType' {
-    pure = lib.flocoConfig.enableImpureMeta or true;
-  };
-  metaEntFromLifecycleTypePure   = metaEntFromLifecycleType' { pure = true; };
-  metaEntFromLifecycleTypeImpure = metaEntFromLifecycleType' { pure = false; };
-
-  inherit (
-    genMetaEntRules "FromLifecycleType" metaWasPlock metaEntFromLifecycleType
-  ) metaEntAddFromLifecycleType
-    metaEntUpFromLifecycleType
-    metaEntExtendFromLifecycleType
-    metaEntMergeFromLifecycleType
-  ;
+  # Identify Lifecycle "For Any"
+  identifyLifecycle = x: let
+    fromFi    = throw "identifyLifecycleType: TODO from fetchInfo";
+    plent'    = x.entries.plock or x;
+    fromPlent = lib.libplock.identifyPlentLifecycleV3 plent';
+  in if builtins.isString x then x else
+     if yt.NpmLock.package.check plent' then fromPlent else
+     if yt.FlocoFetch.fetched.check x then x.ltype else
+     if yt.FlocoFetch.fetch_info_floco.check x then fromFi else
+     throw ( "(metaEntFromLifecycle): cannot infer lifecycle type from '"
+             "${lib.generators.toPretty { allowPrettyValues = true; } x}'" );
 
 
 # ---------------------------------------------------------------------------- #
-
 
 
 
@@ -380,6 +305,7 @@
       inherit hasBin;
       depInfo          = lib.libdep.depInfoEntFromPlockV3 pkey plent;
       hasInstallScript = plent.hasInstallScript or false;
+      ltype            = identifyLifecycleType
       entFromtype      = "package-lock.json(v${toString lockfileVersion})";
       entries = {
         __serial = false;

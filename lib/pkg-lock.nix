@@ -76,11 +76,13 @@
   # We refer to them as "lifecycle types" because in this context we are
   # strictly interested in the way NPM treats different types of sources when
   # triggering "lifecycle scripts".
+  #
+  # FIXME: `file:/' needs to be "file".
   discrPlentLifecycleV3' = lib.libtypes.discrTypes {
-    git     = yt.NpmLock.Structs.pkg_git_v3;
-    tarball = yt.NpmLock.Structs.pkg_file_v3;
-    link    = yt.NpmLock.Structs.pkg_link_v3;
-    dir     = yt.NpmLock.Structs.pkg_dir_v3;
+    git  = yt.NpmLock.Structs.pkg_git_v3;
+    file = yt.NpmLock.Structs.pkg_file_v3;
+    link = yt.NpmLock.Structs.pkg_link_v3;
+    dir  = yt.NpmLock.Structs.pkg_dir_v3;
   };
 
   discrPlentLifecycleV3 =
@@ -89,6 +91,21 @@
 
 
 # ---------------------------------------------------------------------------- #
+
+  identifyPlentLifecycleV3' = plent: let
+    plentFF   = lib.libplock.identifyPlentFetcherFamily plent;
+  in if plentFF != "path" then plentFF else
+     if lib.hasPrefix "file:" ( plent.resolved "" ) then "file" else
+     if plent.link or false then "link" else "dir";
+
+  identifyPlentLifecycleV3 =
+    yt.defun [yt.NpmLock.package yt.FlocoFetch.Sums.tag_lifecycle_plent]
+             identifyPlentLifecycleV3';
+
+
+# ---------------------------------------------------------------------------- #
+
+  # URL
 
   # NOTE: works for either "file" or "tarball".
   # You can pick a specialized form using the `postFn' arg.
@@ -147,6 +164,8 @@
 
 
 # ---------------------------------------------------------------------------- #
+
+  # GIT
 
   # NOTE: the fetcher for `git' entries need to distinguish between `git',
   # `github', and `sourcehut' when processing these args.
@@ -211,6 +230,8 @@
 
 
 # ---------------------------------------------------------------------------- #
+
+  # PATH
 
   # XXX: YO STOP RIGHT NOW. You want to read this:
   #
@@ -284,10 +305,12 @@
         in [argt rtype];
       };
       # TODO: arg processor to curry
-      __functionArgs.lockDir   = false;
-      __functionArgs.pkey      = false;
-      __functionArgs.resolved  = false;
-      __functionArgs.link      = true;
+      __functionArgs = {
+        lockDir   = false;
+        pkey      = false;
+        resolved  = false;
+        link      = true;
+      };
       __innerFunction = inner;
       __functor = self: args: let
         args'  = args.plent // { _lockDir = args.lockDir; _pkey = args.pkey; };
@@ -301,7 +324,6 @@
   # Even if `typecheck' is false we will stash a partially applied typechecker
   # as a field that can run without the functor.
   in funk // typechecker';
-
 
 
 # ---------------------------------------------------------------------------- #
@@ -335,8 +357,8 @@
     # more reasonable before they become part of the `metaEnt' or get sent
     # to fetchers.
     toGenericArgs = lib.matchLam {
-      git  = plockEntryToGenericGitArgs' { inherit typecheck; };
-      file = plockEntryToGenericUrlArgs' { inherit typecheck; };
+      git  = plockEntryToGenericGitArgs'  { inherit typecheck; };
+      file = plockEntryToGenericUrlArgs'  { inherit typecheck; };
       path = plockEntryToGenericPathArgs' { inherit typecheck; };
     };
   in { pkey, plent }: let
@@ -352,6 +374,12 @@
   # A practical implementation of `fetchInfo*FromPlentV3' that aims to satisfy
   # Nix builtin fetchers whenever possible.
   fetchInfoBuiltinFromPlentV3' = TODO: null;
+
+
+# ---------------------------------------------------------------------------- #
+
+
+
 
 
 # ---------------------------------------------------------------------------- #
