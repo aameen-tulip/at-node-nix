@@ -434,17 +434,22 @@
 
     # FIXME: we are going to merge multiple instances in a really dumb way here
     # until we get this moved into the spec for proper sub-instances.
-    metaEntryList = let
-      proc = pkey: plent: let
-        metaEnt = mkOne pkey plent;
-      in {
-        name  = "${metaEnt.key}:${pkey}";
-        value = metaEnt;
-      };
-    in lib.mapAttrsToList proc plock.packages;
+    metaEntryList = lib.mapAttrsToList mkOne plock.packages;
+
+    auditKeyValuesUnique = let
+      pp = e: lib.generators.toPretty { allowPrettyValues = true; }
+                                      ( e.__serial or e );
+      byKey  = builtins.groupBy ( x: x.key ) metaEntryList;
+      isUniq = key: values:
+        ( builtins.length ( lib.unique values ) ) == 1;
+      flattenAssertUniq = key: values:
+        if isUniq key values then builtins.head values else
+        throw "Cannot merge key: ${key} with conflicting values:\n${pp values}";
+    in builtins.mapAttrs flattenAssertUniq byKey;
 
     #metaEntries = lib.listToAttrsBy "key" metaEntryList;
-    metaEntries = builtins.listToAttrs metaEntryList;
+    #metaEntries = builtins.listToAttrs metaEntryList;
+    metaEntries = auditKeyValuesUnique;
 
     members = metaEntries // {
       __meta = {
