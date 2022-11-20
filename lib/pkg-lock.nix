@@ -95,7 +95,7 @@
   identifyPlentLifecycleV3' = plent: let
     plentFF   = lib.libplock.identifyPlentFetcherFamily plent;
   in if plentFF != "path" then plentFF else
-     if lib.hasPrefix "file:" ( plent.resolved "" ) then "file" else
+     if lib.hasPrefix "file:" ( plent.resolved or "" ) then "file" else
      if plent.link or false then "link" else "dir";
 
   identifyPlentLifecycleV3 =
@@ -152,8 +152,9 @@
       __innerFunction = inner;
       __functor = self: args: let
         result  = self.__innerFunction args;
-        checked = if ! typecheck then result else
-                  self.__typeCheck self { inherit args result; };
+        checked =
+          if ! typecheck then result else
+          ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
     typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
@@ -217,9 +218,10 @@
       __functionArgs.resolved = false;
       __innerFunction = inner;
       __functor = self: args: let
-        result = self.__innerFunction args;
-        checked = if ! typecheck then result else
-                  self.__typeCheck self { inherit args result; };
+        result  = self.__innerFunction args;
+        checked =
+          if ! typecheck then result else
+          ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
     typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
@@ -313,10 +315,11 @@
       };
       __innerFunction = inner;
       __functor = self: args: let
-        args'  = args.plent // { _lockDir = args.lockDir; _pkey = args.pkey; };
-        result = self.__innerFunction args';
-        checked = if ! typecheck then result else
-                  self.__typeCheck self { inherit args result; };
+        args'   = args.plent // { _lockDir = args.lockDir; _pkey = args.pkey; };
+        result  = self.__innerFunction args';
+        checked =
+          if ! typecheck then result else
+          ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
     typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
@@ -725,6 +728,8 @@ in {
 
     fetchInfoGenericFromPlentV3'
     fetchInfoBuiltinFromPlentV3'
+
+    identifyPlentLifecycleV3'
   ;
   inherit
     supportsPlV1

@@ -47,33 +47,33 @@
 
   # Used for tarballs, and paths when `--install-links' was set.
   file_uri = let
-    prefixCond     = lib.hasPrefix "file:";  # used by `npm i --install-links'
+    prefixCond     = lib.test "file:.*";  # used by `npm i --install-links'
     tarballUrlCond = yt.Strings.tarball_url.check;
     # Basically the only registry that doesn't put the tarball in the URL...
     githubPkgCond = lib.test "https://npm\\.pkg\\.github\\.com/download/.*";
-    cond = s:
+    cond = x:
       ( yt.Uri.Strings.uri_ref.check x ) &&
-      ( ( tarballUrlCond s ) || ( githubPkgCond s ) || ( prefixCond x ) );
-  in lib.libtypes.typedef "npm:uri[file]" cond;
+      ( ( tarballUrlCond x ) || ( githubPkgCond x ) || ( prefixCond x ) );
+  in ytypes.__internal.typedef "npm:uri[file]" cond;
 
   # Must not have a "file:" prefix.
   link_uri = let
-    cond = x: ( builtins.isString x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
+    cond = x: ( builtins.isString x ) && ( ! ( lib.test "file:.*" x ) ) &&
               ( yt.FS.Strings.relpath x );
-  in lib.ytypes.typedef "npm:uri[link]" cond;
+  in ytypes.__internal.typedef "npm:uri[link]" cond;
 
   git_uri = let
     cond = lib.test "git(\\+(ssh|https?))?://.*";
-  in lib.libtypes.typedef "npm:uri[git]" cond;
+  in ytypes.__internal.typedef "npm:uri[git]" cond;
 
   # "path" ltype, but if I export the name "path_uri" from this file I'd
   # absolutely shoot myself in the foot later - so its getting a gross name.
   dir_uri = let
     cond = x:
       ( x == "" ) ||
-      ( ( builtins.isString x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
+      ( ( builtins.isString x ) && ( ! ( lib.test "file:.*" x ) ) &&
         ( yt.FS.Strings.relpath x ) );
-  in lib.libtypes.typedef "npm:uri[dir]" cond;
+  in ytypes.__internal.typedef "npm:uri[dir]" cond;
 
 
 # ---------------------------------------------------------------------------- #
@@ -87,19 +87,19 @@
   path_uri = let
     cond = x:
       ( builtins.isString x ) &&
-      ( ( lib.hasPrefix "file:" x ) || ( x == "" ) ||
+      ( ( lib.test "file:.*" x ) || ( x == "" ) ||
         ( yt.FS.Strings.relpath.check x ) );
-  in lib.libtypes.typedef "npm:uri:phony[path]" cond;
+  in ytypes.__internal.typedef "npm:uri:phony[path]" cond;
 
   remote_uri = let
     cond = x:
       ( builtins.isString x ) &&
       ( lib.test "(git(\\+ssh)?|(git\\+)?https?)://.*" x );
-  in lib.libtypes.typedef "npm:uri:phony[remote]" cond;
+  in ytypes.__internal.typedef "npm:uri:phony[remote]" cond;
 
   # Tells us we need to convert to abspath.
   relative_file_uri =
-    yt.restrict "relative" ( lib.hasPrefix "file:." ) file_uri;
+    yt.restrict "relative" ( lib.test "file:\\..*" ) file_uri;
 
 
 # ---------------------------------------------------------------------------- #

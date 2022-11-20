@@ -305,6 +305,9 @@
   metaEntFromPlockV3 = {
     lockDir
   , lockfileVersion ? 3
+  , pure            ? flocoConfig.pure or lib.inPureEvalMode
+  , ifd             ? true
+  , typecheck       ? false
   , flocoConfig     ? lib.flocoConfig
   }:
   # `mapAttrs' args. ( `pkey' and `args' ).
@@ -322,10 +325,13 @@
     baseFields = {
       inherit key ident version;
       inherit hasBin;
+      ltype            = lib.libplock.identifyPlentLifecycleV3' plent;
       depInfo          = lib.libdep.depInfoEntFromPlockV3 pkey plent;
       hasInstallScript = plent.hasInstallScript or false;
-      ltype            = identifyLifecycle;
-      entFromtype      = "package-lock.json(v${toString lockfileVersion})";
+      entFromtype = "package-lock.json(v${toString lockfileVersion})";
+      fetchInfo   = lib.libplock.fetchInfoGenericFromPlentV3' {
+        inherit pure ifd typecheck;
+      } { inherit lockDir; } { inherit pkey; plent = args; };
       entries = {
         __serial = false;
         plock = assert ! ( plent ? entries );
@@ -337,7 +343,7 @@
     argFields = if ! ( args ? entries ) then baseFields else
                 lib.recursiveUpdate baseFields args;
     meta = lib.libmeta.mkMetaEnt argFields;
-    sub  = lib.libmeta.metaEntMergeFromLifecycleType meta;
+    sub  = meta;  # FIXME: add fields based on `ltype'
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;

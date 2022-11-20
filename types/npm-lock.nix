@@ -106,7 +106,7 @@
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
       fieldsCond = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     in ( builtins.isAttrs x ) && fieldsCond;
-  in lib.libtypes.typedef "npm:lock:package:path" cond;
+  in ytypes.__internal.typedef "npm:lock:package:path" cond;
 
   
   pkg_dir_v3  = let
@@ -140,7 +140,7 @@
       fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     in ( builtins.isAttrs x ) && ( x ? resolved ) && fields;
-  in lib.libtypes.typedef "npm:lock:package[git]" cond;
+  in ytypes.__internal.typedef "npm:lock:package[git]" cond;
 
 
 # ---------------------------------------------------------------------------- #
@@ -161,7 +161,7 @@
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     in ( x ? resolved ) && fields;
     cond = x: ( builtins.isAttrs x ) && ( condHash x ) && ( condFields x );
-  in lib.libtypes.typedef "npm:lock:package[file]" cond;
+  in ytypes.__internal.typedef "npm:lock:package[file]" cond;
 
 
 # ---------------------------------------------------------------------------- #
