@@ -9,11 +9,18 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data/proj2;
+  plock   = lib.importJSON ( lockDir + "/package-lock.json" );
   metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+
   proj2   = metaSet."proj2/1.0.0";
   lodash  = metaSet."lodash/5.0.0";
   ts      = metaSet."typescript/4.8.2";
   projd   = metaSet."projd/1.0.0";
+
+  pl_proj2   = plock.packages."";
+  pl_lodash  = plock.packages."node_modules/lodash";
+  pl_ts      = plock.packages."node_modules/typescript";
+  pl_projd   = plock.packages."../projd";
 
 
 # ---------------------------------------------------------------------------- #
@@ -77,14 +84,14 @@
 
     testIdentifyResolvedFetcherFamily_file = {
       expr = let
-        resolved = ts.entries.plock.resolved;
+        resolved = pl_ts.resolved;
       in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "file";
     };
 
     testIdentifyResolvedFetcherFamily_git = {
       expr = let
-        resolved = lodash.entries.plock.resolved;
+        resolved = pl_lodash.resolved;
       in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "git";
     };
@@ -94,7 +101,7 @@
 
     testFlocoGitFetcher_0 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
+        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
       in ( lib.isStorePath fetched.outPath ) &&
          ( fetched.type == "git" ) && ( fetched.fetchInfo.type == "github" );
       expected = true;
@@ -102,7 +109,7 @@
 
     testFlocoGitFetcher_1 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
+        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
       in fetched.fetchInfo.rev;
       expected = "2da024c3b4f9947a48517639de7560457cd4ec6c";
     };

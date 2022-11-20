@@ -42,14 +42,13 @@
     };
   };
 
-  lfMS = lib.libmeta.metaSetFromPlockV3 {
-    lockDir = toString ../libfetch/data/proj2;
-  };
-  proj2   = lfMS."proj2/1.0.0";
-  lodash  = lfMS."lodash/5.0.0";
-  ts      = lfMS."typescript/4.8.2";
-  projd   = lfMS."projd/1.0.0";
-  lfPlock = lfMS.__meta.plock;
+  lockDir = toString ../libfetch/data/proj2;
+  plock   = lib.importJSON ( lockDir + "/package-lock.json" );
+  lfMS = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  proj2   = plock.packages."";
+  lodash  = plock.packages."node_modules/lodash";
+  ts      = plock.packages."node_modules/typescript";
+  projd   = plock.packages."../projd";
 
 
 /* -------------------------------------------------------------------------- */
@@ -185,22 +184,22 @@
 # ---------------------------------------------------------------------------- #
 
     testIdentifyPlentSourceType_path_0 = {
-      expr     = lib.libplock.identifyPlentFetcherFamily proj2.entries.plock;
+      expr     = lib.libplock.identifyPlentFetcherFamily proj2;
       expected = "path";
     };
 
     testIdentifyPlentSourceType_path_1 = {
-      expr     = lib.libplock.identifyPlentFetcherFamily projd.entries.plock;
+      expr     = lib.libplock.identifyPlentFetcherFamily projd;
       expected = "path";
     };
 
     testIdentifyPlentSourceType_file = {
-      expr     = lib.libplock.identifyPlentFetcherFamily ts.entries.plock;
+      expr     = lib.libplock.identifyPlentFetcherFamily ts;
       expected = "file";
     };
 
     testIdentifyPlentSourceType_git = {
-      expr     = lib.libplock.identifyPlentFetcherFamily lodash.entries.plock;
+      expr     = lib.libplock.identifyPlentFetcherFamily lodash;
       expected = "git";
     };
 
@@ -208,7 +207,7 @@
 # ---------------------------------------------------------------------------- #
 
     testPlockEntryHashAttr_0 = {
-      expr = lib.libplock.plockEntryHashAttr ts.entries.plock;
+      expr = lib.libplock.plockEntryHashAttr ts;
       expected.sha512_sri = "sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==";
     };
 

@@ -310,6 +310,8 @@
   , typecheck       ? false
   , flocoConfig     ? lib.flocoConfig
   , plock           ? lib.importJSON ( lockDir + "/package-lock.json" )
+  , includeTreeInfo ? false  # Includes info about this instance and changes
+                             # the `key' field to include the `pkey' path.
   }:
   # `mapAttrs' args. ( `pkey' and `args' ).
   # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
@@ -321,8 +323,16 @@
   , ...
   } @ args: let
     plent  = args.entries.plock or args;
-    key    = ident + "/" + version;
     hasBin = ( plent.bin or {} ) != {};
+    key'   = ident + "/" + version;
+    key    = if includeTreeInfo then key' + ":" + pkey else key';
+    # Only included when `includeTreeInfo' is `true'.
+    # Otherwise including this info would cause key collisions in `metaSet'.
+    metaFiles = {
+      __serial = false;
+      plock = assert ! ( plent ? entries );
+              plent // { inherit pkey lockDir; };
+    };
     baseFields = {
       inherit key ident version;
       inherit hasBin;
@@ -333,17 +343,10 @@
       fetchInfo        = lib.libplock.fetchInfoGenericFromPlentV3' {
         inherit pure ifd typecheck;
       } { inherit lockDir; } { inherit pkey; plent = args; };
-      entries = {
-        __serial = false;
-        plock = assert ! ( plent ? entries );
-                plent // { inherit pkey lockDir; };
-      };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
-      // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } );
-    # Merge with original arguments unless they were a raw package-lock entry.
-    argFields = if ! ( args ? entries ) then baseFields else
-                lib.recursiveUpdate baseFields args;
-    meta = lib.libmeta.mkMetaEnt argFields;
+      // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } )
+      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } );
+    meta = lib.libmeta.mkMetaEnt baseFields;
     sub  = meta;  # FIXME: add fields based on `ltype'
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
@@ -355,19 +358,20 @@
 # ---------------------------------------------------------------------------- #
 
   metaSetFromPlockV3 = {
-    plock       ? lib.importJSON' lockPath
-  , lockDir     ? dirOf lockPath
-  , lockPath    ? lockDir + "/package-lock.json"
+    plock           ? lib.importJSON' lockPath
+  , lockDir         ? dirOf lockPath
+  , lockPath        ? lockDir + "/package-lock.json"
 
-  , flocoConfig ? lib.flocoConfig
-  , pure        ? flocoConfig.pure or lib.inPureEvalMode
-  , ifd         ? true
-  , typecheck   ? false
+  , flocoConfig     ? lib.flocoConfig
+  , pure            ? flocoConfig.pure or lib.inPureEvalMode
+  , ifd             ? true
+  , typecheck       ? false
+  , includeTreeInfo ? false
   , ...
   } @ args: assert lib.libplock.supportsPlV3 plock; let
     inherit (plock) lockfileVersion;
     mkOne = lib.libmeta.metaEntFromPlockV3 {
-      inherit lockDir pure ifd typecheck flocoConfig plock;
+      inherit lockDir pure ifd typecheck flocoConfig plock includeTreeInfo;
       inherit (plock) lockfileVersion;
     };
     # FIXME: we are going to merge multiple instances in a really dumb way here
@@ -375,12 +379,13 @@
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
     auditKeyValuesUnique = let
       toSerial = e: e.__serial or e;
+      toCmp    = e: e.__entries or e;
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
                                       ( toSerial e );
       noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
       byKey   = builtins.groupBy ( x: x.key ) noLinks;
       flattenAssertUniq = key: values: let
-        uniq   = lib.unique ( map toSerial values );
+        uniq   = lib.unique ( map toCmp values );
         nconfs = builtins.length uniq;
         # FIXME: this only diffs the first two values
         header = "Cannot merge key: ${key} with conflicting values:";
