@@ -8,38 +8,7 @@
 
   yt = lib.ytypes // lib.ytypes.Prim // lib.ytypes.Core;
   inherit (lib.libdep) pinnableFields;
-
-# ---------------------------------------------------------------------------- #
-
-  # TODO: move to `ak-nix'
-  mkTypeChecker = { __functionMeta, ... }: let
-    argt = builtins.head __functionMeta.signature;
-    rslt = builtins.elemAt __functionMeta.signature 1;
-    name = __functionMeta.name or "<LAMBDA>";
-    checkOne = type: v: let
-      checked = type.checkType v;
-      ok      = type.checkToBool checked;
-      err'    = if ok then {} else { err = type.toError v checked; };
-    in err' // { inherit type checked ok; };
-  in lib.libtypes.typedef' {
-    inherit name;
-    checkType = { args, result ? null }: let
-      arg_info = checkOne argt args;
-      rsl_info = checkOne rslt result;
-    in {
-      inherit arg_info rsl_info;
-      ok = arg_info.ok && rsl_info.ok;
-    };
-    toError = { args, result }: { ok, arg_info, rsl_info }: let
-      a = arg_info; r = rsl_info;
-    in if ok then "no errors." else
-       if a.ok then "Typecheck of result failed:\n${r.err}" else
-       if r.ok then "Typecheck of inputs failed:\n${a.err}" else
-       "Typecheck of inputs and result failed.\n" +
-       "Input Error: ${a.err}\nResult Error:\n ${r.err}\n";
-    def = { inherit argt rslt name checkOne; };
-  };
-
+  inherit (lib.libfunk) mkFunkTypeChecker;
 
 # ---------------------------------------------------------------------------- #
 
@@ -158,8 +127,8 @@
           ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
-    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
-                                else { _typeChecker = mkTypeChecker funk; };
+    typechecker' = if typecheck then { __typeCheck  = mkFunkTypeChecker; }
+                                else { _typeChecker = mkFunkTypeChecker funk; };
   # Even if `typecheck' is false we will stash a partially applied typechecker
   # as a field that can run without the functor.
   in funk // typechecker';
@@ -226,8 +195,8 @@
           ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
-    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
-                                else { _typeChecker = mkTypeChecker funk; };
+    typechecker' = if typecheck then { __typeCheck  = mkFunkTypeChecker; }
+                                else { _typeChecker = mkFunkTypeChecker funk; };
   # Even if `typecheck' is false we will stash a partially applied typechecker
   # as a field that can run without the functor.
   in funk // typechecker';
@@ -325,8 +294,8 @@
           ( self.__typeCheck self { inherit args result; } ).result;
       in postFn checked;
     };
-    typechecker' = if typecheck then { __typeCheck  = mkTypeChecker; }
-                                else { _typeChecker = mkTypeChecker funk; };
+    typechecker' = if typecheck then { __typeCheck  = mkFunkTypeChecker; }
+                                else { _typeChecker = mkFunkTypeChecker funk; };
   # Even if `typecheck' is false we will stash a partially applied typechecker
   # as a field that can run without the functor.
   in funk // typechecker';
@@ -759,7 +728,6 @@ in {
     getKeyPlV3'
     getKeyPlV3
   ;
-  inherit mkTypeChecker;
 
   # TODO: make configurable
   fetchInfoFromPlentV3' = fetchInfoGenericFromPlentV3';
