@@ -86,7 +86,7 @@
   };
 
   discrPlentLifecycleV3 =
-    yt.defun [yt.NpmLock.package yt.FlocoFetch.Sums.tag_lifecycle_plent]
+    yt.defun [yt.NpmLock.package yt.NpmLock.Sums.tag_lifecycle_plent]
              discrPlentLifecycleV3';
 
 

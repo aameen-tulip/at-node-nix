@@ -95,7 +95,7 @@ in {
 
   inherit (yt.FlocoFetch.Enums)
     fetcher_family
-    fetch_info_type
+    fetch_info_type_floco
   ;
   inherit (yt.FlocoFetch.Eithers)
     source_info_floco

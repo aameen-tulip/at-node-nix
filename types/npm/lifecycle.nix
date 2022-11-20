@@ -89,7 +89,7 @@ in {
 
   Enums.special_hooks = let
     cond = x: builtins.elem x nlc._special_hooks;
-  in yt.restrict "special" cond nlc.hook;
+  in yt.restrict "special" cond nlc.Enums.hook;
 
   _special_events = [
     "prepublish"
@@ -190,51 +190,51 @@ in {
 
   Enums.cache_add_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.cache_add;
-  in yt.restrict "cache_add" cond nlc._hooks;
+  in yt.restrict "cache_add" cond nlc.Enums.hook;
 
   Enums.ci_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.ci;
-  in yt.restrict "ci" cond nlc._hooks;
+  in yt.restrict "ci" cond nlc.Enums.hook;
 
   Enums.diff_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.diff;
-  in yt.restrict "diff" cond nlc._hooks;
+  in yt.restrict "diff" cond nlc.Enums.hook;
 
   Enums.install_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.install;
-  in yt.restrict "install" cond nlc._hooks;
+  in yt.restrict "install" cond nlc.Enums.hook;
 
   Enums.pack_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.pack;
-  in yt.restrict "pack" cond nlc._hooks;
+  in yt.restrict "pack" cond nlc.Enums.hook;
 
   Enums.publish_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.publish;
-  in yt.restrict "publish" cond nlc._hooks;
+  in yt.restrict "publish" cond nlc.Enums.hook;
 
   Enums.rebuild_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.rebuild;
-  in yt.restrict "rebuild" cond nlc._hooks;
+  in yt.restrict "rebuild" cond nlc.Enums.hook;
 
   Enums.restart_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.restart;
-  in yt.restrict "restart" cond nlc._hooks;
+  in yt.restrict "restart" cond nlc.Enums.hook;
 
   Enums.start_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.start;
-  in yt.restrict "start" cond nlc._hooks;
+  in yt.restrict "start" cond nlc.Enums.hook;
 
   Enums.stop_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.stop;
-  in yt.restrict "stop" cond nlc._hooks;
+  in yt.restrict "stop" cond nlc.Enums.hook;
 
   Enums.test_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.test;
-  in yt.restrict "test" cond nlc._hooks;
+  in yt.restrict "test" cond nlc.Enums.hook;
 
   Enums.version_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.version;
-  in yt.restrict "version" cond nlc._hooks;
+  in yt.restrict "version" cond nlc.Enums.hook;
 
 
 # ---------------------------------------------------------------------------- #
@@ -285,7 +285,7 @@ in {
 
   Enums.deprecated_hooks = let
     cond = x: builtins.elem x nlc._deprecated_hooks.test;
-  in yt.restrict "deprecated" cond nlc.hooks;
+  in yt.restrict "deprecated" cond nlc.Enums.hook;
 
 
 # ---------------------------------------------------------------------------- #

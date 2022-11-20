@@ -189,9 +189,7 @@ in {
   Enums = ( _lock_uris.Enums or {} ) // {
     # Add some
   };
-  Sums = ( _lock_uris.Sums or {} ) // {
-    inherit Sums;
-  };
+  Sums = ( _lock_uris.Sums or {} ) // Sums;
   Eithers = ( _lock_uris.Eithers or {} ) // {
     inherit pkey;
   };
