@@ -69,7 +69,7 @@ in {
 
   Structs.drv_source_info = yt.struct "sourceInfo:derivation" {
     outPath = yt.FS.store_path;
-    narHash = yt.option yt.Hash.narHash;  # FIXME: snake_case rename
+    narHash = yt.option yt.Hash.nar_hash;
   };
 
 

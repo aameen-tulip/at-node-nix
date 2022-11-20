@@ -201,14 +201,14 @@
     # If we hit `fetchurlDrvW' we won't have a `sourceInfo' return.
     # XXX: honestly we do more post-processing in `__functor'
     __postProcess = result:
-      if yt.SourceInfo.sourceInfo.check result then result else {
+      if yt.SourceInfo.source_info.check result then result else {
         inherit (result) outPath;
         # In impure mode we can fill missing `narHash'.
         # This is sometimes used to output metadata to stash it for a later
         # pure run.
         narHash = let
           ft = builtins.fetchTree { type = "path"; path = result.outPath; };
-        in if yt.Hash.narHash.check result.outputHash
+        in if yt.Hash.nar_hash.check result.outputHash
            then result.outputHash
            else if ! pure then ft.narHash else null;
       };

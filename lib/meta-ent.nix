@@ -355,81 +355,102 @@
 
   metaSetFromPlockV3 = {
     plock       ? lib.importJSON' lockPath
-  , pjs         ? lib.importJSON' pjsPath
   , lockDir     ? dirOf lockPath
   , lockPath    ? lockDir + "/package-lock.json"
-  , pjsPath     ? lockDir + "/package.json"
+
   , flocoConfig ? lib.flocoConfig
+  , pure        ? flocoConfig.pure or lib.inPureEvalMode
+  , ifd         ? true
+  , typecheck   ? false
   , ...
   } @ args: assert lib.libplock.supportsPlV3 plock; let
     inherit (plock) lockfileVersion;
 
-    mkOne = path: ent: let
-      ident   = let
-        # If entry is a link to an out of tree dir we will miss it using this
-        # basic lookup but it handles the vast majority of deps.
-        subs = ent.ident or ent.name or ( lib.libplock.pathId path );
-      in if subs == null then lib.lookupRelPathIdentV3 plock path else subs;
-      inherit (lib.libplock.realEntry plock path) version;
-      key = "${ident}/${version}";
+    #mkOne = pkey: ent: let
+    #  ident   = let
+    #    # If entry is a link to an out of tree dir we will miss it using this
+    #    # basic lookup but it handles the vast majority of deps.
+    #    subs = ent.ident or ent.name or ( lib.libplock.pathId pkey );
+    #  in if subs == null then lib.lookupRelPathIdentV3 plock pkey else subs;
+    #  inherit (lib.libplock.realEntry plock pkey) version;
+    #  key = "${ident}/${version}";
 
-      # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
-      # that will be processed by `metaEntFromPlockV3'.
-      # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
-      # handled by `metaEntFromPlockV3', and remaining fields are stashed in
-      # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
-      # to `metaEntMergeFromLifecycleType' for further processing.
-      # The `*LifecycleType' routine creates `fetchInfo', and will also process
-      # `entries.pjs' if it is provided ( or for local paths in the lock )
-      # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
-      # find the `package.json' on its own; you only need to inject it if you
-      # are trying to override.
-      simpleArgs = {
-        inherit ident version key;
-        entries.plock = ent // { pkeys = [path]; };
+    #  # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
+    #  # that will be processed by `metaEntFromPlockV3'.
+    #  # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
+    #  # handled by `metaEntFromPlockV3', and remaining fields are stashed in
+    #  # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
+    #  # to `metaEntMergeFromLifecycleType' for further processing.
+    #  # The `*LifecycleType' routine creates `fetchInfo', and will also process
+    #  # `entries.pjs' if it is provided ( or for local paths in the lock )
+    #  # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
+    #  # find the `package.json' on its own; you only need to inject it if you
+    #  # are trying to override.
+    #  simpleArgs = {
+    #    inherit ident version key;
+    #    entries.plock = ent // { pkeys = [pkey]; };
+    #  };
+    #  # This gets merged with the real key.
+    #  # We mark `linkFrom' and `linkTo' to avoid loss of detail.
+    #  linkedArgs = {
+    #    inherit ident version key;
+    #    entries.plock = ( removeAttrs ent ["resolved" "link"]) // {
+    #      links = [{ from = ent.resolved; to = pkey; }];
+    #    };
+    #  };
+    #in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
+
+    #mergeOne = a: b: let
+    #  links = ( a.entries.plock.links or [] ) ++
+    #          ( b.entries.plock.links or [] );
+    #  # This is just in case the linked entry is before the real entry.
+    #  pkeys = ( a.entries.plock.pkeys or [] ) ++
+    #          ( b.entries.plock.pkeys or [] );
+    #  stage1 = lib.recursiveUpdate a b;
+    #  plock  = stage1.entries.plock // ( {
+    #    inherit pkeys;
+    #  } // ( lib.optionalAttrs ( links != [] ) { inherit links; } ) );
+    #in stage1 // { entries = stage1.entries // { inherit plock; }; };
+
+    #mergeInstances = key: instances: let
+    #  merged = builtins.foldl' mergeOne ( builtins.head instances )
+    #                                    ( builtins.tail instances );
+    #  ectx =
+    #    builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
+    #                              merged;
+    #  # FIXME: take pure/typecheck as args
+    #  me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
+    #                          ( builtins.head merged.entries.plock.pkeys )
+    #                          ( builtins.deepSeq ectx merged );
+    #in me;
+
+    #ents = lib.mapAttrsToList mkOne plock.packages;
+    #metaEntries = builtins.zipAttrsWith mergeInstances ents;
+
+    mkOne = lib.libmeta.metaEntFromPlockV3 {
+      inherit lockDir pure ifd typecheck flocoConfig;
+      inherit (plock) lockfileVersion;
+    };
+
+    # FIXME: we are going to merge multiple instances in a really dumb way here
+    # until we get this moved into the spec for proper sub-instances.
+    metaEntryList = let
+      proc = pkey: plent: let
+        metaEnt = mkOne pkey plent;
+      in {
+        name  = "${metaEnt.key}:${pkey}";
+        value = metaEnt;
       };
-      # This gets merged with the real key.
-      # We mark `linkFrom' and `linkTo' to avoid loss of detail.
-      linkedArgs = {
-        inherit ident version key;
-        entries.plock = ( removeAttrs ent ["resolved" "link"]) // {
-          links = [{ from = ent.resolved; to = path; }];
-        };
-      };
-    in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
+    in lib.mapAttrsToList proc plock.packages;
 
-    mergeOne = a: b: let
-      links = ( a.entries.plock.links or [] ) ++
-              ( b.entries.plock.links or [] );
-      # This is just in case the linked entry is before the real entry.
-      pkeys = ( a.entries.plock.pkeys or [] ) ++
-              ( b.entries.plock.pkeys or [] );
-      stage1 = lib.recursiveUpdate a b;
-      plock  = stage1.entries.plock // ( {
-        inherit pkeys;
-      } // ( lib.optionalAttrs ( links != [] ) { inherit links; } ) );
-    in stage1 // { entries = stage1.entries // { inherit plock; }; };
-
-    mergeInstances = key: instances: let
-      merged = builtins.foldl' mergeOne ( builtins.head instances )
-                                        ( builtins.tail instances );
-      ectx =
-        builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
-                                  merged;
-      # FIXME: take pure/typecheck as args
-      me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
-                              ( builtins.head merged.entries.plock.pkeys )
-                              ( builtins.deepSeq ectx merged );
-    in me;
-
-    ents = lib.mapAttrsToList mkOne plock.packages;
-    metaEntries = builtins.zipAttrsWith mergeInstances ents;
+    #metaEntries = lib.listToAttrsBy "key" metaEntryList;
+    metaEntries = builtins.listToAttrs metaEntryList;
 
     members = metaEntries // {
       __meta = {
         __serial = false;
-        rootKey = "${plock.name}/${plock.version}";
-        inherit pjs plock lockDir;
+        rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0"}";
+        inherit plock lockDir;
         fromType = "package-lock.json(v${toString lockfileVersion})";
       };
     };
