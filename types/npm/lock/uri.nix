@@ -58,7 +58,7 @@
 
   # Must not have a "file:" prefix.
   link_uri = let
-    cond = x: ( builtins.isStrings x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
+    cond = x: ( builtins.isString x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
               ( yt.FS.Strings.relpath x );
   in lib.ytypes.typedef "npm:uri[link]" cond;
 
@@ -71,7 +71,7 @@
   dir_uri = let
     cond = x:
       ( x == "" ) ||
-      ( ( builtins.isStrings x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
+      ( ( builtins.isString x ) && ( ! ( lib.hasPrefix "file:" x ) ) &&
         ( yt.FS.Strings.relpath x ) );
   in lib.libtypes.typedef "npm:uri[dir]" cond;
 
