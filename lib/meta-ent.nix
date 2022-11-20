@@ -275,9 +275,23 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: this needs to be organized by command
   metaEntFromLifecycleStrict' = lib.matchLam {
     git = {
-
+      lifecycle.pack    = false;  # effectively an alias of "build"/"dist"
+      lifecycle.install = true;   # effectively an alias of "compile"
+      lifecycle.prepare = true;   # effectively an alias of "setup"
+    };
+    link = {
+      lifecycle.pack    = true;
+      lifecycle.install = true;
+      lifecycle.prepare = true;
+    };
+    dir = {
+      lifecycle.pack       = true;  # Runs `prepare'
+      lifecycle.install    = true;
+      lifecycle.prepublish = true;
+      # NO PREPARE, that is only run for links.
     };
   };
 
