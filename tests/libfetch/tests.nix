@@ -68,57 +68,25 @@
 # ---------------------------------------------------------------------------- #
 
     # FIXME: link
-    #testIdentifyResolvedType_path = {
+    #testIdentifyResolvedFetcherFamily_path = {
     #  expr = let
-    #    tagged = lib.libfetch.identifyResolvedType projd.entries.plock.resolved;
+    #    tagged = lib.libfetch.identifyResolvedFetcherFamily projd.entries.plock.resolved;
     #  in lib.libtag.tagName tagged;
     #  expected = "path";
     #};
 
-    testIdentifyResolvedType_file = {
+    testIdentifyResolvedFetcherFamily_file = {
       expr = let
-        tagged = lib.libfetch.identifyResolvedType ts.entries.plock.resolved;
-      in lib.libtag.tagName tagged;
+        resolved = ts.entries.plock.resolved;
+      in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "file";
     };
 
-    testIdentifyResolvedType_git = {
+    testIdentifyResolvedFetcherFamily_git = {
       expr = let
-        tagged =
-          lib.libfetch.identifyResolvedType lodash.entries.plock.resolved;
-      in lib.libtag.tagName tagged;
+        resolved = lodash.entries.plock.resolved;
+      in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "git";
-    };
-
-
-# ---------------------------------------------------------------------------- #
-
-    testIdentifyPlentSourceType_path_0 = {
-      expr = lib.libfetch.identifyPlentFetcherFamily proj2.entries.plock;
-      expected = "path";
-    };
-
-    testIdentifyPlentSourceType_path_1 = {
-      expr = lib.libfetch.identifyPlentFetcherFamily projd.entries.plock;
-      expected = "path";
-    };
-
-    testIdentifyPlentSourceType_file = {
-      expr = lib.libfetch.identifyPlentFetcherFamily ts.entries.plock;
-      expected = "file";
-    };
-
-    testIdentifyPlentSourceType_git = {
-      expr = lib.libfetch.identifyPlentFetcherFamily lodash.entries.plock;
-      expected = "git";
-    };
-
-
-# ---------------------------------------------------------------------------- #
-
-    testPlockEntryHashAttr_0 = {
-      expr = lib.libfetch.plockEntryHashAttr ts.entries.plock;
-      expected.sha512_sri = "sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==";
     };
 
 

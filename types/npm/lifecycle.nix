@@ -190,51 +190,51 @@ in {
 
   Enums.cache_add_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.cache_add;
-  in yt.restrict "cache_add" cond nlc.hooks;
+  in yt.restrict "cache_add" cond nlc._hooks;
 
   Enums.ci_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.ci;
-  in yt.restrict "ci" cond nlc.hooks;
+  in yt.restrict "ci" cond nlc._hooks;
 
   Enums.diff_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.diff;
-  in yt.restrict "diff" cond nlc.hooks;
+  in yt.restrict "diff" cond nlc._hooks;
 
   Enums.install_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.install;
-  in yt.restrict "install" cond nlc.hooks;
+  in yt.restrict "install" cond nlc._hooks;
 
   Enums.pack_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.pack;
-  in yt.restrict "pack" cond nlc.hooks;
+  in yt.restrict "pack" cond nlc._hooks;
 
   Enums.publish_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.publish;
-  in yt.restrict "publish" cond nlc.hooks;
+  in yt.restrict "publish" cond nlc._hooks;
 
   Enums.rebuild_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.rebuild;
-  in yt.restrict "rebuild" cond nlc.hooks;
+  in yt.restrict "rebuild" cond nlc._hooks;
 
   Enums.restart_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.restart;
-  in yt.restrict "restart" cond nlc.hooks;
+  in yt.restrict "restart" cond nlc._hooks;
 
   Enums.start_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.start;
-  in yt.restrict "start" cond nlc.hooks;
+  in yt.restrict "start" cond nlc._hooks;
 
   Enums.stop_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.stop;
-  in yt.restrict "stop" cond nlc.hooks;
+  in yt.restrict "stop" cond nlc._hooks;
 
   Enums.test_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.test;
-  in yt.restrict "test" cond nlc.hooks;
+  in yt.restrict "test" cond nlc._hooks;
 
   Enums.version_hooks = let
     cond = x: builtins.elem x nlc._command_hooks.version;
-  in yt.restrict "version" cond nlc.hooks;
+  in yt.restrict "version" cond nlc._hooks;
 
 
 # ---------------------------------------------------------------------------- #

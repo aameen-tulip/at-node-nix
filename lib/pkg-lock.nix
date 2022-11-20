@@ -115,7 +115,8 @@
   # Our inner fetchers will catch that anyway so don't sweat it.
   plockEntryToGenericUrlArgs' = {
     postFn    ? ( x: x )
-  , typecheck ? false
+  , typecheck
+  , pure  # TODO: currently unused
   }: let
     inner = {
       resolved
@@ -177,7 +178,8 @@
   # are sure that we know the right `ref'/`branch'. Needs testing.
   plockEntryToGenericGitArgs' = {
     postFn    ? ( x: x )
-  , typecheck ? false
+  , typecheck
+  , pure  # TODO: currently unused
   }: let
     inner = { resolved, ... } @ args: let
       inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
@@ -251,7 +253,8 @@
   #yt.defun [yt.NpmLock.Structs.pkg_git_v3 rtype] inner;
   plockEntryToGenericPathArgs' = {
     postFn    ? ( x: x )
-  , typecheck ? false
+  , typecheck
+  , pure  # TODO: currently unused
   }: let
     inner = {
       resolved ? _pkey
@@ -360,9 +363,9 @@
     # more reasonable before they become part of the `metaEnt' or get sent
     # to fetchers.
     toGenericArgs = lib.matchLam {
-      git  = plockEntryToGenericGitArgs'  { inherit typecheck; };
-      file = plockEntryToGenericUrlArgs'  { inherit typecheck; };
-      path = plockEntryToGenericPathArgs' { inherit typecheck; };
+      git  = plockEntryToGenericGitArgs'  { inherit typecheck pure; };
+      file = plockEntryToGenericUrlArgs'  { inherit typecheck pure; };
+      path = plockEntryToGenericPathArgs' { inherit typecheck pure; };
     };
   in { pkey, plent }: let
     byFF  = discrPlentFetcherFamily plent;
@@ -377,12 +380,6 @@
   # A practical implementation of `fetchInfo*FromPlentV3' that aims to satisfy
   # Nix builtin fetchers whenever possible.
   fetchInfoBuiltinFromPlentV3' = TODO: null;
-
-
-# ---------------------------------------------------------------------------- #
-
-
-
 
 
 # ---------------------------------------------------------------------------- #
@@ -449,6 +446,16 @@
   getIdentPlV3 = plock: path: let
     plent = plock.packages.${path};
   in plent.name or ( lookupRelPathIdentV3 plock path );
+
+
+  # Same deal as `getIdentPlV3' but to lookup keys.
+  getVersionPlV3' = plock: path: data: let
+    plent = plock.packages.${path};
+  in data.version or plent.version or ( realEntry plock path ).version;
+
+  getVersionPlV3 = plock: path: let
+    plent = plock.packages.${path};
+  in plent.version or ( realEntry plock path ).version;
 
 
   # Same deal as `getIdentPlV3' but to lookup keys.
@@ -747,6 +754,8 @@ in {
 
     getIdentPlV3'
     getIdentPlV3
+    getVersionPlV3'
+    getVersionPlV3
     getKeyPlV3'
     getKeyPlV3
   ;

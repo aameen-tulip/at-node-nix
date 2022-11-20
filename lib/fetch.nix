@@ -26,8 +26,8 @@
   identifyResolvedFetcherFamily = resolved:
     lib.tagName ( lib.libtypes.discrTypes {
       git  = yt.NpmLock.Strings.git_uri;
-      file = yt.NpmLock.Strings.tarball_uri;
-      path = yt.NpmLock.Strings.dir_or_link_uri;
+      file = yt.NpmLock.Strings.file_uri;
+      path = yt.NpmLock.Strings.path_uri;
     } resolved );
 
 
@@ -73,13 +73,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flocoProcessGitArgs = self: x: let
+  flocoProcessGitArgs' = { typecheck, pure } @ fenv: self: x: let
     # TODO: `resolved' should be handled by `libplock', not here.
     rough =
       if yt.NpmLock.pkg_git_v3.check x
-      then lib.libplock.plockEntryToGenericGitArgs x
+      then lib.libplock.plockEntryToGenericGitArgs' fenv x
       else if x ? rev then x else
-      lib.libplock.plockEntryToGenericGitArgs ( x // {
+      lib.libplock.plockEntryToGenericGitArgs' fenv ( x // {
         resolved = x.url or x.resolved;
       } );
     tas     = ( self.__thunk or {} ) // rough;
@@ -117,7 +117,7 @@
                                     lib.libfetch.genericGitArgFields;
       in tfields // { resolved = true; };
       __thunk       = lfc.fetchGitW.__thunk // { allRefs = true; };
-      __processArgs = flocoProcessGitArgs;
+      __processArgs = flocoProcessGitArgs' { inherit typecheck pure; };
       __functor     = self: x: let
         argt = if typecheck then builtins.head self.__functionMeta.signature
                             else ( y: y );
@@ -190,7 +190,7 @@
 
     __processArgs = self: x: let
       plArgs = lib.libplock.plockEntryToGenericUrlArgs' {
-        inherit typecheck;
+        inherit typecheck pure;
         postFn = lib.libfetch.asGenericUrlArgsImpure;
       } ( self.__thunk // x );
       rawArgs = lib.libfetch.asGenericUrlArgsImpure ( self.__thunk // x );

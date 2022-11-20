@@ -24,7 +24,7 @@
     pkg_path_v3
     pkg_dir_v3
     pkg_link_v3
-    pkg_tarball_v3
+    pkg_file_v3
     pkg_git_v3
     package
   ;
@@ -76,8 +76,8 @@
                               else removeAttrs p ["name"];
         # We skip the root entry on this one.
         tb = lib.optionalAttrs ( p.name != "" ) {
-          "testPlockEntryTarball_${p.name}" = {
-            expr     = pkg_tarball_v3 ent;
+          "testPlockEntryFile_${p.name}" = {
+            expr     = pkg_file_v3 ent;
             expected = ent;
           };
         };

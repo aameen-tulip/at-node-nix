@@ -42,6 +42,15 @@
     };
   };
 
+  lfMS = lib.libmeta.metaSetFromPlockV3 {
+    lockDir = toString ../libfetch/data/proj2;
+  };
+  proj2   = lfMS."proj2/1.0.0";
+  lodash  = lfMS."lodash/5.0.0";
+  ts      = lfMS."typescript/4.8.2";
+  projd   = lfMS."projd/1.0.0";
+  lfPlock = lfMS.__meta.plock;
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -149,10 +158,9 @@
         # We know that all of these are registry tarballs.
         haveResolved = lib.filterAttrs ( _: v: v ? resolved ) plv2-it.packages;
         identify = v: lib.libfetch.identifyResolvedFetcherFamily v.resolved;
-        idrs = builtins.mapAttrs ( _: identify ) haveResolved;
-        types = map builtins.attrNames ( builtins.attrValues idrs );
-      in builtins.all ( t: t == ["file"] ) types;
-      expected = true;
+        idrs     = builtins.mapAttrs ( _: identify ) haveResolved;
+      in lib.unique ( builtins.attrValues idrs );
+      expected = ["file"];
     };
 
     # This one has registry tarballs, links, and git.
@@ -163,14 +171,45 @@
           lib.filterAttrs ( _: v: v ? resolved ) plv2-fetch.packages;
         identify = v: lib.libfetch.identifyResolvedFetcherFamily v.resolved;
         idrs = builtins.mapAttrs ( _: identify ) haveResolved;
-      in builtins.concatMap builtins.attrNames ( builtins.attrValues idrs );
+      in lib.unique ( builtins.attrValues idrs );
       expected = ["git" "path" "file"];
     };
 
     # Test a dir ( should be flagged in the same cases as `link' ).
     testIdentifyResolvedType_2 = {
       expr     = lib.libfetch.identifyResolvedFetcherFamily "../projd";
-      expected = { path = "../projd"; };
+      expected = "path";
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testIdentifyPlentSourceType_path_0 = {
+      expr     = lib.libplock.identifyPlentFetcherFamily proj2.entries.plock;
+      expected = "path";
+    };
+
+    testIdentifyPlentSourceType_path_1 = {
+      expr     = lib.libplock.identifyPlentFetcherFamily projd.entries.plock;
+      expected = "path";
+    };
+
+    testIdentifyPlentSourceType_file = {
+      expr     = lib.libplock.identifyPlentFetcherFamily ts.entries.plock;
+      expected = "file";
+    };
+
+    testIdentifyPlentSourceType_git = {
+      expr     = lib.libplock.identifyPlentFetcherFamily lodash.entries.plock;
+      expected = "git";
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testPlockEntryHashAttr_0 = {
+      expr = lib.libplock.plockEntryHashAttr ts.entries.plock;
+      expected.sha512_sri = "sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==";
     };
 
 

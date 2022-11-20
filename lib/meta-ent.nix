@@ -309,18 +309,19 @@
   , ifd             ? true
   , typecheck       ? false
   , flocoConfig     ? lib.flocoConfig
+  , plock           ? lib.importJSON ( lockDir + "/package-lock.json" )
   }:
   # `mapAttrs' args. ( `pkey' and `args' ).
   # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
   # skeleton with the `plent' stashed in `args.entries.plock'.
   pkey:
   {
-    ident   ? args.name or ( lib.libplock.pathId pkey )
-  , version
+    ident   ? args.name or ( lib.libplock.getIdentPlV3 plock pkey )
+  , version ? args.version or ( lib.libplock.getVersionPlV3 plock pkey )
   , ...
   } @ args: let
-    plent = args.entries.plock or args;
-    key = ident + "/" + version;
+    plent  = args.entries.plock or args;
+    key    = ident + "/" + version;
     hasBin = ( plent.bin or {} ) != {};
     baseFields = {
       inherit key ident version;
@@ -328,8 +329,8 @@
       ltype            = lib.libplock.identifyPlentLifecycleV3' plent;
       depInfo          = lib.libdep.depInfoEntFromPlockV3 pkey plent;
       hasInstallScript = plent.hasInstallScript or false;
-      entFromtype = "package-lock.json(v${toString lockfileVersion})";
-      fetchInfo   = lib.libplock.fetchInfoGenericFromPlentV3' {
+      entFromtype      = "package-lock.json(v${toString lockfileVersion})";
+      fetchInfo        = lib.libplock.fetchInfoGenericFromPlentV3' {
         inherit pure ifd typecheck;
       } { inherit lockDir; } { inherit pkey; plent = args; };
       entries = {
@@ -365,92 +366,33 @@
   , ...
   } @ args: assert lib.libplock.supportsPlV3 plock; let
     inherit (plock) lockfileVersion;
-
-    #mkOne = pkey: ent: let
-    #  ident   = let
-    #    # If entry is a link to an out of tree dir we will miss it using this
-    #    # basic lookup but it handles the vast majority of deps.
-    #    subs = ent.ident or ent.name or ( lib.libplock.pathId pkey );
-    #  in if subs == null then lib.lookupRelPathIdentV3 plock pkey else subs;
-    #  inherit (lib.libplock.realEntry plock pkey) version;
-    #  key = "${ident}/${version}";
-
-    #  # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
-    #  # that will be processed by `metaEntFromPlockV3'.
-    #  # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
-    #  # handled by `metaEntFromPlockV3', and remaining fields are stashed in
-    #  # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
-    #  # to `metaEntMergeFromLifecycleType' for further processing.
-    #  # The `*LifecycleType' routine creates `fetchInfo', and will also process
-    #  # `entries.pjs' if it is provided ( or for local paths in the lock )
-    #  # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
-    #  # find the `package.json' on its own; you only need to inject it if you
-    #  # are trying to override.
-    #  simpleArgs = {
-    #    inherit ident version key;
-    #    entries.plock = ent // { pkeys = [pkey]; };
-    #  };
-    #  # This gets merged with the real key.
-    #  # We mark `linkFrom' and `linkTo' to avoid loss of detail.
-    #  linkedArgs = {
-    #    inherit ident version key;
-    #    entries.plock = ( removeAttrs ent ["resolved" "link"]) // {
-    #      links = [{ from = ent.resolved; to = pkey; }];
-    #    };
-    #  };
-    #in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
-
-    #mergeOne = a: b: let
-    #  links = ( a.entries.plock.links or [] ) ++
-    #          ( b.entries.plock.links or [] );
-    #  # This is just in case the linked entry is before the real entry.
-    #  pkeys = ( a.entries.plock.pkeys or [] ) ++
-    #          ( b.entries.plock.pkeys or [] );
-    #  stage1 = lib.recursiveUpdate a b;
-    #  plock  = stage1.entries.plock // ( {
-    #    inherit pkeys;
-    #  } // ( lib.optionalAttrs ( links != [] ) { inherit links; } ) );
-    #in stage1 // { entries = stage1.entries // { inherit plock; }; };
-
-    #mergeInstances = key: instances: let
-    #  merged = builtins.foldl' mergeOne ( builtins.head instances )
-    #                                    ( builtins.tail instances );
-    #  ectx =
-    #    builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
-    #                              merged;
-    #  # FIXME: take pure/typecheck as args
-    #  me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
-    #                          ( builtins.head merged.entries.plock.pkeys )
-    #                          ( builtins.deepSeq ectx merged );
-    #in me;
-
-    #ents = lib.mapAttrsToList mkOne plock.packages;
-    #metaEntries = builtins.zipAttrsWith mergeInstances ents;
-
     mkOne = lib.libmeta.metaEntFromPlockV3 {
-      inherit lockDir pure ifd typecheck flocoConfig;
+      inherit lockDir pure ifd typecheck flocoConfig plock;
       inherit (plock) lockfileVersion;
     };
-
     # FIXME: we are going to merge multiple instances in a really dumb way here
     # until we get this moved into the spec for proper sub-instances.
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
-
     auditKeyValuesUnique = let
+      toSerial = e: e.__serial or e;
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
-                                      ( e.__serial or e );
-      byKey  = builtins.groupBy ( x: x.key ) metaEntryList;
-      isUniq = key: values:
-        ( builtins.length ( lib.unique values ) ) == 1;
-      flattenAssertUniq = key: values:
-        if isUniq key values then builtins.head values else
-        throw "Cannot merge key: ${key} with conflicting values:\n${pp values}";
+                                      ( toSerial e );
+      noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
+      byKey   = builtins.groupBy ( x: x.key ) noLinks;
+      flattenAssertUniq = key: values: let
+        uniq   = lib.unique ( map toSerial values );
+        nconfs = builtins.length uniq;
+        # FIXME: this only diffs the first two values
+        header = "Cannot merge key: ${key} with conflicting values:";
+        diff   = lib.libattrs.diffAttrs ( builtins.head uniq )
+                                        ( builtins.elemAt uniq 1 );
+        more = if nconfs == 2 then "" else
+               "NOTE: Only the first two instances appear is this diff, " +
+               "in total there are ${toString nconfs} conflicting entries.";
+        msg = builtins.concatStrignsSep "\n" [header diff more];
+      in if nconfs == 1 then builtins.head values else throw msg;
     in builtins.mapAttrs flattenAssertUniq byKey;
-
-    #metaEntries = lib.listToAttrsBy "key" metaEntryList;
-    #metaEntries = builtins.listToAttrs metaEntryList;
     metaEntries = auditKeyValuesUnique;
-
     members = metaEntries // {
       __meta = {
         __serial = false;

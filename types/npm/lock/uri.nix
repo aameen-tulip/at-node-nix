@@ -59,7 +59,7 @@
   # Must not have a "file:" prefix.
   link_uri = let
     cond = x: ( builtins.isString x ) && ( ! ( lib.test "file:.*" x ) ) &&
-              ( yt.FS.Strings.relpath x );
+              ( yt.FS.Strings.relpath.check x );
   in ytypes.__internal.typedef "npm:uri[link]" cond;
 
   git_uri = let
@@ -72,7 +72,7 @@
     cond = x:
       ( x == "" ) ||
       ( ( builtins.isString x ) && ( ! ( lib.test "file:.*" x ) ) &&
-        ( yt.FS.Strings.relpath x ) );
+        ( yt.FS.Strings.relpath.check x ) );
   in ytypes.__internal.typedef "npm:uri[dir]" cond;
 
 
