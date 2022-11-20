@@ -243,8 +243,7 @@ advise_fail() {
 # This should get patched in `lib.libplock', but for now we just kill those.
 
 export DEV DESCRIPTOR JSON DO_SHA256;
-$NIX eval --override-input /rime l-rime  \
-  --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
+$NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
   lp: let
     pkgsFor = lp.${builtins.currentSystem}.extend ( final: prev: {
       lib = prev.lib.extend ( _: libPrev: {
