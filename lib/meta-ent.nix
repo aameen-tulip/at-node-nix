@@ -416,6 +416,7 @@
       ectx =
         builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
                                   merged;
+      # FIXME: take pure/typecheck as args
       me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
                               ( builtins.head merged.entries.plock.pkeys )
                               ( builtins.deepSeq ectx merged );

@@ -277,7 +277,7 @@
       abspath =
         if _pkey == "" then _lockDir else
         if ! isRelpath then noUri else
-        lib.libpath.realpathRel' _lockDir noUri;
+        builtins.concatStringsSep "/" [_lockDir noUri];
       # TODO: apply filter to `file:' entries?
     in {
       type      = "path";
