@@ -254,27 +254,24 @@
   # conditionals to handle "is impure allowed?" or "can we find a SHA?" is a
   # pain in the ass.
   # This function already does a ton of heavy lifting.
-  coercePjs = x: let
-    d            = lib.coercePath x;
-    fromDrvRoot  = readPjsFromPath d;
-    pjsInSubdirs = let
-      dirs1 = lib.libfs.listSubdirs d;
-      dirs2 = let
-        subsubs = lib.libfs.mapSubdirs lib.listSubdirs d;
-      in builtins.concatLists subsubs;
-      finds = builtins.filter dirHasPjs ( dirs1 ++ dirs2 );
-      found = readPjsFromPath ( builtins.head finds );
-      ns    = builtins.length finds;
-    in if ns == 1 then found else
-       if 1 < ns  then throw "Found multiple package.json files in subdirs" else
-       throw "Could not find package.json in subdirs";
-    fromPath = let
-      pjsp = d + "/package.json";
-    in if ( builtins.pathExists pjsp ) then ( lib.importJSON' pjsp )
-                                       else pjsInSubdirs;
-  in if lib.isCoercibleToPath x then fromPath else
-     if builtins.isAttrs x then x else
-     throw "Cannot get package.json from type: ${builtins.typeOf x}";
+  coercePjs' = { pure, ifd }: x: let
+    isPjs = ( builtins.isAttrs x ) &&
+            ( ! ( ( x ? outPath ) || ( x ? __toString ) ) );
+    p'   = lib.coercePath x;
+    ps   = p' + "/package.json";
+    p    = if builtins.pathExists ps then ps else p';
+    pjs  = lib.importJSON p;
+    msgD = "coercePjs: Cannot read path '${p'}' when `ifd' is disable.";
+    forD = if ifd then pjs else throw msgD;
+    msgP = "coercePjs: Cannot read unlocked path '${p'}' in pure mode.";
+    forP = if ( ! pure ) || ( lib.isStorePath p' ) then pjs else throw msgP;
+  in if isPjs then x else
+     if ( lib.isDerivation x ) then forD else forP;
+
+  coercePjs = let
+    inner = coercePjs' { pure = lib.inPureEvalMode; ifd = true; };
+    argt  = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
+  in yt.defun [argt ( yt.attrs yt.any )] inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -284,7 +281,7 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pjsHasBin' = { pure ? lib.inPureEvalMode, ifd ? true }: {
+  pjsHasBin' = { pure, ifd }: {
     __functionMeta = {
       name = "pjsHasBin";
       from = "at-node-nix#lib.libpkginfo";
@@ -494,6 +491,7 @@ in {
   inherit
     pjsForPath
     readPjsFromPath
+    coercePjs'
     coercePjs
   ;
 
