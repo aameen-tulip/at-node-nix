@@ -15,6 +15,17 @@
 # different types of source trees ( "file", "dir", "link", and "git" ), and this
 # file implements the logic which enforces and those edge cases.
 #
+# TODO: This file is a working draft and currently many routines are not used
+# outside of this file
+# In the near future most `hasBuild', `hasPrepare', etc fields in metadata will
+# be replaced by more detailed rules that can be inferred without being
+# explicitly recorded.
+# Frankly I had hoped to start using these routines more immediately, but the
+# convoluted event system that has grown organically in NPM is clusterfuck and
+# until I can verify a lot behaviors I'm hesitant to build infrastructure on top
+# of these rules.
+#
+#
 # ---------------------------------------------------------------------------- #
 
 { lib }: let
@@ -46,23 +57,23 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # "Lifecycle Type" indicating the category of `pacote'/NPM source tree
-  # as it relates to the execution of lifecycle scripts.
-  # For example, NPM will run `build', `prepare', and `prepack' scripts for
-  # local paths and `git' "ltypes", but only runs `install' scripts
-  # for tarballs.
-  # Because we use a variety of backends to perform fetching, it would be
-  # inappropriate to call these "fetcher types" or "source tree types" like
-  # NPM and `pacote' do - so instead we highlight that they explicitly effect
-  # the execution of lifecycle scripts in our builders.
-  #
-  # We do not refer to them as "source types" or "fetcher types", since this
-  # would be confusing to users and maintainers in relation to the flocoFetch
-  # "fetcher families" ( "git", "path", and "file" ), as well as Nix's
-  # "tree types" ( "git", "github", "path", "file", "tarball", etc ).
-  #
-  # These names and categories are all closesly related and frequently overlap,
-  # but the distinctions between them are important depending on their context.
+# "Lifecycle Type" indicating the category of `pacote'/NPM source tree
+# as it relates to the execution of lifecycle scripts.
+# For example, NPM will run `build', `prepare', and `prepack' scripts for
+# local paths and `git' "ltypes", but only runs `install' scripts
+# for tarballs.
+# Because we use a variety of backends to perform fetching, it would be
+# inappropriate to call these "fetcher types" or "source tree types" like
+# NPM and `pacote' do - so instead we highlight that they explicitly effect
+# the execution of lifecycle scripts in our builders.
+#
+# We do not refer to them as "source types" or "fetcher types", since this
+# would be confusing to users and maintainers in relation to the flocoFetch
+# "fetcher families" ( "git", "path", and "file" ), as well as Nix's
+# "tree types" ( "git", "github", "path", "file", "tarball", etc ).
+#
+# These names and categories are all closesly related and frequently overlap,
+# but the distinctions between them are important depending on their context.
 
 
 # ---------------------------------------------------------------------------- #
@@ -110,8 +121,11 @@
   # FIXME: this needs to be organized by command
   eventsForLifecycleStrict' = ltype: ( nlc.ltype.match ltype {
     git = {
-      prepare = true;   # effectively "setup"/"host-init"
-      pack    = false;  # effectively "build"/"dist"
+      # XXX: `git' installs `devDependencies' for `prepare' scripts!
+      # This is the only case where `devDependencies' will be installed for an
+      # install other than `prepublish'.
+      prepare = true;  # effectively "setup"/"host-init"
+      pack    = false; # effectively "dist"
       publish = false;
       test    = false;
     };
@@ -123,9 +137,9 @@
     };
     dir = {
       prepare = true;
-      pack    = true;  # Runs `prepare'
+      pack    = true; # Runs `prepare'
       publish = true;
-      test    = true;  # Only test the project being build, so only for `dir'.
+      test    = true; # Only test the project being build, so only for `dir'.
     };
     file = {
       prepare = true;

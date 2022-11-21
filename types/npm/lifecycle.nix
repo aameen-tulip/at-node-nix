@@ -1,6 +1,55 @@
 # ============================================================================ #
 #
-# NPM Lifecycle Events and Command Hooks
+# NPM Lifecycle Events and Command Hooks.
+#
+# ---------------------------------------------------------------------------- #
+#
+# WARNING: This is a rant written late at night after trying for probably the
+# 12th time in as many months to decypher NPM's documentation about `event'
+# scripts and the install lifecycle.
+#
+#
+# If the rules that this file seem convoluted, and you feel like there is
+# contradictory exceptions - you're fucking right but don't blame me blame
+# NPM maintainers.
+# In fairness to them, they pioneered this process and it grew organically into
+# a mess which happens with most systems driven by committee.
+#
+# If you're wondering "where does NPM expect me to define my build process?"
+# the answer depends on which section of their two page doc you read.
+# Some sections say "use `prepublish'", and the following section says
+# "`prepublish' is deprecated don't use it, use `prepare'", then when you ask
+# "but `prepare' doesn't install `devDependencies', so what should I do?", they
+# say "yeah use `prepublish' unless your project is hosted on `git', then
+# use `prepare'", and you ask "what if my project is on `git' and I want to
+# publish to NPM? or what if I'm developing on it locally in a workspace?",
+# they never answer these questions but the real answer is:
+# NPM was never designed to be a build tool, TypeScript and Webpack completely
+# threw a wrench in the fundamentals of JavaScript being an interpreted
+# scripting language, and if you are expecting NPM or Node to act like some kind
+# of JIT compilation system you're shit out of luck - go learn Python, or better
+# yet compile C code as God intended.
+#
+# For real though this event pipeline they have is an absolute mess and
+# navigating it is frustrating.
+# If you're writing your own package the honest truth is you're better off
+# writing your build recipe inline in `buildPhase' - we only have to map this
+# shit out so we can deal with the thousands of open source projects that
+# expect them to work at install time.
+#
+# With that in mind - the goal of this file really is not to get
+# "local projects" to execute a build process like NPM ( because it's ass ),
+# rather its to port the install process of registry tarballs and provide
+# limited support for building from an NPM `package-lock.json'
+# or `shrinkwrap.json' style lockfile.
+#
+# Also just for the record, I want to give critical support to NPM Maintainers
+# because it is absolutely not their fault that webshits insist on trying to use
+# JavaScript and NPM to behave like a `Makefile' and Compiler Collection.
+# My advice to them would only be to remove `npm run *', `npm test`, etc" and
+# related CLI commands, and hardline against anyone requesting that NPM
+# install `devDependencies' for anything outside of CWD, or add `npm build'.
+# Just point to the dumpster fire that is Yarn when they ask "why not!?"
 #
 # ---------------------------------------------------------------------------- #
 
@@ -94,6 +143,14 @@ in {
     # `(pre|post)prepare' for `npm (ci|install)', and
     # ( TODO: confirm this, usure ) /from what I can tell/ they don't run any
     # hooks for `npm (rebuild|cache_add|diff)'.
+    # XXX: `git' dependencies have `devDependies' available for this hook!
+    # Why? Because NPM maintainers learned absolutely nothing after deprecating
+    # `prepublish' - seriously in a single page of documentation they explain
+    # why installing `devDependenices' during `install' was "evil" to justify
+    # dropping `prepublish', and in the next fucking paragraph they're like
+    # "`prepare' is better because it doesn't install `devDependencies'...
+    # by the way `prepare' nstalls `devDependencies' on every third Thursday
+    # that Venus aligns with Jupiter."
     "prepare"
     "postpack"  # only runs for `npm pack' and `npm publish'.
   ];
