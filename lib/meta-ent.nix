@@ -325,28 +325,10 @@
       // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } )
       // ( lib.optionalAttrs ( plent ? scripts ) { inherit (plent) scripts; } );
     meta = lib.libmeta.mkMetaEnt baseFields;
-    # We add lifecycle dependant info after the initial definition so that these
-    # values can be modified in overlays if alternative sources are plugged in.
-    # For example if we swap a `dir' with a `file' tree we want our recursive
-    # defintions to react appropriately.
-    lc  = meta.__extend ( final: prev: {
-      scriptInfo = if ! ( final ? scripts ) then {} else {
-        # TODO: treat `prepublish' like "build" elsewhere.
-        hasBuild =
-          ( final.ltype != "file" ) && ( hasBuildFromScripts final.scripts );
-        hasPrepare   = hasPrepareFromScripts   final.scripts;
-        hasTest      = hasTestFromScripts      final.scripts;
-        hasPublish   = hasPublishFromScripts   final.scripts;
-        hasPack      = hasPackFromScripts      final.scripts;
-        hasDepScript = hasDepScriptFromScripts final.scripts;
-        # TODO: `hasInstallScript' and `gypfile' live at top-level until the
-        # routines that depend on them being there are migrated.
-      };
-    } );
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then lc.__extend ov else lc;
+    in if ( ovs != [] ) then meta.__extend ov else meta;
   in ex;
 
 
