@@ -11,7 +11,6 @@
 : "${WC:=wc}";
 : "${CUT:=cut}";
 
-: "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
 : "${EXTRA_NPM_FLAGS:=}";
 : "${EXTRA_NIX_FLAGS:=}";
 : "${LOCKFILE:=}";
@@ -19,7 +18,18 @@
 _es=0;
 SPATH="$( $REALPATH ${BASH_SOURCE[0]}; )";
 SDIR="${SPATH%/*}";
+
+if test -r "$SDIR/../flake.lock"; then
+  : "${FLAKE_REF:=${SDIR%/bin}}";
+else
+  : "${FLAKE_REF:=github:aameen-tulip/at-node-nix}";
+fi
+
 _as_me="${SPATH##*/}";
+case "$_as_me" in
+  .*-wrapped) _as_me="${_as_me#.}"; _as_me="${_as_me%-wrapped}"; ;;
+  *) :; ;;
+esac
 
 
 # ---------------------------------------------------------------------------- #
@@ -65,7 +75,7 @@ while test "$#" -gt 0; do
     --json)            JSON=true; OUT_TYPE=--json; ;;
     -k|--keep)         KEEP_TREE=:;                ;;
     -S|-no-256)        DO_SHA256=false;            ;;
-    -l|--package-lock|*/package-lock.json)
+    -l|--lockfile|*/package-lock.json)
       if test -n "${DESCRIPTOR:-}"; then
         echo "$_as_me: You may only provide a descriptor, or a lockfile" >&2;
         usage >&2;
