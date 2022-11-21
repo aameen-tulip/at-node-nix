@@ -429,7 +429,7 @@
   # With `metaSet' it'll figure out `basedir' from the `entries.plock' attrs.
   #   let
   #     flocoFetcher = lib.mkFlocoFetcher {};
-  #     metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; }
+  #     metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; }
   #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
   #
 

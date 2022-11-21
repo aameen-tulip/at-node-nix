@@ -34,7 +34,7 @@
 , lockDir ? throw "You must provide an arg for me to find your package lock"
 , plock   ? lib.importJSON' "${lockDir}/package-lock.json"
 # This is the preferred argument
-, metaSet ? lib.libmeta.metaSetFromPlockV3 {
+, metaSet ? lib.metaSetFromPlockV3 {
     inherit plock flocoConfig lockDir;
   }
 # Used to override paths used as "prepared"

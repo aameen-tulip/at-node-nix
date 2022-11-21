@@ -61,6 +61,7 @@ in {
   libfloco = callLib ./floco-flake.nix;
 
   inherit (final.libpkginfo)
+    Scope
     parseNodeNames
   ;
 
@@ -94,6 +95,9 @@ in {
     lookupRelPathIdentV3
     getIdentPlV3
     getKeyPlV3
+
+    metaEntFromPlockV3
+    metaSetFromPlockV3
   ;
 
   inherit (final.libreg)
@@ -125,9 +129,6 @@ in {
     genMetaEntUp
     genMetaEntExtend
     genMetaEntRules
-
-    metaEntFromPlockV3
-    metaSetFromPlockV3
 
     metaEntFromSerial
     metaSetFromSerial

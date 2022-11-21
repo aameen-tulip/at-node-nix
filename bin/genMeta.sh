@@ -297,7 +297,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
     ];
     header =
       "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
-      "# Deserialze with:  lib.libmeta.metaSetFromSerial\n" +
+      "# Deserialze with:  lib.metaSetFromSerial\n" +
       "# Regen with: nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
     out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
   in out

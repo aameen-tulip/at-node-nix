@@ -191,7 +191,7 @@ At the top I've included a trivial build pipeline; while your own configuration 
 #+BEGIN_SRC nix
 with ( builtins.getFlake "at-node-nix" ).legacyPackages.${builtins.currentSystem};
 let
-  metaSet = lib.libmeta.metaSetFromPlockV3 { lockDir = toString ./.; };
+  metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; };
   pkgSet = builtins.mapAttrs ( path: metaEnt: let
     basePkgEnt = ( mkPkgEntSource metaEnt ) // { nmDirCmd = nmd; };
     doBins = runCommandNoCC basePkgEnt.meta.names.prepared {

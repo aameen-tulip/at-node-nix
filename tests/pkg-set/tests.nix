@@ -43,7 +43,7 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data;
-  metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
 
   # An arbitrary tarball to fetch.
   # We know this one doesn't have the directory permissions issue.

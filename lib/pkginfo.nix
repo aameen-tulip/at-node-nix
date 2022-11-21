@@ -146,23 +146,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  mkPkgInfo = { ident ? args.name, version, ... } @ args: let
-    inherit (lib.parseIdent ident) bname scope;
-  in args // {
-    inherit bname scope ident;
-    _type = "pkginfo";
-    localTarballName = asLocalTarballName { inherit bname scope version; };
-    registryTarballName =
-      asNpmRegistryTarballName { inherit bname version; };
-    scopeDir     = if scope != null then "@${scope}/" else "";
-    node2nixName =
-      if scope != null then "_at_${scope}_slash_${bname}-${version}"
-                       else "${bname}-${version}";
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
   # Matches "/foo/*/bar", "/foo/*", "*".
   # But NOT "/foo/\*/bar".
   # NOTE: In `.nix' files, "\*" ==> "*", so the "escaped" glob in the example
@@ -239,7 +222,7 @@
      "${s}/package.json";
 
   # Reads a `package.json' after `pjsForPath' ( see docs above ).
-  pjsFromPath = p: let
+  readPjsFromPath = p: let
     pjs = pjsForPath p;
   in assert builtins.pathExists pjs;
      lib.importJSON' pjs;
@@ -271,16 +254,16 @@
   # conditionals to handle "is impure allowed?" or "can we find a SHA?" is a
   # pain in the ass.
   # This function already does a ton of heavy lifting.
-  getPkgJson = x: let
+  coercePjs = x: let
     d            = lib.coercePath x;
-    fromDrvRoot  = pjsFromPath d;
+    fromDrvRoot  = readPjsFromPath d;
     pjsInSubdirs = let
       dirs1 = lib.libfs.listSubdirs d;
       dirs2 = let
         subsubs = lib.libfs.mapSubdirs lib.listSubdirs d;
       in builtins.concatLists subsubs;
       finds = builtins.filter dirHasPjs ( dirs1 ++ dirs2 );
-      found = pjsFromPath ( builtins.head finds );
+      found = readPjsFromPath ( builtins.head finds );
       ns    = builtins.length finds;
     in if ns == 1 then found else
        if 1 < ns  then throw "Found multiple package.json files in subdirs" else
@@ -322,7 +305,7 @@
     __innerFunction = pjs: ( pjs.bin or pjs.directories.bin or {} ) != {};
     __processArgs = self: x: let
       loc      = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-      pjs'     = getPkgJson x;
+      pjs'     = coercePjs x;
       ifdMsg   = "(${loc}): Cannot read from derivation when `ifd = false'.";
       pureMsg  = "(${loc}): Cannot read unlocked path when `pure = true'.";
       fromIFD  = if ! ifd then throw ifdMsg else pjs';
@@ -440,8 +423,11 @@
   # package entry from a `package-lock.json' to see if it has an install script.
   # It is best to use this with a path or `package-lock.json' entry, since this
   # will fail to detect `node-gyp' installs with a regular `package.json'.
-  hasInstallScript = x: let
-    pjs      = getPkgJson x;
+  pjsHasInstallScript' = { pure ? lib.inPureEvalMode }: x: let
+    # TODO: path might be pure, but might not. Check
+    # I would normally force the more restrictive assumption but shit that's
+    # actually pure in real builds currently depends on this.
+    pjs      = coercePjs x;
     explicit = pjs.hasInstallScript or false;  # for lock entries
     scripted = ( pjs ? scripts ) && builtins.any ( a: pjs.scripts ? a ) [
       "preinstall" "install" "postinstall"
@@ -451,6 +437,43 @@
             ( ( lib.libpath.categorizePath asPath ) == "directory" );
     hasGyp = isDir && ( builtins.pathExists ( asPath + "/binding.gyp" ) );
   in explicit || scripted || hasGyp;
+
+  pjsHasInstallScript = pjsHasInstallScript' {};
+
+
+# ---------------------------------------------------------------------------- #
+
+  # FIXME: these don't actually reflect the lifecycle events run for various
+  # commands, for example `npm install' runs all kinds of shit.
+  # TODO: Finish mapping the real event lifecycle in `events.nix'.
+  #
+
+  hasStageFromScripts = stage: scripts:
+    ( scripts ? ${stage} )        ||
+    ( scripts ? "pre${stage}" )   ||
+    ( scripts ? "post${stage}" );
+
+  hasPrepareFromScripts = hasStageFromScripts "prepare";
+  hasInstallFromScripts = hasStageFromScripts "install";
+  hasTestFromScripts    = hasStageFromScripts "test";
+
+  # XXX: reminder that this says nothing about "lifecycle events".
+  # We're just scraping info.
+  hasPackFromScripts = scripts: ( scripts ? prepack ) || ( scripts ? postpack );
+
+  # We treat `prepublish' ( legacy ) as an alias of "build"
+  hasBuildFromScripts = scripts:
+    ( hasStageFromScripts "build" scripts ) ||
+    ( scripts ? prepublish );
+
+  # This one has edge cases
+  hasPublishFromScripts = scripts:
+    ( scripts ? publish )        ||
+    ( scripts ? prepublishOnly ) ||
+    ( scripts ? postpublish );
+
+  # Run when deps are added/removed/modified in `package.json'.
+  hasDepScriptFromScripts = scripts: scripts ? dependencies;
 
 
 # ---------------------------------------------------------------------------- #
@@ -462,18 +485,16 @@ in {
   ;
 
   inherit
-    mkPkgInfo
     rewriteDescriptors
-    hasInstallScript
+    pjsHasInstallScript' pjsHasInstallScript
+    pjsHasBin' pjsHasBin
   ;
 
   # `package.json' locators
   inherit
     pjsForPath
-    pjsFromPath
-    pjsHasBin'
-    pjsHasBin
-    getPkgJson
+    readPjsFromPath
+    coercePjs
   ;
 
   # Normalize fields
@@ -497,7 +518,17 @@ in {
     normalizeWorkspaces
   ;
 
-  readPkgInfo = path: mkPkgInfo ( pjsFromPath path );
+  inherit
+    hasStageFromScripts
+    hasPrepareFromScripts
+    hasInstallFromScripts
+    hasTestFromScripts
+    hasPackFromScripts
+    hasBuildFromScripts
+    hasPublishFromScripts
+    hasDepScriptFromScripts
+  ;
+
 }
 
 # ---------------------------------------------------------------------------- #

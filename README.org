@@ -106,7 +106,7 @@ explore the test suite examples and more of
 
 ** =genMeta=
 A script that generates a static =metaSet= file from an Node.js package descriptor.
-This metadata can be read from a file using =lib.libmeta.metaSetFromSerial= and used to generate builders ( or whatever else you care to use it for ).
+This metadata can be read from a file using =lib.metaSetFromSerial= and used to generate builders ( or whatever else you care to use it for ).
 This is ideal for published modules whose =package.json= and =package-lock.json= file does not change.
 
 Personally I use it to write standalone builders for packages with =install= scripts, and in some cases I'll use it to generate and package modules with CLI

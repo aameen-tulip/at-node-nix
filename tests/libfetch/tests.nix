@@ -10,7 +10,7 @@
 
   lockDir = toString ./data/proj2;
   plock   = lib.importJSON ( lockDir + "/package-lock.json" );
-  metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
 
   proj2   = metaSet."proj2/1.0.0";
   lodash  = metaSet."lodash/5.0.0";

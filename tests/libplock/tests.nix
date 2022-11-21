@@ -44,7 +44,7 @@
 
   lockDir = toString ../libfetch/data/proj2;
   plock   = lib.importJSON ( lockDir + "/package-lock.json" );
-  lfMS = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  lfMS = lib.metaSetFromPlockV3 { inherit lockDir; };
   proj2   = plock.packages."";
   lodash  = plock.packages."node_modules/lodash";
   ts      = plock.packages."node_modules/typescript";
