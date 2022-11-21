@@ -28,74 +28,93 @@
 # ---------------------------------------------------------------------------- #
 
   # original metadata sources such as `package.json' are stashed as members
-  # of `entries' by default. 
+  # of `metaFiles' by default.
   # We use this accessor to refer to them so that users can override this
   # function with custom implementations that fetch these files.
-  getFromEntries = { entries ? {} }: builtins.attrValues entries;
+  # TODO: deprecate `entries' field.
+  getMetaFiles = {
+    entries   ? {}
+  , metaFiles ? {}
+  , ...
+  } @ args: let
+    msg =
+      "WARNING: <META-ENT>.entries.* is deprecated. Use <META-ENT>.metaFiles.*";
+  in if args ? entries then builtins.trace msg ( builtins.attrValues entries )
+                       else builtins.attrValues metaFiles;
 
   # Abstraction to refer to `package.json' scripts fields.
-  getScripts = { scripts ? {} , entries ? {} }: let
-    entScripts = builtins.catAttrs "scripts" ( builtins.attrValues entries );
-  in ( builtins.foldl' ( a: b: a // b ) {} entScripts ) // scripts;
+  getScripts = {
+    scripts ? {}
+  , ...
+  } @ args: let
+    fromMetaFiles = builtins.catAttrs "scripts" ( getMetaFiles args );
+  in ( builtins.foldl' ( a: b: a // b ) {} fromMetaFiles ) // scripts;
 
 
 # ---------------------------------------------------------------------------- #
+
+  # FIXME: these don't actually reflect the lifecycle events run for various
+  # commands, for example `npm install' runs all kinds of shit.
+  # TODO: Finish mapping the real event lifecycle in `events.nix'.
+  #
 
   hasStageFromScripts = stage: scripts:
     ( scripts ? ${stage} )        ||
     ( scripts ? "pre${stage}" )   ||
     ( scripts ? "post${stage}" );
 
-  hasBuildFromScripts   = hasStageFromScripts "build";
   hasPrepareFromScripts = hasStageFromScripts "prepare";
   hasInstallFromScripts = hasStageFromScripts "install";
   hasTestFromScripts    = hasStageFromScripts "test";
-  hasPublishFromScripts = hasStageFromScripts "publish";
+
+  # XXX: reminder that this says nothing about "lifecycle events".
+  # We're just scraping info.
+  hasPackFromScripts = scripts: ( scripts ? prepack ) || ( scripts ? postpack );
+
+  # We treat `prepublish' ( legacy ) as an alias of "build"
+  hasBuildFromScripts = scripts:
+    ( hasStageFromScripts "build" scripts ) ||
+    ( scripts ? prepublish );
+
+  # This one has edge cases
+  hasPublishFromScripts = scripts:
+    ( scripts ? publish )        ||
+    ( scripts ? prepublishOnly ) ||
+    ( scripts ? postpublish );
+
+  # Run when deps are added/removed/modified in `package.json'.
+  hasDepScriptFromScripts = scripts: scripts ? dependencies;
 
 
 # ---------------------------------------------------------------------------- #
 
   hasStageScript = stage: ent: let
-    sl = builtins.catAttrs "scripts"
-                           ( builtins.attrValues ( ent.entries or {} ) );
-  in if ( ent ? scripts ) then hasStageFromScripts stage else
-    builtins.any ( hasStageFromScripts stage ) sl;
+    scripts = ent.scripts or ( getScripts ent );
+  in hasStageFromScripts stage scripts;
 
-  entHasBuildScript   = hasStageScript "build";
   entHasPrepareScript = hasStageScript "prepare";
   entHasTestScript    = hasStageScript "test";
-  entHasPublishScript = hasStageScript "publish";
-
+  entHasPackScript    = ent:
+    hasPackFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasPublishScript = ent:
+    hasPublishFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasBuildScript = ent:
+    hasBuildFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasDepScript = ent:
+    hasDepScriptFromScripts ( ent.scripts or ( getScripts ent ) );
   entHasInstallScript = ent: let
     fromScript = hasStageScript "install" ent;
     fromPlock  = ent.hasInstallScript or false;
   in if lib.libmeta.metaWasPlock ent then fromPlock else fromScript;
 
-  # Returns null for inconclusive;
-  # NOTE: `git' sources with `package-lock.json' are the ones that you can run
-  # into inconclusive results on the most.
-  # The scrapers from local paths generally attempt to read the `package.json'
-  # files so you have coverage there; but for `git' we don't try to fetch in
-  # order to read the `scripts' field.
-  # FIXME: In impure mode actually go collect that info because `git' deps
-  # often do have `scripts.build' routines.
-  # The routine that adds info from plock `fetchInfo' data already does this.
-  entHasBuild = ent: let
-    type = ent.fetchInfo.type or
-           ( lib.libfetch.identifyPlentFetcherFamily ent );
-    fromPjs = if ent ? entries.pjs
-              then hasBuildFromScripts ent.entries.pjs.scripts
-              else null;
-    fromSubtype = if fromPjs == null then null else
-                  ( ! ( builtins.elem type ["file" "tarball"] ) ) && fromPjs;
-  in ent.hasBuild or fromSubtype;
-
 
 # ---------------------------------------------------------------------------- #
 
+  # TODO: this is generic I don't know why its marked "FromPjs".
+
   # Fields that we can scrape from `package.json' that `package-lock.json' lacks
   metaEntPlockGapsFromPjs = x: let
-    pjs = x.entries.pjs or x;
+    pjs = ( getMetaFiles x ).pjs or x;
   in {
     hasBuild   = hasBuildFromScripts   ( pjs.scripts or {} );
     hasPrepare = hasPrepareFromScripts ( pjs.scripts or {} );
@@ -138,7 +157,7 @@
   , depInfo          ? {}
   , bin              ? {}
   , hasBin           ? ( ent.bin or ent.directories.bin or {} ) != {}
-  , hasBuild         ? entHasBuild ent
+  , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
   , gypfile          ? false  # XXX: do not read this field from registries
@@ -209,6 +228,8 @@
     deserial = name: value: let
       forEnt  = metaEntFromSerial value;
       # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
+      # FIXME: this no shouldn't be reading the filesystem without being marked
+      # as "impure" or "ifd".
       forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
         pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
         plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
@@ -271,14 +292,14 @@
   }:
   # `mapAttrs' args. ( `pkey' and `args' ).
   # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
-  # skeleton with the `plent' stashed in `args.entries.plock'.
+  # skeleton with the `plent' stashed in `args.metaFiles.plock'.
   pkey:
   {
     ident   ? args.name or ( lib.libplock.getIdentPlV3 plock pkey )
   , version ? args.version or ( lib.libplock.getVersionPlV3 plock pkey )
   , ...
   } @ args: let
-    plent  = args.entries.plock or args;
+    plent  = args.metaFiles.plock or args;
     hasBin = ( plent.bin or {} ) != {};
     key'   = ident + "/" + version;
     key    = if includeTreeInfo then key' + ":" + pkey else key';
@@ -286,7 +307,7 @@
     # Otherwise including this info would cause key collisions in `metaSet'.
     metaFiles = {
       __serial = false;
-      plock = assert ! ( plent ? entries );
+      plock = assert ! ( plent ? metaFiles );
               plent // { inherit pkey lockDir; };
     };
     baseFields = {
@@ -301,13 +322,31 @@
       } { inherit lockDir; } { inherit pkey; plent = args; };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
       // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } )
-      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } );
+      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } )
+      // ( lib.optionalAttrs ( plent ? scripts ) { inherit (plent) scripts; } );
     meta = lib.libmeta.mkMetaEnt baseFields;
-    sub  = meta;  # FIXME: add fields based on `ltype'
+    # We add lifecycle dependant info after the initial definition so that these
+    # values can be modified in overlays if alternative sources are plugged in.
+    # For example if we swap a `dir' with a `file' tree we want our recursive
+    # defintions to react appropriately.
+    lc  = meta.__extend ( final: prev: {
+      scriptInfo = if ! ( final ? scripts ) then {} else {
+        # TODO: treat `prepublish' like "build" elsewhere.
+        hasBuild =
+          ( final.ltype != "file" ) && ( hasBuildFromScripts final.scripts );
+        hasPrepare   = hasPrepareFromScripts   final.scripts;
+        hasTest      = hasTestFromScripts      final.scripts;
+        hasPublish   = hasPublishFromScripts   final.scripts;
+        hasPack      = hasPackFromScripts      final.scripts;
+        hasDepScript = hasDepScriptFromScripts final.scripts;
+        # TODO: `hasInstallScript' and `gypfile' live at top-level until the
+        # routines that depend on them being there are migrated.
+      };
+    } );
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then sub.__extend ov else sub;
+    in if ( ovs != [] ) then lc.__extend ov else lc;
   in ex;
 
 
@@ -335,7 +374,9 @@
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
     auditKeyValuesUnique = let
       toSerial = e: e.__serial or e;
-      toCmp    = e: e.__entries or e;
+      toCmp = e:
+        lib.filterAttrsRecursive ( _: v: ! ( builtins.isFunction v ) )
+                                 ( e.__entries or e );
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
                                       ( toSerial e );
       noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
@@ -350,7 +391,7 @@
         more = if nconfs == 2 then "" else
                "NOTE: Only the first two instances appear is this diff, " +
                "in total there are ${toString nconfs} conflicting entries.";
-        msg = builtins.concatStrignsSep "\n" [header diff more];
+        msg = builtins.concatStringsSep "\n" [header ( pp diff ) more];
       in if nconfs == 1 then builtins.head values else throw msg;
     in builtins.mapAttrs flattenAssertUniq byKey;
     metaEntries = auditKeyValuesUnique;
