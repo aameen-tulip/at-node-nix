@@ -16,6 +16,8 @@
   inherit (ur.Strings) uri_ref scheme fragment;
   lib.test = patt: s: ( builtins.match patt s ) != null;
 
+  _lock_uris = import ./npm/lock/uri.nix { inherit ytypes; };
+
 # ---------------------------------------------------------------------------- #
 
   # XXX: Be careful about v1 and v2 here.
@@ -33,7 +35,7 @@
 
   dep_ent_v1 = struct "deps_v1" {
     version  = locator;
-    resolved = option resolved_uri;
+    resolved = option _lock_uris.resolved_uri;
     from     = option descriptor;
     dev      = option bool;
     optional = option bool;
@@ -70,53 +72,13 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: `pacote' will write absolute filepaths.
-  # For `resolved' it doesn't use `file:...', but for `from' it will.
-  # NOTE: the note above is useful for a "general purpose" typdef, but
-  # NPM's `package-lock.json' uses the "file:" scheme to distinguish
-  # between "link" and "dir" ltype, and we need to follow their usage.
-  relative_file_uri = let
-    cond = x: let
-      m = builtins.match "file:(\\.[^:#?]*)" x;
-      p = builtins.head m;
-    in ( m != null ) && ( ur.Strings.path_segments.check p );
-  in restrict "uri[relative]" cond string;
-
-  git_uri = restrict "git" ( lib.test "git(\\+(ssh|https?))?://.*" )
-                           uri_ref;
-
-  tarball_uri = let
-    tarballUrlCond = yt.Strings.tarball_url.check;
-    # Basically the only registry that doesn't put the tarball in the URL...
-    githubPkgCond = lib.test "https://npm\\.pkg\\.github\\.com/download/.*";
-    cond = s: ( tarballUrlCond s ) || ( githubPkgCond s );
-  in restrict "tarball" cond uri_ref;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # link, dir, tarball, git
-  #   "resolved": "git+ssh://git@github.com/lodash/lodash.git#2da024c3b4f9947a48517639de7560457cd4ec6c",
-  #   "resolved": "https://registry.npmjs.org/typescript/-/typescript-4.8.2.tgz",
-  resolved_uri_types = [
-    git_uri
-    relative_file_uri      # dir
-    tarball_uri
-    yt.FS.Strings.relpath  # link
-  ];
-
-  resolved_uri = yt.eitherN resolved_uri_types;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Package Entries ( Plock v3 Only )
 
   # XXX: All are optional
   pkg_any_fields_v3 = ( builtins.mapAttrs ( _: option ) {
     name     = identifier;
     version  = locator;
-    resolved = resolved_uri;
+    resolved = _lock_uris.resolved_uri;
     license  = string;
     engines  = yt.either ( yt.attrs string ) ( yt.list string );
     bin      = yt.attrs string;
@@ -137,14 +99,14 @@
   # The real entries explicitly use the "link" field.
   pkg_path_v3 = let
     fconds = pkg_any_fields_v3 // {
-      resolved =
-        yt.option ( yt.either relative_file_uri yt.FS.Strings.relpath );
-      link = yt.option yt.bool;
+      resolved = yt.option _lock_uris.Strings.path_uri;
+      link     = yt.option yt.bool;
     };
     cond = x: let
       fs = builtins.attrNames ( builtins.intersectAttrs fconds x );
-    in builtins.all ( k: fconds.${k}.check x.${k} ) fs;
-  in restrict "package[dir]" cond ( yt.attrs yt.any );
+      fieldsCond = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
+    in ( builtins.isAttrs x ) && fieldsCond;
+  in ytypes.__internal.typedef "npm:lock:package:path" cond;
 
   
   pkg_dir_v3  = let
@@ -155,7 +117,7 @@
     # path ( relative to the `lockDir' ).
     cond = x: 
       ( ! ( x.link or false ) ) &&
-      ( ( ! ( x ? resolved ) ) || ( relative_file_uri.check x.resolved ) );
+      ( ( ! ( x ? resolved ) ) || ( _lock_uris.dir_uri.check x.resolved ) );
   in restrict "dir" cond pkg_path_v3;
 
   # Almost never contains `pkg_any_fields' which are instead held by a `dir'
@@ -165,7 +127,7 @@
   # You want to STRICTLY interpret the "link" flag here.
   pkg_link_v3 = let
     # XXX: NOT a `file:' URI! Those are `dir' ltypes.
-    cond = x: ( x ? resolved ) && ( yt.FS.Strings.relpath.check x.resolved ) &&
+    cond = x: ( x ? resolved ) && ( _lock_uris.link_uri.check x.resolved ) &&
               ( ( x.link or false ) == true );
   in restrict "link" cond pkg_path_v3;
 
@@ -173,22 +135,24 @@
 # ---------------------------------------------------------------------------- #
 
   pkg_git_v3 = let
-    fconds = pkg_any_fields_v3 // { resolved = git_uri; };
+    fconds = pkg_any_fields_v3 // { resolved = _lock_uris.git_uri; };
     cond = x: let
       fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
-    in ( x ? resolved ) && fields;
-  in restrict "package[git]" cond ( yt.attrs yt.any );
+    in ( builtins.isAttrs x ) && ( x ? resolved ) && fields;
+  in ytypes.__internal.typedef "npm:lock:package[git]" cond;
 
 
 # ---------------------------------------------------------------------------- #
 
   # NOTE: the `tarball_uri' checker sort of sucks and if you're here debugging
   # that's probably what you're looking for.
-  pkg_tarball_v3 = let
-    condHash = x: ( x ? integrity ) || ( x ? sha1 );
+  pkg_file_v3 = let
+    condHash = x:
+      ( x ? integrity ) || ( x ? sha1 ) ||
+      ( _lock_uris.Strings.path_uri.check x );  # Local paths don't need hash.
     fconds   = pkg_any_fields_v3 // {
-      resolved  = tarball_uri;
+      resolved  = _lock_uris.file_uri;
       integrity = option yt.Hash.integrity;
       sha1      = option yt.Hash.Strings.sha1_hash;
     };
@@ -196,48 +160,72 @@
       fs     = builtins.attrNames ( builtins.intersectAttrs fconds x );
       fields = builtins.all ( k: fconds.${k}.check x.${k} ) fs;
     in ( x ? resolved ) && fields;
-    cond = x: ( condHash x ) && ( condFields x );
-  in restrict "package[tarball]" cond ( yt.attrs yt.any );
+    cond = x: ( builtins.isAttrs x ) && ( condHash x ) && ( condFields x );
+  in ytypes.__internal.typedef "npm:lock:package[file]" cond;
 
 
 # ---------------------------------------------------------------------------- #
 
-  plent_types = [pkg_git_v3 pkg_tarball_v3 pkg_link_v3 pkg_path_v3];
+  plent_types = [pkg_git_v3 pkg_file_v3 pkg_link_v3 pkg_dir_v3];
   package     = yt.eitherN plent_types;
 
+  pkey = yt.either yt.FS.Strings.relpath ( yt.enum [""] );
+
 
 # ---------------------------------------------------------------------------- #
 
+  Sums.tag_lifecycle_plent = yt.sum "lifecycle->plent" {
+    git  = yt.NpmLock.pkg_git_v3;
+    file = yt.NpmLock.pkg_file_v3;
+    link = yt.NpmLock.pkg_link_v3;
+    dir  = yt.NpmLock.pkg_dir_v3;
+  };
+
+
+# ---------------------------------------------------------------------------- #
 
 in {
-  Strings = {
-    inherit
-      relative_file_uri
-      git_uri
-      tarball_uri
-      resolved_uri
-    ;
+
+  Enums = ( _lock_uris.Enums or {} ) // {
+    # Add some
   };
-  Structs = {
+  Sums = ( _lock_uris.Sums or {} ) // Sums;
+  Eithers = ( _lock_uris.Eithers or {} ) // {
+    inherit pkey;
+  };
+  Strings = ( _lock_uris.Strings or {} ) // {
+    # Add some
+  };
+  Structs = ( _lock_uris.Structs or {} ) // {
     inherit
       pkg_path_v3  # used by fetchers, not exposed to users.
       pkg_dir_v3
       pkg_link_v3
       pkg_git_v3
-      pkg_tarball_v3
+      pkg_file_v3
       package
     ;
   };
   inherit
-    resolved_uri
-    resolved_uri_types
+    pkg_any_fields_v3
     pkg_dir_v3
     pkg_link_v3
     pkg_git_v3
-    pkg_tarball_v3
+    pkg_file_v3
     plent_types
     package
+    pkey
   ;
+
+  inherit (_lock_uris)
+    file_uri
+    link_uri
+    git_uri
+    dir_uri
+    resolved_uri
+    _resolved_uri_types
+  ;
+
 }
 
 

@@ -43,7 +43,7 @@
     --set-default NPM       "$NPM"       \
     --set-default JQ        "$JQ"        \
     --set-default WC        "$WC"        \
-    --set-default WC        "$CUT"       \
+    --set-default CUT       "$CUT"       \
   ;
 ''
 

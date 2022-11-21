@@ -49,6 +49,7 @@ in {
   libmeta    = callLibs [./meta.nix ./meta-ent.nix];
   libdep     = callLib  ./depinfo.nix;
   libsat     = callLib  ./sat.nix;
+  libevent   = callLib  ./events.nix;
   # `laika' provides a base.
   libfetch = prev.libfetch // ( callLib  ./fetch.nix );
   # `ak-nix' provides a base.
@@ -60,6 +61,7 @@ in {
   libfloco = callLib ./floco-flake.nix;
 
   inherit (final.libpkginfo)
+    Scope
     parseNodeNames
   ;
 
@@ -82,6 +84,8 @@ in {
   ;
 
   inherit (final.libplock)
+    discrPlentFetcherFamily
+    identifyPlentFetcherFamily
     supportsPlV1
     supportsPlV3
     resolveDepForPlockV1
@@ -91,6 +95,9 @@ in {
     lookupRelPathIdentV3
     getIdentPlV3
     getKeyPlV3
+
+    metaEntFromPlockV3
+    metaSetFromPlockV3
   ;
 
   inherit (final.libreg)
@@ -122,9 +129,6 @@ in {
     genMetaEntUp
     genMetaEntExtend
     genMetaEntRules
-
-    metaEntFromPlockV3
-    metaSetFromPlockV3
 
     metaEntFromSerial
     metaSetFromSerial

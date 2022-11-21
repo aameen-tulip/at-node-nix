@@ -35,7 +35,7 @@
   _vinfoMetaFields = {
     _type    = yt.enum ["vinfoMeta"];
     registry = yt.Uri.Strings.uri_ref;  # FIXME: no path, frag, or query
-    narHash  = yt.Hash.narHash;
+    narHash  = yt.Hash.nar_hash;
     trust    = yt.bool;
     ident    = yt.PkgInfo.Strings.identifier_any;
     version  = yt.PkgInfo.Strings.version;

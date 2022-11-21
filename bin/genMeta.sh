@@ -98,7 +98,8 @@ esac
 
 trap '_es="$?"; cleanup; exit "$_es";' HUP TERM EXIT INT QUIT;
 dir="$( $MKTEMP -d; )";
-srcInfo="$( $MKTEMP; )";
+manifest="$( $MKTEMP; )";
+fetchInfo="$( $MKTEMP; )";
 pushd "$dir" >/dev/null || exit 1;
 
 cleanup() {
@@ -107,19 +108,39 @@ cleanup() {
       echo "Keeping generated tree at:";
       echo "$dir";
     } >&2;
-    mv -f "$srcInfo" "$dir/fetchInfo.json";
+    mv -f "$fetchInfo" "$dir/fetchInfo.json";
+    mv -f "$manifest" "$dir/manifest.json";
   else
     popd >/dev/null;
-    rm -rf "$dir" "$srcInfo";
+    rm -rf "$dir" "$fetchInfo" "$manifest";
   fi
 }
 
 
 # ---------------------------------------------------------------------------- #
 
+# Pacote's manifest info here is not exactly what we expect in a `plent'.
+# We normalize it here so that routines designed to detect "fetcher family",
+# "lifecycle type", etc will work as expected.
+#
+# Pacote manifest for a project in `PWD'.
+#   {
+#     "resolved": "/tmp/project",
+#     "integrity": "sha512-Kco2/...",
+#     "from": "file:/tmp/project"
+#   }
+
 # We stash the output of `pacote' which contains `fetchInfo' fields.
-$PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null|$JQ -c > "$srcInfo"||
+$PACOTE extract "$DESCRIPTOR" . --json 2>/dev/null > "$manifest"||
   $PACOTE extract "$DESCRIPTOR" . --json;
+
+$JQ '{ integrity: .integrity } +
+( .resolved as $resolved|
+  ( if ( .from|test( "^file:\($resolved)" ) ) then {}
+                                              else { resolved: $resolved }
+    end )
+)' "$manifest" > "$fetchInfo";
+
 
 # Produce a lockfile
 NPM_CONFIG_LOCKFILE_VERSION=3  \
@@ -145,7 +166,7 @@ jq_fail_dump_data() {
     echo '';
     echo "JQ Failed given the following data:";
     echo "  --argjson gypfile: $_HAS_GYPFILE";
-    echo "  --argjson srcInfo: '$( $CAT "$srcInfo"; )'";
+    echo "  --argjson fetchInfo: '$( $CAT "$fetchInfo"; )'";
     echo "  --argjson dev: $DEV";
     echo '';
     if test "$( $WC -l ./package-lock.json|$CUT -d' ' -f1; )" -gt 100; then
@@ -169,38 +190,18 @@ jq_fail_dump_data() {
 # This isn't required; but it cuts out superfulous metadata.
 # Additionally we add our `fetchInfo' metadata provided by `pacote' since the
 # lockfile will treat it as a regular filepath otherwise ( `/tmp/XXX' ).
-$JQ                                          \
-  --argjson gypfile "$_HAS_GYPFILE"          \
-  --argjson srcInfo "$( $CAT "$srcInfo"; )"  \
-  --argjson dev     "$DEV"                   \
-' ( if ( $dev|not ) then
-      ( ( .packages|=with_entries( select( .value.dev // false|not ) ) )
-        |del( .packages[""].devDependencies ) )
-    else . end )
-  |( .packages[""]|= . + $srcInfo )
-  |( if $gypfile then ( .packages[""]|= . + { gypfile: true } ) else . end )
+$JQ                                              \
+  --argjson gypfile   "$_HAS_GYPFILE"            \
+  --argjson fetchInfo "$( $CAT "$fetchInfo"; )"  \
+  --argjson dev       "$DEV"                     \
+'( if ( $dev|not ) then
+     ( ( .packages|=with_entries( select( .value.dev // false|not ) ) )
+       |del( .packages[""].devDependencies ) )
+   else . end )
+ |( .packages[""]|= . + $fetchInfo )
+ |( if $gypfile then ( .packages[""]|= . + { gypfile: true } ) else . end )
 ' ./package-lock.json > plmin.json||jq_fail_dump_data;
 mv ./plmin.json ./package-lock.json;
-
-
-# ---------------------------------------------------------------------------- #
-
-# FIXME: Use this to generate all subtrees.
-#needsTree=( $( $JQ -r '
-#  ( .packages|with_entries( select( .value as $v|
-#      ( ( .key != "" ) and (
-#          ( $v.hasInstallScript // false ) or
-#          ( ( $v|has( "scripts" ) ) and ( $v.scripts as $s|(
-#              ( $s|has( "preprepare" ) )  or
-#              ( $s|has( "prepare" ) )     or
-#              ( $s|has( "postprepare" ) ) or
-#              ( $s|has( "build" ) )
-#            ) ) ) ) ) ) )
-#  )|keys[]
-#' ./package-lock.json|sed 's,.*node_modules/\(\(@[^@/]\+/\)\?[^@/]\+\)$,\1,';
-#) );
-#
-#printf '%s\n' "${needsTree[@]}";
 
 
 # ---------------------------------------------------------------------------- #
@@ -245,10 +246,6 @@ export DEV DESCRIPTOR JSON DO_SHA256;
 $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
   lp: let
     pkgsFor = lp.${builtins.currentSystem}.extend ( final: prev: {
-      # FIXME: needed because of some bullshit tarballs with bad compression.
-      # This really fucks out ability to scrape SHA-256 hashes.
-      # TODO: write a wrapper routine to collect those, essentially a try/catch,
-      # that tries fetchTree and falls back to unpackSafe + builtins.path.
       lib = prev.lib.extend ( _: libPrev: {
         flocoConfig = libPrev.flocoConfig // {
           enableImpureMeta = true;
@@ -257,7 +254,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
     } );
     inherit (pkgsFor) lib;
     lockDir = toString ./.;
-    plock   = lib.importJSON "${lockDir}/package-lock.json";
+    plock   = lib.importJSON ( lockDir + "/package-lock.json" );
     isDev   = builtins.getEnv "DEV" == "true";
     plockND = plock // {
       packages = let
@@ -272,7 +269,15 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
       inherit lockDir;
       plock = if isDev then plock else plockND;
     };
-    serial   = metaSet.__serial;
+    serial = let
+      base = metaSet.__serial;
+      prepEnt = ent: let
+        optFi = e: if ( e.fetchInfo.type or null ) != "file" then e else e // {
+          fetchInfo = pkgsFor.urlFetchInfo e.fetchInfo.url;
+        };
+        dropJunk = e: removeAttrs e ["scoped"];
+      in dropJunk ( optFi ent );
+    in builtins.mapAttrs ( _: prepEnt ) base;
     dumpJSON = builtins.getEnv "JSON" == "true";
     trees = let
       mkTree = dev: lib.libtree.idealTreePlockV3 {
@@ -292,7 +297,7 @@ $NIX eval --impure $OUT_TYPE $FLAKE_REF#legacyPackages --apply '
     ];
     header =
       "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
-      "# Deserialze with:  lib.libmeta.metaSetFromSerial\n" +
+      "# Deserialze with:  lib.metaSetFromSerial\n" +
       "# Regen with: nix run --impure at-node-nix#genMeta -- ${shellArgs}\n";
     out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
   in out

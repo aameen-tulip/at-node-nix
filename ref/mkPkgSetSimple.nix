@@ -61,7 +61,7 @@
     # Override default of v16 used in Nixpkgs
     nodejs = nodejs-14_x;
 
-    metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+    metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
     mkNmDir = mkNmDirPlockV3 {
       # Packages will be pulled from here when their "key" ( "<IDENT>/<VERSION>" )
       # matches an attribute in the set.

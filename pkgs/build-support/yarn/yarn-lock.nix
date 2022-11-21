@@ -14,8 +14,6 @@ let
   inherit (yml2json) readYML2JSON writeYML2JSON;
   inherit (lib)
     pkgNameSplit
-    mkPkgInfo
-    readPkgInfo
     allDependencies
     readWorkspacePackages
     importJSON'

@@ -10,7 +10,7 @@
 , testPkgEnt
 
 }: let
-  metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
   pkgSet = builtins.mapAttrs ( path: metaEnt: let
     basePkgEnt = mkPkgEntSource metaEnt;
     doBins = runCommandNoCC basePkgEnt.meta.names.prepared {

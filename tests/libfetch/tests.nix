@@ -9,11 +9,18 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data/proj2;
-  metaSet = lib.libmeta.metaSetFromPlockV3 { inherit lockDir; };
+  plock   = lib.importJSON ( lockDir + "/package-lock.json" );
+  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
+
   proj2   = metaSet."proj2/1.0.0";
   lodash  = metaSet."lodash/5.0.0";
   ts      = metaSet."typescript/4.8.2";
   projd   = metaSet."projd/1.0.0";
+
+  pl_proj2   = plock.packages."";
+  pl_lodash  = plock.packages."node_modules/lodash";
+  pl_ts      = plock.packages."node_modules/typescript";
+  pl_projd   = plock.packages."../projd";
 
 
 # ---------------------------------------------------------------------------- #
@@ -68,57 +75,25 @@
 # ---------------------------------------------------------------------------- #
 
     # FIXME: link
-    #testIdentifyResolvedType_path = {
+    #testIdentifyResolvedFetcherFamily_path = {
     #  expr = let
-    #    tagged = lib.libfetch.identifyResolvedType projd.entries.plock.resolved;
+    #    tagged = lib.libfetch.identifyResolvedFetcherFamily projd.entries.plock.resolved;
     #  in lib.libtag.tagName tagged;
     #  expected = "path";
     #};
 
-    testIdentifyResolvedType_file = {
+    testIdentifyResolvedFetcherFamily_file = {
       expr = let
-        tagged = lib.libfetch.identifyResolvedType ts.entries.plock.resolved;
-      in lib.libtag.tagName tagged;
+        resolved = pl_ts.resolved;
+      in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "file";
     };
 
-    testIdentifyResolvedType_git = {
+    testIdentifyResolvedFetcherFamily_git = {
       expr = let
-        tagged =
-          lib.libfetch.identifyResolvedType lodash.entries.plock.resolved;
-      in lib.libtag.tagName tagged;
+        resolved = pl_lodash.resolved;
+      in lib.libfetch.identifyResolvedFetcherFamily resolved;
       expected = "git";
-    };
-
-
-# ---------------------------------------------------------------------------- #
-
-    testIdentifyPlentSourceType_path_0 = {
-      expr = lib.libfetch.identifyPlentSourceType proj2.entries.plock;
-      expected = "path";
-    };
-
-    testIdentifyPlentSourceType_path_1 = {
-      expr = lib.libfetch.identifyPlentSourceType projd.entries.plock;
-      expected = "path";
-    };
-
-    testIdentifyPlentSourceType_file = {
-      expr = lib.libfetch.identifyPlentSourceType ts.entries.plock;
-      expected = "file";
-    };
-
-    testIdentifyPlentSourceType_git = {
-      expr = lib.libfetch.identifyPlentSourceType lodash.entries.plock;
-      expected = "git";
-    };
-
-
-# ---------------------------------------------------------------------------- #
-
-    testPlockEntryHashAttr_0 = {
-      expr = lib.libfetch.plockEntryHashAttr ts.entries.plock;
-      expected.sha512_sri = "sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==";
     };
 
 
@@ -126,7 +101,7 @@
 
     testFlocoGitFetcher_0 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
+        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
       in ( lib.isStorePath fetched.outPath ) &&
          ( fetched.type == "git" ) && ( fetched.fetchInfo.type == "github" );
       expected = true;
@@ -134,7 +109,7 @@
 
     testFlocoGitFetcher_1 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher lodash.entries.plock;
+        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
       in fetched.fetchInfo.rev;
       expected = "2da024c3b4f9947a48517639de7560457cd4ec6c";
     };

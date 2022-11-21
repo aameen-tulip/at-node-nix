@@ -28,85 +28,50 @@
 # ---------------------------------------------------------------------------- #
 
   # original metadata sources such as `package.json' are stashed as members
-  # of `entries' by default. 
+  # of `metaFiles' by default.
   # We use this accessor to refer to them so that users can override this
   # function with custom implementations that fetch these files.
-  getFromEntries = { entries ? {} }: builtins.attrValues entries;
+  # TODO: deprecate `entries' field.
+  getMetaFiles = {
+    entries   ? {}
+  , metaFiles ? {}
+  , ...
+  } @ args: let
+    msg =
+      "WARNING: <META-ENT>.entries.* is deprecated. Use <META-ENT>.metaFiles.*";
+  in if args ? entries then builtins.trace msg ( builtins.attrValues entries )
+                       else builtins.attrValues metaFiles;
 
   # Abstraction to refer to `package.json' scripts fields.
-  getScripts = { scripts ? {} , entries ? {} }: let
-    entScripts = builtins.catAttrs "scripts" ( builtins.attrValues entries );
-  in ( builtins.foldl' ( a: b: a // b ) {} entScripts ) // scripts;
+  getScripts = {
+    scripts ? {}
+  , ...
+  } @ args: let
+    fromMetaFiles = builtins.catAttrs "scripts" ( getMetaFiles args );
+  in ( builtins.foldl' ( a: b: a // b ) {} fromMetaFiles ) // scripts;
 
 
 # ---------------------------------------------------------------------------- #
 
-  hasStageFromScripts = stage: scripts:
-    ( scripts ? ${stage} )        ||
-    ( scripts ? "pre${stage}" )   ||
-    ( scripts ? "post${stage}" );
+  entHasStageScript = stage: ent: let
+    scripts = ent.scripts or ( getScripts ent );
+  in lib.libpkginfo.hasStageFromScripts stage scripts;
 
-  hasBuildFromScripts   = hasStageFromScripts "build";
-  hasPrepareFromScripts = hasStageFromScripts "prepare";
-  hasInstallFromScripts = hasStageFromScripts "install";
-  hasTestFromScripts    = hasStageFromScripts "test";
-  hasPublishFromScripts = hasStageFromScripts "publish";
-
-
-# ---------------------------------------------------------------------------- #
-
-  hasStageScript = stage: ent: let
-    sl = builtins.catAttrs "scripts"
-                           ( builtins.attrValues ( ent.entries or {} ) );
-  in if ( ent ? scripts ) then hasStageFromScripts stage else
-    builtins.any ( hasStageFromScripts stage ) sl;
-
-  entHasBuildScript   = hasStageScript "build";
-  entHasPrepareScript = hasStageScript "prepare";
-  entHasTestScript    = hasStageScript "test";
-  entHasPublishScript = hasStageScript "publish";
-
+  entHasPrepareScript = entHasStageScript "prepare";
+  entHasTestScript    = entHasStageScript "test";
+  entHasPackScript    = ent:
+    lib.libpkginfo.hasPackFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasPublishScript = ent:
+    lib.libpkginfo.hasPublishFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasBuildScript = ent:
+    lib.libpkginfo.hasBuildFromScripts ( ent.scripts or ( getScripts ent ) );
+  entHasDepScript = ent: let
+    scripts = ent.scripts or ( getScripts ent );
+  in lib.libpkginfo.hasDepScriptFromScripts scripts;
   entHasInstallScript = ent: let
-    fromScript = hasStageScript "install" ent;
+    fromScript = entHasStageScript "install" ent;
     fromPlock  = ent.hasInstallScript or false;
   in if lib.libmeta.metaWasPlock ent then fromPlock else fromScript;
-
-  # Returns null for inconclusive;
-  # NOTE: `git' sources with `package-lock.json' are the ones that you can run
-  # into inconclusive results on the most.
-  # The scrapers from local paths generally attempt to read the `package.json'
-  # files so you have coverage there; but for `git' we don't try to fetch in
-  # order to read the `scripts' field.
-  # FIXME: In impure mode actually go collect that info because `git' deps
-  # often do have `scripts.build' routines.
-  # The routine that adds info from plock `fetchInfo' data already does this.
-  entHasBuild = ent: let
-    type = ent.fetchInfo.type or ( lib.libfetch.identifyPlentSourceType ent );
-    fromPjs = if ent ? entries.pjs
-              then hasBuildFromScripts ent.entries.pjs.scripts
-              else null;
-    fromSubtype = if fromPjs == null then null else
-                  ( ! ( builtins.elem type ["file" "tarball"] ) ) && fromPjs;
-  in ent.hasBuild or fromSubtype;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Fields that we can scrape from `package.json' that `package-lock.json' lacks
-  metaEntPlockGapsFromPjs = x: let
-    pjs = x.entries.pjs or x;
-  in {
-    hasBuild   = hasBuildFromScripts   ( pjs.scripts or {} );
-    hasPrepare = hasPrepareFromScripts ( pjs.scripts or {} );
-    hasTest    = hasTestFromScripts    ( pjs.scripts or {} );
-  };
-
-  inherit (
-    genMetaEntRules "PlockGapsFromPjs" metaWasPlock metaEntPlockGapsFromPjs
-  ) metaEntAddPlockGapsFromPjs
-    metaEntUpPlockGapsFromPjs
-    metaEntExtendPlockGapsFromPjs
-  ;
 
 
 # ---------------------------------------------------------------------------- #
@@ -137,11 +102,11 @@
   , depInfo          ? {}
   , bin              ? {}
   , hasBin           ? ( ent.bin or ent.directories.bin or {} ) != {}
-  , hasBuild         ? entHasBuild ent
+  , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
   , gypfile          ? false  # XXX: do not read this field from registries
-  , hasTest          ? entHasTestScript    ent
+  , hasTest          ? entHasTestScript ent
   , scripts          ? {}
   , os               ? null
   , cpu              ? null
@@ -208,9 +173,11 @@
     deserial = name: value: let
       forEnt  = metaEntFromSerial value;
       # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
+      # FIXME: this no shouldn't be reading the filesystem without being marked
+      # as "impure" or "ifd".
       forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
-        pjs   = lib.importJSON' "${value.lockDir}/package.json";
-        plock = lib.importJSON' "${value.lockDir}/package-lock.json";
+        pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
+        plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
       } ) // value;
     in if name == "__meta" then forMeta else
        if lib.hasPrefix "__" name then value else
@@ -220,247 +187,36 @@
 
 # ---------------------------------------------------------------------------- #
 
-  discrPlentV3 = lib.libtypes.discrTypes {
-    git     = yt.NpmLock.pkg_git_v3;
-    tarball = yt.NpmLock.pkg_tarball_v3;
-    link    = yt.NpmLock.pkg_link_v3;
-    dir     = yt.NpmLock.pkg_dir_v3;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  fetchInfoFromPlockV3' = { pure ? lib.inPureEvalMode, ifd ? true }: plent: let
-    # "Lifecycle Type" indicating the category of `pacote'/NPM source tree
-    # as it relates to the execution of lifecycle scripts.
-    # For example, NPM will run `build', `prepare', and `prepack' scripts for
-    # local paths and `git' "ltypes", but only runs `install' scripts
-    # for tarballs.
-    # Because we use a variety of backends to perform fetching, it would be
-    # inappropriate to call these "fetcher types" or "source tree types" like
-    # NPM and `pacote' do - so instead we highlight that they explicitly effect
-    # the execution of lifecycle scripts in our builders.
-    ltype = lib.tagName ( discrPlentV3 plent );
-  in {
-    inherit ltype;
-  };
-
-
-
-# ---------------------------------------------------------------------------- #
-
-  metaEntFromPlockSubtype' = { pure ? true }: x: let
-    plent = x.entries.plock or x;
-    inherit (plent) lockDir;
-    pjsDir =
-      if plent.pkey == "" then lockDir else
-      # Fetch remote trees in impure mode
-      if haveTree && ( type != "path" ) then
-        "${( ( lib.mkFlocoFetcher { basedir = lockDir; } ) plent )}" else
-      if plent.link or false then "${lockDir}/${plent.resolved}" else
-      "${lockDir}/${plent.pkey}";
-    pjsPath = "${pjsDir}/package.json";
-    tryPjs  = ( x ? entries.pjs ) || ( builtins.pathExists pjsPath );
-    pjs     = x.entries.pjs or ( lib.importJSON' pjsPath );
-    fromPjs = ( metaEntPlockGapsFromPjs pjs ) // {
-      entries.pjs = pjs // ( lib.optionalAttrs ( type == "path" ) {
-        inherit pjsDir;
-      } );
-    } // ( lib.optionalAttrs ( type == "path" ) { fetchInfo.path = pjsDir; } );
-    isRemoteSrc = type != "path";
-    isTb        = builtins.elem type ["file" "tarball"];
-    # FIXME: fetching from the registry packument makes WAY more sense.
-    canFetch = ( type == "git" ) && ( ! pure );
-    haveTree = ( type == "path" ) || canFetch;
-    type =
-      if builtins.isString x then x else
-      x.type or x.fetchInfo.type /* FIXME: handle tb and github */ or
-      ( lib.libfetch.identifyPlentSourceType plent );
-    core.fetchInfo = { inherit type; };
-    conds = let
-      mergeCond = a: { c, v }: if ! c then a else lib.recursiveUpdate a v;
-    in builtins.foldl' mergeCond core [
-      { c = isTb;               v.hasBuild = false;                }
-      { c = haveTree && tryPjs; v = fromPjs;                       }
-      {
-        c = type != "path";
-        v.fetchInfo.url = let
-          pv = lib.generators.toPretty {} plent;
-        in if ! ( plent ? resolved )
-           then throw "missing resolved: ${type} ${pv}"
-           else plent.resolved;
-      }
-      {
-        c = haveTree && ( plent.hasInstallScript or false );
-        v.gypfile = builtins.pathExists "${pjsDir}/binding.gyp";
-      }
-      # This is NOT redundant alongside the `plockEntryHashAttrs' call.
-      { c = plent ? integrity;  v.fetchInfo.hash = plent.integrity; }
-      { c = type == "path";     v.fetchInfo.path = pjsDir; }
-    ];
-    forAttrs = builtins.foldl' lib.recursiveUpdate core [
-      conds
-      # Returns `sha(512|256|1) = integrity' or `hash -integrity' as a fallback.
-      { fetchInfo = lib.libfetch.plockEntryHashAttr plent; }
-    ];
-    ec = builtins.addErrorContext "metaEntFromPlockSubtype";
-  in if builtins.isString x then core else ec forAttrs;
-
-  metaEntFromPlockSubtype = metaEntFromPlockSubtype' {
-    pure = lib.flocoConfig.enableImpureMeta or true;
-  };
-  metaEntFromPlockSubtypePure   = metaEntFromPlockSubtype' { pure = true; };
-  metaEntFromPlockSubtypeImpure = metaEntFromPlockSubtype' { pure = false; };
-
-  inherit (
-    genMetaEntRules "FromPlockSubtype" metaWasPlock metaEntFromPlockSubtype
-  ) metaEntAddFromPlockSubtype
-    metaEntUpFromPlockSubtype
-    metaEntExtendFromPlockSubtype
-    metaEntMergeFromPlockSubtype
-  ;
-
-
-# ---------------------------------------------------------------------------- #
-
-
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Three args.
-  # First holds "global" settings while the second is the actual plock entry.
-  # Second and Third are the "path" and "entry" from `<PLOCK>.packages', and
-  # the intention is that you use `builtins.mapAttrs' to process the lock.
-  metaEntFromPlockV3 = {
-    lockDir
-  , lockfileVersion ? 3
-  , flocoConfig     ? lib.flocoConfig
-  }:
-  # `mapAttrs' args. ( `pkey' and `args' ).
-  # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
-  # skeleton with the `plent' stashed in `args.entries.plock'.
-  pkey:
-  {
-    ident   ? args.name or ( lib.libplock.pathId pkey )
-  , version
+  # NOTE: the main difference here in terms of detection is that `resolved' for
+  # dir/link entries will be an absolute path.
+  # Aside from that we just have extra fields ( `NpmLock.Structs.pkg_*' types
+  # ignore extra fields so this is fine ).
+  identifyMetaEntFetcherFamily = {
+    fetchInfo ? null
+  , ffamily   ? null
   , ...
-  } @ args: let
-    plent = args.entries.plock or args;
-    key = ident + "/" + version;
-    hasBin = ( plent.bin or {} ) != {};
-    baseFields = {
-      inherit key ident version;
-      inherit hasBin;
-      depInfo = lib.libdep.depInfoEntFromPlockV3 pkey plent;
-      hasInstallScript = plent.hasInstallScript or false;
-      entFromtype = "package-lock.json(v${toString lockfileVersion})";
-      entries = {
-        __serial = false;
-        plock = assert ! ( plent ? entries );
-                plent // { inherit pkey lockDir; };
-      };
-    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
-      // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } );
-    # Merge with original arguments unless they were a raw package-lock entry.
-    argFields = if ! ( args ? entries ) then baseFields else
-                lib.recursiveUpdate baseFields args;
-    meta = lib.libmeta.mkMetaEnt argFields;
-    sub = lib.libmeta.metaEntMergeFromPlockSubtype meta;
-    ex = let
-      ovs = flocoConfig.metaEntOverlays or [];
-      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then sub.__extend ov else sub;
-  in ex;
+  } @ metaEnt: let
+    plent = ( getMetaFiles metaEnt ).plock or null;
+  in if ffamily != null then ffamily else
+     if fetchInfo != null
+     then lib.libfetch.identifyFetchInfoFetcherFamily fetchInfo else
+     if plent != null then lib.libplock.identifyPlentFetcherFamily plent else
+     throw "identifyMetaEntFetcherFamily: Cannot discern 'fetcherFamily'";
 
 
 # ---------------------------------------------------------------------------- #
 
-  metaSetFromPlockV3 = {
-    plock       ? lib.importJSON' lockPath
-  , pjs         ? lib.importJSON' pjsPath
-  , lockDir     ? dirOf lockPath
-  , lockPath    ? "${lockDir}/package-lock.json"
-  , pjsPath     ? "${lockDir}/package.json"
-  , flocoConfig ? lib.flocoConfig
-  , ...
-  } @ args: assert lib.libplock.supportsPlV3 plock; let
-    inherit (plock) lockfileVersion;
-
-    mkOne = path: ent: let
-      ident   = let
-        # If entry is a link to an out of tree dir we will miss it using this
-        # basic lookup but it handles the vast majority of deps.
-        subs = ent.ident or ent.name or ( lib.libplock.pathId path );
-      in if subs == null then lib.lookupRelPathIdentV3 plock path else subs;
-      inherit (lib.libplock.realEntry plock path) version;
-      key = "${ident}/${version}";
-
-      # `*Args' is a "merged" `package-lock.json(v3)' style "package entry"
-      # that will be processed by `metaEntFromPlockV3'.
-      # Only `ident', `version', `hasInstallScripe', and `hasBin' fields are
-      # handled by `metaEntFromPlockV3', and remaining fields are stashed in
-      # `{ entries.plock = <ARGS> // { inherit pkey lockDir; }; }' and passed
-      # to `metaEntMergeFromPlockSubtype' for further processing.
-      # The `*PlockSubtype' routine creates `fetchInfo', and will also process
-      # `entries.pjs' if it is provided ( or for local paths in the lock )
-      # to detect `hasTest' and `hasPrepare' fields ( it's smart enough to
-      # find the `package.json' on its own; you only need to inject it if you
-      # are trying to override.
-      simpleArgs = {
-        inherit ident version key;
-        entries.plock = ent // { pkeys = [path]; };
-      };
-      # This gets merged with the real key.
-      # We mark `linkFrom' and `linkTo' to avoid loss of detail.
-      linkedArgs = {
-        inherit ident version key;
-        entries.plock = ( removeAttrs ent ["resolved" "link"]) // {
-          links = [{ from = ent.resolved; to = path; }];
-        };
-      };
-    in { ${key} = if ent.link or false then linkedArgs else simpleArgs; };
-
-    mergeOne = a: b: let
-      links = ( a.entries.plock.links or [] ) ++
-              ( b.entries.plock.links or [] );
-      # This is just in case the linked entry is before the real entry.
-      pkeys = ( a.entries.plock.pkeys or [] ) ++
-              ( b.entries.plock.pkeys or [] );
-      stage1 = lib.recursiveUpdate a b;
-      plock  = stage1.entries.plock // ( {
-        inherit pkeys;
-      } // ( lib.optionalAttrs ( links != [] ) { inherit links; } ) );
-    in stage1 // { entries = stage1.entries // { inherit plock; }; };
-
-    mergeInstances = key: instances: let
-      merged = builtins.foldl' mergeOne ( builtins.head instances )
-                                        ( builtins.tail instances );
-      ectx =
-        builtins.addErrorContext "metaSetFromPlockV3:mergeInstances: ${key}"
-                                  merged;
-      me = metaEntFromPlockV3 { inherit lockDir lockfileVersion flocoConfig; }
-                              ( builtins.head merged.entries.plock.pkeys )
-                              ( builtins.deepSeq ectx merged );
-    in me;
-
-    ents = lib.mapAttrsToList mkOne plock.packages;
-    metaEntries = builtins.zipAttrsWith mergeInstances ents;
-
-    members = metaEntries // {
-      __meta = {
-        __serial = false;
-        rootKey = "${plock.name}/${plock.version}";
-        inherit pjs plock lockDir;
-        fromType = "package-lock.json(v${toString lockfileVersion})";
-      };
-    };
-    base = lib.libmeta.mkMetaSet members;
-    ex = let
-      ovs = flocoConfig.metaSetOverlays or [];
-      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then base.__extend ov else base;
-  in ex;
+  # Identify Lifecycle "For Any"
+  identifyLifecycle = x: let
+    fromFi    = throw "identifyLifecycleType: TODO from fetchInfo";
+    plent'    = ( getMetaFiles x ).plock or x;
+    fromPlent = lib.libplock.identifyPlentLifecycleV3 plent';
+  in if builtins.isString x then x else
+     if yt.NpmLock.package.check plent' then fromPlent else
+     if yt.FlocoFetch.fetched.check x then x.ltype else
+     if yt.FlocoFetch.fetch_info_floco.check x then fromFi else
+     throw ( "(identifyLifecycle): cannot infer lifecycle type from '"
+             "${lib.generators.toPretty { allowPrettyValues = true; } x}'" );
 
 
 # ---------------------------------------------------------------------------- #
@@ -475,7 +231,7 @@
   # For tarballs we know there's no build, but aside from that we don't
   # make assumptions here.
   metaEntIsSimple = {
-    hasBuild         ? ( attrs.fetchInfo.type or null ) != "tarball"
+    hasBuild         ? attrs.ltype != "file"
   , hasInstallScript ? false
   , hasPrepare       ? false
   , hasBin           ? false
@@ -499,31 +255,29 @@ in {
   inherit
     metaEntFromSerial
     metaSetFromSerial
-
-    metaEntFromPlockV3
-    metaSetFromPlockV3
-
-    metaEntPlockGapsFromPjs
-    metaEntAddPlockGapsFromPjs
-    metaEntUpPlockGapsFromPjs
-    metaEntExtendPlockGapsFromPjs
-
-    metaEntFromPlockSubtype'
-    metaEntFromPlockSubtype
-    metaEntFromPlockSubtypePure
-    metaEntFromPlockSubtypeImpure
-    metaEntAddFromPlockSubtype
-    metaEntUpFromPlockSubtype
-    metaEntExtendFromPlockSubtype
-    metaEntMergeFromPlockSubtype
-
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'
   ;
 
   inherit
-    discrPlentV3
-    fetchInfoFromPlockV3'
+    entHasStageScript
+    entHasPrepareScript
+    entHasInstallScript
+    entHasTestScript
+    entHasPackScript
+    entHasBuildScript
+    entHasPublishScript
+    entHasDepScript
+  ;
+
+  inherit
+    identifyLifecycle
+    identifyMetaEntFetcherFamily
+  ;
+
+  inherit
+    getMetaFiles
+    getScripts
   ;
 }
 

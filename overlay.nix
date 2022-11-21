@@ -105,7 +105,7 @@ final: prev: let
 
 in {
 
-  # FIXME: This needs to get resolved is a cleaner way.
+  # TODO: This needs to get resolved is a cleaner way.
   # Nixpkgs has a major breaking change to `meta' fields that puts me in
   # a nasty spot... since I have a shitload of custom `meta' fields.
   config = prev.config // { checkMeta = false; };
@@ -143,7 +143,7 @@ in {
     python = prev.python3;
   } ./pkgs/build-support/buildGyp.nix;
 
-  # FIXME: the alignment with `buildGyp' is bad.
+  # TODO: the alignment with `buildGyp' is bad.
   genericInstall = callPackageWith {
     flocoConfig = final.flocoConfig;
     impure      = final.flocoConfig.enableImpureMeta;
