@@ -625,13 +625,13 @@
   # I used a naive regex to avoid deep recursion; but since I anticipate that
   # this is going to be slow now it might be work trying.
   #
-  # FIXME: use a fixed point to perform recursion and memoize lookups in
+  # TODO: use a fixed point to perform recursion and memoize lookups in
   # the `scope' attrsets; this gives you the lazy lookup behavior that you
   # actually set out to accomplish while still handling the relevant edge case.
   # This routine's current scope creation routine is useful for other
   # applications though and is worth saving as a standalone library function.
   #
-  # FIXME: another optimization may be to split the path-names first and
+  # TODO: another optimization may be to split the path-names first and
   # possibly use `builtins.groupBy' to get a structure similar to the V1 lock.
   pinVersionsFromPlockV3 = { plock }: let
 

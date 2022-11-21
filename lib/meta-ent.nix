@@ -221,27 +221,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # "Lifecycle Type" indicating the category of `pacote'/NPM source tree
-  # as it relates to the execution of lifecycle scripts.
-  # For example, NPM will run `build', `prepare', and `prepack' scripts for
-  # local paths and `git' "ltypes", but only runs `install' scripts
-  # for tarballs.
-  # Because we use a variety of backends to perform fetching, it would be
-  # inappropriate to call these "fetcher types" or "source tree types" like
-  # NPM and `pacote' do - so instead we highlight that they explicitly effect
-  # the execution of lifecycle scripts in our builders.
-  #
-  # We do not refer to them as "source types" or "fetcher types", since this
-  # would be confusing to users and maintainers in relation to the flocoFetch
-  # "fetcher families" ( "git", "path", and "file" ), as well as Nix's
-  # "tree types" ( "git", "github", "path", "file", "tarball", etc ).
-  #
-  # These names and categories are all closesly related and frequently overlap,
-  # but the distinctions between them are important depending on their context.
-
-
-# ---------------------------------------------------------------------------- #
-
   # NOTE: the main difference here in terms of detection is that `resolved' for
   # dir/link entries will be an absolute path.
   # Aside from that we just have extra fields ( `NpmLock.Structs.pkg_*' types
@@ -271,29 +250,6 @@
      if yt.FlocoFetch.fetch_info_floco.check x then fromFi else
      throw ( "(identifyLifecycle): cannot infer lifecycle type from '"
              "${lib.generators.toPretty { allowPrettyValues = true; } x}'" );
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: this needs to be organized by command
-  metaEntFromLifecycleStrict' = lib.matchLam {
-    git = {
-      lifecycle.pack    = false;  # effectively an alias of "build"/"dist"
-      lifecycle.install = true;   # effectively an alias of "compile"
-      lifecycle.prepare = true;   # effectively an alias of "setup"
-    };
-    link = {
-      lifecycle.pack    = true;
-      lifecycle.install = true;
-      lifecycle.prepare = true;
-    };
-    dir = {
-      lifecycle.pack       = true;  # Runs `prepare'
-      lifecycle.install    = true;
-      lifecycle.prepublish = true;
-      # NO PREPARE, that is only run for links.
-    };
-  };
 
 
 # ---------------------------------------------------------------------------- #

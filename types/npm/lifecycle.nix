@@ -22,6 +22,8 @@ in {
   Enums.source_type =
     yt.enum "npm:lifecycle:source_type" nlc._source_types;
 
+  Enums.ltype = yt.NpmLifecycle.Enums.source_type;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -41,7 +43,7 @@ in {
     "install"
     "prepare"  # NOTE: YES, "postprepare" is a thing.
     "pack"     # NOTE: there is no `pack' hook, which is a builtin routine.
-    "publish"
+    "publish"  # XXX: "prepublish" hook has nothing to do with this event...
     "restart"
     "start"
     "stop"
@@ -84,15 +86,39 @@ in {
   # Soooo if you're doing local dev, and you use `file:../<PATH>' descriptors
   # then you're probably going to use `prepublish' to run your "build" phase.
   _special_hooks = [
-    "prepare" "prepublish" "prepublishOnly" "prepack" "postpack"
+    "prepublish"      # see note above. the name of this hook is a lie.
+    "prepublishOnly"  # the "real" `prepublish' hook. see note above.
+    "prepack"   # only runs for `npm pack' and `npm publish'.
+    # `prepare' is the weird one. It is used for most commands, but different
+    # commands run `(pre|post)pack' for `npm (pack|publish)', or
+    # `(pre|post)prepare' for `npm (ci|install)', and
+    # ( TODO: confirm this, usure ) /from what I can tell/ they don't run any
+    # hooks for `npm (rebuild|cache_add|diff)'.
+    "prepare"
+    "postpack"  # only runs for `npm pack' and `npm publish'.
   ];
 
   Enums.special_hooks = let
     cond = x: builtins.elem x nlc._special_hooks;
   in yt.restrict "special" cond nlc.Enums.hook;
 
+
+  # This list is used by helper routines in `[[file:../lib/events.nix]]' to skip
+  # checking for edge cases when processing events for a given `ltype'.
+  # Values in this list should indicate "this event has a special condition for
+  # <LTYPE> which skips or modifies the default process".
+  # The `_special_hooks' list is a more appropriate place to mark
+  # "general oddballs" and edge cases that don't relate to `ltype'.
   _special_events = [
-    "prepublish"
+    "install"  # skips `prepublish' for `git'. NOTE: applies to `ci' command too
+    "rebuild"  # only runs `prepare' for `link'.
+
+    # NOTE: this one is weird but not relevant to `ltype' processing.
+    # It's not a `hook', so I'm documenting it here.
+    # # Does not run `prepublish', runs `prepublishOnly' instead...
+    # # Hook order is abnormal.
+    # # skips `prepare' if `--dry-run' was given, but we have no equivalent.
+    # "publish"
   ];
 
 
@@ -121,23 +147,30 @@ in {
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: I think you this record conflates commands and events.
+  # I wrote it a long time ago and wasn't as aware of how events and commands
+  # were distinct; in fairness to "past me", you try reading the NPM docs and
+  # see how well you do.
+
   # Command hooks, listed in order.
 
   # Each attribute is an `npm <ATTR>' command, spaces are handled camelCase.
   _command_hooks = {
 
+    # TODO: does `(pre|post)prepare' run?
     cache_add = ["prepare"];
 
     ci = [
       "preinstall"
       "install"
       "postinstall"
-      "prepublish"    # has `devDependencies' available. This is legacy nonsense
+      "prepublish"    # Does not run for `git'. Allows `devDependencies'.
       "preprepare"
       "prepare"
       "postprepare"
     ];
 
+    # TODO: does `(pre|post)prepare' run?
     diff = ["prepare"];
 
     # identical to  CI
@@ -145,13 +178,13 @@ in {
       "preinstall"
       "install"
       "postinstall"
-      "prepublish"
+      "prepublish"   # Does not run for `git'. Allows `devDependencies'.
       "preprepare"
       "prepare"
       "postprepare"
     ];
 
-    pack = ["prepack" "prepare" "postpack"];
+    pack = ["prepack" "prepare" /* NPM emits tarball */ "postpack"];
 
     # XXX: `publish' doesn't run `prepublish' ... because "reasons".
     # No but seriously it doesn't.
@@ -170,7 +203,8 @@ in {
       "preinstall"
       "install"
       "postinstall"
-      "prepare"      # Only run if CWD is a symlink
+      # TODO: does `(pre|post)prepare' run?
+      "prepare"      # only for `link'
     ];
 
     restart = ["prerestart" "restart" "postrestart"];
@@ -180,6 +214,11 @@ in {
     version = ["preversion" "version" "postversion"];
   };
 
+  # TODO: the not below is old and it is unclear about which "command" is being
+  # discussed here.
+  # Reread the docs and move the relevant info into inline comments in the maps
+  # defined above.
+  #
   # For Git Deps ( based on `pacote' and `npm' implementation ):
   #   Only `install' + `prepare' is run.
   #   `pre/post-pack' is NOT run - those only run for `npm (pack|publish)'

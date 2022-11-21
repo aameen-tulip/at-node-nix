@@ -77,7 +77,7 @@
   # It is recommended that you pass `npmSys', `hostPlatform', or `system' for us
   # to try and derive.
   , skipUnsupported ? npmSys != null
-  # FIXME: handle `engines'?
+  # TODO: handle `engines'?
   , npmSys ? lib.getNpmSys' args
   # Filter out usupported systems. Use "host" platform.
   # The user is also free to pass arbitrary conditionals in here if they like.

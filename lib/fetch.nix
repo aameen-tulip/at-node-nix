@@ -33,7 +33,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: don't require `type', just use it as one of many fields that can be
+  # TODO: don't require `type', just use it as one of many fields that can be
   # used to infer.
   identifyFetchInfoFetcherFamily = { type, ... } @ fetchInfo:
     if builtins.elem type ["git" "github" "sourcehut"] then "git" else
