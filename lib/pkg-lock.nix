@@ -399,9 +399,7 @@
         inherit pure ifd typecheck;
       } { inherit lockDir; } { inherit pkey; plent = args; };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
-      // ( lib.optionalAttrs ( plent ? gypfile ) { inherit (plent) gypfile; } )
-      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } )
-      // ( lib.optionalAttrs ( plent ? scripts ) { inherit (plent) scripts; } );
+      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } );
     meta = lib.libmeta.mkMetaEnt baseFields;
     ex = let
       ovs = flocoConfig.metaEntOverlays or [];

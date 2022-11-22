@@ -7,6 +7,67 @@
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   pi = yt.PkgInfo;
 
+  defaultFlocoEnv = {
+    allowedPaths = [];
+    pure         = lib.inPureEvalMode;
+    ifd          = true;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: move to `ak-nix'
+  isAllowedPath = { allowedPaths }: path:
+    ( builtins.any ( allow: lib.hasPrefix allow path ) allowedPaths );
+
+  # `getContext' returns `{ <PATH> = { allOutputs = <BOOL>; }; }' for `*.drv',
+  # `{ <PATH> = { outputs = ["out" ...]; }; }' for derivation outputs,
+  # and `{ <PATH> = { path = <STRING>; }; }` for builtin outputs.
+  # We care about the second form of path.
+  readNeedsIFD = pathlike: let
+    str = if builtins.isString pathlike then pathlike else
+          pathlike.outPath or ( toString pathlike );
+    ctx      = builtins.attrValues ( builtins.getContext str );
+    hasOP    = builtins.any ( x: x ? outputs ) ctx;
+    forAttrs = ( pathlike ? drvPath ) ||
+               ( ( ( pathlike ? outPath ) || ( pathlike ? __toString ) ) &&
+                 hasOP );
+  in if builtins.isAttrs pathlike then forAttrs else hasOP;
+
+
+  readNeedsImpureStrict = pathlike: let
+    str = if builtins.isString pathlike then pathlike else
+          pathlike.outPath or ( toString pathlike );
+    ctx      = builtins.getContext str;
+    forAttrs = ( ( pathlike.drvPath or pathlike.outPath or null ) != null ) ||
+               ( ctx != {} );
+  in if builtins.isPath pathlike then ! ( lib.isStorePath pathlike ) else
+     if builtins.isAttrs pathlike then forAttrs else
+     ( ctx != {} );
+
+
+  readNeedsImpureExcept = { allowedPaths }: pathlike: let
+    str = toString pathlike;
+  in ( readNeedsImpureStrict pathlike ) &&
+     ( ! ( isAllowedPath { inherit allowedPaths; } ) );
+
+
+  readAllowed' = { pure, ifd, allowedPaths }: pathlike: let
+    isImpure       = readNeedsImpureExcept { inherit allowedPaths; } pathlike;
+    inAllowedPaths = isAllowedPath { inherit allowedPaths; };
+    needsIFD       = readNeedsIFD pathlike;
+    pureOk         = ! ( pure && isImpure );
+    ifdOk          = ifd || ( ! ifd );
+  in {
+    ok = pureOk && ifdOk;
+    inherit isImpure inAllowedPaths needsIFD;
+    rules = { inherit pure ifd allowedPaths; };
+  };
+
+  readAllowed = { pure, ifd, allowedPaths ? [] }: pathlike:
+    ( readAllowed' { inherit pure ifd allowedPaths; } pathlike ).ok;
+
+
 # ---------------------------------------------------------------------------- #
 
   # Typeclass for Package/Module "Scope" name.
@@ -240,17 +301,18 @@
   # Reads a JSON file from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readJSONFromPath' = { pure, ifd }: pathlike: let
+  readJSONFromPath' = { allowedPaths, pure , ifd }: pathlike: let
     p    = if pathlike ? __toString then toString pathlike else pathlike;
     pjs  = lib.importJSON p;
     msgD = "readPjsFromPath: Cannot read path '${p}' when `IFD' is disable.";
     forD = if ifd then pjs else throw msgD;
     msgP = "readPjsFromPath: Cannot read unlocked path '${p}' in pure mode.";
     forP = if ( ! pure ) || ( lib.isStorePath p ) then pjs else throw msgP;
-  in if ( lib.isDerivation pathlike ) then forD else forP;
+  in if builtins.any ( allow: lib.hasPrefix allow p ) allowedPaths then pjs else
+     if ( lib.isDerivation pathlike ) then forD else forP;
 
   readJSONFromPath = let
-    inner = readPjsFromPath' { pure = lib.inPureEvalMode; ifd = true; };
+    inner = readPjsFromPath' defaultFlocoEnv;
   in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
 
 
@@ -259,11 +321,11 @@
   # Reads a `package.json' from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readPjsFromPath' = { pure, ifd }: pathlike:
-    readJSONFromPath' { inherit pure ifd; } ( pjsPath pathlike );
+  readPjsFromPath' = { pure, ifd, allowedPaths } @ fenv: pathlike:
+    readJSONFromPath' fenv ( pjsPath pathlike );
 
   readPjsFromPath = let
-    inner = readPjsFromPath' { pure = lib.inPureEvalMode; ifd = true; };
+    inner = readPjsFromPath' defaultFlocoEnv;
   in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
 
 
@@ -273,12 +335,12 @@
   # If `x' is already the contetns of a `package.json' this is a no-op.
   # Otherwise we will read/import from the path representation of `x', accepting
   # a path to `package.json' directly, or a dir containing `package.json'.
-  coercePjs' = { pure, ifd }: x: let
+  coercePjs' = { pure, ifd, allowedPaths } @ fenv: x: let
     isPjs = ( builtins.isAttrs x ) && ( ! ( yt.Typeclasses.pathlike.check x ) );
-  in if isPjs then x else readPjsFromPath' { inherit pure ifd; } x;
+  in if isPjs then x else readPjsFromPath' fenv x;
 
   coercePjs = let
-    inner = coercePjs' { pure = lib.inPureEvalMode; ifd = true; };
+    inner = coercePjs' defaultFlocoEnv;
     argt  = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
   in yt.defun [argt ( yt.attrs yt.any )] inner;
 
@@ -292,7 +354,7 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pjsHasBin' = { pure, ifd }: {
+  pjsHasBin' = { pure, ifd, allowedPaths } @ fenv: {
     __functionMeta = {
       name = "pjsHasBin";
       from = "at-node-nix#lib.libpkginfo";
@@ -313,7 +375,7 @@
     __innerFunction = pjs: ( pjs.bin or pjs.directories.bin or {} ) != {};
     __processArgs = self: x: let
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-    in x.pjs or coercePjs' { inherit pure ifd; };
+    in x.pjs or coercePjs' fenv;
     __functor = self: x: let
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
       pjs = self.__processArgs self x;
@@ -323,7 +385,7 @@
     in ec rsl;
   };
 
-  pjsHasBin = { pure = lib.inPureEvalMode; ifd = true; };
+  pjsHasBin = pjsHasBin' defaultFlocoEnv;
 
 
 # ---------------------------------------------------------------------------- #
@@ -356,22 +418,27 @@
   # caller omits the `ident'/`bname' args.
   pjsBinPairs' = let
     loc = "at-node-nix#lib.libpkginfo.pjsBinPairs'";
-  in { ifd ? true, pure ? lib.inPureEvalMode }: {
+  in { ifd, pure, allowedPaths } @ fenv: {
     bin         ? null
   , directories ? {}
   , bname       ? baseNameOf ident
-  , ident ?
-    if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
-    if pure && ( ! ( lib.isStorePath src ) )
-    then throw "(${loc}): Cannot read non-store path in pure mode."
-    else ( lib.importJSON ( src + "/package.json" ) ).name
-  , src ? throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
-                  "must pass `src' as an arg." )
+  , ident       ? ( coercePjs' fenv src ).name
+  , src ?
+    throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
+            "must pass `src' as an arg." )
   } @ pjs: let
     stripDS = lib.yank "\\./(.*)";
   in if builtins.isAttrs bin  then builtins.mapAttrs ( _: stripDS ) bin else
      if builtins.isString bin then { ${bname} = stripDS bin; } else
      pjsBinPairsFromDir { inherit src directories; };
+
+  # TODO: make `toError' for allowed read checker
+  #  if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
+  #  if pure && ( ! ( ( lib.isStorePath src ) || ( isAllowedPath allowedPaths src ) )
+  #  then throw "(${loc}): Cannot read non-store path in pure mode."
+  #  else < READ IT >
+
+  pjsBinPairs = pjsBinPairs' defaultFlocoEnv;
 
 
 # ---------------------------------------------------------------------------- #
@@ -419,11 +486,8 @@
   # package entry from a `package-lock.json' to see if it has an install script.
   # It is best to use this with a path or `package-lock.json' entry, since this
   # will fail to detect `node-gyp' installs with a regular `package.json'.
-  pjsHasInstallScript' = { pure ? lib.inPureEvalMode }: x: let
-    # TODO: path might be pure, but might not. Check
-    # I would normally force the more restrictive assumption but shit that's
-    # actually pure in real builds currently depends on this.
-    pjs      = coercePjs x;
+  pjsHasInstallScript' = { pure, ifd }: x: let
+    pjs      = coercePjs' { inherit pure ifd; } x;
     explicit = pjs.hasInstallScript or false;  # for lock entries
     scripted = ( pjs ? scripts ) && builtins.any ( a: pjs.scripts ? a ) [
       "preinstall" "install" "postinstall"
@@ -434,7 +498,11 @@
     hasGyp = isDir && ( builtins.pathExists ( asPath + "/binding.gyp" ) );
   in explicit || scripted || hasGyp;
 
-  pjsHasInstallScript = pjsHasInstallScript' {};
+
+  pjsHasInstallScript = pjsHasInstallScript' {
+    pure = lib.inPureEvalMode;
+    ifd  = true;
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -497,7 +565,7 @@ in {
   # Normalize fields
   inherit
     pjsBinPairsFromDir
-    pjsBinPairs'
+    pjsBinPairs' pjsBinPairs
   ;
 
   # Names
@@ -524,6 +592,13 @@ in {
     hasBuildFromScripts
     hasPublishFromScripts
     hasDepScriptFromScripts
+  ;
+
+  inherit
+    isAllowedPath
+    readNeedsIFD
+    readNeedsImpureStrict readNeedsImpureExcept
+    readAllowed' readAllowed
   ;
 
 }

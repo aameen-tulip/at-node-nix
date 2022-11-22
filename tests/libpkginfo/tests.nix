@@ -72,7 +72,7 @@
 # ---------------------------------------------------------------------------- #
 
     testPjsBinPairs_0 = {
-      expr = lib.libpkginfo.pjsBinPairs' {} {
+      expr = lib.libpkginfo.pjsBinPairs {
         src             = ./data;
         directories.bin = "bin";
       };
@@ -85,7 +85,7 @@
     };
 
     testPjsBinPairs_1 = {
-      expr = lib.libpkginfo.pjsBinPairs' {} {
+      expr = lib.libpkginfo.pjsBinPairs {
         bin.foo = "./hey.js";
         bin.bar = "./bin/bar.js";
       };
@@ -93,7 +93,7 @@
     };
 
     testPjsBinPairs_2 = {
-      expr = lib.libpkginfo.pjsBinPairs' {} {
+      expr = lib.libpkginfo.pjsBinPairs {
         bname = "quux";
         bin   = "./bin/bar.js";
       };
@@ -103,7 +103,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    # TODO: actually test if `pure' and `ifd' work.
+    # TODO: test if `pure' and `ifd' work in a wider variety of cases.
     testCoercePjs_0 = let
       pjs = ( lib.libpkginfo.coercePjs ../pkg-set/data ).name;
     in {
