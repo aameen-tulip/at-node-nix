@@ -21,7 +21,7 @@
     testPkgJsonForPath = let
       pwd = ( toString ./. );
     in {
-      expr = map lib.libpkginfo.pjsForPath [
+      expr = map lib.libpkginfo.pjsPath [
         "" "./" "." ./.
         ( toString ./. )
         ( ( toString ./. ) + "/" )
@@ -32,8 +32,8 @@
       ];
       expected = [
         "package.json" "package.json" "package.json"
-        "${pwd}/package.json" "${pwd}/package.json" "${pwd}/package.json"
-        "package.json" "package.json" "${pwd}/package.json"
+        ./package.json "${pwd}/package.json" "${pwd}/package.json"
+        "package.json" "./package.json" "${pwd}/package.json"
         "${pwd}/package.json"
       ];
     };
@@ -100,6 +100,19 @@
         bin   = "./bin/bar.js";
       };
       expected.quux = "bin/bar.js";
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    # TODO: actually test if `pure' and `ifd' work.
+    testCoercePjs_0 = let
+      pjs = ( lib.libpkginfo.coercePjs ../pkg-set/data ).name;
+    in {
+      expr     = builtins.tryEval pjs;
+      expected =
+        if lib.inPureEvalMode then { success = false; value = false; } else
+        { success = true; value = "ideal-tree-plock-v2-test"; };
     };
 
 

@@ -371,7 +371,7 @@ This process is somewhat slow, but it improves performance for your "real build"
 by allowing Nix's builtin libarchive routine.
 
 This process can be skipped by setting '--no-256' or '-S'.
-These results of these checks are "good forever", and don't need to be rerun.
+The results of these checks are "good forever", and don't need to be rerun.
 Nix will store the results of these tests in the Nix store until the garbage
 collector cleans them, so you after your first batch it's downhill from there.
 EOF
@@ -466,8 +466,9 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
       );
       lk  = builtins.getFlake flakeRef;
       rev = if lk.sourceInfo ? rev then "/" + lk.sourceInfo.rev else "";
-      fr  = if lib.isStorePath flakeRef then "github:at-node-nix${rev}" else
-            flakeRef;
+      fr  = if lib.isStorePath flakeRef
+            then "github:aameen-tulip/at-node-nix${rev}"
+            else flakeRef;
       exl = ( lib.optional ( exNix != "" ) "EXTRA_NIX_FLAGS=${exNix}" ) ++
             ( lib.optional ( exNpm != "" ) "EXTRA_NPM_FLAGS=${exNpm}" ) ++
             ["nix run --impure ${fr}#genMeta -- ${shellArgs}"];

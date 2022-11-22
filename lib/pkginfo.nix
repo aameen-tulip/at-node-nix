@@ -198,7 +198,7 @@
   in builtins.concatLists ( map processPath packages );
 
   # Given a path to a project dir or `package.json', return list of ws paths.
-  readWorkspacePackages = p: let pjp = pjsForPath p; in
+  readWorkspacePackages = p: let pjp = pjsPath p; in
     workspacePackages ( dirOf pjp ) ( lib.importJSON' pjp );
 
   # Make workspace paths absolute.
@@ -214,59 +214,68 @@
   # This is implemented naively, but allows use to directory names and filepaths
   # interchangeably to refer to projects.
   # This is analogous to Nix's `path/to/ --> path/to/default.nix' behavior.
-  pjsForPath = p: let
-    p' = builtins.unsafeDiscardStringContext ( toString p );
-    s  = lib.yankN 1 "(\\./)?(.*[^/]|.?)/?" p';
-  in if ( builtins.elem s ["" "."] ) then "package.json" else
-     if ( ( baseNameOf s ) == "package.json" ) then s else
-     "${s}/package.json";
+  #
+  # Context can be stripped if desired, be sure you understand what that means.
+  pjsPath' = { discardStringContext }: pathlike: let
+    p   = if builtins.isString pathlike then pathlike else toString pathlike;
+    sub = if builtins.isPath pathlike then pathlike + "/package.json" else
+          if lib.test ".*/" pathlike then pathlike + "package.json" else
+          pathlike + "/package.json";
+    rsl = if ( baseNameOf pathlike ) == "package.json" then p else
+          if ( dirOf pathlike ) == "." then "package.json" else sub;
+  in if discardStringContext then builtins.unsafeDiscardStringContext rsl
+                             else rsl;
 
-  # Reads a `package.json' after `pjsForPath' ( see docs above ).
-  readPjsFromPath = p: let
-    pjs = pjsForPath p;
-  in assert builtins.pathExists pjs;
-     lib.importJSON' pjs;
+  # We won't strip context by default.
+  pjsPath = let
+    inner = pjsPath' { discardStringContext = false; };
+    pstype = yt.either yt.string yt.Typeclasses.pathlike;
+  in yt.defun [pstype pstype] inner;
 
 
 # ---------------------------------------------------------------------------- #
 
-  # Like `pjsFromPath', except that if we don't find `package.json'
-  # initially, we will check two layers of subdirectories.
-  # This is intended to locate a `package.json' symlink which may exist in a
-  # `linkToPath' Drv such as:
-  #   /nix/store/XXXXXXXX...-source/@foo/bar/package.json
-  #
-  # With that use case in mind we sanity check that if we do search subdirs that
-  # we find EXACTLY ONE `package.json' file.
-  # This is to avoid "randomly" returning a `node_modules/baz/package.json' in
-  # a project directory.
-  #
-  # Additionally, if `x' already appears to be the result of `importJSON' then
-  # we just return `x'.
-  #
-  # NOTE: This does NOT handle paths to tarballs.
-  # Because this is a `lib' function, we don't use any system dependent
-  # derivations, because this would cause us to output a different instance of
-  # `lib' for each supported system.
-  # In the field, extending this function to add support for Tarballs is
-  # likely a good idea.
-  # XXX: You can actually do this using `builtins.fetch*' but adding additional
-  # conditionals to handle "is impure allowed?" or "can we find a SHA?" is a
-  # pain in the ass.
-  # This function already does a ton of heavy lifting.
-  coercePjs' = { pure, ifd }: x: let
-    isPjs = ( builtins.isAttrs x ) &&
-            ( ! ( ( x ? outPath ) || ( x ? __toString ) ) );
-    p'   = lib.coercePath x;
-    ps   = p' + "/package.json";
-    p    = if builtins.pathExists ps then ps else p';
+  # TODO: move to `ak-nix'
+
+  # Reads a JSON file from a pathlike input.
+  # This will enforce the `pure' and `ifd' settings indicated even if the
+  # runtime environment is more permissive.
+  readJSONFromPath' = { pure, ifd }: pathlike: let
+    p    = if pathlike ? __toString then toString pathlike else pathlike;
     pjs  = lib.importJSON p;
-    msgD = "coercePjs: Cannot read path '${p'}' when `ifd' is disable.";
+    msgD = "readPjsFromPath: Cannot read path '${p}' when `ifd' is disable.";
     forD = if ifd then pjs else throw msgD;
-    msgP = "coercePjs: Cannot read unlocked path '${p'}' in pure mode.";
-    forP = if ( ! pure ) || ( lib.isStorePath p' ) then pjs else throw msgP;
-  in if isPjs then x else
-     if ( lib.isDerivation x ) then forD else forP;
+    msgP = "readPjsFromPath: Cannot read unlocked path '${p}' in pure mode.";
+    forP = if ( ! pure ) || ( lib.isStorePath p ) then pjs else throw msgP;
+  in if ( lib.isDerivation pathlike ) then forD else forP;
+
+  readJSONFromPath = let
+    inner = readPjsFromPath' { pure = lib.inPureEvalMode; ifd = true; };
+  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Reads a `package.json' from a pathlike input.
+  # This will enforce the `pure' and `ifd' settings indicated even if the
+  # runtime environment is more permissive.
+  readPjsFromPath' = { pure, ifd }: pathlike:
+    readJSONFromPath' { inherit pure ifd; } ( pjsPath pathlike );
+
+  readPjsFromPath = let
+    inner = readPjsFromPath' { pure = lib.inPureEvalMode; ifd = true; };
+  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Converts an attrset or pathlike to an attrset with `package.json' contents.
+  # If `x' is already the contetns of a `package.json' this is a no-op.
+  # Otherwise we will read/import from the path representation of `x', accepting
+  # a path to `package.json' directly, or a dir containing `package.json'.
+  coercePjs' = { pure, ifd }: x: let
+    isPjs = ( builtins.isAttrs x ) && ( ! ( yt.Typeclasses.pathlike.check x ) );
+  in if isPjs then x else readPjsFromPath' { inherit pure ifd; } x;
 
   coercePjs = let
     inner = coercePjs' { pure = lib.inPureEvalMode; ifd = true; };
@@ -275,6 +284,8 @@
 
 
 # ---------------------------------------------------------------------------- #
+
+  # TODO: this functor should be generalized to an accessor and reused.
 
   # `packge.json' files can indicate that they have bins using either the
   # `bin' field ( a string or attrs ), or by specifying a relative path to
@@ -301,20 +312,8 @@
     };
     __innerFunction = pjs: ( pjs.bin or pjs.directories.bin or {} ) != {};
     __processArgs = self: x: let
-      loc      = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-      pjs'     = coercePjs x;
-      ifdMsg   = "(${loc}): Cannot read from derivation when `ifd = false'.";
-      pureMsg  = "(${loc}): Cannot read unlocked path when `pure = true'.";
-      fromIFD  = if ! ifd then throw ifdMsg else pjs';
-      fromRead = let
-        p = lib.coercePath x;
-      in if ( ! pure ) || ( lib.isStorePath p ) || ( ! ( lib.isAbspath p ) )
-         then pjs'
-         else throw pureMsg;
-      forAttrs =
-        if ! ( ( lib.isDerivation x ) || ( lib.isCoercibleToPath x ) ) then x
-        else if lib.isDerivation x then fromIFD else fromRead;
-    in x.pjs or ( if builtins.isAttrs x then forAttrs else fromRead );
+      loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+    in x.pjs or coercePjs' { inherit pure ifd; };
     __functor = self: x: let
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
       pjs = self.__processArgs self x;
@@ -324,7 +323,7 @@
     in ec rsl;
   };
 
-  pjsHasBin = {};
+  pjsHasBin = { pure = lib.inPureEvalMode; ifd = true; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -484,15 +483,15 @@ in {
   inherit
     rewriteDescriptors
     pjsHasInstallScript' pjsHasInstallScript
-    pjsHasBin' pjsHasBin
+    pjsHasBin'           pjsHasBin
   ;
 
   # `package.json' locators
   inherit
-    pjsForPath
-    readPjsFromPath
-    coercePjs'
-    coercePjs
+    readJSONFromPath' readJSONFromPath
+    pjsPath'          pjsPath
+    readPjsFromPath'  readPjsFromPath
+    coercePjs'        coercePjs
   ;
 
   # Normalize fields
