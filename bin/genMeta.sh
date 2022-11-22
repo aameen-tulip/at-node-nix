@@ -475,7 +475,7 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
       cmd = builtins.concatStringsSep " " exl;
     in "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
        "# Deserialze with:  lib.metaSetFromSerial\n" +
-       "# Regen with: ${cmd}";
+       "# Regen with: ${cmd}\n";
     out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
   in out
 '||advise_fail;
