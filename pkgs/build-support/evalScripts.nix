@@ -140,15 +140,18 @@ nativeBuildInputs = let
   in lib.unique ( given ++ ( lib.filter ( x: x != null ) defaults ) );
 
   passAsFile = let
-    condLen  = ( 1024 * 1024 ) <= ( builtins.stringLength nmDirCmd );
-    fromNmd  = if condLen && ( ! disablePassAsFile ) then ["nmDirCmd"] else [];
+    condLen  = s: ( 1024 * 1024 ) <= ( builtins.stringLength s );
+    fromNmd  = if ( condLen nmDirCmd ) && ( ! disablePassAsFile )
+               then ["nmDirCmd"] else [];
+    fromGNmd = if ( condLen globalNmDirCmd ) && ( ! disablePassAsFile )
+               then ["globalNmDirCmd"] else [];
     fromArgs = let
       msg = "evalScripts: disablePassAsFile is true, but args explicitly" +
             "contain a 'passAsFile' value.";
     in if ! ( disablePassAsFile && ( ( args.passAsFile or [] ) != [] ) )
        then args.passAsFile or []
        else throw msg;
-  in fromNmd ++ fromArgs;
+  in fromNmd ++ fromGNmd ++ fromArgs;
 
   postUnpack = ''
     export node_modules_path="$PWD/$sourceRoot/node_modules";

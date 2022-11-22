@@ -101,7 +101,7 @@
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
   , bin              ? {}
-  , hasBin           ? ( ent.bin or ent.directories.bin or {} ) != {}
+  , hasBin           ? lib.libpkginfo.pjsHasBin ent
   , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
@@ -231,11 +231,11 @@
   # For tarballs we know there's no build, but aside from that we don't
   # make assumptions here.
   metaEntIsSimple = {
-    hasBuild         ? attrs.ltype != "file"
-  , hasInstallScript ? false
-  , hasPrepare       ? false
-  , hasBin           ? false
-  , hasTest          ? false
+    hasBuild         ? ( attrs.ltype != "file" ) && ( entHasBuildScript attrs )
+  , hasInstallScript ? entHasInstallScript attrs
+  , hasPrepare       ? entHasPrepareScript attrs
+  , hasBin           ? lib.libpkginfo.pjsHasBin attrs
+  , hasTest          ? entHasTestScript attrs
   , ...
   } @ attrs: ! ( hasBuild || hasInstallScript || hasPrepare || hasBin );
 
