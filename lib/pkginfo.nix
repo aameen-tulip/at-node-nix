@@ -243,7 +243,7 @@
   readJSONFromPath' = { pure, ifd }: pathlike: let
     p    = if pathlike ? __toString then toString pathlike else pathlike;
     pjs  = lib.importJSON p;
-    msgD = "readPjsFromPath: Cannot read path '${p}' when `ifd' is disable.";
+    msgD = "readPjsFromPath: Cannot read path '${p}' when `IFD' is disable.";
     forD = if ifd then pjs else throw msgD;
     msgP = "readPjsFromPath: Cannot read unlocked path '${p}' in pure mode.";
     forP = if ( ! pure ) || ( lib.isStorePath p ) then pjs else throw msgP;

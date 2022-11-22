@@ -14,10 +14,8 @@
 
     # Confirm various type of path-likes produce paths to `package.json'.
     # Note that this function remains consistent with relative/absolute inputs.
-    # The "interesting" case here is tested first, which is how the empty string
-    # is handled, and how it differs from ".".
-    # This is a piece of implementation minutae, but I have a hunch that I'll
-    # be glad I tested this explicitly.
+    # Note that the "./<PATH>" prefixes will be retained, but not for
+    # "." and "./" - if you really give a shit you should write your own.
     testPkgJsonForPath = let
       pwd = ( toString ./. );
     in {
