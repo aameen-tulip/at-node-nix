@@ -247,7 +247,7 @@
     };
 
     # FIXME: make a real definiton.
-    package_json = yt.restrict "package.json" ( yt.attrs yt.any );
+    package_json = yt.restrict "package.json" ( _: true) ( yt.attrs yt.any );
 
   };  # End Structs
 

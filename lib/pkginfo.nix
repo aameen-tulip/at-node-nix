@@ -16,60 +16,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # TODO: move to `ak-nix'
-  isAllowedPath = { allowedPaths }: path:
-    ( builtins.any ( allow: lib.hasPrefix allow path ) allowedPaths );
-
-  # `getContext' returns `{ <PATH> = { allOutputs = <BOOL>; }; }' for `*.drv',
-  # `{ <PATH> = { outputs = ["out" ...]; }; }' for derivation outputs,
-  # and `{ <PATH> = { path = <STRING>; }; }` for builtin outputs.
-  # We care about the second form of path.
-  readNeedsIFD = pathlike: let
-    str = if builtins.isString pathlike then pathlike else
-          pathlike.outPath or ( toString pathlike );
-    ctx      = builtins.attrValues ( builtins.getContext str );
-    hasOP    = builtins.any ( x: x ? outputs ) ctx;
-    forAttrs = ( pathlike ? drvPath ) ||
-               ( ( ( pathlike ? outPath ) || ( pathlike ? __toString ) ) &&
-                 hasOP );
-  in if builtins.isAttrs pathlike then forAttrs else hasOP;
-
-
-  readNeedsImpureStrict = pathlike: let
-    str = if builtins.isString pathlike then pathlike else
-          pathlike.outPath or ( toString pathlike );
-    ctx      = builtins.getContext str;
-    forAttrs = ( ( pathlike.drvPath or pathlike.outPath or null ) != null ) ||
-               ( ctx != {} );
-  in if builtins.isPath pathlike then ! ( lib.isStorePath pathlike ) else
-     if builtins.isAttrs pathlike then forAttrs else
-     ( ctx != {} );
-
-
-  readNeedsImpureExcept = { allowedPaths }: pathlike: let
-    str = toString pathlike;
-  in ( readNeedsImpureStrict pathlike ) &&
-     ( ! ( isAllowedPath { inherit allowedPaths; } ) );
-
-
-  readAllowed' = { pure, ifd, allowedPaths }: pathlike: let
-    isImpure       = readNeedsImpureExcept { inherit allowedPaths; } pathlike;
-    inAllowedPaths = isAllowedPath { inherit allowedPaths; };
-    needsIFD       = readNeedsIFD pathlike;
-    pureOk         = ! ( pure && isImpure );
-    ifdOk          = ifd || ( ! ifd );
-  in {
-    ok = pureOk && ifdOk;
-    inherit isImpure inAllowedPaths needsIFD;
-    rules = { inherit pure ifd allowedPaths; };
-  };
-
-  readAllowed = { pure, ifd, allowedPaths ? [] }: pathlike:
-    ( readAllowed' { inherit pure ifd allowedPaths; } pathlike ).ok;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Typeclass for Package/Module "Scope" name.
   Scope = let
     coercibleSums = yt.sum {
@@ -592,13 +538,6 @@ in {
     hasBuildFromScripts
     hasPublishFromScripts
     hasDepScriptFromScripts
-  ;
-
-  inherit
-    isAllowedPath
-    readNeedsIFD
-    readNeedsImpureStrict readNeedsImpureExcept
-    readAllowed' readAllowed
   ;
 
 }
