@@ -10,6 +10,7 @@ final: prev: {
   Packument    = import ./packument.nix     { ytypes = final; };
   PkgInfo      = import ./pkginfo.nix       { ytypes = final; };
   FlocoFetch   = import ./fetched.nix       { ytypes = final; };
+  FlocoMeta    = import ./meta.nix          { ytypes = final; };
 }
 
 

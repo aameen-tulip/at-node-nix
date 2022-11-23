@@ -251,6 +251,34 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # `null' means we aren't sure.
+  # Input will be normalized to pairs.
+  # If `metaEnt' has `directories.bin' we may use IFD in helper routines.
+  metaEntBinPairs' = { pure, ifd, allowedPaths } @ fenv: ent: let
+      getBinPairs = lib.libpkginfo.pjsBinPairs' fenv;
+      emptyIsNone = ( lib.libmeta.metaWasPlock ent ) ||
+                    ( builtins.elem ent.entFromtype ["package.json" "raw"] );
+      keep  = {
+        ident           = true;
+        bin             = true;
+        directories.bin = true;
+        fetchInfo       = true;
+      };
+      comm  = builtins.intersectAttrs keep ( ent.__entries or ent );
+      asPjs = lib.libpkginfo.pjsBinPairs' fenv comm;
+      empty = ! ( ( comm ? bin ) || ( comm ? directories.bin ) );
+      src'  = if ( ( ent.fetchInfo.type or "file" ) == "file" ) ||
+                 ( ! ( ent ? sourceInfo.outPath ) )
+              then null
+              else { src = ent.sourceInfo.outPath; };
+    in if emptyIsNone && empty then {} else
+       if comm ? bin then getBinPairs comm else
+       if ( comm ? directories.bin ) && ( src' != null ) then getBinPairs src'
+                                                         else null;
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     metaEntFromSerial
@@ -278,6 +306,10 @@ in {
   inherit
     getMetaFiles
     getScripts
+  ;
+
+  inherit
+    metaEntBinPairs'
   ;
 }
 

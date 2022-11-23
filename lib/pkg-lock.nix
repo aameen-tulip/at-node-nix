@@ -268,7 +268,7 @@
           argt = yt.struct {
             lockDir = yt.FS.abspath;
             #pkey    = yt.FS.Strings.relpath;
-            pkey    = yt.NpmLock.plock_pkey;
+            pkey    = yt.NpmLock.pkey;
             plent   = yt.NpmLock.Structs.pkg_path_v3;
           };
           # FIXME: this routine lies about being "generic" but the generic

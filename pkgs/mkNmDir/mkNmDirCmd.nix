@@ -27,139 +27,7 @@
 , ...
 } @ globalArgs: let
 
-# ---------------------------------------------------------------------------- #
-
-  # Helpers to extract fields from tree entries.
-
-  hasBin = {
-    ignoreSubBins  ? false
-  , assumeHasBin   ? false
-  }: path: ent: let
-    forDepth = let
-      split   = builtins.split "node_modules" path;
-      nmDepth = builtins.length ( builtins.filter builtins.isList split );
-    in ignoreSubBins -> ( nmDepth < 2 );
-    _isEnt = x:
-      ( ( x._type or null ) == "metaEnt" ) || ( x ? ident ) ||
-      ( x ? entries ) || ( x ? hasBin ) || ( x ? bin );
-    isEnt = ( _isEnt ent ) || ( ( ent ? meta ) && ( _isEnt ent.meta ) );
-    isStr = ( builtins.isString ent ) || ( ! isEnt );
-    forStr = assumeHasBin;
-    forEnt = let
-      realEnt  = if ent ? meta then ent else {};
-      meta = realEnt.meta or ent;
-    in assumeHasBin ||
-       ( realEnt.hasBin or meta.hasBin or false ) ||
-       ( ( realEnt.bin or meta.bin or {} ) != {} );
-  in if isStr then forStr else forEnt;
-
-  # Return the `bin' attrset for an entry.
-  # XXX: Filter using `hasBin' first.
-  getBins = ent:
-    ent.bin or
-    ent.meta.bin or
-    ( throw "(mkNmDir:getBins) No bin attr in entry." );
-
-  getFromdir = ent:
-    if builtins.isString ent then assert lib.isStorePath ent; ent else
-    ent.outPath or
-    ent.prepared.outPath or
-    ent.installed.outPath or
-    ent.built.outPath or
-    ent.source.outPath;
-
-  # Get bindir where a path's bins should be installed.
-  # This will be the "parent" `node_modules/.bin' dir; for example:
-  #   "@foo/bar/node_modules/@baz/quux"
-  #   -->
-  #   "$node_modules_path/@foo/bar/node_modules/.bin".
-  # NOTE: this expects paths to be stripped beforehand.
-  # NOTE: In my humble opinion, installing bins to anything other than the top
-  # level `node_modules/' directory is a waste of effort for our builders.
-  # In NPM and Yarn these bins are created because `[pre|post]install' scripts
-  # and "recursive builds" ( workspaces ).
-  # Our Nix builders run install and build scripts in isolation these aren't
-  # necessary in the context of the build being executed.
-  # `mkNmDirCmd' has a flag `ignoreSubBins' which will skip those subdirs.
-  # With that in mind, this function is only called if we are creating subdirs.
-  # There are of course wonky edge cases where someone may be trying to do
-  # something evil with `resolve()' and `exec' using relative paths; but that's
-  # note something we're going to deal with out of the box ( those edge cases
-  # would break with global installs in other package managers as well ).
-  getBindir = path: let
-    parent  = lib.libplock.parentPath path;
-  in if builtins.elem parent ["" null] then "$node_modules_path/.bin" else
-     "$node_modules_path/${parent}/node_modules/.bin";
-
-  # Remove leading `node_modules/' component from an attrset's keys.
-  # If the first string doesn't have this prefix no stripping is performed.
-  stripLeadingNmDirs = x: let
-    inherit (builtins) listToAttrs attrValues mapAttrs;
-    rename = name: value: {
-      name = lib.libpath.stripComponents 1 name;
-      inherit value;
-    };
-  in listToAttrs ( attrValues ( mapAttrs rename x ) );
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Standard `addCmd' routines.
-  # These are used to add a module from directory `from' to directory `to'.
-  # The simplest example is:
-  #   addCmd = from: to: ''cp -rT ${from} "${to}";''
-  #   -->
-  #   cp -rT /nix/store/XXXX...-bar "$out/@foo/bar";
-  # NOTE: the `to' directory already exists when `addCmd' runs; this is why our
-  #       example uses `cp -rT' to copy "files in `from/' into `to/'" rather
-  #       than making `from' a subdir of `to'.
-
-  # Be sure to quote your args; JavaScript programmers were raised in barns and
-  # often put spaces in their directory names.
-  _mkNmDirLinkCmd = lndir: from: to:
-    ''${lndir}/bin/lndir -silent "${from}" "${to}";'';
-
-  # `--no-preserve=mode' is strictly required!
-  # Tarballs are packed by absolute neanderthals with USER set to `root'.
-  # I'm sure NPM developers will call this a "security feature"; but I truly
-  # insist that they do this to tarballs intentionally with a non-standard
-  # EPOCH time and a custom fork of Zip protocol, and bullshit custom headers
-  # in their archives explicitly to prevent competing tools from being able to
-  # unpack their artifacts.
-  _mkNmDirCopyCmd = coreutils: from: to:
-    ''${coreutils}/bin/cp -r --no-preserve=mode --reflink=auto -T "${from}" "${to}";'';
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Link a dir of binaries to bindir.
-  _mkNmDirAddBinWithDirCmd = coreutils: path: ent: let
-    bin = getBins ent;
-    from = assert ( builtins.attrNames bin ) == ["__DIR__"];
-           "$node_modules_path/${path}/${bin.__DIR__}";
-  in "  " + ''${coreutils}/bin/ln -srf "${from}"/* -t "${getBindir path}/";'';
-
-  # XXX: NPM has a bug, or at least an unspecificied edge case about how to
-  #      handle conflicting bin names.
-  # NPM has changed the behavior between patch versions in some cases, and
-  # it's not worth trying to align; instead we simply wipe out existing
-  # bins with whatever happens to be listed last.
-  # If this causes problems in your project, clean up your dependency list.
-  _mkNmDirAddBinNoDirsCmd = coreutils: path: ent: let
-    bin   = getBins ent;
-    bd    = getBindir path;
-    addOne = name: relPath: let
-      from = "$node_modules_path/${path}/${relPath}";
-      to   = "${bd}/${name}";
-    in "  " + ''${coreutils}/bin/ln -srf "${from}" "${to}";'';
-    cmds = builtins.attrValues ( builtins.mapAttrs addOne bin );
-  in builtins.concatStringsSep "\n" cmds;
-
-  # Handles either kind.
-  _mkNmDirAddBinCmd = coreutils: path: ent: let
-    ab = if ( getBins ent ) ? __DIR__ then _mkNmDirAddBinWithDirCmd
-                                      else _mkNmDirAddBinNoDirsCmd;
-  in ab coreutils path ent;
+  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim // lib.ytypes.PkgInfo;
 
 # ---------------------------------------------------------------------------- #
 
@@ -168,7 +36,9 @@
   # This is to make it less of a headache in the event you want to override a
   # symlinked command to be copying.
   _mkNmDirCmdWith = {
+  # A map of { "node_modules/@foo/bar" = <PKG-ENT>|<STORE-PATH>|<KEY>; }
     tree
+
   # A function taking `from' and `to' as arguments, which should produce a shell
   # command that "adds" ( copies/links ) module FROM source directory TO
   # module directory.
@@ -176,10 +46,17 @@
   # NOTE: Use absolute paths to utilities, this command may be nested as a
   # hook in other derivations and you are NOT guaranteed to have `stdenv'
   # default path available - not even `coreutils'.
-  , addCmd ? from: to:
-    ( if ( args ? copy ) && ( args.copy == true )
-      then _mkNmDirCopyCmd coreutils else _mkNmDirLinkCmd lndir
-    ) from to
+  # Your function may return a string, or list of strings ( allocation speed )
+  # expected to be concatenated with no delimiter between args.
+  , addCmd ? ( from: to: ["pjsAddMod \"" from "\" \"" to "\";"] )
+  # Same deal as `addCmd' but for handling bin links.
+  # This is exposed in case you need to do something wonky like create wrapper
+  # scripts; but I think it's unlikely that you'll need to.
+  # Ex:  pjsAddBin "./unpacked/bin/quux" "$out/bin/quux"
+  # Ex:  pjsAddBin "./unpacked/bin/quux" "$out/bin"
+  # Ex:  pjsAddBin "./unpacked" "$out/bin"
+  , addBinCmd ? ( from: to: ["installBinsNm \"" from "\" \"" to "\";"] )
+
   # Only handle top level `node_modules/.bin` dir.
   # This is what you want if  you're only using isolated Nix builders.
   # If you're creating an install script for use outside of Nix and you want
@@ -193,88 +70,77 @@
   # `bin.__DIR__' entries.
   # NOTE: We do not process `directories.bin' - you need to normalize your tree
   # fields using `libpkginfo' before calling this.
-  , handleBindir ? true
-  , assumeHasBin ? false
-  # Same deal as `addCmd' but for handling bin links.
-  # This is exposed in case you need to do something wonky like create wrapper
-  # scripts; but I think it's unlikely that you'll need to.
-  , addBinCmd ? path: ent: let
-      base = if handleBindir then _mkNmDirAddBinCmd       coreutils path ent
-                             else _mkNmDirAddBinNoDirsCmd coreutils path ent;
-      forCopy = ''
-        ${base}
-        _NM_FIXUP_BIN_DIRS+=( "${getBindir path}" );
-      '';
-    in if args.copy or false then forCopy else base
+  , handleBindir ? true  # FIXME: this broke migrating to `pjsUtils'
+  , assumeHasBin ? true
+
   # Hooks
   , preNmDir  ? ""
   , postNmDir ? ""
   # Input Drvs
-  , coreutils ? globalArgs.coreutils
-  , lndir     ? globalArgs.lndir
+  , coreutils     ? globalArgs.coreutils
+  , lndir         ? globalArgs.lndir
+  , flocoPackages ? {}
+  , flocoFetch
+  , flocoUnpack
+  # Floco Env
+  , pure
+  , ifd
+  , allowedPaths
   , ...
-  } @ args:
-  # You can't use the `copy' arg AND explicitly set `addCmd'.
-  assert ( args ? copy ) -> ! ( args ? addCmd ); let
+  } @ args: let
 
-    tree' = let
-      # Symlinks to external directories are copied to their destination.
-      # We do not want out of tree projects to crash in sandboxed builds.
-      dropExt = lib.filterAttrs ( k: _: lib.hasPrefix "node_modules/" k )
-                                tree;
-      doStrip = dropExt != {};
-    in if doStrip then stripLeadingNmDirs dropExt else dropExt;
+    fenv = { inherit pure ifd allowedPaths; };
 
-    haveBin = lib.filterAttrs ( hasBin {
-      inherit assumeHasBin ignoreSubBins;
-    } ) tree';
+    # FIXME: you did `binPairs' in `haveBin' and you opened up a real can of
+    # worms by possibly coercing PJS from tarballs in `lib'.
+    # Change it to actually `hasBin' and don't fuck with IFD for now.
+    # Do IFD as an optimization later.
 
-    # Create directories in groups of 5 at time using `mkdir'.
-    # We cannot just dump all of them on the CLI because we'll blow it out; but
-    # this essentially behaves like `xargs' to avoid long line limit.
-    mkdirs = dirs: let
-      dirs' = ["$node_modules_path"] ++
-              ( builtins.sort ( a: b: a < b ) ( lib.unique dirs ) );
-      # Use a `fold' to group dirs in 5s.
-      chunk = acc: dir: let
-        nl  = {
-          i = 0;
-          cmd = "${acc.cmd};\n  " + ''${coreutils}/bin/mkdir -p "${dir}"'';
-        };
-        cnt = { i = acc.i + 1; cmd = ''${acc.cmd} "${dir}"''; };
-      in if 5 <= acc.i then nl else cnt;
-      start = { i = 0; cmd = "  ${coreutils}/bin/mkdir -p"; };
-    in ( builtins.foldl' chunk start dirs' ).cmd + ";";
+    # Accepts an attrset with `{ bin = { "foo" = "./bar/quux.js"; } }' pairs, or
+    # a pathlike string, in which case we defer to build time checking.
+    # If `assumeHasBin = false' we will not perform build time checks, and the
+    # module will not have bins installed ( if it defined any ).
+    haveBin = let
+      hasBin = _: from: let
+        checkPjs = lib.libpkginfo.pjsHasBin' { inherit pure ifd allowedPaths; };
+        fpkg     = lib.getFlocoPkg flocoPackages from;
+        fmeta    = if fpkg == null then null else lib.getMetaEnt fpkg;
+        tryMeta  = builtins.tryEval checkPjs.fmeta;
+        yfields  = fmeta.hasBin or fmeta.bin or fmeta.directories.bin or null;
+        fromKey  =
+          if fmeta == null then assumeHasBin else
+          if yfields != null then ! ( builtins.elem yfields [false {}] ) else
+          if tryMeta.success then tryMeta.value else assumeHasBin;
+      in if from ? bin then ( from.bin or {} ) != {} else
+         if yt.PkgInfo.key.check from then fromKey else assumeHasBin;
+    in lib.filterAttrs hasBin tree;
 
-    addModDirs = let
-      nmp = p: "$node_modules_path/${p}";
-    in mkdirs ( map nmp ( builtins.attrNames tree' ) );
+    asDollarPath = to: let
+      m = builtins.match "($node_modules_path|node_modules)/(.*)" to;
+    in if m == null then "$node_modules_path/" + to else
+       if ( builtins.substring 0 1 ( builtins.head m ) ) == "$" then to else
+       "$node_modules_path/" + ( builtins.elemAt m 1 );
+
+    pnm = lib.yank "(((.*/)?node_modules|$node_modules_path))/(@[^@/]+/)?[^@/]+";
 
     # Run `addCmd' over each module and dump it to the script.
+    # `to' is a "node_modules/@foo/bar/node_modules/baz" path, and
+    # `from' is the package entry, a package key, or pathlike.
     addMods = let
-      addOne = path: ent:
-        addCmd ( getFromdir ent ) "$node_modules_path/${path}";
-      cmds = builtins.attrValues ( builtins.mapAttrs addOne tree' );
-    in builtins.concatStringsSep "\n  " cmds;
+      coerceModule = x: let
+        pkgFromKey    = lib.getFlocoPkg flocoPackages x;
+        pkg = if yt.PkgInfo.Strings.key.check x then pkgFromKey else
+              if ( builtins.isString x ) || ( builtins.isPath x ) then null else
+              x;
+        moduleFromPkg = lib.getFlocoPkgModule flocoPackages pkg;
+      in if pkg == null then x else moduleFromPkg;
+      addOne = to: from: let
+        sub  = asDollarPath ( pnm to );
+        line = addCmd ( toString ( coerceModule from ) ) sub;
+      in ["  "] ++ line ++ ["\n"];
+      cmds = builtins.attrValues ( builtins.mapAttrs addOne tree );
+    in builtins.concatLists cmds;
 
-    addBinDirs = let
-      haveInMeta = map getBindir ( builtins.attrNames haveBin );
-      topDir    = ["$node_moduels_path/.bin"];
-      allDirs = let
-        gnm = path: _: let
-          m  = lib.yank "(.*node_modules)/.*" path;
-          sc = lib.yank "node_modules/(.*)" m;
-        in if m == null then "$node_modules_path"
-                        else "$node_modules_path/${sc}";
-      in lib.unique ( lib.mapAttrsToList gnm tree' );
-      dirs = if ignoreSubBins then topDir  else
-             if assumeHasBin  then allDirs else
-             haveInMeta;
-    in mkdirs dirs;
-
-    addBins = let
-      cmds = builtins.attrValues ( builtins.mapAttrs addBinCmd haveBin );
-    in builtins.concatStringsSep "\n    " cmds;
 
     preHookDef = lib.optionalString ( args ? preNmDir ) ''
       preNmDir() {
@@ -292,25 +158,21 @@
       : "''${postNmDirHook=postNmDir}";
     '';
 
-    # FIXME: This fixup shit belongs in `evalScripts' honestly.
-    # Having added it here makes it harder to use this routine for dumping out
-    # trees to the filesystem which was it was originally intended for.
-    # Currently it's used by the default builder until we write a proper
-    # `patchPhase' for `evalScripts' just for coverage.
-    addBinsDef = lib.optionalString ( haveBin != {} ) ''
-      addNodeModulesBins() {
-        declare -a _NM_FIXUP_BIN_DIRS;
-        _NM_FIXUP_BIN_DIRS=();
-      ${addBinDirs}
-      ${addBins}
-        for bd in $( printf '%s\n' "''${_NM_FIXUP_BIN_DIRS[@]}"|sort -u; ); do
-          for s in $( readlink -f "$bd/"*; ); do
-            chmod 0755 "$s";
-            ''${PATCH_NODE_SHEBANGS:-pjsPatchNodeShebangsForce} "$s";
-          done
-        done
-      }
-    '';
+    # Run `addBinCmd' over each module and dump it to the script.
+    # `to' is a "node_modules/@foo/bar/node_modules/baz" path, and
+    # `from' is the package entry, a package key, or pathlike.
+    addBins = let
+      addOne = to: from: let
+        sub = asDollarPath ( pnm to );
+      in ["  "] ++ ( addBinCmd ( asDollarPath to ) sub ) ++ ["\n"];
+      # TODO: fill script names when `binPairs' is available.
+      cmds = builtins.attrValues ( builtins.mapAttrs addOne haveBin );
+    in builtins.concatLists cmds;
+
+    addBinsDef = let
+      asFn = ["\naddNodeModulesBins() {\n  "] ++ addBins ++ ["\n}\n"];
+    in lib.optionalString ( haveBin != {} )
+                          ( builtins.concatStringsSep "" asFn );
 
   # We must return an attrset for `lib.makeOverridable' to be effective.
   # Since we have an attrset I'm going to tack on some `passthru' and `meta'
@@ -318,17 +180,18 @@
   # is essential ( possibly useful in overrides ).
   in {
     cmd = ''
-      source ${builtins.path {
+      . ${builtins.path {
         path      = ../build-support/setup-hooks/pjs-util.sh;
         recursive = false;
       }}
       ${preHookDef}
       ${postHookDef}
       ${addBinsDef}
+
       addNodeModules() {
-      ${addModDirs}
-        ${addMods}
+      ${builtins.concatStringsSep "" addMods}
       }
+
       installNodeModules() {
         local pdir;
         # Set `node_modules/' install path if unset.
@@ -350,6 +213,7 @@
             pdir="$PWD";
           fi
           node_modules_path="$pdir/node_modules";
+          unset pdir;
         fi
         eval "''${preNmDirHook:-:}";
         echo "Installing Node Modules to '$node_modules_path'" >&2;
@@ -358,22 +222,18 @@
         eval "''${postNmDirHook:-:}";
       }
     '';
-    meta = {
-      inherit handleBindir ignoreSubBins;
-    };
     passthru = {
+      inherit handleBindir ignoreSubBins;
       inherit addCmd addBinCmd preNmDir postNmDir coreutils lndir;
       # Original input tree.
       fullTree = tree;
-      # Filtered and stripped of `node_modules/' prefixes.
-      tree = tree';
     };
   };
 
   # Defining `__functionArgs' is what allows users to run `callPackage' on this
   # function and have it "do what they mean" despite the wrapper.
   mkNmDirCmdWith = {
-    __functionArgs = ( lib.functionArgs _mkNmDirCmdWith ) // { copy = true; };
+    __functionArgs = lib.functionArgs _mkNmDirCmdWith;
     __functor = self: args: let
       nmd = lib.callPackageWith globalArgs _mkNmDirCmdWith args;
     in nmd;
@@ -399,9 +259,12 @@
   , lndir         ? globalArgs.lndir
   , ...
   } @ args: mkNmDirCmdWith ( {
-    inherit ignoreSubBins assumeHasBin handleBindir preNmDir postNmDir;
+    inherit ignoreSubBins assumeHasBin handleBindir postNmDir;
     inherit coreutils lndir;
-    addCmd = _mkNmDirLinkCmd lndir;
+    preNmDir = ''
+      ADD_MOD=pjsAddModLink;
+      ${args.preNmDir or ""}
+    '';
   } // args );
 
 
@@ -419,9 +282,12 @@
   , lndir         ? globalArgs.lndir
   , ...
   } @ args: mkNmDirCmdWith ( {
-    inherit ignoreSubBins assumeHasBin handleBindir preNmDir postNmDir;
+    inherit ignoreSubBins assumeHasBin handleBindir postNmDir;
     inherit coreutils lndir;
-    copy = true;
+    preNmDir = ''
+      ADD_MOD=pjsAddModCopy;
+      ${args.preNmDir or ""}
+    '';
   } // args );
 
 
@@ -429,11 +295,6 @@
 
 in {
   inherit
-    _mkNmDirCopyCmd
-    _mkNmDirLinkCmd
-    _mkNmDirAddBinWithDirCmd
-    _mkNmDirAddBinNoDirsCmd
-    _mkNmDirAddBinCmd
     mkNmDirCmdWith
     mkNmDirCopyCmd
     mkNmDirLinkCmd

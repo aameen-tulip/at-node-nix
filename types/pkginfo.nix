@@ -217,6 +217,12 @@
 
 # ---------------------------------------------------------------------------- #
 
+    bin_name = yt.restrict "bin-filename" ( _: true ) yt.FS.filename;
+    bin_path = yt.restrict "bin-relpath"  ( _: true ) yt.FS.relpath;
+
+
+# ---------------------------------------------------------------------------- #
+
   };  # End Strings
 
 
@@ -227,18 +233,22 @@
       bname = Strings.id_part;
       scope = option ( yt.either Strings.scope Structs.scope );
     };
+
     id_locator = yt.struct "identifier+locator" {
       identifier = yt.either Structs.identifier Strings.identifier_any;
       locator    = Strings.locator;
     };
+
     id_descriptor = yt.struct "identifier+descriptor" {
       identifier = yt.either Structs.identifier Strings.identifier_any;
       descriptor = yt.either Strings.descriptor Sums.descriptor;
     };
+
     scope = yt.struct "scope" {
       scope    = yt.option ( yt.either Strings.scope Structs.scope );
       scopedir = Strings.scopedir;
     };
+
     node_names = yt.struct "node-names" {
       _type = yt.option ( yt.enum ["NodeNames"] );
       ident = Strings.identifier_any;
@@ -274,6 +284,14 @@
   };
 
 
+# ---------------------------------------------------------------------------- #
+
+  Attrs = {
+    bin_pairs = let
+      cond = x: builtins.all Strings.bin_name.check ( builtins.attrNames x );
+    in yt.restrict "bin_pairs" cond ( yt.attrs Strings.bin_path );
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -284,6 +302,7 @@ in {
     Structs
     Sums
     Eithers
+    Attrs
   ;
   inherit (Strings)
     identifier
@@ -294,6 +313,9 @@ in {
     key
     bname
     version
+  ;
+  inherit (Attrs)
+    bin_pairs
   ;
 }
 

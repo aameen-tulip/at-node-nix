@@ -82,7 +82,7 @@
     common = {
       inherit key ident version;
       source = flocoFetch fetchInfo;
-      meta   = metaEnt.__entries or metaEnt;
+      passthru.metaEnt = metaEnt.__entries or metaEnt;
     };
     # FIXME: use `names.tarball' if you can.
     forTbs = let
@@ -106,13 +106,14 @@
 # ---------------------------------------------------------------------------- #
 
   buildPkgEnt = {
-    src     ? outPath
-  , name    ? meta.names.built
-  , ident   ? meta.ident
-  , version ? meta.version
-  , outPath ? source
-  , source  ? throw "You gotta give me something to work with here"
-  , meta
+    src      ? outPath
+  , name     ? metaEnt.names.built
+  , ident    ? metaEnt.ident
+  , version  ? metaEnt.version
+  , outPath  ? source
+  , source   ? throw "You gotta give me something to work with here"
+  , metaEnt  ? passthru.metaEnt
+  , passthru
   # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
   # This can be an arbitary snippet of shell code.
   # The env var `node_modules_path' should be used to refer to the install dir.
@@ -123,7 +124,7 @@
   , nmDirCmd
   # If we have a local path we're building, also run the `prepare' script.
   , runScripts ? ["prebuild" "build" "postbuild"] ++
-                 ( lib.optional ( meta.fetchInfo.type == "path" ) "prepare" )
+                 ( lib.optional ( metaEnt.fetchInfo.type == "path" ) "prepare" )
   , evalScripts
   , jq
   , nodejs
@@ -131,7 +132,7 @@
   , ...
   } @ args: let
     args' = {
-      inherit name version src runScripts;
+      inherit name version src runScripts passthru;
     } // ( removeAttrs args [
       "evalScripts"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
@@ -141,7 +142,6 @@
       "installed"
       "prepared"
       "outPath"
-      "passthru"
       "bin"
       "global"
       "module"
@@ -153,14 +153,15 @@
 # ---------------------------------------------------------------------------- #
 
   installPkgEnt = {
-    src     ? outPath
-  , name    ? meta.names.installed
-  , ident   ? meta.ident
-  , version ? meta.version
-  , outPath ? built
-  , built   ? source
-  , source  ? throw "You gotta give me something to work with here"
-  , meta
+    src      ? outPath
+  , name     ? metaEnt.names.installed
+  , ident    ? metaEnt.ident
+  , version  ? metaEnt.version
+  , outPath  ? built
+  , built    ? source
+  , source   ? throw "You gotta give me something to work with here"
+  , metaEnt  ? passthru.metaEnt
+  , passthru
   # Hook to install `node_modules/'. Ideally Produced by `mkNmDir*'.
   # This can be an arbitary snippet of shell code.
   # The env var `node_modules_path' should be used to refer to the install dir.
@@ -182,7 +183,7 @@
   , ...
   } @ args: let
     args' = {
-      inherit name version src python node-gyp runScripts;
+      inherit name version src python node-gyp runScripts passthru;
     } // ( removeAttrs args [
       "genericInstall"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
@@ -193,7 +194,6 @@
       "installed"
       "prepared"
       "outPath"
-      "passthru"
       "bin"
       "global"
       "module"
@@ -206,15 +206,16 @@
 
   testPkgEnt = {
     src        ? outPath
-  , name       ? meta.names.test or ( meta.names.genName "test" )
-  , ident      ? meta.ident
-  , version    ? meta.version
+  , name       ? metaEnt.names.test or ( metaEnt.names.genName "test" )
+  , ident      ? metaEnt.ident
+  , version    ? metaEnt.version
   , outPath    ? prepared
   , prepared   ? installed
   , installed  ? built
   , built      ? source
   , source     ? throw "You gotta give me something to work with here"
-  , meta
+  , metaEnt    ? passthru.metaEnt
+  , passthru
   , nmDirCmd
   # If we have a local path we're building, also run the `prepare' script.
   , runScripts ? ["test"]
@@ -225,7 +226,7 @@
   , ...
   } @ args: let
     args' = {
-      inherit name version src runScripts;
+      inherit name version src runScripts passthru;
     } // ( removeAttrs args [
       "evalScripts"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
@@ -235,7 +236,6 @@
       "tarball"
       "installed"
       "prepared"
-      "passthru"
       "bin"
       "global"
       "module"

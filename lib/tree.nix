@@ -23,6 +23,21 @@
 
 # ---------------------------------------------------------------------------- #
 
+  parentNmDir = nmdir: let
+    nmpatt = "node_modules|\\$node_modules_path";
+    parent = lib.yank "(.*${nmpatt})/(@[^@/]+/)?[^@/]+" nmdir;
+    noNest = lib.test ".*/(${nmpatt})/(${nmpatt})/.*" ( "/" + nmdir + "/" );
+    msg    = "parentNmDir: Illegal nesting of NM dirs: '${nmdir}'";
+  in if noNest then throw msg else parent;
+
+  asDollarNmDir = nmdir: let
+    was = lib.hasPrefix "$node_modules_path" nmdir;
+    stripFirst = lib.yankN 1 "(node_modules)?/?([^/].*)?" nmdir;
+  in if was then nmdir else "$node_modules_path/" + stripFirst;
+
+
+# ---------------------------------------------------------------------------- #
+
   # Given a `package-lock.json(v2/3)' produce an attrset representing a
   # `node_modules/' directory.
   # Outputs `{ "node_modules/<IDENT>" = "<IDENT>/<VERSION>" (pkey); ... }'
@@ -221,6 +236,8 @@
 
 in {
   inherit
+    parentNmDir
+    asDollarNmDir
     idealTreePlockV3
     treesFromPlockV3
     genMkNmDirArgsSimple
