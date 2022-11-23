@@ -44,9 +44,18 @@
 
   # TODO: don't require `type', just use it as one of many fields that can be
   # used to infer.
-  identifyFetchInfoFetcherFamily = { type, ... } @ fetchInfo:
-    if builtins.elem type ["git" "github" "sourcehut"] then "git" else
-    if builtins.elem type ["file" "tarball"] then "file" else type;
+  identifyFetchInfoFetcherFamily = fetchInfo: let
+    pp = lib.generators.toPretty { allowPrettyValue = true; };
+    fromType =
+      if builtins.elem fetchInfo.type ["git" "github" "sourcehut"] then "git"
+      else if builtins.elem fetchInfo.type ["file" "tarball"] then "file" else
+      fetchInfo.type;
+  in if fetchInfo ? type then fromType else
+     if fetchInfo ? path then "path" else
+     if fetchInfo ? rev  then "git" else
+     if fetchInfo ? ref  then "git" else
+     if fetchInfo ? unpack then "file" else
+     throw "Cannot detect fetchInfo Fetcher Family: ${pp fetchInfo}";
 
   fi2ff = identifyFetchInfoFetcherFamily;
 
@@ -59,8 +68,8 @@
     assert fetchInfo ? type -> type == fetchInfo.type;
     {
       _type = "fetched";
-      ltype = if type == "github" then "git" else
-              if type == "tarball" then "file" else
+      ltype = if builtins.elem type ["github" "git"] then "git" else
+              if builtins.elem type ["file" "tarball"] then "file" else
               if type == "path" then "dir"
               else throw ( "Cannot determine lifecycleType for unuspported " +
                            "fetchInfo type '${type}'." );
@@ -163,10 +172,11 @@
     loc = "at-node-nix#lib.libfetch.flocoUrlFetcher";
   in {
     __functionMeta = {
-      name      = "flocoUrlFetcher";
-      from      = "at-node-nix#lib.libfetch";
-      innerName = "laika#lib.libfetch.<fetchTreeW|fetchurlDrvW>";
-      signature = [yt.any yt.FlocoFetch.fetched];
+      name       = "flocoUrlFetcher";
+      from       = "at-node-nix#lib.libfetch";
+      innerName  = "laika#lib.libfetch.<fetchTreeW|fetchurlDrvW>";
+      signature  = [yt.any yt.FlocoFetch.fetched];
+      properties = fenv;
     };
 
     __functionArgs = {
@@ -184,7 +194,8 @@
     # definitely cases where you want to set it.
     __thunk = { preferFetchTree = true; };
 
-    __innerFunction = if pure then lfc.fetchurlDrvW else lfc.fetchTreeW;
+    __innerFunction = { fetcher, ... } @ fargs:
+      fetcher ( removeAttrs fargs ["fetcher"] );
 
     __pickFetcher = self: args: let
       canUseFetchTree =
@@ -217,7 +228,7 @@
     # If we hit `fetchurlDrvW' we won't have a `sourceInfo' return.
     # XXX: honestly we do more post-processing in `__functor'
     __postProcess = result:
-      if yt.SourceInfo.source_info.check result then result else {
+      if yt.FlocoFetch.source_info_floco.check result then result else {
         inherit (result) outPath;
         # In impure mode we can fill missing `narHash'.
         # This is sometimes used to output metadata to stash it for a later
@@ -235,10 +246,10 @@
       rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
                           else ( y: y );
       args       = self.__processArgs self x;
+      result     = self.__innerFunction args;
       fetchInfo  = argt ( removeAttrs args ["fetcher"] );
-      result     = args.fetcher fetchInfo;
       sourceInfo = self.__postProcess result;
-      wasFT = fetchInfo ? type;
+      wasFT      = fetchInfo ? type;
       fetched = {
         _type     = "fetched";
         ffamily   = "file";
@@ -250,7 +261,7 @@
         sourceInfo = if sourceInfo.narHash != null then sourceInfo else
                      removeAttrs sourceInfo ["narHash"];
         passthru = ( if ! wasFT then { drv = result; } else {} ) // {
-          fetcher = if wasFT then lfc.fetchTreeW else lfc.fetchurlDrvW;
+          inherit (args) fetcher;
           unpacked =
             if fetchInfo ? type then fetchInfo.type == "tarball" else
             fetchInfo.unpack or false;
@@ -269,6 +280,7 @@
       name      = "flocoTarballFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.flocoUrlFetcher";
+      properties = { inherit typecheck pure; };
       signature = [yt.any yt.FlocoFetch.fetched];
     };
     __functionArgs = {
@@ -304,6 +316,7 @@
       name      = "flocoFileFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "at-node-nix#lib.libfetch.flocoUrlFetcher";
+      properties = { inherit typecheck pure; };
       signature = [yt.any yt.FlocoFetch.fetched];
     };
     __functionArgs = {
@@ -363,10 +376,7 @@
       name      = "flocoPathFetcher";
       from      = "at-node-nix#lib.libfetch";
       innerName = "laika#lib.libfetch.pathW";
-      properties =
-        flocoPathFetcher.__innerFunction.__functionMeta.properties // {
-          inherit typecheck pure;
-        };
+      properties = { inherit typecheck pure; };
       signature = [yt.any yt.FlocoFetch.fetched];
     };
     # Add the arg `basedir'.
@@ -411,8 +421,14 @@
         passthru = { inherit (args) filter; };
       };
     in {
-      _type     = "fetched";
-      ltype     = "dir";
+      _type = "fetched";
+      # From the perspective of consumers, it's a link.
+      # `ltype = "dir"' is only approriate for CWD and in rare cases a project
+      # could use them for sub-projects but I've literally never seen this in
+      # the field and getting NPM to actually behave that way requires such
+      # a non-sensical number of flags that I'm leaving it up to the user to
+      # unfuck the 3/4,000,00 projects that chose to be irrational.
+      ltype     = "link";
       ffamily   = "path";
       fetchInfo = removeAttrs args ["filter"];
       inherit outPath;

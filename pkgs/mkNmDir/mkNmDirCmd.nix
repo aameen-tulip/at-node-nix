@@ -91,6 +91,10 @@
 
     fenv = { inherit pure ifd allowedPaths; };
 
+    tree' = let
+      subs = lib.filterAttrs ( k: v: ! ( lib.hasPrefix "../" k ) ) tree;
+    in removeAttrs subs [""];
+
     # FIXME: you did `binPairs' in `haveBin' and you opened up a real can of
     # worms by possibly coercing PJS from tarballs in `lib'.
     # Change it to actually `hasBin' and don't fuck with IFD for now.
@@ -113,32 +117,29 @@
           if tryMeta.success then tryMeta.value else assumeHasBin;
       in if from ? bin then ( from.bin or {} ) != {} else
          if yt.PkgInfo.key.check from then fromKey else assumeHasBin;
-    in lib.filterAttrs hasBin tree;
-
-    asDollarPath = to: let
-      m = builtins.match "($node_modules_path|node_modules)/(.*)" to;
-    in if m == null then "$node_modules_path/" + to else
-       if ( builtins.substring 0 1 ( builtins.head m ) ) == "$" then to else
-       "$node_modules_path/" + ( builtins.elemAt m 1 );
-
-    pnm = lib.yank "(((.*/)?node_modules|$node_modules_path))/(@[^@/]+/)?[^@/]+";
+    in lib.filterAttrs hasBin tree';
 
     # Run `addCmd' over each module and dump it to the script.
     # `to' is a "node_modules/@foo/bar/node_modules/baz" path, and
     # `from' is the package entry, a package key, or pathlike.
+    #
+    # FIXME: handle `../foo' workspace/link paths.
+    # FIXME: handle `./.' ( `rootKey' ).
     addMods = let
       coerceModule = x: let
-        pkgFromKey    = lib.getFlocoPkg flocoPackages x;
+        pkgFromKey = lib.getFlocoPkg flocoPackages x;
         pkg = if yt.PkgInfo.Strings.key.check x then pkgFromKey else
               if ( builtins.isString x ) || ( builtins.isPath x ) then null else
               x;
         moduleFromPkg = lib.getFlocoPkgModule flocoPackages pkg;
       in if pkg == null then x else moduleFromPkg;
       addOne = to: from: let
-        sub  = asDollarPath ( pnm to );
+        pnm  = lib.libtree.parentNmDir to;
+        sub  = if pnm == null then throw "Out of tree path: ${to}" else
+               lib.libtree.asDollarNmDir pnm;
         line = addCmd ( toString ( coerceModule from ) ) sub;
       in ["  "] ++ line ++ ["\n"];
-      cmds = builtins.attrValues ( builtins.mapAttrs addOne tree );
+      cmds = builtins.attrValues ( builtins.mapAttrs addOne tree' );
     in builtins.concatLists cmds;
 
 
@@ -163,8 +164,9 @@
     # `from' is the package entry, a package key, or pathlike.
     addBins = let
       addOne = to: from: let
-        sub = asDollarPath ( pnm to );
-      in ["  "] ++ ( addBinCmd ( asDollarPath to ) sub ) ++ ["\n"];
+        pnm = lib.libtree.parentNmDir to;
+        sub = lib.libtree.asDollarNmDir pnm;
+      in ["  "] ++ ( addBinCmd ( lib.libtree.asDollarNmDir to ) sub ) ++ ["\n"];
       # TODO: fill script names when `binPairs' is available.
       cmds = builtins.attrValues ( builtins.mapAttrs addOne haveBin );
     in builtins.concatLists cmds;
@@ -225,6 +227,8 @@
     passthru = {
       inherit handleBindir ignoreSubBins;
       inherit addCmd addBinCmd preNmDir postNmDir coreutils lndir;
+      # Tree having dropped out of tree paths and the root entry
+      subtree = tree';
       # Original input tree.
       fullTree = tree;
     };

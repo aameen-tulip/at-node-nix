@@ -437,6 +437,19 @@
                                  ( e.__entries or e );
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
                                       ( toSerial e );
+      # XXX: This is important to pay attention to.
+      # We delete like entries from the `metaSet', since what we actually
+      # care about are the "out of tree" `dir' entries to pull metadata from.
+      # This is the opposite of what we do when creating trees in `libtree' and
+      # `mkNmDir' routines since those should never refer to
+      # "out of tree paths".
+      # In trees we refer to the key in our `metaSet', which will point to the
+      # `dir' entry, providing the layer of abstraction that allows us to
+      # handle "isolated builds".
+      # This is subtle but important abstraction - one that I would say is
+      # "the real core" that would have to remain intact if you tried to strip
+      # this framework down to its bare minimum.
+      # XXX: ^^^ Don't scroll past this if you're learning. ^^^
       noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
       byKey   = builtins.groupBy ( x: x.key ) noLinks;
       flattenAssertUniq = key: values: let

@@ -43,7 +43,11 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data;
-  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
+  metaSet = lib.metaSetFromPlockV3 {
+    inherit lockDir;
+    pure = lib.inPureEvalMode;
+    ifd  = isSameSystem;
+  };
 
   # An arbitrary tarball to fetch.
   # We know this one doesn't have the directory permissions issue.
@@ -77,6 +81,8 @@
 
 
 # ---------------------------------------------------------------------------- #
+
+    # FIXME: temporarily blocked so we can run other parts of the test suite.
 
     # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let

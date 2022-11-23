@@ -103,7 +103,7 @@
       expr = let
         fetched = lib.libfetch.flocoGitFetcher pl_lodash;
       in ( lib.isStorePath fetched.outPath ) &&
-         ( fetched.type == "git" ) && ( fetched.fetchInfo.type == "github" );
+         ( fetched.ffamily == "git" ) && ( fetched.fetchInfo.type == "github" );
       expected = true;
     };
 
@@ -168,7 +168,8 @@
           shortRev = "57cf952";
           submodules = false;
         };
-        type = "git";
+        ltype   = "git";
+        ffamily = "git";
       };  # End Expected
     };
 

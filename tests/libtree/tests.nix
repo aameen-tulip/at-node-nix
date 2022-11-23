@@ -61,12 +61,15 @@
         null
         null
         null
+        "node_modules"
       ];
     };
 
     # Assert failures for all of these
     testParentNmDir_1 = {
-      expr = builtins.all ( s: ! ( builtins.tryEval s ).success ) [
+      expr = builtins.all ( s:
+        ! ( builtins.tryEval ( lib.libtree.parentNmDir s ) ).success
+      ) [
         "node_modules/node_modules"
         "node_modules/@foo/bar/node_modules/node_modules"
         "node_modules/bar/node_modules/node_modules"

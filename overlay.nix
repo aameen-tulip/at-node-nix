@@ -117,10 +117,6 @@ in {
     flocoConfig = libPrev.mkFlocoConfig {
       # Most likely this will get populated by `stdenv'
       npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
-      # Prefer fetching from original host rather than substitute.
-      # NOTE: This only applies to fetchers that use derivations.
-      #       Builtins won't be effected by this.
-      enableImpure = false;
     };
 
   } );
@@ -133,7 +129,7 @@ in {
   # TODO: these aren't directed into most libs yet, start making those
   # connections in our libs and with `laika' and `ak-nix'.
   flocoEnv = {
-    pure = final.flocoConfig.enableImpureMeta or final.lib.inPureEvalMode;
+    pure         = final.lib.inPureEvalMode;
     ifd          = true;
     allowedPaths = [];
     typecheck    = false;
