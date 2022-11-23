@@ -117,16 +117,50 @@ in {
     flocoConfig = libPrev.mkFlocoConfig {
       # Most likely this will get populated by `stdenv'
       npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
-      # Prefer fetching from original host rather than substitute.
-      # NOTE: This only applies to fetchers that use derivations.
-      #       Builtins won't be effected by this.
-      enableImpure = false;
     };
 
   } );
 
   inherit (final.lib.flocoConfig) npmSys;
   inherit (final.lib) flocoConfig;
+  # Using this to migrate away from `flocoConfig'.
+  # This will be used as an argument to all functions that are effected by
+  # relevant configuration options.
+  # TODO: these aren't directed into most libs yet, start making those
+  # connections in our libs and with `laika' and `ak-nix'.
+  flocoEnv = {
+    pure         = final.lib.inPureEvalMode;
+    ifd          = true;
+    allowedPaths = [];
+    typecheck    = false;
+    # Default fetchers, prefers `fetchTree' for URLs, `path', and `fetchGit'
+    # builtins fetchers ( wrapped by `laika' ).
+    # For URLs `sha512' is accepted using `laika#lib.fetchurlDrv'.
+    flocoFetch = final.lib.libfetch.mkFlocoFetcher {
+      inherit (final.flocoEnv) pure typecheck;
+    };
+    # Default NmDir builder prefers symlinks
+    mkNmDir = final.mkNmDirLinkCmd;
+  };
+  applyFlocoEnv = f: final.lib.apply f final.flocoEnv;
+  inherit (final.flocoEnv)
+    flocoFetch
+    mkNmDir
+  ;
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoUnpack = {
+    name             ? args.meta.names.source
+  , tarball          ? args.outPath
+  , flocoConfig      ? final.flocoConfig
+  , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
+  , ...
+  } @ args: let
+    source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
+    meta'  = prev.lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
+  in { inherit tarball source; outPath = source.outPath; } // meta';
 
 
 # ---------------------------------------------------------------------------- #
@@ -161,21 +195,6 @@ in {
   # NOTE: read the file for some known limitations.
   coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
 
-  flocoFetch  = callPackage final.lib.libfetch.mkFlocoFetcher {};
-  flocoUnpack = {
-    name             ? args.meta.names.source
-  , tarball          ? args.outPath
-  , flocoConfig      ? final.flocoConfig
-  , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
-  , ...
-  } @ args: let
-    source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
-    meta'  = prev.lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
-  in { inherit tarball source; outPath = source.outPath; } // meta';
-
-  # Default NmDir builder prefers symlinks
-  mkNmDir = final.mkNmDirLinkCmd;
-
   mkSourceTree = prev.lib.callPackageWith {
     inherit (final)
       lib npmSys system stdenv
@@ -189,7 +208,7 @@ in {
   mkSourceTreeDrv = prev.lib.callPackageWith {
     inherit (final)
       lib npmSys system stdenv runCommandNoCC mkSourceTree mkNmDir
-      _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
+      _mkNmDirWith
       mkNmDirCmdWith
       flocoUnpack flocoConfig flocoFetch
     ;
@@ -206,14 +225,10 @@ in {
   # Either `name' ( meta.names.tarball ) or `meta' are also required.
   mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
 
-  inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix {
+  inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix ( {
     inherit (prev.xorg) lndir;
-  })
-    _mkNmDirCopyCmd
-    _mkNmDirLinkCmd
-    _mkNmDirAddBinWithDirCmd
-    _mkNmDirAddBinNoDirsCmd
-    _mkNmDirAddBinCmd
+    inherit (final) flocoUnpack;  # FIXME: probably remove
+  } // final.flocoEnv ))
     mkNmDirCmdWith
     mkNmDirCopyCmd
     mkNmDirLinkCmd

@@ -72,7 +72,7 @@
       expr = let
         nmd = mkNmDirCopyCmd { tree = sourceTree; };
         isSub = p: ! ( lib.hasPrefix ".." p );
-      in builtins.all isSub ( builtins.attrNames nmd.passthru.tree );
+      in builtins.all isSub ( builtins.attrNames nmd.passthru.subtree );
       expected = true;
     };
 

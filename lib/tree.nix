@@ -23,6 +23,32 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # TODO: paths like `../foo' explode which makes sense, but we need a good
+  # error message.
+  parentNmDir = nmdir: let
+    loc     = "at-node-nix#lib.libtree.parentNmDir";
+    nmpatt  = "node_modules|\\$node_modules_path";
+    parent  = lib.yank "(.*${nmpatt})/(@[^@/]+/)?[^@/]+" nmdir;
+    noNest  = lib.test ".*/(${nmpatt})/(${nmpatt})/.*" ( "/" + nmdir + "/" );
+    msgNest = "(${loc}): Illegal nesting of NM dirs: '${nmdir}'";
+    above   = lib.hasPrefix "../" nmdir;
+    msgCeil = "(${loc}): Illegal out of tree path: '${nmdir}'";
+  in if above then throw msgCeil else if noNest then throw msgNest else parent;
+
+  asDollarNmDir = nmdir: let
+    loc        = "at-node-nix#lib.libtree.asDollarNmDir";
+    above      = lib.hasPrefix "../" nmdir;
+    msgCeil    = "(${loc}): Illegal out of tree path: '${nmdir}'";
+    was        = lib.hasPrefix "$node_modules_path" nmdir;
+    m          = builtins.match "(node_modules)?/([^/].*)" nmdir;
+    stripFirst = builtins.elemAt m 1;
+    result     = if was then nmdir else "$node_modules_path/" + stripFirst;
+  in if above then throw msgCeil else
+     if m == null then "$node_modules_path" else result;
+
+
+# ---------------------------------------------------------------------------- #
+
   # Given a `package-lock.json(v2/3)' produce an attrset representing a
   # `node_modules/' directory.
   # Outputs `{ "node_modules/<IDENT>" = "<IDENT>/<VERSION>" (pkey); ... }'
@@ -61,6 +87,7 @@
   # Whether to include `dev' dependencies in tree.
   # Setting this to `false' will produce the equivalent of `--omit-dev'.
   , dev ? true
+
   # Keys to ignore.
   # By default we ignore the "root" key to break cycles; but projects shouldn't
   # depend on this feature because they're not going to be able to break
@@ -68,6 +95,29 @@
   # NOTE: `rootKey' set to `null' implies that it should be preserved.
   , ignoredKeys ? lib.optionals ( rootKey != null ) [rootKey]
   , ignoredIdents ? []  # Ignored regardless of version.
+
+  # XXX: You don't want to turn this on if you plan to use the tree in
+  # Nix builders.
+  # "Out of tree paths" are any which use `../', which can't exist in a
+  # sandboxed build environment.
+  # If you try to reference `../' you'll get killed by about a dozen other
+  # assertions across this framework, and even if you did manage to dodge them
+  # Nix will strike down your build user with righteous fury.
+  # "BuT I wAnT tO dO WoRkSpAcEs", you still can, you just have to regen your
+  # lock with `--install-links', or you need to drive your build from the root
+  # of your workspace ( you want to do the second option if you're unsure ).
+  # This isn't a `floco' restriction, NPM and Yarn use the same "focus" routine
+  # as we do for tree reformation - you're welcome to use it, but you aren't
+  # welcome to file issues about it, I'm just going to direct you to the NPM
+  # and Yarn issue lists where hundreds of webshits collectively learned what
+  # an "ABI Conflict" was over the span of several years.
+  # The ABI conflicts "grafting" causes in `node-gyp' builds and similarly
+  # "(trans|com)piled" code is a closely monitored and meticulously managed
+  # issue in compiled languages, and was one of the original use cases for Nix.
+  # Grafting is only safe under explicit supervision, and should not be
+  # performed as a part of any fully automated CI/CD process.
+  # ^^^ Don't turn this on without reading the warning.
+  , preserveOutOfTreePaths ? false  # TODO: enforce it
 
   # The remaining args relate to `optionalDependencies' and deciding if/when to
   # drop them from a tree.
@@ -77,14 +127,17 @@
   # It is recommended that you pass `npmSys', `hostPlatform', or `system' for us
   # to try and derive.
   , skipUnsupported ? npmSys != null
+
   # TODO: handle `engines'?
   , npmSys ? lib.getNpmSys' args
+
   # Filter out usupported systems. Use "host" platform.
   # The user is also free to pass arbitrary conditionals in here if they like.
   # These have the highest priority and will clobber earlier args.
   # The default is almost certainly what you want to use though.
   # If CPU or OS could not be determined, these conditionals filter nothing.
   , sysCond ? pjs: lib.pkgSysCond pjs npmSys
+
   # These are used by the `getNpmSys' fallback and must be declared for
   # `callPackage' and `functionArgs' to work - see `lib/system.nix' for more
   # more details. PREFER: `system' and `hostPlatform'.
@@ -123,7 +176,10 @@
       wois   = removeAttrs pjsPkgs ipaths;
       isISub = p: builtins.any ( i: lib.hasPrefix i p ) ipaths;
       subs   = builtins.filter isISub ( builtins.attrNames wois );
-    in [""] ++ ipaths ++ subs;
+      # Handles "no out of tree paths"
+      above = lib.filterAttrs ( k: v: lib.hasPrefix "../" k ) wois;
+      oot   = if preserveOutOfTreePaths then [] else builtins.attrNames above;
+    in [""] ++ ipaths ++ subs ++ oot;
     # Filter `package-lock.json(v3)' entries to deps we want to install.
     nml = let
       # Drop root entry.
@@ -221,6 +277,8 @@
 
 in {
   inherit
+    parentNmDir
+    asDollarNmDir
     idealTreePlockV3
     treesFromPlockV3
     genMkNmDirArgsSimple

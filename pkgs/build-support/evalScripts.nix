@@ -117,6 +117,12 @@ let
     if args.globalNmDirCmd ? __toString then toString args.globalNmDirCmd else
     throw "No idea how to treat this as a `node_modules/' directory builder.";
 
+    # There's no reason to put these giant routines in the drv if they won't
+    # be used.
+    nmDirScripts = 
+      ( if globalInstall then { inherit globalNmDirCmd; } else {} ) //
+      ( if moduleInstall then { inherit nmDirCmd; } else {} );
+
 in stdenv.mkDerivation ( {
 
   inherit name;
@@ -124,7 +130,6 @@ in stdenv.mkDerivation ( {
   inherit
     skipMissing dontRemoveNmDir
     globalInstall moduleInstall
-    nmDirCmd globalNmDirCmd
   ;
 
   outputs = let
@@ -232,7 +237,7 @@ nativeBuildInputs = let
 
   dontStrip = true;
 
-} // mkDrvArgs )
+} // mkDrvArgs // nmDirScripts )
 
 # XXX: Certain `postInstall' scripts might actually need to be
 # `setupHook's because they sometimes try to poke around the top level

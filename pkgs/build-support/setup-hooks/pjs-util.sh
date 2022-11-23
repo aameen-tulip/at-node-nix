@@ -3,8 +3,10 @@
 # -*- mode: sh; sh-shell: bash; -*-
 # ---------------------------------------------------------------------------- #
 #
-# Expects `bash', `jq', `sed', `coreutils', `node', and `findutils' to be
-# in PATH.
+# Expects `bash', `jq', `sed', `coreutils', `node', `lndir', and `findutils' to
+# be in PATH.
+#
+# NOTE: `lndir' is under `pkgsFor.xorg.lndir'.
 #
 # ---------------------------------------------------------------------------- #
 
@@ -14,6 +16,7 @@
 
 : "${JQ:=jq}";
 : "${CP:=cp}";
+: "${RM:=rm -f}";
 : "${LN:=ln}";
 : "${FIND:=find}";
 : "${MKDIR:=mkdir}";
@@ -23,6 +26,7 @@
 : "${GREP:=grep}";
 : "${READLINK:=readlink}";
 : "${REALPATH:=realpath}";
+: "${LNDIR:=lndir}"
 : "${PATCH_NODE_SHEBANGS:=pjsPatchNodeShebangsForce}";
 
 : "${globalInstall:=0}";
@@ -260,7 +264,7 @@ pjsPatchNodeShebangs() {
 
 # pjs*AddMod SRC-DIR OUT-DIR
 # Ex:  pjs*AddMod ./unpacked "$out/@foo/bar"
-pjsDefaultAddMod() {
+pjsAddModCopy() {
   case "${2%/*}" in
     $NIX_STORE) :; ;;
     *)
@@ -275,6 +279,28 @@ pjsDefaultAddMod() {
   pjsPatchNodeShebangs "$2";
 }
 
+# If your project is able to, symlinks are a major optiiztion
+pjsAddModLink() {
+  case "${2%/*}" in
+    $NIX_STORE) :; ;;
+    *)
+      if [[ -e "$2" ]]; then
+        [[ -w "${2%/*}" ]]||$CHMOD +w "${2%/*}";
+      fi
+    ;;
+  esac
+  $MKDIR -p "$2";
+  $LNDIR -silent "$1" "$2";
+  # Always copy bins because Node.js resolution implementations are so
+  # frequently botched that you'll shoot yourself in the foot otherwise.
+  $RM -- $( pjsBinPaths "$1";  );
+  pjsSetBinPerms "$2";
+  pjsPatchNodeShebangs "$2";
+}
+
+# Sets the default to be be used when users don't set one explicitly.
+pjsDefaultAddMod() { pjsAddModCopy "$@"; }
+# Allows user to override, this is the one we use during installs.
 pjsAddMod() { pjsDefaultAddMod "$@"; }
 
 
@@ -298,22 +324,22 @@ pjsAddBin() { pjsDefaultAddBin "$@"; }
 # `idir' refers to the "install" prefix, being a `node_modules/*' subdir.
 # `nmdir' refers to the "parent" `node_modules/' dir above `idir'.
 #
+# Two args sets `pdir=$1' ( strips `package.json' if given ), `nmdir=$2'.
 # If `node_modules_path' is set, "package dir" `pdir' is arg1 or PWD if omitted.
 # Otherwise, a single arg sets `pdir=$PWD' and `nmdir=$1'.
-# Two args sets `pdir=$1' ( strips `package.json' if given ), `nmdir=$2'.
 # Otherwise `nmdir=$1' and remaining args are treated as multiple `pdirs'.
 _INSTALL_NM_PARGS='
-  if [[ -n "${node_modules_path:-}" ]]; then
+  if [[ "$#" -eq 2 ]]; then
+    pdir="${1:+$( $REALPATH "${1%/package*.json}"; )}";
+    : "${pdir:=$PWD}";
+    nmdir="$2";
+  elif [[ -n "${node_modules_path:-}" ]]; then
     pdir="${1:+$( $REALPATH "${1%/package*.json}"; )}";
     : "${pdir:=$PWD}";
     nmdir="$node_modules_path";
   elif [[ "$#" -eq 1 ]]; then
     pdir="$PWD";
     nmdir="${1:-node_modules}";
-  elif [[ "$#" -eq 2 ]]; then
-    pdir="${1:+$( $REALPATH "${1%/package*.json}"; )}";
-    : "${pdir:=$PWD}";
-    nmdir="$2";
   else
     nmdir="$1";
     shift;
@@ -347,6 +373,14 @@ installModuleNmNoBin() {
 
 # ---------------------------------------------------------------------------- #
 
+# installBinsNm [PJS-PATH=$PWD/package.json] [NM-DIR=$node_modules_path]
+# installBinsNm NM-DIR PJS-PATH1 PJS-PATH2 [PJS-PATHS...]
+# NOTE: `$bindir' env var can be used to install to alternative directories,
+# and may be an absolute path - `bindir' is processed relative to the installed
+# module's directory ( containing its `package.json' ).
+# The default bindirs are `../.bin/' ( unscoped ) and `../../.bin' ( unscoped ).
+#
+# The `_INSTALL_NM_PARGS_' routine is shared with `installModuleNmNoBin'.
 # Install executables from `idir' to `$nmdir/.bin/' ( or `$bindir' if set ).
 # `idir' is expected to already contain an installed module.
 # `pdir' may point elsewhere and is only used to collect the bin entries.
