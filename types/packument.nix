@@ -77,10 +77,12 @@
 
     # Attrs starting with '_<FIELD>' are CouchDB metadata fields that are not
     # relevant to package installation.
-    # These are sometimes useful for "locking though".
-    # Fore example we *COULD* use `_rev' to "lock" a packument and fetch it
+    # These are sometimes useful for "locking" though.
+    # Fore example we *COULD* use `_rev' to "lock" a packument and purify it
     # again later with `builtins.fetchTree { type = "file"; narHash = ...; }'.
-    packument_full = struct "packument-full" _packumentFields;
+    # The reason we can't is that NPM eliminated the "full fat db" servers, so
+    # we would have to rely on mirrors or Nix store caches to fetch archives.
+    packument_full = struct "packument-full" _packumentFields.
 
     # Faster, only checks fields we care about.
     packument = let
