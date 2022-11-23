@@ -82,7 +82,7 @@
     # again later with `builtins.fetchTree { type = "file"; narHash = ...; }'.
     # The reason we can't is that NPM eliminated the "full fat db" servers, so
     # we would have to rely on mirrors or Nix store caches to fetch archives.
-    packument_full = struct "packument-full" _packumentFields.
+    packument_full = struct "packument-full" _packumentFields;
 
     # Faster, only checks fields we care about.
     packument = let
