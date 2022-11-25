@@ -101,7 +101,7 @@
         builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
       # Run the build routine for the root package.
       built = buildPkgEnt ( rootEnt // {
-        nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
+        nmDirCmd = mkNmDirLinkCmd {
           tree         = srcTree;
           handleBindir = false;
           # Helps sanity check that our modules were installed.

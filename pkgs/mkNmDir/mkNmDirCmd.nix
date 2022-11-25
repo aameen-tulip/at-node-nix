@@ -134,9 +134,8 @@
         moduleFromPkg = lib.getFlocoPkgModule flocoPackages pkg;
       in if pkg == null then x else moduleFromPkg;
       addOne = to: from: let
-        pnm  = lib.libtree.parentNmDir to;
-        sub  = if pnm == null then throw "Out of tree path: ${to}" else
-               lib.libtree.asDollarNmDir pnm;
+        sub  = if lib.test "../" to then throw "Out of tree path: ${to}" else
+               lib.libtree.asDollarNmDir to;
         line = addCmd ( toString ( coerceModule from ) ) sub;
       in ["  "] ++ line ++ ["\n"];
       cmds = builtins.attrValues ( builtins.mapAttrs addOne tree' );
@@ -165,8 +164,8 @@
     addBins = let
       addOne = to: from: let
         pnm = lib.libtree.parentNmDir to;
-        sub = lib.libtree.asDollarNmDir pnm;
-      in ["  "] ++ ( addBinCmd ( lib.libtree.asDollarNmDir to ) sub ) ++ ["\n"];
+        nmd = lib.libtree.asDollarNmDir pnm;
+      in ["  "] ++ ( addBinCmd ( lib.libtree.asDollarNmDir to ) nmd ) ++ ["\n"];
       # TODO: fill script names when `binPairs' is available.
       cmds = builtins.attrValues ( builtins.mapAttrs addOne haveBin );
     in builtins.concatLists cmds;
