@@ -361,10 +361,17 @@
   # Largely these hide additional fields which can be easily inferred using
   # `entFromtype`.
   metaEntSerialByFromtype = {
+    "package.json"          = metaEntSerialDefault;  # TODO
+    "vinfo"                 = metaEntSerialDefault;  # TODO
+    "packument"             = metaEntSerialDefault;  # TODO
     "package-lock.json"     = metaEntPlSerial;
     "package-lock.json(v1)" = metaEntPlSerial;
     "package-lock.json(v2)" = metaEntPlSerial;
     "package-lock.json(v3)" = metaEntPlSerial;
+    "yarn.lock"             = metaEntSerialDefault;  # TODO
+    "yarn.lock(v1)"         = metaEntSerialDefault;  # TODO
+    "yarn.lock(v2)"         = metaEntSerialDefault;  # TODO
+    "yarn.lock(v3)"         = metaEntSerialDefault;  # TODO
     raw                     = metaEntSerialDefault;
     _default                = metaEntSerialDefault;
   };

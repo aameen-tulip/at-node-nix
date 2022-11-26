@@ -11,13 +11,6 @@
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   pi = yt.PkgInfo;
 
-  defaultFlocoEnv = {
-    allowedPaths = [];
-    pure         = lib.inPureEvalMode;
-    ifd          = true;
-  };
-
-
 # ---------------------------------------------------------------------------- #
 
   stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
@@ -98,7 +91,20 @@
   , wkey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
+  , isLocal ? true
+  , ltype   ? "dir"
   } @ args: let
+    forLocal = {
+      # FIXME: when you serialize this you need to write relative paths.
+      fetchInfo = {
+        __serial = x:
+          builtins.trace "Cannot serialize absolute path: ${toString x.path}"
+          ( removeAttrs ( lib.libmeta.serialDefault x ) ["path"] );
+        type      = "path";
+        path      = assert wkey == "";  pjsDir;
+        recursive = true;
+      };
+    };
     extra = getFieldsPjs' {
       fields = {
         bin         = true;
@@ -137,9 +143,7 @@
     ident   = getIdentPjs'   fenv args;
     version = getVersionPjs' fenv args;
 
-    # TODO: ltype, fetchInfo, and extras pulled above.
-
-    infoNoFs = {
+    infoNoFs = bundled' // {
       inherit ident version;
       scripts = getScriptsPjs' fenv args;
       entFromtype = "package.json";
@@ -150,11 +154,12 @@
       metaFiles = { __serial = false; inherit pjs wkey; } //
                   ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
       inherit (deps) depInfo;
-    };
+    } // ( if ( args ? ltype ) || isLocal then { inherit ltype; } else {} )
+      // ( if isLocal then forLocal else {} );
+
     # TODO: read `gypfile' and `hasInstallScript' from FS.
     meta = lib.libmeta.mkMetaEnt infoNoFs;
     ex = let
-      # FIXME: ltype
       # TODO: this should be a separate overlay made to be general purpose.
       scriptInfo = final: prev: {
         hasBuild         = lib.libpkginfo.hasBuildFromScripts prev.scripts;
