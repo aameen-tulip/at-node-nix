@@ -152,15 +152,12 @@ in {
 # ---------------------------------------------------------------------------- #
 
   flocoUnpack = {
-    name             ? args.meta.names.source
-  , tarball          ? args.outPath
-  , flocoConfig      ? final.flocoConfig
+    name
+  , tarball
   , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
-  , ...
-  } @ args: let
-    source = final.unpackSafe ( args // { inherit allowSubstitutes; } );
-    meta'  = prev.lib.optionalAttrs ( args ? meta ) { inherit (args) meta; };
-  in { inherit tarball source; outPath = source.outPath; } // meta';
+  }: let
+    source = final.unpackSafe { inherit name tarball allowSubstitutes; };
+  in { inherit tarball source; inherit (source) outPath; };
 
 
 # ---------------------------------------------------------------------------- #

@@ -150,10 +150,11 @@
 # ---------------------------------------------------------------------------- #
 
   node2nixName = { ident ? args.name, version, ... } @ args: let
-    fid = "${builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] ident
-            }-${version}";
-    fsb = ( if args.scope != null then "_at_${args.scope}_slash_" else "" ) +
-          "${args.bname}-${version}";
+    sub   = builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] ident;
+    fid   = "${sub}-${version}";
+    scope = if ( args.scope or null ) == null then "" else
+            "_at_${args.scope}_slash_";
+    fsb = scope + "${args.bname}-${version}";
   in if ( args ? bname ) && ( args ? scope ) then fsb else fid;
 
 

@@ -286,8 +286,8 @@
       merged = deps // parted'.wrong // applied;
     in merged;
     rewriteField = acc: f:
-      if ( ! ( acc ? ${f} ) ) then acc else
-      ( acc // { ${f} = rewriteDeps acc.${f}; } );
+      if ! ( acc ? ${f} ) then acc else
+      acc // { ${f} = rewriteDeps acc.${f}; };
     rewritten = builtins.foldl' rewriteField pjs depFields;
   in assert verifyFields; assert verifyResolves; rewritten;
 

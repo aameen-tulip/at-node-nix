@@ -112,13 +112,13 @@ in {
 
   Structs.fetched = yt.struct "fetched" {
     _type      = yt.restrict "_type[fetched]" ( s: s == "fetched" ) yt.string;
-    ltype      = yt.NpmLifecycle.Enums.ltype;
+    ltype      = yt.option yt.NpmLifecycle.Enums.ltype;
     ffamily    = yt.FlocoFetch.Enums.fetcher_family;
     outPath    = yt.FS.store_path;
-    passthru   = yt.option ( yt.attrs yt.any );
-    meta       = yt.option ( yt.attrs yt.any );
     fetchInfo  = yt.FlocoFetch.Eithers.fetch_info_floco;
     sourceInfo = yt.FlocoFetch.Eithers.source_info_floco;
+    passthru   = yt.option ( yt.attrs yt.any );
+    meta       = yt.option ( yt.attrs yt.any );
   };
 
 
