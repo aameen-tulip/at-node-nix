@@ -109,20 +109,20 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # TODO: move to `ak-nix'
-
   # Reads a JSON file from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readJSONFromPath' = { allowedPaths, pure , ifd }: pathlike: let
-    p    = if pathlike ? __toString then toString pathlike else pathlike;
-    pjs  = lib.importJSON p;
-    msgD = "readPjsFromPath: Cannot read path '${p}' when `IFD' is disable.";
-    forD = if ifd then pjs else throw msgD;
-    msgP = "readPjsFromPath: Cannot read unlocked path '${p}' in pure mode.";
-    forP = if ( ! pure ) || ( lib.isStorePath p ) then pjs else throw msgP;
-  in if builtins.any ( allow: lib.hasPrefix allow p ) allowedPaths then pjs else
-     if ( lib.isDerivation pathlike ) then forD else forP;
+  # Throws if path is not readable.
+  # We explicitly check the contained directory because of how frequently we
+  # work with tarballs, `builtins.pathExists "${my-tarball}/.";' fails because
+  # `my-tarball' is a file, so this works out.
+  readJSONFromPath' = { allowedPaths, pure, ifd } @ fenv: pathlike: let
+    doRead = p: let
+      isDir = builtins.pathExists ( ( dirOf ( toString p ) ) + "/." );
+    in if isDir then lib.importJSON' ( toString p ) else
+       throw ( "readJSONFromPath: path '${dirOf ( toString p )}' is not " +
+               "a directory." );
+  in lib.libread.runReadOp fenv doRead pathlike;
 
   readJSONFromPath = let
     inner = readPjsFromPath' defaultFlocoEnv;
@@ -145,7 +145,7 @@
 # ---------------------------------------------------------------------------- #
 
   # Converts an attrset or pathlike to an attrset with `package.json' contents.
-  # If `x' is already the contetns of a `package.json' this is a no-op.
+  # If `x' is already the contents of a `package.json' this is a no-op.
   # Otherwise we will read/import from the path representation of `x', accepting
   # a path to `package.json' directly, or a dir containing `package.json'.
   coercePjs' = { pure, ifd, allowedPaths } @ fenv: x: let
