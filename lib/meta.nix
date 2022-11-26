@@ -474,7 +474,9 @@
   , version ? baseNameOf members.key
   , key     ? "${ident}/${version}"
   , ...
-  } @ members: let
+  } @ members:
+  # XXX: You mispelled "entFromtype" in a `metaEnt' constructor.
+  assert ! ( members ? entFromType ); let
     args = { inherit ident version key; } // members;
     core = lib.apply mkMetaEntCore args;
     base = core.__update members;

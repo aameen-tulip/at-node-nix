@@ -43,6 +43,7 @@ in {
   libpkginfo = callLibs [./pkginfo.nix ./scope.nix];
   libattrs   = prev.libattrs // ( callLib  ./attrsets.nix );
   libplock   = callLib  ./pkg-lock.nix;
+  libpjs     = callLib  ./pkg-json.nix;
   libreg     = callLib  ./registry.nix;
   libtree    = callLibs [./tree.nix ./focus-tree.nix];
   libsys     = callLib  ./system.nix;

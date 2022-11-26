@@ -120,7 +120,7 @@
     markDev  = markField "dev"     ( plent.devDependencies or {} );
     markPeer = markField "peer"    ( plent.peerDependencies or {} );
     markOpt  = let
-      od = markField "optional"    ( plent.optionalDependencies or {} );
+      od = markField "optional" ( plent.optionalDependencies or {} );
       # Collect `optional' fields from peer meta; and assert that this is the
       # only field present in those attrs.
       pm = let
