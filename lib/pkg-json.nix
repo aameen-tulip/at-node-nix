@@ -90,16 +90,30 @@
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
   , pjsDir ?
-    throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
+    throw "getIdentPjs: Cannot read workspace/write fetchInfo without 'pjsDir'."
   , isLocal ? true
   , ltype   ? "dir"
+  , basedir ? toString pjsDir
   } @ args: let
+    gargs = removeAttrs args ["basedir" "ltype" "isLocal"];
+    abs = if yt.FS.abspath.check pjsDir then toString pjsDir else
+          toString ( /. + ( ( basedir + "/" + pjsDir ) ) );
+    rel = let
+      blen = builtins.stringLength basedir;
+      alen = builtins.stringLength abs;
+    in if basedir == pjsDir then "" else
+       builtins.substring ( blen + 1 ) alen abs;
     forLocal = {
       # FIXME: when you serialize this you need to write relative paths.
+      # You have that here, but other `fetchInfo' entries don't, and honestly
+      # I'm not in love with this handling.
       fetchInfo = {
-        __serial = x:
-          builtins.trace "Cannot serialize absolute path: ${toString x.path}"
-          ( removeAttrs ( lib.libmeta.serialDefault x ) ["path"] );
+        __serial = x: ( lib.libmeta.serialDefault x ) // {
+          path =
+            builtins.trace ( "WARNING: making absolute path '${toString abs}'" +
+                             " relative './${rel}'." )
+                           ( "./" + rel );
+        };
         type      = "path";
         path      = assert wkey == "";  pjsDir;
         recursive = true;
@@ -114,7 +128,7 @@
         engines     = true;
         gypfile     = true;  # Rarely declared but it happens.
       };
-    } fenv args;
+    } fenv gargs;
     # We recycle `depInfoEntFromPlockV3' since we don't have a generic form.
     # The regular routine is fine for this, we just pass in a phony path.
     # At time of writing the `path' field isn't used anyway.
@@ -127,7 +141,7 @@
           peerDependencies     = true;
           peerDependenciesMeta = true;
         };
-      } fenv args;
+      } fenv gargs;
     in {
       depInfo   = lib.libdep.depInfoEntFromPlockV3 "" plent;
       depFields = plent;
@@ -137,20 +151,20 @@
     bundled' = let
       fields = getFieldsPjs' {
         fields = { bundledDependencies = true; bundleDependencies = true; };
-      } fenv args;
+      } fenv gargs;
     in lib.libdep.getBundledDeps fields;
 
-    ident   = getIdentPjs'   fenv args;
-    version = getVersionPjs' fenv args;
+    ident   = getIdentPjs'   fenv gargs;
+    version = getVersionPjs' fenv gargs;
 
     infoNoFs = bundled' // {
       inherit ident version;
-      scripts = getScriptsPjs' fenv args;
+      scripts = getScriptsPjs' fenv gargs;
       entFromtype = "package.json";
       key =
         if ( ident == null ) || ( version == null ) then "workspace/0.0.0" else
         ident + "/" + version;
-      hasBin    = getHasBinPjs'  fenv args;
+      hasBin    = getHasBinPjs'  fenv gargs;
       metaFiles = { __serial = false; inherit pjs wkey; } //
                   ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
       inherit (deps) depInfo;
