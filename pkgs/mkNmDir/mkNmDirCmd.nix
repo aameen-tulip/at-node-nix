@@ -18,6 +18,10 @@
 # Use `node_modules/foo/node_modules/bar' for everything,
 # or use `foo/node_modules/bar' for everything; do not mix them!
 #
+# FIXME: Legacy routines hard coded paths to utilities such as `coreutils',
+# which we no longer do.
+# In practice this is fine, but it needs to be documented visibly.
+#
 # NOTE: See additional documentation in `./README.org'.
 #
 # ---------------------------------------------------------------------------- #
@@ -42,19 +46,19 @@
   # A function taking `from' and `to' as arguments, which should produce a shell
   # command that "adds" ( copies/links ) module FROM source directory TO
   # module directory.
-  # See examples above.
-  # NOTE: Use absolute paths to utilities, this command may be nested as a
-  # hook in other derivations and you are NOT guaranteed to have `stdenv'
-  # default path available - not even `coreutils'.
-  # Your function may return a string, or list of strings ( allocation speed )
-  # expected to be concatenated with no delimiter between args.
+  # Ex:  addCmd "/nix/store/xxx-foo-1.0.0" "$node_modules/@bar/foo"
+  # Ex:  addCmd "/nix/store/xxx-foo-1.0.0" "$out"
   , addCmd ? ( from: to: ["pjsAddMod \"" from "\" \"" to "\";"] )
+
   # Same deal as `addCmd' but for handling bin links.
   # This is exposed in case you need to do something wonky like create wrapper
   # scripts; but I think it's unlikely that you'll need to.
-  # Ex:  pjsAddBin "./unpacked/bin/quux" "$out/bin/quux"
-  # Ex:  pjsAddBin "./unpacked/bin/quux" "$out/bin"
-  # Ex:  pjsAddBin "./unpacked" "$out/bin"
+  # The default is `installBinsNm' which is able to deal with the following
+  # argument combinations, the third being the most important since it is used
+  # to process metadata that is missing "bin pairs" info.
+  # Ex:  addBinCmd "./unpacked/bin/quux" "$out/bin/quux"
+  # Ex:  addBinCmd "./unpacked/bin/quux" "$out/bin"
+  # Ex:  addBinCmd "./unpacked" "$out/bin"
   , addBinCmd ? ( from: to: ["installBinsNm \"" from "\" \"" to "\";"] )
 
   # Only handle top level `node_modules/.bin` dir.
@@ -62,6 +66,7 @@
   # If you're creating an install script for use outside of Nix and you want
   # `npm rebuild' and similar commands to work you need those subdirs though.
   , ignoreSubBins ? false
+  # FIXME: currently the paragraph below is insaccurate
   # For `package.json' inputs in pure eval mode, we may not know exactly which
   # bins need to be linked yet; so we have to perform additional checking and
   # globbing at runtime.

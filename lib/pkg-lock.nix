@@ -2,6 +2,13 @@
 #
 # Routines related to scraping `package-lock.json' data.
 #
+# TODO: work out a way to integrate `allowPjsReads = true' or equivalent
+# setting to allow `meta(Ent|Set)FromPlockV[13]' to scrape local trees'
+# `package.json' info.
+# The legacy routines did this without asking which was bad, but we from the
+# perspective of the caller it makes sense to read that info as long as they've
+# permitted it explicitly.
+#
 # ---------------------------------------------------------------------------- #
 
 { lib }: let
