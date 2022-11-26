@@ -126,6 +126,10 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # These are checked in `libfetch' already, but these two test cases were
+    # added here as well for visibility.
+    # If `libfetch' is being edited we want breaking changes to `resolved'
+    # fallbacks to be noticed in relation to `mkNmDirCmd' as well.
     testPlRootIsDir = {
       expr     = sourceTree."".ltype;
       expected = "dir";

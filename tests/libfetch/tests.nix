@@ -17,10 +17,17 @@
   ts      = metaSet."typescript/4.8.2";
   projd   = metaSet."projd/1.0.0";
 
-  pl_proj2   = plock.packages."";
-  pl_lodash  = plock.packages."node_modules/lodash";
-  pl_ts      = plock.packages."node_modules/typescript";
-  pl_projd   = plock.packages."../projd";
+  # These assert that `resolved = pkey' fallbacks allow `dir' entries to be
+  # fetched correctly, without interfering with other types of entries -
+  # particularly `link' entries.
+  pl_proj2  = { resolved = ""; } // plock.packages."";
+  pl_lodash = {
+    resolved = "node_modules/lodash";
+  } // plock.packages."node_modules/lodash";
+  pl_ts = {
+    resolved = "node_modules/typescript";
+  } // plock.packages."node_modules/typescript";
+  pl_projd = { resolved = "../projd"; } // plock.packages."../projd";
 
 
 # ---------------------------------------------------------------------------- #
