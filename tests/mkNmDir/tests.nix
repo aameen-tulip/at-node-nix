@@ -136,7 +136,7 @@
     };
 
     testPlDotsIsLink = {
-      expr     = sourceTree."../projd".ltype;
+      expr     = sourceTree."node_modules/projd".ltype;
       expected = "link";
     };
 

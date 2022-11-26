@@ -27,7 +27,9 @@
   pl_ts = {
     resolved = "node_modules/typescript";
   } // plock.packages."node_modules/typescript";
-  pl_projd = { resolved = "../projd"; } // plock.packages."../projd";
+  pl_projd = {
+    resolved = "node_modules/projd";
+  } // plock.packages."node_modules/projd";
 
 
 # ---------------------------------------------------------------------------- #
@@ -40,7 +42,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testFlocoFetcher = {
+    testFlocoFetcher_ms = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher {};
       in builtins.mapAttrs ( _: v: if v ? outPath then true else v ) {
@@ -50,13 +52,34 @@
         #       If you fork this repo and it crashes here, setup a key, auth it,
         #       and add it to secrets.
         git  = flocoFetcher lodash;
-        tar  = flocoFetcher ts;
+        file = flocoFetcher ts;
         link = flocoFetcher projd;
       };
       expected = {
         dir  = true;
         git  = true;
-        tar  = true;
+        file = true;
+        link = true;
+      };
+    };
+
+    testFlocoFetcher_pl = {
+      expr = let
+        flocoFetcher = lib.mkFlocoFetcher {};
+      in builtins.mapAttrs ( k: v: v.ltype == k  ) {
+        dir = flocoFetcher pl_proj2;
+        # NOTE: This test case will fail in GitHub Actions if you don't set up
+        #       an SSH key authorized for your repo.
+        #       If you fork this repo and it crashes here, setup a key, auth it,
+        #       and add it to secrets.
+        git  = flocoFetcher pl_lodash;
+        file = flocoFetcher pl_ts;
+        link = flocoFetcher pl_projd;
+      };
+      expected = {
+        dir  = true;
+        git  = true;
+        file = true;
         link = true;
       };
     };

@@ -66,8 +66,14 @@
     cond = lib.test "git(\\+(ssh|https?))?://.*";
   in ytypes.__internal.typedef "npm:uri[git]" cond;
 
-  # "path" ltype, but if I export the name "path_uri" from this file I'd
+  # "dir" ltype, but if I export the name "path_uri" from this file I'd
   # absolutely shoot myself in the foot later - so its getting a gross name.
+  # This one is fucky because the definition is almost identical `link'.
+  # Literally the only difference between the two is "" is assumed to be a `dir'
+  # despite the fact that it isn't considered a `relpath' type.
+  # XXX: This is a smell test and should never be used to really discern
+  # between `link' and `dir' URIs, which requires you to compare the actual
+  # `plent' to look for the `link' field.
   dir_uri = let
     cond = x:
       ( x == "" ) ||

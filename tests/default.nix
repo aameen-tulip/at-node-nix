@@ -12,7 +12,7 @@
 , pkgsFor     ? at-node-nix.legacyPackages.${system}
 , lib         ? at-node-nix.lib
 , writeText   ? pkgsFor.writeText
-, rime        ? builtins.getFlake "github:aakropotkin/rime"
+, rime        ? at-node-nix.inputs.rime
 
 , flocoUnpack ? pkgsFor.flocoUnpack
 , flocoConfig ? pkgsFor.flocoConfig
@@ -34,17 +34,7 @@
     inherit limit;
 
     inherit (pkgsFor)
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
-
-      mkSourceTree
-      mkSourceTreeDrv
+      mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
       mkTarballFromLocal
     ;
     inherit flocoUnpack flocoConfig flocoFetch;
@@ -81,7 +71,7 @@
   # of `mkCheckerDrv'.
   harness = let
     purity = if lib.inPureEvalMode then "pure" else "impure";
-    name = "at-node-nix tests (${system}, ${purity})";
+    name = "at-node-nix tests ${system} ${purity}";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = {
