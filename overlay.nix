@@ -12,86 +12,8 @@ final: prev: let
 
 # ---------------------------------------------------------------------------- #
 
-  # Only these attrs are available for auto-calling.
-  # This helps eliminate accidental arg passing for things like `tree'.
-  flocoEnv = {
-    inherit (final)
-      config  # Nixpkgs config
-      stdenv
-      bash
-      coreutils
-      findutils
-      gnused
-      gnugrep
-      jq
-      xcbuild
-      writeTextFile
-      writeText
-      nix-gitignore
-      makeSetupHook
-      runCommandNoCC
-      gnutar
-      makeWrapper
-      nix
-      linkFarm
-      xorg
-
-      untarSanPerms
-      copyOut
-
-      lib
-      flocoConfig
-      pacote
-      system
-      npmSys
-
-      snapDerivation
-      unpackSafe
-      evalScripts
-      buildGyp
-      genericInstall
-      patch-shebangs
-      genSetBinPermissionsHook
-      coerceDrv
-
-      installGlobal
-      mkBinPackage
-
-      flocoFetch
-      flocoUnpack
-
-      mkNmDir
-
-      mkSourceTreeDrv
-      mkSrcEnt
-      buildPkgEnt
-      installPkgEnt
-      testPkgEnt
-
-      mkNmDirCmdWith
-      mkNmDirCopyCmd
-      mkNmDirLinkCmd
-
-      mkNmDirPlockV3
-      mkNmDirSetupHook
-
-      pjsUtil
-      patchNodePackageHook
-      installGlobalNodeModuleHook
-
-      nodejs-14_x
-    ;
-
-    inherit (prev.xorg) lndir;
-    inherit (flocoEnv.nodejs) python;
-    inherit (flocoEnv.nodejs.pkgs) node-gyp npm yarn;
-    nodejs = prev.nodejs-14_x;
-
-  };
-
-  # FIXME: this obfuscates the real dependency scope.
-  callPackageWith  = auto: prev.lib.callPackageWith ( flocoEnv // auto );
-  callPackagesWith = auto: prev.lib.callPackagesWith ( flocoEnv // auto );
+  callPackageWith  = auto: prev.lib.callPackageWith ( final.flocoEnv // auto );
+  callPackagesWith = auto: prev.lib.callPackagesWith ( final.flocoEnv // auto );
   callPackage      = callPackageWith {};
   callPackages     = callPackagesWith {};
 
@@ -104,18 +26,15 @@ in {
   # Nixpkgs has a major breaking change to `meta' fields that puts me in
   # a nasty spot... since I have a shitload of custom `meta' fields.
   config = prev.config // { checkMeta = false; };
-
   lib = let
     unconfigured = prev.lib.extend ( import ./lib/overlay.lib.nix );
   in unconfigured.extend ( libFinal: libPrev: {
-
+    # TODO: remove `flocoConfig' entirely.
     flocoConfig = libPrev.mkFlocoConfig {
       # Most likely this will get populated by `stdenv'
       npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
     };
-
   } );
-
   inherit (final.lib.flocoConfig) npmSys;
   inherit (final.lib) flocoConfig;
   # Using this to migrate away from `flocoConfig'.
@@ -136,12 +55,26 @@ in {
     };
     # Default NmDir builder prefers symlinks
     mkNmDir = final.mkNmDirLinkCmd;
+    inherit (final)
+      stdenv bash coreutils findutils gnused gnugrep jq xcbuild writeTextFile
+      writeText nix-gitignore makeSetupHook runCommandNoCC gnutar makeWrapper
+      nix linkFarm xorg
+      untarSanPerms copyOut
+      lib pacote system npmSys
+      flocoUnpack
+      snapDerivation unpackSafe evalScripts buildGyp coerceDrv
+      installGlobal installGlobalNodeModuleHook mkBinPackage
+      mkSrcEnt buildPkgEnt installPkgEnt testPkgEnt
+      mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
+      pjsUtil patchNodePackageHook
+      nodejs-14_x
+    ;
+    inherit (prev.xorg) lndir;
+    inherit (final.flocoEnv.nodejs) python;
+    inherit (final.flocoEnv.nodejs.pkgs) node-gyp npm yarn;
+    nodejs = prev.nodejs-14_x;
   };
   applyFlocoEnv = f: final.lib.apply f final.flocoEnv;
-  inherit (final.flocoEnv)
-    flocoFetch
-    mkNmDir
-  ;
 
 
 # ---------------------------------------------------------------------------- #
@@ -149,8 +82,8 @@ in {
   flocoUnpack = {
     name
   , tarball
-  , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
   , setBinPerms      ? true
+  , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
   }: let
     source = final.unpackSafe {
       inherit name tarball setBinPerms allowSubstitutes;
@@ -163,21 +96,14 @@ in {
   # Trust me, you want to pass the `{}' here.
   snapDerivation = callPackage ./pkgs/make-derivation-simple.nix {};
 
-  # FIXME: `unpackSafe' needs to set bin permissions/patch shebangs
-  unpackSafe  = callPackage ./pkgs/build-support/unpackSafe.nix;
+  # FIXME: `chmod -R +rw' is being used to set bin perms - bad alignment.
+  unpackSafe = callPackage ./pkgs/build-support/unpackSafe.nix;
 
   evalScripts = callPackage ./pkgs/build-support/evalScripts.nix;
 
   buildGyp = callPackageWith {
     python = prev.python3;
   } ./pkgs/build-support/buildGyp.nix;
-
-  # TODO: the alignment with `buildGyp' is bad.
-  genericInstall = callPackageWith {
-    flocoConfig = final.flocoConfig;
-    impure      = final.flocoConfig.enableImpureMeta;
-    python      = prev.python3;
-  } ./pkgs/build-support/genericInstall.nix;
 
   installGlobal = callPackage ./pkgs/pkgEnt/installGlobal.nix;
   mkBinPackage  = callPackage ./pkgs/pkgEnt/mkBinPackage.nix;
@@ -189,25 +115,6 @@ in {
 
   # NOTE: read the file for some known limitations.
   coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
-
-  # FIXME: this is almost certainly broken by new `mkPkgEntSource'.
-  mkSourceTree = prev.lib.callPackageWith {
-    inherit (final)
-      lib npmSys system stdenv
-      mkNmDirCmdWith
-      flocoUnpack flocoFetch coerceUnpacked'
-    ;
-  } ./pkgs/mkNmDir/mkSourceTree.nix;
-
-  # { mkNmDir*, tree ( from `mkSourceTree' ) }
-  mkSourceTreeDrv = prev.lib.callPackageWith {
-    inherit (final)
-      lib npmSys system stdenv runCommandNoCC mkSourceTree mkNmDir
-      _mkNmDirWith
-      mkNmDirCmdWith
-      flocoUnpack flocoConfig flocoFetch
-    ;
-  } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
 
   inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
     buildPkgEnt
@@ -221,14 +128,12 @@ in {
 
   inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix ( {
     inherit (prev.xorg) lndir;
-    inherit (final) flocoUnpack;  # FIXME: probably remove
   } // final.flocoEnv ))
     mkNmDirCmdWith
     mkNmDirCopyCmd
     mkNmDirLinkCmd
   ;
-
-  mkNmDirPlockV3 = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
+  mkNmDirPlockV3   = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
   mkNmDirSetupHook = callPackage ./pkgs/mkNmDir/mkNmDirSetupHook.nix;
 
   inherit (callPackages ./pkgs/build-support/setup-hooks {})

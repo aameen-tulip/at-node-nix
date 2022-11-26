@@ -173,7 +173,7 @@
     in if ( readAllowed ( dir + "/package.json" ) ) && isDir then {
       metaFiles = { inherit pjs; };
       gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
-      scripts = pjs.scripts or {};
+      scripts   = pjs.scripts or {};
     } else {};
 
     sent = mkPkgEntSource' {

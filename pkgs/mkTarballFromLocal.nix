@@ -20,8 +20,8 @@
 # ---------------------------------------------------------------------------- #
 
 {
-  name  ? meta.names.tarball
-, meta  ? throw "I need 'meta' if 'name' is unspecified"
+  name    ? metaEnt.names.tarball
+, metaEnt ? throw "I need 'metaEnt' if 'name' is unspecified"
 , source   # Original source code with unpatched shebangs. # XXX: See note below
 , prepared # Final "built"/"prepared" tree. `src' clobbers common files.
 , pacote
@@ -41,15 +41,15 @@
 # `nodeFilt' though - because if it were skipped we may accidentally pull
 # "dirty" source tree files built outside of Nix into the tarball.
 snapDerivation {
-  inherit name;
+  inherit name source prepared;
   PATH = "${coreutils}/bin:${pacote}/bin";
   buildCommand = ''
-    mkdir -p  cache
-    PACOTE_CACHE="$PWD/cache"
-    cp -r --reflink=auto -- ${source} ./package
-    chmod -R +rw ./package
-    cp -r --reflink=auto --no-clobber -t ./package ${prepared}/*
-    chmod -R +rw ./package
-    pacote --cache="$PACOTE_CACHE" tarball ./package "$out"
+    mkdir -p  cache;
+    PACOTE_CACHE="$PWD/cache";
+    cp -r --reflink=auto -- "$source" ./package;
+    chmod -R +rw ./package;
+    cp -r --reflink=auto --no-clobber -t ./package "$prepared"/*;
+    chmod -R +rw ./package;
+    pacote --cache="$PACOTE_CACHE" tarball ./package "$out";
   '';
 }
