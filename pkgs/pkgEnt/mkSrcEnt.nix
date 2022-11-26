@@ -9,6 +9,7 @@
 , pure
 , ifd
 , typecheck
+, allowedPaths
 
 , flocoUnpack
 , flocoFetch   # This does not necessarily need to adhere to `flocoEnv' passed
@@ -27,6 +28,10 @@
 # ---------------------------------------------------------------------------- #
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+
+  readAllowed = lib.libread.readAllowed {
+    inherit pure ifd allowedPaths;
+  };
 
 # ---------------------------------------------------------------------------- #
 #
@@ -77,8 +82,9 @@
   , ...
   } @ x: assert ( x ? source ) || ( x ? fetchInfo ) || ( x ? fetched ); let
     inherit (fetched.passthru) unpacked;
+    name        = x.names.src or "source";
     needsUnpack = ( fetched.ffamily == "file" ) && ( ! unpacked );
-    doUnpack    = flocoUnpack { name = "source"; tarball = fetched; };
+    doUnpack    = flocoUnpack { inherit name; tarball = fetched; };
   in x.source or ( if needsUnpack then doUnpack.source else fetched );
 
 
@@ -152,8 +158,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # TODO: scrape PJS after unpack.
-  # TODO: typecheck.
+  # TODO: less ugly pre/post scraping
   # TODO: check bin perms.
   # `metaEnt' -> `pkgEnt:source'
   mkSrcEntFromMetaEnt' = {
@@ -161,14 +166,47 @@
   , flocoUnpack, flocoFetch
   } @ fenv:
   { fetched ? flocoFetch metaEnt, ... } @ metaEnt: let
+    fetched' = if typecheck then yt.FlocoFetch.fetched fetched else fetched;
+    scrape = dir: let
+      pjs   = lib.importJSON ( dir + "/package.json" );
+      isDir = builtins.pathExists ( dir + "/." );
+    in if ( readAllowed ( dir + "/package.json" ) ) && isDir then {
+      metaFiles = { inherit pjs; };
+      gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
+      scripts = pjs.scripts or {};
+    } else {};
+
     sent = mkPkgEntSource' {
-      fetched = if typecheck then yt.FlocoFetch.fetched fetched else fetched;
+      fetched = fetched';
       metaEnt = let
-        clean = removeAttrs metaEnt ["fetched"];
+        # Only runs if allowed
+        merged = metaEnt.__extend ( final: prev:
+          lib.recursiveUpdate ( scrape fetched' ) prev
+        );
+        clean  = removeAttrs merged ["fetched"];
       in if typecheck then yt.FlocoMeta.meta_ent_shallow clean else clean;
       inherit flocoUnpack;
     };
-  in if ! typecheck then sent else pkg_ent_src sent;
+
+    post = let
+      done   = ( scrape fetched' ) != {};
+      merged = metaEnt.__extend ( final: prev:
+        lib.recursiveUpdate ( scrape sent.source ) prev
+      );
+      clean = removeAttrs merged ["fetched"];
+      lifecycle = {
+        build = let
+          fallback = if sent.ltype == "file" then false else null;
+        in clean.hasBuild or fallback;
+        pack = let
+          fallback = if sent.ltype == "file" then false else null;
+        in clean.hasPack or fallback;
+        install = clean.hasInstallScript or null;
+      };
+    in if ( ! done ) && ( readAllowed sent.source ) then sent // {
+      passthru = sent.passthru // { inherit lifecycle; metaEnt = clean; };
+    } else sent;
+  in if ! typecheck then post else pkg_ent_src post;
 
 
 # ---------------------------------------------------------------------------- #

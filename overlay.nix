@@ -246,7 +246,7 @@ in {
 
   inherit (import ./pkgs/pkgEnt/mkSrcEnt.nix {
     inherit (final) lib flocoUnpack;
-    inherit (final.flocoEnv) pure ifd typecheck flocoFetch;
+    inherit (final.flocoEnv) pure ifd typecheck allowedPaths flocoFetch;
   } )
     coerceUnpacked' coerceUnpacked
     mkPkgEntSource

@@ -10,9 +10,6 @@
 , flocoUnpack
 , flocoFetch
 
-, genSetBinPermissionsHook ? import ./genSetBinPermsCmd.nix {
-  inherit patch-shebangs lib;
-}
 , patch-shebangs
 , linkFarm
 , stdenv
@@ -20,88 +17,6 @@
 , nodejs
 , jq
 } @ globalArgs: let
-
-# ---------------------------------------------------------------------------- #
-#
-#  {
-#    [outPath]    alias for most processed stage. ( ends with "prepared" )
-#    [tarball]
-#    source       ( unpacked into "$out" )
-#    [built]      ( `build'/`pre[pare|publish]' )
-#    [installed]  ( `gyp' or `[pre|post]install' )
-#    prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
-#    TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
-#    [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
-#    TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
-#    passthru     ( Holds the fields above + `nodejs', and a few other drvs )
-#    key          ( `[@SCOPE/]NAME/VERSION' )
-#    meta         ( package info yanked from locks, manifets, etc - no drvs! )
-#  }
-#
-#
-# ---------------------------------------------------------------------------- #
-
-# MetaEnt for reference
-#
-# {
-#   key = "@babel/core/7.18.13";
-#   ident = "@babel/core";
-#   version = "7.18.13";
-#   entFromtype = "package-lock.json(v2)";
-#   hasBin = false;
-#   hasBuild = false;
-#   hasInstallScript = false;
-#   scoped = true;
-#   fetchInfo = {
-#     hash = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
-#     sha512 = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
-#     type = "tarball";
-#     url = "https://registry.npmjs.org/@babel/core/-/core-7.18.13.tgz";
-#   };
-#   depInfo = { ... };
-# }
-#
-# ---------------------------------------------------------------------------- #
-
-  # Just fetch and unpack.
-  # No bin permissions are handled, no patching is performed.
-  #mkPkgEntSource = {
-  #  key
-  #, ident
-  #, version
-  #, entFromtype
-  #, scoped
-  #, fetchInfo  # { type, hash, sha512|sha1, url|path|git-shit }
-  #, depInfo      ? {}  # Not referenced
-  #, flocoFetch
-  #, flocoUnpack
-  #, names        ? lib.libmeta.metaEntNames { inherit ident version; }
-  #, ...
-  #} @ metaEnt:
-  #  assert metaEnt ? _type -> metaEnt._type == "metaEnt"; let
-  #  common = {
-  #    inherit key ident version;
-  #    source = flocoFetch fetchInfo;
-  #    passthru.metaEnt = metaEnt.__entries or metaEnt;
-  #  };
-  #  # FIXME: use `names.tarball' if you can.
-  #  forTbs = let
-  #    tbUrl   = flocoFetch ( fetchInfo // { type = "file"; } );
-  #    fetched = flocoFetch fetchInfo;
-  #    # FIXME: this is hideous.
-  #    # Rewrite based on `pacote' fetcher.
-  #    needsUnpack =
-  #      ( ( fetched.fetchInfo.type or fetchInfo.type or null ) == "file" ) ||
-  #      ( ( fetchInfo ? needsUnpack ) && ( fetchInfo.needsUnpack == false ) );
-  #    unpacked = if ! needsUnpack then fetched else
-  #               flocoUnpack { name = names.src; tarball = fetched; };
-  #  in lib.optionalAttrs ( builtins.elem fetchInfo.type ["tarball" "file"] ) {
-  #    # This may or may not become the source.
-  #    tarball = if needsUnpack then fetched  else tbUrl;
-  #    source  = unpacked;
-  #  };
-  #in common // forTbs;
-
 
 # ---------------------------------------------------------------------------- #
 
