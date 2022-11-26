@@ -80,7 +80,8 @@
   , fetched   ? flocoFetch x
   , source    ? null
   , ...
-  } @ x: assert ( x ? source ) || ( x ? fetchInfo ) || ( x ? fetched ); let
+  } @ x: assert ( x ? source ) || ( x ? fetchInfo ) ||
+                ( x ? fetched ) || ( x ? resolved ); let
     inherit (fetched.passthru) unpacked;
     name        = x.names.src or "source";
     needsUnpack = ( fetched.ffamily == "file" ) && ( ! unpacked );
@@ -229,7 +230,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  coerceUnpacked'     = coerceUnpacked';
+  coerceUnpacked'     = lib.callWith globalArgs coerceUnpacked';
   coerceUnpacked      = lib.apply coerceUnpacked' globalArgs;
   mkPkgEntSource      = lib.callWith globalArgs mkPkgEntSource';
   mkSrcEntFromMetaEnt = lib.apply mkSrcEntFromMetaEnt' globalArgs;

@@ -1,5 +1,8 @@
 #+TITLE: node_modules directory builders
 
+* FIXME: This file is out of date
+=mkNmDirCmdWith= has changed the prototype for =add[Bin]Cmd=, and =mkPkgEntSource= has also changed.
+This file needs to be updated.
 
 * Builders
 ** mkNmDirCmdWith
@@ -135,15 +138,6 @@ Symlinks all modules from Nix store to path indicated by =$node_modules_path=.
 Calls =mkNmDirCmdWith= in "copy" mode.
 
 Copies all modules from Nix store to path indicated by =$node_modules_path=.
-
-** mkSourceTree and mkSourceTreeDrv
-Minimal builder that fetches sources from a =package-lock.json(v2/3)= using =flocoFetch=.
-
-None of these are processed by =libmeta= or similar helpers which are designed more for creating package sets with builds.
-
-Faster and a bit easier to understand, but you'll need to manually run builds past that.
-
-The =mkSourceTree= form produces a script as a string, the =mkSourceTreeDrv= form writes that script to an executable script.
 
 ** mkNmDirPlockV3
 - Attrs: { nmDirCmd = { cmd, passthru, meta  }; nmDirCmds = { devCopy, devLink, prodCopy, prodLink }; }

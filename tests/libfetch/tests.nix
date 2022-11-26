@@ -60,8 +60,16 @@
     testCwdFlocoFetcher = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
-        mapFetch = builtins.mapAttrs ( _: flocoFetcher );
-      in builtins.mapAttrs ( _: v: builtins.deepSeq v true ) {
+        mapFetch = let
+          doFetchPlock = pkey: plent:
+            flocoFetcher ( { resolved = pkey; } // plent );
+          doFetch = key: x: let
+            fetched =
+              if x ? fetchInfo then flocoFetcher x else doFetchPlock key x;
+          in lib.ytypes.FlocoFetch.fetched.check fetched;
+        in builtins.mapAttrs doFetch;
+        checkAll = v: builtins.all ( b: b ) ( builtins.attrValues v );
+      in builtins.mapAttrs ( _: checkAll ) {
         plents = mapFetch metaSet.__meta.plock.packages;
         msents = mapFetch metaSet.__entries;
       };

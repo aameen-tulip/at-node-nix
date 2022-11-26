@@ -45,15 +45,17 @@
   # Fetches directly from lockfile, pushing down `pkey' to allow `dir'/`link'
   # entries to be fetched.
   sourceTree = let
-    doFetch = pkey: plent: pkgsFor.coerceUnpacked {
-      fetched = flocoFetchCwd ( { resolved = pkey; } // plent );
-    };
+    doFetch = pkey: plent:
+      pkgsFor.coerceUnpacked' { flocoFetch = flocoFetchCwd; }
+                              ( { resolved = pkey; } // plent );
   in builtins.mapAttrs doFetch plock.packages;
 
 
 # ---------------------------------------------------------------------------- #
 
   tests = {
+
+    inherit plock metaSet treeD msTreeD flocoFetchCwd sourceTree;
 
 # ---------------------------------------------------------------------------- #
 
@@ -119,6 +121,19 @@
     testCopyFromITP = {
       expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
       expected = true;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testPlRootIsDir = {
+      expr     = sourceTree."".ltype;
+      expected = "dir";
+    };
+
+    testPlDotsIsLink = {
+      expr     = sourceTree."../projd".ltype;
+      expected = "link";
     };
 
 

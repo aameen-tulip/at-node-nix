@@ -399,15 +399,18 @@
       p = if builtins.isString x then x else
           x.path or x.resolved or x.outPath or "";
       # Coerce an abspath
-      path = let
-        msg = "You must provide `flocoPathFetcher.__thunk.basedir', or " +
-              "pass `basedir' as an argument to fetch relative paths.";
-        basedir = x.basedir or self.__thunk.basedir or ( throw msg );
-      in if lib.libpath.isAbspath p then p else basedir + "/" + p;
+      msg = "You must provide `flocoPathFetcher.__thunk.basedir', or " +
+            "pass `basedir' as an argument to fetch relative paths.";
+      basedir = x.basedir or self.__thunk.basedir or ( throw msg );
+      path = if lib.libpath.isAbspath p then p else basedir + "/" + p;
       # `lib.libstr.baseName' handles store-path basenames.
       name = x.name or ( lib.libfs.baseName p );
-    in lib.canPassStrict self.__innerFunction
-                         ( self.__thunk // { inherit name path; } );
+    in ( lib.canPassStrict self.__innerFunction ( self.__thunk // {
+      inherit name path;
+    } ) ) // {
+      ltype = if ( x ? resolved ) && ( ! lib.libpath.isAbspath x.resolved ) &&
+                 ( x.resolved == "" ) then "dir" else "link";
+    };
     # Convert the store-path returned by `pathW' to a `fetched' struct.
     __processResult = self: args: outPath: let
       # `filter' is a function so it cannot be added to `fetchInfo' if we want
@@ -422,15 +425,9 @@
       };
     in {
       _type = "fetched";
-      # From the perspective of consumers, it's a link.
-      # `ltype = "dir"' is only approriate for CWD and in rare cases a project
-      # could use them for sub-projects but I've literally never seen this in
-      # the field and getting NPM to actually behave that way requires such
-      # a non-sensical number of flags that I'm leaving it up to the user to
-      # unfuck the 3/4,000,00 projects that chose to be irrational.
-      ltype     = "link";
+      inherit (args) ltype;
       ffamily   = "path";
-      fetchInfo = removeAttrs args ["filter"];
+      fetchInfo = removeAttrs args ["filter" "ltype"];
       inherit outPath;
       sourceInfo = { inherit outPath; };
     } // passthru';
@@ -440,8 +437,9 @@
                           else ( y: y );
       rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
                           else ( y: y );
-      args    = argt ( self.__processArgs self x );
-      outPath = self.__innerFunction args;
+      args    = self.__processArgs self x;
+      argsi   = argt ( removeAttrs args ["ltype"] );
+      outPath = self.__innerFunction argsi;
       fetched = self.__processResult self args outPath;
     in rslt fetched;
   };
