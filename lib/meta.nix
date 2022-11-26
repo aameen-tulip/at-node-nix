@@ -459,7 +459,7 @@
     inherit key ident version entFromtype;
     # We don't hard code this in the serializer in case the user actually does
     # want to serialize their `entries', allowing them the ability to override.
-    entries.__serial = false;
+    metaFiles.__serial = false;
   };
 
 

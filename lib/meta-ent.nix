@@ -39,8 +39,9 @@
   } @ args: let
     msg =
       "WARNING: <META-ENT>.entries.* is deprecated. Use <META-ENT>.metaFiles.*";
-  in if args ? entries then builtins.trace msg ( builtins.attrValues entries )
-                       else builtins.attrValues metaFiles;
+    pull = attrs: builtins.attrValues ( removeAttrs attrs ["__serial"] );
+  in if args ? entries then builtins.trace msg ( pull entries )
+                       else pull metaFiles;
 
   # Abstraction to refer to `package.json' scripts fields.
   getScripts = {

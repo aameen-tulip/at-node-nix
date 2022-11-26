@@ -15,11 +15,11 @@
   inherit (pkgsFor)
     buildPkgEnt
     installPkgEnt
-    mkPkgEntSource
     mkNmDirLinkCmd
     mkNmDirPlockV3
     flocoConfig
     flocoFetch
+    mkSrcEnt
   ;
 
 # ---------------------------------------------------------------------------- #
@@ -64,7 +64,7 @@
 # ---------------------------------------------------------------------------- #
 
     testMkPkgEntSource = let
-      pkgEnt   = mkPkgEntSource tsMeta;
+      pkgEnt   = mkSrcEnt tsMeta;
       srcFiles = readDirIfSameSystem pkgEnt.source.outPath;
     in {
       expr = {
@@ -87,7 +87,7 @@
     # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      rootEnt = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.idealTreePlockV3 {
@@ -98,7 +98,7 @@
       # Using the filtered tree, pull contents from our package set.
       # We are just going to install our deps as raw sources here.
       srcTree =
-        builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+        builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       built = buildPkgEnt ( rootEnt // {
         nmDirCmd = mkNmDirLinkCmd {
@@ -126,7 +126,7 @@
     # Run a simple install that just creates a file `farewell.txt' with `echo'.
     testInstallPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      rootEnt  = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.idealTreePlockV3 {
@@ -137,7 +137,7 @@
       # Using the filtered tree, pull contents from our package set.
       # We are just going to install our deps as raw sources here.
       srcTree =
-        builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+        builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       installed = installPkgEnt ( rootEnt // {
         nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {

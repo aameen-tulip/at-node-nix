@@ -63,16 +63,11 @@ final: prev: let
       mkNmDir
 
       mkSourceTreeDrv
-      mkPkgEntSource
+      mkSrcEnt
       buildPkgEnt
       installPkgEnt
       testPkgEnt
 
-      _mkNmDirCopyCmd
-      _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd
-      _mkNmDirAddBinNoDirsCmd
-      _mkNmDirAddBinCmd
       mkNmDirCmdWith
       mkNmDirCopyCmd
       mkNmDirLinkCmd
@@ -155,8 +150,11 @@ in {
     name
   , tarball
   , allowSubstitutes ? ( builtins.currentSystem or null ) != final.system
+  , setBinPerms      ? true
   }: let
-    source = final.unpackSafe { inherit name tarball allowSubstitutes; };
+    source = final.unpackSafe {
+      inherit name tarball setBinPerms allowSubstitutes;
+    };
   in { inherit tarball source; inherit (source) outPath; };
 
 
@@ -192,12 +190,12 @@ in {
   # NOTE: read the file for some known limitations.
   coerceDrv = callPackage ./pkgs/build-support/coerceDrv.nix;
 
+  # FIXME: this is almost certainly broken by new `mkPkgEntSource'.
   mkSourceTree = prev.lib.callPackageWith {
     inherit (final)
       lib npmSys system stdenv
-      _mkNmDirCopyCmd _mkNmDirLinkCmd _mkNmDirAddBinNoDirsCmd _mkNmDirWith
       mkNmDirCmdWith
-      flocoUnpack flocoConfig flocoFetch
+      flocoUnpack flocoFetch coerceUnpacked'
     ;
   } ./pkgs/mkNmDir/mkSourceTree.nix;
 
@@ -212,7 +210,6 @@ in {
   } ./pkgs/mkNmDir/mkSourceTreeDrv.nix;
 
   inherit (callPackages ./pkgs/pkgEnt/plock.nix {})
-    mkPkgEntSource
     buildPkgEnt
     installPkgEnt
     testPkgEnt
@@ -246,6 +243,16 @@ in {
   genMeta = callPackage ./pkgs/tools/genMeta {
     inherit (prev) pacote;
   };
+
+  inherit (import ./pkgs/pkgEnt/mkSrcEnt.nix {
+    inherit (final) lib flocoUnpack;
+    inherit (final.flocoEnv) pure ifd typecheck flocoFetch;
+  } )
+    coerceUnpacked' coerceUnpacked
+    mkPkgEntSource
+    mkSrcEntFromMetaEnt
+    mkSrcEnt
+  ;
 
 }
 

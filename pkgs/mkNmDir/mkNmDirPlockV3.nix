@@ -26,20 +26,20 @@
 { lib
 # You default
 , mkNmDirCmdWith
-, mkPkgEntSource
+, mkSrcEnt
 , npmSys
 , system
 , flocoConfig
 , flocoFetch
 , lockDir ? throw "You must provide an arg for me to find your package lock"
-, plock   ? lib.importJSON' "${lockDir}/package-lock.json"
+, plock   ? lib.importJSON' ( lockDir + "/package-lock.json" )
 # This is the preferred argument
 , metaSet ? lib.metaSetFromPlockV3 {
     inherit plock flocoConfig lockDir;
   }
 # Used to override paths used as "prepared"
 # If this isn't provided we will create a source tree.
-, pkgSet ? builtins.mapAttrs ( _: mkPkgEntSource ) metaSet.__entries
+, pkgSet ? builtins.mapAttrs ( _: mkSrcEnt ) metaSet.__entries
 
 , coreutils
 , lndir ? xorg.lndir

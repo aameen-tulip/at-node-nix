@@ -69,7 +69,7 @@
 # ---------------------------------------------------------------------------- #
 
   identifyPlentLifecycleV3' = plent: let
-    plentFF   = lib.libplock.identifyPlentFetcherFamily plent;
+    plentFF = lib.libplock.identifyPlentFetcherFamily plent;
   in if plentFF != "path" then plentFF else
      if lib.hasPrefix "file:" ( plent.resolved or "" ) then "file" else
      if plent.link or false then "link" else "dir";
