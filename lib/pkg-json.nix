@@ -171,7 +171,15 @@
     } // ( if ( args ? ltype ) || isLocal then { inherit ltype; } else {} )
       // ( if isLocal then forLocal else {} );
 
-    # TODO: read `gypfile' and `hasInstallScript' from FS.
+    infoFs = let
+      hasDef  = lib.libpkginfo.hasInstallFromScripts infoNoFs.scripts;
+      gypfile = if lib.libread.readAllowed rjenv ( pjsDir + "/binding.gyp" )
+                then builtins.pathExists ( pjsDir + "/binding.gyp" )
+                else null;
+    in ( if gypfile == true then {
+      scripts = { install = "node-gyp rebuild"; } // infoNoFs.scripts;
+    } else {} ) // { inherit gypfile; };
+
     meta = lib.libmeta.mkMetaEnt infoNoFs;
     ex = let
       # TODO: this should be a separate overlay made to be general purpose.
@@ -187,7 +195,9 @@
       };
       #ovs = flocoConfig.metaEntOverlays or [];
       #...
-      ov = lib.composeExtensions ( _: prev: extra // prev ) scriptInfo;
+      ov = lib.composeExtensions ( _: prev:
+        extra // infoFs // prev
+      ) scriptInfo;
     in meta.__extend ov;
   in if wkey == "" then ex else
      throw "getIdentPjs: Reading workspaces has not been implemented.";
