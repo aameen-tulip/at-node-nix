@@ -26,13 +26,14 @@
   #       above is written as : hasGlob "foo/\\*/bar" ==> false
   #       When reading from a file however, the examples above are "accurate".
   hasGlob = p:
-    lib.test ".*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
+    lib.test ".*\\*.*" ( builtins.replaceStrings ["\\*"] [""] ( toString p ) );
 
   hasDoubleGlob = p:
-    lib.test ".*\\*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
+    lib.test ".*\\*\\*.*"
+             ( builtins.replaceStrings ["\\*"] [""] ( toString p ) );
 
   hasSingleGlob = p: let
-    esc = builtins.replaceStrings ["\\*"] [""] p;
+    esc = builtins.replaceStrings ["\\*"] [""] ( toString p );
   in lib.test ".*[^*]\\*[^*].*|.*[^*]\\*|\\*" esc;
 
 
@@ -56,29 +57,40 @@
   # Expand globs in workspace paths for a `package.json' file.
   # XXX: This only supports globs at the end of paths.
   processWorkspacePath = p: let
+    ng  = lib.yank "([^*]+)/.*" ( toString p );
+    pds = dirOf ( toString p );
     dirs =
-      if ( hasSingleGlob p ) then ( lib.libfs.listSubdirs ( dirOf p ) ) else
-      if ( hasDoubleGlob p ) then ( lib.libfs.listDirsRecursive ( dirOf p ) )
-      else [p];
+      if ! ( builtins.pathExists ng ) then [] else
+      if hasSingleGlob ( toString p ) then lib.libfs.listSubdirs pds else
+      if hasDoubleGlob ( toString p ) then lib.libfs.listDirsRecursive pds else
+      [p];
     process = builtins.filter ( x: x != null );
     msg = "processGlobEnd: Only globs at the end of paths arg handled: ${p}";
-  in if ( hasGlob ( dirOf p ) ) then throw msg else ( process dirs );
+  in if hasGlob pds then throw msg else process dirs;
 
   # Looks up workspace paths ( if any ) in a `package.json'.
-  # This supports either NPM or Yarn style workspace fields
-  workspacePackages = dir: pkgInfo: let
-    packages = pkgInfo.workspaces.packages or pkgInfo.workspaces or [];
-    processPath = p: processWorkspacePath "${toString dir}/${p}";
+  # This supports either NPM or Yarn style workspace fields.
+  # Workspaces are returned as absolute path strings.
+  workspacePackages = dir: pjs: let
+    packages    = pjs.workspaces.packages or pjs.workspaces or [];
+    processPath = p:
+      map toString ( processWorkspacePath ( ( /. + dir ) + ( "/" + p ) ) );
   in builtins.concatLists ( map processPath packages );
+
+  # Make workspace paths relative.
+  normalizeWorkspaces = dir: pjs: let
+    parent     = toString dir;
+    dropParent = s: let
+      len = builtins.stringLength s;
+      sub = builtins.substring ( ( builtins.stringLength parent ) + 1 ) len s;
+    in "./" + sub;
+  in if ! ( pjs ? workspaces ) then [] else
+     map dropParent ( workspacePackages dir pjs );
+
 
   # Given a path to a project dir or `package.json', return list of ws paths.
   readWorkspacePackages = p: let pjp = pjsPath p; in
     workspacePackages ( dirOf pjp ) ( lib.importJSON' pjp );
-
-  # Make workspace paths absolute.
-  normalizeWorkspaces = dir: pjs:
-    if ! ( pjs ? workspaces ) then [] else
-    map ( lib.libpath.realpathRel dir ) ( workspacePackages dir pjs );
 
 
 # ---------------------------------------------------------------------------- #
