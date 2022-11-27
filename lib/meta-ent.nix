@@ -280,6 +280,53 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # This helper function collects fields used by many `metaEntFrom*' routines
+  # that must be read from the filesystem.
+  # Most importantly it collects a set of available `metaFiles', which can be
+  # used to create an amalgamated `metaEnt' from various inputs.
+  tryCollectMetaFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv:
+    pathlike: let
+      readAllowed = lib.libread.readAllowed { inherit pure ifd allowedPaths; };
+      checkPl = if typecheck then yt.Typeclasses.pathlike pathlike
+                             else pathlike;
+      dir      = lib.coercePath checkPl;
+      isDir    = builtins.pathExists ( dir + "/." );
+      pjs      = lib.importJSONOr null ( dir + "/package.json" );
+      binPairs =
+        if pjs == null then null else
+        lib.apply lib.libpkginfo.pjsBinPairs ( pjs // { src = pathlike; } );
+      bps' = if binPairs == null then {} else { bin = binPairs; };
+      rsl = if ( readAllowed dir ) && isDir then bps' // {
+        metaFiles = lib.filterAttrs ( _: v: v != null ) {
+          inherit pjs;
+          plock = lib.importJSONOr null ( dir + "/package-lock.json" );
+          metaJ = lib.importJSONOr null ( dir + "/meta.json" );
+          metaN =
+            if ! ( builtins.pathExists ( dir + "/meta.nix" ) ) then null else
+            import ( dir + "/meta.nix" );
+        };
+        gypfile  = builtins.pathExists ( dir + "/binding.gyp" );
+        sourceInfo = let
+          pp  = lib.generators.toPretty { allowPrettyValues = true; };
+          msg = "tryCollectMetaFromDir: Unsure of how to coerce sourceInfo " +
+                "from value '${pp pathlike}'.";
+        in if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
+          if pathlike ? outPath then pathlike else
+          if builtins.isString pathlike then { outPath = pathlike; } else
+          throw msg;
+      } else {};
+      rsl_hit_t = yt.struct {
+        bin        = yt.option yt.PkgInfo.bin_pairs;
+        metaFiles  = yt.attrs yt.any;
+        gypfile    = yt.bool;
+        sourceInfo = yt.FlocoFetch.Eithers.source_info_floco;
+      };
+      rslt = yt.either yt.unit rsl_hit_t;
+    in if typecheck then rslt rsl else rsl;
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     metaEntFromSerial
@@ -311,6 +358,9 @@ in {
 
   inherit
     metaEntBinPairs'
+  ;
+  inherit
+    tryCollectMetaFromDir'
   ;
 }
 

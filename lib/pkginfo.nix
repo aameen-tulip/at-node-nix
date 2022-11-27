@@ -217,8 +217,8 @@
 
   # XXX: IFD, maybe impure depending on path
   pjsBinPairsFromDir = {
-    absdir ? src + "/${bindir}"
-  , bindir ? if directories != null then directories.bin else
+    absdir ? if bindir == null then null else src + "/${bindir}"
+  , bindir ? if directories != null then directories.bin or null else
              lib.yank "${src}/(.*)" args.absdir
   , directories ? args.pjs.directories or null
   , src ? throw (
@@ -231,7 +231,8 @@
     proc  = acc: fname: acc // {
       ${lib.libfs.baseNameOfDropExt fname} = "${bindir}/${fname}";
     };
-  in builtins.foldl' proc {} ( builtins.attrNames files );
+  in if absdir == null then {} else
+     builtins.foldl' proc {} ( builtins.attrNames files );
 
 
   # Normalize `bin' or `directories.bin' field to pairs of `{ <BIN> = <PATH>; }'
@@ -247,7 +248,7 @@
     bin         ? null
   , directories ? {}
   , bname       ? baseNameOf ident
-  , ident       ? ( coercePjs' fenv src ).name
+  , ident       ? pjs.name or ( coercePjs' fenv src ).name
   , src ?
     throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
             "must pass `src' as an arg." )
@@ -255,6 +256,7 @@
     stripDS = lib.yank "\\./(.*)";
   in if builtins.isAttrs bin  then builtins.mapAttrs ( _: stripDS ) bin else
      if builtins.isString bin then { ${bname} = stripDS bin; } else
+     if ! ( directories ? bin ) then {} else
      pjsBinPairsFromDir { inherit src directories; };
 
   # TODO: make `toError' for allowed read checker

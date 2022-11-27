@@ -72,6 +72,8 @@
 #
 # ---------------------------------------------------------------------------- #
 
+  # coerceUnpacked :: X -> fetched
+  #
   # Simplest form of `x' -> `source'.
   # Doesn't attempt to set any metadata or proper derivation names.
   # You basically only want to use this for scraping metadata in `impure' mode.
@@ -127,20 +129,7 @@
       ltype = metaEnt.ltype or fetched.ltype or
         ( throw "mkPkgEntSource: Missing 'ltype' in 'metaEnt' and 'fetched'." );
       inherit (me) key ident version;
-      passthru = {
-        metaEnt = me;
-        inherit names;
-        # TODO: handle other lifecycle events.
-        lifecycle = {
-          build = let
-            fallback = if sent.ltype == "file" then false else null;
-          in metaEnt.hasBuild or fallback;
-          pack = let
-            fallback = if sent.ltype == "file" then false else null;
-          in metaEnt.hasPack or fallback;
-          install = metaEnt.hasInstallScript or null;
-        };
-      };
+      passthru = { metaEnt = me; inherit names; };
     };
   in sent;
 
@@ -172,7 +161,11 @@
   , flocoUnpack, flocoFetch
   } @ fenv:
   { fetched ? flocoFetch metaEnt, ... } @ metaEnt: let
+    # Fetch tarball or tree
     fetched' = if typecheck then yt.FlocoFetch.fetched fetched else fetched;
+
+    # Given a tree, scrape `package.json' and extend `metaEnt'.
+    # Only runs if `pure' and `ifd' settings will allow it.
     scrape = dir: let
       pjs   = lib.importJSON ( dir + "/package.json" );
       isDir = builtins.pathExists ( dir + "/." );
@@ -182,18 +175,26 @@
       scripts   = pjs.scripts or {};
     } else {};
 
+    # A base `pkgEnt:source' record using our updated `metaEnt'.
+    # `mkPkgEntSource' will unpack tarballs if they weren't unpacked already.
     sent = mkPkgEntSource' {
       fetched = fetched';
       metaEnt = let
         # Only runs if allowed
-        merged = metaEnt.__extend ( final: prev:
+        merged = ( metaEnt.__extend ( final: prev:
           lib.recursiveUpdate ( scrape fetched' ) prev
-        );
+        ) ).__extend lib.libevent.metaEntLifecycleOverlay;
         clean  = removeAttrs merged ["fetched"];
       in if typecheck then yt.FlocoMeta.meta_ent_shallow clean else clean;
       inherit flocoUnpack;
     };
 
+    # In the event that we fetched a archive that wasn't unpacked until
+    # `mkPkgEntSource' processed it, we retry scraping `package.json' metadata.
+    #
+    # TODO: explain rationale for trying before running `mkPkgEntSource' when
+    # scraping after might cover both cases.
+    # Honestly I'm not entirely sure there is a good reason.
     post = let
       done   = ( scrape fetched' ) != {};
       merged = ( metaEnt.__extend ( final: prev:
@@ -201,10 +202,7 @@
       ) ).__extend lib.libevent.metaEntLifecycleOverlay;
       clean = removeAttrs merged ["fetched"];
     in if ( ! done ) && ( readAllowed sent.source ) then sent // {
-      passthru = sent.passthru // {
-        inherit (clean) lifecycle;
-        metaEnt = clean;
-      };
+      passthru = sent.passthru // { metaEnt = clean; };
     } else sent;
   in if ! typecheck then post else pkg_ent_src post;
 
