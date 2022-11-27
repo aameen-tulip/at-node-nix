@@ -160,7 +160,27 @@
 
 # ---------------------------------------------------------------------------- #
 
-
+  metaEntLifecycleOverlay = final: prev: {
+    lifecycle = let
+      flt = ( eventsForLifecycleStrict' final.ltype ) // {
+        build = final.ltype != "file";
+      };
+      ifdef = {
+        build   = lib.libpkginfo.hasBuildFromScripts final.scripts;
+        prepare = lib.libpkginfo.hasPrepareFromScripts final.scripts;
+        pack    = lib.libpkginfo.hasPackFromScripts final.scripts;
+        test    = lib.libpkginfo.hasTestFromScripts final.scripts;
+        publish = lib.libpkginfo.hasPublishFromScripts final.scripts;
+        install = lib.libpkginfo.hasInstallFromScripts final.scripts;
+      };
+      # These are special and need to be set to `null' if we aren't sure.
+      hi' = if final.gypfile == null then { install = null; } else {
+        install = flt.install && ( ifdef.install || final.gypfile );
+      };
+      proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
+      base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
+    in base // hi';
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -172,6 +192,7 @@ in {
     eventHooksForLtype' eventHooksForLtype
 
     eventsForLifecycleStrict'
+    metaEntLifecycleOverlay
   ;
 
 }

@@ -419,6 +419,11 @@
         r = "${final.names.flake-id-s}--${prev.version}";
       in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] r;
       flake-ref = { id = final.names.flake-id-s; ref = prev.version; };
+      shardScope = let
+        fl = builtins.substring 0 1 final.ident;
+      in if final.scoped then final.names.scope else
+        "unscoped/${fl}";
+      shardDir = final.names.shardScope + "/" + final.names.bname;
     } // ( lib.optionalAttrs final.scoped {
       scope = lib.yank "@([^/]+)/.*" prev.ident;
     } );

@@ -76,9 +76,14 @@
   # Doesn't attempt to set any metadata or proper derivation names.
   # You basically only want to use this for scraping metadata in `impure' mode.
   coerceUnpacked' = { flocoUnpack, flocoFetch }: {
-    fetchInfo ? null
+    ident     ? dirOf x.key or x.name or null
+  , version   ? baseNameOf x.key or null
+  , key       ? null
+  , fetchInfo ? null
   , fetched   ? flocoFetch x
   , source    ? null
+  , names     ? if ( ident == null ) || ( version == null ) then null else
+                lib.libmeta.metaEntNames { inherit ident version; }
   , ...
   } @ x: assert ( x ? source ) || ( x ? fetchInfo ) ||
                 ( x ? fetched ) || ( x ? resolved ); let
@@ -191,21 +196,15 @@
 
     post = let
       done   = ( scrape fetched' ) != {};
-      merged = metaEnt.__extend ( final: prev:
+      merged = ( metaEnt.__extend ( final: prev:
         lib.recursiveUpdate ( scrape sent.source ) prev
-      );
+      ) ).__extend lib.libevent.metaEntLifecycleOverlay;
       clean = removeAttrs merged ["fetched"];
-      lifecycle = {
-        build = let
-          fallback = if sent.ltype == "file" then false else null;
-        in clean.hasBuild or fallback;
-        pack = let
-          fallback = if sent.ltype == "file" then false else null;
-        in clean.hasPack or fallback;
-        install = clean.hasInstallScript or null;
-      };
     in if ( ! done ) && ( readAllowed sent.source ) then sent // {
-      passthru = sent.passthru // { inherit lifecycle; metaEnt = clean; };
+      passthru = sent.passthru // {
+        inherit (clean) lifecycle;
+        metaEnt = clean;
+      };
     } else sent;
   in if ! typecheck then post else pkg_ent_src post;
 
@@ -220,7 +219,7 @@
       metaEnt   = mkSrcEntFromMetaEnt' fenv;
       unknown = let
         msg = "mkSrcEnt': Unsure of how to make 'pkgEnt:source' from value " +
-              "'${lib.generators.toPretty { allowPrettyValue = true; } x}'.";
+              "'${lib.generators.toPretty { allowPrettyValues = true; } x}'.";
       in throw msg;
     };
     tagged = detectKind x;
