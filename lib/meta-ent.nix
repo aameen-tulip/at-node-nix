@@ -358,7 +358,7 @@
           inherit (mfd.metaFiles) plock;
           inherit (mfd.metaFiles.plock) lockfileVersion;
         } pkey plent;
-      in me // { key = me.ident + "/" + me.version; };
+      in me.__update { key = me.ident + "/" + me.version; };
       # This is a "raw" form of the `metaSetFromPlockV3' routine that doesn't
       # require unique entries.
       # In our case we are composing a bunch of entries so we want to work with
