@@ -29,11 +29,7 @@
   autoArgs = {
     inherit lib system flocoConfig flocoFetch pkgsFor flocoUnpack;
     inherit (pkgsFor)
-      _mkNmDirCopyCmd _mkNmDirLinkCmd
-      _mkNmDirAddBinWithDirCmd _mkNmDirAddBinNoDirsCmd _mkNmDirAddBinCmd
       mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
-
-      mkSourceTree mkSourceTreeDrv
       mkTarballFromLocal
     ;
   } // args;

@@ -64,7 +64,12 @@
 # ---------------------------------------------------------------------------- #
 
     testMkPkgEntSource = let
-      pkgEnt   = mkSrcEnt tsMeta;
+      pkgEnt = pkgsFor.mkSrcEnt' {
+        ifd          = isSameSystem;
+        pure         = lib.inPureEvalMode;
+        allowedPaths = [lockDir];
+        typecheck    = true;
+      } tsMeta;
       srcFiles = readDirIfSameSystem pkgEnt.source.outPath;
     in {
       expr = {

@@ -29,10 +29,6 @@
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
 
-  readAllowed = lib.libread.readAllowed {
-    inherit pure ifd allowedPaths;
-  };
-
 # ---------------------------------------------------------------------------- #
 #
 #  Full `pkgEnt' record:
@@ -102,34 +98,30 @@
   # it was not previously performed.
   # Any metadata scraping should be performed before or after this routine
   # based on `ifd' and `pure` settings - we don't fool with that here.
-  mkPkgEntSource' = { metaEnt, fetched, flocoUnpack }: let
-    me = removeAttrs ( metaEnt.__entries or metaEnt ) ["names"];
-    inherit (fetched.passthru) unpacked;
-    needsUnpack = ( fetched.ffamily == "file" ) && ( ! unpacked );
-
-    # bname, genName, src, registryTarball, localTarball, tarball, ..
-    # `tarball' is an alias of `registryTarball' by default, but may be
-    # overidden by the user with a `metaEnt' overlay.
-    names = metaEnt.names or ( lib.libmeta.metaEntNames {
-      inherit (me) ident version;
-    } );
-
-    doUnpack = flocoUnpack {
-      name    = names.src;
-      tarball = fetched;  # this should have set `outPath'
-    };  # => { tarball, source, outPath }
-
-    core = if needsUnpack then doUnpack else {
-      source = fetched;
-      inherit (fetched) outPath;
-    };
-
-    sent = core // {
+  mkPkgEntSource' = { flocoUnpack, flocoFetch } @ fenv: {
+    metaEnt
+  , fetched ? flocoFetch metaEnt
+  , source  ? coerceUnpacked' fenv ( metaEnt // { inherit fetched; } )
+  }: let
+    tb' =
+      if ( fetched.ffamily == "file" ) && fetched.passthru.unpacked then {} else
+      { tarball = fetched; };
+    sent = tb' // {
       _type = "pkgEnt:source";
       ltype = metaEnt.ltype or fetched.ltype or
         ( throw "mkPkgEntSource: Missing 'ltype' in 'metaEnt' and 'fetched'." );
-      inherit (me) key ident version;
-      passthru = { metaEnt = me; inherit names; };
+      inherit source;
+      inherit (source) outPath;
+      inherit (metaEnt) key ident version;
+      passthru = {
+        metaEnt = removeAttrs ( metaEnt.__serial or metaEnt ) ["names"];
+        # bname, genName, src, registryTarball, localTarball, tarball, ..
+        # `tarball' is an alias of `registryTarball' by default, but may be
+        # overidden by the user with a `metaEnt' overlay.
+        names = metaEnt.names or ( lib.libmeta.metaEntNames {
+          inherit (metaEnt) ident version;
+        } );
+      };
     };
   in sent;
 
@@ -153,23 +145,27 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # TODO: less ugly pre/post scraping
   # TODO: check bin perms.
   # `metaEnt' -> `pkgEnt:source'
   mkSrcEntFromMetaEnt' = {
-    pure, ifd, typecheck
+    pure, ifd, typecheck, allowedPaths
   , flocoUnpack, flocoFetch
   } @ fenv:
   { fetched ? flocoFetch metaEnt, ... } @ metaEnt: let
     # Fetch tarball or tree
     fetched' = if typecheck then yt.FlocoFetch.fetched fetched else fetched;
+    source   = coerceUnpacked' { inherit flocoUnpack flocoFetch; }
+                               ( metaEnt.__add { fetched = fetched'; } );
 
     # Given a tree, scrape `package.json' and extend `metaEnt'.
     # Only runs if `pure' and `ifd' settings will allow it.
     scrape = dir: let
       pjs   = lib.importJSON ( dir + "/package.json" );
       isDir = builtins.pathExists ( dir + "/." );
-    in if ( readAllowed ( dir + "/package.json" ) ) && isDir then {
+      readAllowed = lib.libread.readAllowed {
+        inherit pure ifd allowedPaths;
+      } dir;
+    in if readAllowed && isDir then {
       metaFiles = { inherit pjs; };
       gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
       scripts   = pjs.scripts or {};
@@ -177,44 +173,30 @@
 
     # A base `pkgEnt:source' record using our updated `metaEnt'.
     # `mkPkgEntSource' will unpack tarballs if they weren't unpacked already.
-    sent = mkPkgEntSource' {
+    sent = mkPkgEntSource' { inherit flocoUnpack flocoFetch; } {
       fetched = fetched';
+      inherit source;
       metaEnt = let
         # Only runs if allowed
         merged = ( metaEnt.__extend ( final: prev:
-          lib.recursiveUpdate ( scrape fetched' ) prev
+          lib.recursiveUpdate ( scrape source ) prev
         ) ).__extend lib.libevent.metaEntLifecycleOverlay;
-        clean  = removeAttrs merged ["fetched"];
-      in if typecheck then yt.FlocoMeta.meta_ent_shallow clean else clean;
-      inherit flocoUnpack;
+      in if typecheck then yt.FlocoMeta.meta_ent_shallow merged else merged;
     };
-
-    # In the event that we fetched a archive that wasn't unpacked until
-    # `mkPkgEntSource' processed it, we retry scraping `package.json' metadata.
-    #
-    # TODO: explain rationale for trying before running `mkPkgEntSource' when
-    # scraping after might cover both cases.
-    # Honestly I'm not entirely sure there is a good reason.
-    post = let
-      done   = ( scrape fetched' ) != {};
-      merged = ( metaEnt.__extend ( final: prev:
-        lib.recursiveUpdate ( scrape sent.source ) prev
-      ) ).__extend lib.libevent.metaEntLifecycleOverlay;
-      clean = removeAttrs merged ["fetched"];
-    in if ( ! done ) && ( readAllowed sent.source ) then sent // {
-      passthru = sent.passthru // { metaEnt = clean; };
-    } else sent;
-  in if ! typecheck then post else pkg_ent_src post;
+  in if ! typecheck then sent else pkg_ent_src sent;
 
 
 # ---------------------------------------------------------------------------- #
 
-  mkSrcEnt' = { pure, ifd, typecheck , flocoUnpack, flocoFetch } @ fenv: x: let
+  mkSrcEnt' = {
+    pure, ifd, typecheck, allowedPaths
+  , flocoUnpack, flocoFetch
+  } @ fenv: x: let
     detectKind = lib.libtypes.discrDefTypes {
       metaEnt = yt.FlocoMeta.meta_ent_shallow;
     } "unknown";
     mkSrcFromTag = lib.matchLam {
-      metaEnt   = mkSrcEntFromMetaEnt' fenv;
+      metaEnt = mkSrcEntFromMetaEnt' fenv;
       unknown = let
         msg = "mkSrcEnt': Unsure of how to make 'pkgEnt:source' from value " +
               "'${lib.generators.toPretty { allowPrettyValues = true; } x}'.";
@@ -227,11 +209,14 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  coerceUnpacked'     = lib.callWith globalArgs coerceUnpacked';
-  coerceUnpacked      = lib.apply coerceUnpacked' globalArgs;
-  mkPkgEntSource      = lib.callWith globalArgs mkPkgEntSource';
-  mkSrcEntFromMetaEnt = lib.apply mkSrcEntFromMetaEnt' globalArgs;
-  mkSrcEnt            = lib.apply mkSrcEnt' globalArgs;
+  coerceUnpacked'      = lib.callWith globalArgs coerceUnpacked';
+  coerceUnpacked       = lib.apply coerceUnpacked' globalArgs;
+  mkPkgEntSource'      = lib.callWith globalArgs mkPkgEntSource';
+  mkPkgEntSource       = lib.apply mkPkgEntSource' globalArgs;
+  mkSrcEntFromMetaEnt' = lib.callWith globalArgs mkSrcEntFromMetaEnt';
+  mkSrcEntFromMetaEnt  = lib.apply mkSrcEntFromMetaEnt' globalArgs;
+  mkSrcEnt'            = lib.callWith globalArgs mkSrcEnt';
+  mkSrcEnt             = lib.apply mkSrcEnt' globalArgs;
 }
 
 

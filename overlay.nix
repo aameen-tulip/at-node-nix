@@ -44,7 +44,7 @@ in {
   # connections in our libs and with `laika' and `ak-nix'.
   flocoEnv = {
     pure         = final.lib.inPureEvalMode;
-    ifd          = true;
+    ifd          = final.system == ( builtins.currentSystem or null );
     allowedPaths = [];
     typecheck    = false;
     # Default fetchers, prefers `fetchTree' for URLs, `path', and `fetchGit'
@@ -154,9 +154,9 @@ in {
     inherit (final.flocoEnv) pure ifd typecheck allowedPaths flocoFetch;
   } )
     coerceUnpacked' coerceUnpacked
-    mkPkgEntSource
-    mkSrcEntFromMetaEnt
-    mkSrcEnt
+    mkPkgEntSource' mkPkgEntSource
+    mkSrcEntFromMetaEnt' mkSrcEntFromMetaEnt
+    mkSrcEnt' mkSrcEnt
   ;
 
 }

@@ -4,9 +4,12 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ lib, system }: let
 
   inherit (lib) libpkginfo;
+
+  isSameSystem =
+    ( builtins ? currentSystem ) && ( system == builtins.currentSystem );
 
 # ---------------------------------------------------------------------------- #
 
@@ -73,7 +76,7 @@
 
     testPjsBinPairs_0 = {
       expr = lib.libpkginfo.pjsBinPairs' {
-        ifd          = true;
+        ifd          = isSameSystem;
         pure         = lib.inPureEvalMode;
         typecheck    = true;
         allowedPaths = [( toString ./data )];
@@ -91,7 +94,7 @@
 
     testPjsBinPairs_1 = {
       expr = lib.libpkginfo.pjsBinPairs' {
-        ifd          = true;
+        ifd          = isSameSystem;
         pure         = lib.inPureEvalMode;
         typecheck    = true;
         allowedPaths = [];
@@ -104,7 +107,7 @@
 
     testPjsBinPairs_2 = {
       expr = lib.libpkginfo.pjsBinPairs' {
-        ifd          = true;
+        ifd          = isSameSystem;
         pure         = lib.inPureEvalMode;
         typecheck    = true;
         allowedPaths = [];
@@ -121,7 +124,7 @@
     # TODO: test if `pure' and `ifd' work in a wider variety of cases.
     testCoercePjs_0 = let
       coercePjs = lib.libpkginfo.coercePjs' {
-        ifd          = true;
+        ifd          = isSameSystem;
         typecheck    = true;
         pure         = lib.inPureEvalMode;
         allowedPaths = [];
