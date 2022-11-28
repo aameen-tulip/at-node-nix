@@ -88,7 +88,6 @@ let
       "globalOutput" "moduleOutput"
       "doStrip"
       "override" "overrideDerivation" "__functionArgs" "__functor"
-      "meta"
       "nativeBuildInputs"  # We extend this
       "passthru"           # We extend this
     ];
@@ -228,10 +227,7 @@ nativeBuildInputs = let
     fi
   '';
 
-  passthru = let
-    metaEnt = if ( meta._type or null ) == "metaEnt" then meta else
-              lib.libmeta.mkMetaEntCore { inherit ident version; };
-  in ( args.passthru or {} ) // {
+  passthru = ( args.passthru or {} ) // {
     inherit src nodejs nmDirCmd globalNmDirCmd;
   };
 

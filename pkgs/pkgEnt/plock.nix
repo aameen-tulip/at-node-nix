@@ -2,15 +2,12 @@
 
 , evalScripts
 , buildGyp
-, genericInstall
 
 , mkNmDir
 
-, flocoConfig
 , flocoUnpack
 , flocoFetch
 
-, patch-shebangs
 , linkFarm
 , stdenv
 , xcbuild
@@ -87,20 +84,21 @@
   , nmDirCmd
   # If we have a local path we're building, also run the `prepare' script.
   , runScripts     ? ["preinstall" "install" "postinstall"]
-  , genericInstall
+  , buildGyp
+  , evalScripts
   , python         ? nodejs.python
   , node-gyp       ? nodejs.pkgs.node-gyp
   , xcbuild
   , jq
   , nodejs
   , stdenv
-  , flocoConfig
   , ...
   } @ args: let
-    args' = {
+    argsG = {
       inherit name version src python node-gyp runScripts passthru;
     } // ( removeAttrs args [
-      "genericInstall"
+      "evalScripts"
+      "buildGyp"
       # Drop `pkgEnt' fields, but allow other args to be passed through to
       # `evalScripts' ( which accepts a superset of `stdenv.mkDerivation' args )
       "tarball"
@@ -114,7 +112,8 @@
       "module"
       "key"
     ] );
-  in genericInstall args';
+    argsE = removeAttrs argsG ["python" "node-gyp" "xcbuild"];
+  in if metaEnt ? gypfile then buildGyp argsG else evalScripts argsE;
 
 
 # ---------------------------------------------------------------------------- #
