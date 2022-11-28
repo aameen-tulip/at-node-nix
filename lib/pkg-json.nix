@@ -86,6 +86,7 @@
   # FIXME: `flocoConfig.metaEntOverlays'
   metaEntFromPjsNoWs' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
     rjenv = removeAttrs fenv ["metaEntOverlays"];
+    raenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -174,7 +175,7 @@
 
     infoFs = let
       hasDef  = lib.libpkginfo.hasInstallFromScripts infoNoFs.scripts;
-      gypfile = if lib.libread.readAllowed rjenv ( pjsDir + "/binding.gyp" )
+      gypfile = if lib.libread.readAllowed raenv ( pjsDir + "/binding.gyp" )
                 then builtins.pathExists ( pjsDir + "/binding.gyp" )
                 else null;
     in ( if gypfile == true then {

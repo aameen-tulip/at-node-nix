@@ -257,26 +257,26 @@
   # If `metaEnt' has `directories.bin' we may use IFD in helper routines.
   # TODO: typecheck
   metaEntBinPairs' = { pure, ifd, allowedPaths, typecheck } @ fenv: ent: let
-      getBinPairs = lib.libpkginfo.pjsBinPairs' fenv;
-      emptyIsNone = ( lib.libmeta.metaWasPlock ent ) ||
-                    ( builtins.elem ent.entFromtype ["package.json" "raw"] );
-      keep  = {
-        ident           = true;
-        bin             = true;
-        directories.bin = true;
-        fetchInfo       = true;
-      };
-      comm  = builtins.intersectAttrs keep ( ent.__entries or ent );
-      asPjs = lib.libpkginfo.pjsBinPairs' fenv comm;
-      empty = ! ( ( comm ? bin ) || ( comm ? directories.bin ) );
-      src'  = if ( ( ent.fetchInfo.type or "file" ) == "file" ) ||
-                 ( ! ( ent ? sourceInfo.outPath ) )
-              then null
-              else { src = ent.sourceInfo.outPath; };
-    in if emptyIsNone && empty then {} else
-       if comm ? bin then getBinPairs comm else
-       if ( comm ? directories.bin ) && ( src' != null ) then getBinPairs src'
-                                                         else null;
+    getBinPairs = lib.libpkginfo.pjsBinPairs' fenv;
+    emptyIsNone = ( lib.libmeta.metaWasPlock ent ) ||
+                  ( builtins.elem ent.entFromtype ["package.json" "raw"] );
+    keep  = {
+      ident           = true;
+      bin             = true;
+      directories.bin = true;
+      fetchInfo       = true;
+    };
+    comm  = builtins.intersectAttrs keep ( ent.__entries or ent );
+    asPjs = lib.libpkginfo.pjsBinPairs' fenv comm;
+    empty = ! ( ( comm ? bin ) || ( comm ? directories.bin ) );
+    src'  = if ( ( ent.fetchInfo.type or "file" ) == "file" ) ||
+               ( ! ( ent ? sourceInfo.outPath ) )
+            then null
+            else { src = ent.sourceInfo.outPath; };
+  in if emptyIsNone && empty then {} else
+     if comm ? bin then getBinPairs comm else
+     if ( comm ? directories.bin ) && ( src' != null ) then getBinPairs src'
+                                                       else null;
 
 
 # ---------------------------------------------------------------------------- #
@@ -288,15 +288,15 @@
   tryCollectMetaFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv:
     pathlike: let
       readAllowed = lib.libread.readAllowed { inherit pure ifd allowedPaths; };
-      checkPl = if typecheck then yt.Typeclasses.pathlike pathlike
-                             else pathlike;
-      dir   = lib.coercePath checkPl;
-      isDir = builtins.pathExists ( dir + "/." );
-      pjs   = lib.importJSONOr null ( dir + "/package.json" );
-      pjsBP = lib.libpkginfo.pjsBinPairs' fenv;
+      checkPl = if typecheck then yt.Typeclasses.pathlike pathlike else
+                pathlike;
+      dir      = lib.coercePath checkPl;
+      isDir    = builtins.pathExists ( dir + "/." );
+      pjs      = lib.importJSONOr null ( dir + "/package.json" );
+      pjsBP    = lib.libpkginfo.pjsBinPairs' fenv;
       binPairs = if pjs == null then null else
                  lib.apply pjsBP ( pjs // { _src = pathlike; } );
-      bps' = if binPairs == null then {} else { bin = binPairs; };
+      bps'       = if binPairs == null then {} else { bin = binPairs; };
       sourceInfo = let
         pp  = lib.generators.toPretty { allowPrettyValues = true; };
         msg = "tryCollectMetaFromDir: Unsure of how to coerce sourceInfo " +
@@ -347,8 +347,8 @@
   # TODO: meta(Ent|Set)Overlays
   metaSetEntListsFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
     inner = pathlike: let
-      msEmpty   = lib.libmeta.mkMetaSet {};
-      mfd       = tryCollectMetaFromDir' fenv pathlike;
+      msEmpty = lib.libmeta.mkMetaSet {};
+      mfd     = tryCollectMetaFromDir' fenv pathlike;
       # Exactly like `metaSetFromPlockV3' except we unfuck the `key' field.
       mkOnePlV3 = pkey: plent: let
         me = lib.libplock.metaEntFromPlockV3 {
@@ -402,6 +402,7 @@
           fromType = "directory-composite";
           dir = toString pathlike;
           inherit (mfd) metaFiles;
+          # TODO: `bin' and `gypfile' fields aren't processed
           dirInfo = removeAttrs mfd ["metaFiles"];
         };
       };
@@ -413,7 +414,7 @@
       # `hasTest', from `package.json'.
       # NOTE: `package.json' gets priority on `gypfile' even over
       # the filesystem!
-      # FIXME: Other routines fuck this up right now.
+      # FIXME: Other routines fuck this ( above NOTE ) up right now.
       # TODO: After that `meta.{json,nix}' clobbering is something we need to
       # sort out; but for now I'm giving them priority to act as overrides.
 
@@ -473,13 +474,83 @@
       _default = 999;
     };
   in a: b:
-    fromTypesRank.${a.entFromType or "_default"} -
-    fromTypesRank.${b.entFromType or "_default"};
+     fromTypesRank.${a.entFromType or "_default"} -
+     fromTypesRank.${b.entFromType or "_default"};
 
   # returns true if "a <= b" or "a is more trusted than b".
   cmpMetaEntFromsLE = a: b: ( cmpMetaEntFroms a b ) <= 0;
 
   sortMetaEntriesByRank = builtins.sort cmpMetaEntFromsLE;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: `bin' and `gypfile' fields aren't recorded in the ent list.
+  # Get the baseline working then figure those out.
+  mergeMetaEntList = ents: let
+    genericFtype = e: let
+      ftype = e.entFromtype;
+    in if ftype == "package.json" then "pjs" else
+       if lib.hasPrefix "package-lock.json" ftype then "plock" else
+       if lib.hasPrefix "yarn.lock" then "ylock" else
+      ftype;
+    # TODO: this is going to break `plock' entries with conflicting instances.
+    byFtype' = builtins.groupBy genericFtype ents;
+    byFtype  = builtins.mapAttrs ( _: es:
+      builtins.foldl' ( me: e: me.__extend ( _: prev:
+        lib.recursiveUpdate e.__entries prev
+      ) ) ( builtins.head es )
+          ( if 1 < ( builtins.length es ) then builtins.tail es else [] )
+    ) byFtype';
+
+    special = {
+      bin = values: let
+        bps = builtins.filter yt.PkgInfo.bin_pairs.check values;
+      in if bps != [] then builtins.head bps else builtins.head values;
+      fetchInfo = values:
+        byFtype.raw.fetchInfo or byFtype.plock.fetchInfo or
+        ( builtins.head values );
+      ltype = values:
+        byFtype.raw.ltype or byFtype.plock.ltype or ( builtins.head values );
+      hasInstallScript = values:
+        byFtype.raw.hasInstallScript or
+        byFtype.plock.hasInstallScript or
+        byFtype.pjs.hasInstallScript or
+        ( builtins.head values );
+      gypfile = values:
+        byFtype.raw.gypfile or byFtype.pjs.gypfile or ( builtins.head values );
+      depInfo = values:
+        byFtype.raw.depInfo or byFtype.plock.depInfo or
+        ( builtins.head values );
+      # preserve early fields, but collect from all
+      metaFiles = builtins.foldl' ( acc: a: a // acc ) {};
+    };
+
+    ranked = sortMetaEntriesByRank ents;
+    zipper = field: values:
+      if special ? ${field} then special.${field} values else
+      builtins.head values;
+    zipped = builtins.zipAttrsWith zipper ( map ( e: e.__entries ) ranked );
+    nents  = builtins.length ents;
+    # TODO: make `composed' `entFromtype'
+  in if nents == 0 then null else
+     if nents == 1 then builtins.head ents else
+     lib.libmeta.mkMetaEnt ( zipped // { entFromtype = "raw"; } );
+
+
+# ---------------------------------------------------------------------------- #
+
+  metaSetFromDir' = { ifd, pure, allowedPaths, typecheck } @ fenv: let
+    inner = pathlike: let
+      lists = metaSetEntListsFromDir' fenv pathlike;
+    in lists.__extend ( final: prev:
+      builtins.mapAttrs ( _: mergeMetaEntList )
+                        ( removeAttrs prev ["__meta" "_type"] )
+    );
+    # TODO: make a real typedef for this.
+    rslt = yt.restrict "metaSet" ( x: ( x._type or null ) == "metaSet" )
+                                 ( yt.attrs yt.any );
+  in if typecheck then yt.defun [yt.Typeclasses.pathlike rslt] inner else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -523,6 +594,9 @@ in {
     cmpMetaEntFroms
     cmpMetaEntFromsLE
     sortMetaEntriesByRank
+
+    mergeMetaEntList
+    metaSetFromDir'
   ;
 }
 
