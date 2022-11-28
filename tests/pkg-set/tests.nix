@@ -15,7 +15,6 @@
   inherit (pkgsFor)
     buildPkgEnt
     installPkgEnt
-    mkPkgEntSource
     mkNmDirLinkCmd
     mkNmDirPlockV3
     flocoConfig
@@ -43,12 +42,15 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data;
-  metaSet = lib.metaSetFromPlockV3 {
-    inherit lockDir;
-    pure = lib.inPureEvalMode;
-    ifd  = isSameSystem;
+  fenv    = {
+    pure         = lib.inPureEvalMode;
+    ifd          = isSameSystem;
+    allowedPaths = [lockDir];
+    typecheck    = true;
   };
 
+  mkSrcEnt = lib.apply pkgsFor.mkSrcEnt' fenv;
+  metaSet  = lib.callWith fenv lib.metaSetFromPlockV3 { inherit lockDir; };
   # An arbitrary tarball to fetch.
   # We know this one doesn't have the directory permissions issue.
   tsMeta    = metaSet."typescript/4.7.4";
@@ -63,49 +65,38 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testMkPkgEntSource = let
-      pkgEnt   = mkPkgEntSource tsMeta;
+    testMkSrcEnt = let
+      pkgEnt = mkSrcEnt tsMeta;
       srcFiles = readDirIfSameSystem pkgEnt.source.outPath;
     in {
-      expr = {
-        srcValid = ( builtins.tryEval srcFiles ) ? success;
-        # FIXME
-        #tbValid  = pkgEnt;
-          #pkgEnt ? tarball.outPath;
-      };
-      expected = {
-        srcValid = true;
-        #tbValid  = true;
-      };
+      expr     = ( builtins.tryEval srcFiles ) ? success;
+      expected = true;
     };
 
 
 # ---------------------------------------------------------------------------- #
 
-    # FIXME: temporarily blocked so we can run other parts of the test suite.
-
     # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      rootEnt = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
-      tree = lib.idealTreePlockV3 {
+      tree = lib.callWith fenv lib.idealTreePlockV3 {
         inherit metaSet;
         dev    = true;
         npmSys = lib.getNpmSys { inherit system; };
       };
       # Using the filtered tree, pull contents from our package set.
       # We are just going to install our deps as raw sources here.
-      srcTree =
-        builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+      srcTree = builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       built = buildPkgEnt ( rootEnt // {
         nmDirCmd = mkNmDirLinkCmd {
           tree         = srcTree;
           handleBindir = false;
           # Helps sanity check that our modules were installed.
-          postNmDir    = "ls $node_modules_path/../**;";
+          postNmDir = "ls $node_modules_path/../**;";
         };
       } );
     in {
@@ -126,25 +117,24 @@
     # Run a simple install that just creates a file `farewell.txt' with `echo'.
     testInstallPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      rootEnt  = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
-      tree = lib.idealTreePlockV3 {
+      tree = lib.callWith fenv lib.idealTreePlockV3 {
         inherit metaSet;
         dev    = false;
         npmSys = lib.getNpmSys { inherit system; };
       };
       # Using the filtered tree, pull contents from our package set.
       # We are just going to install our deps as raw sources here.
-      srcTree =
-        builtins.mapAttrs ( _: key: mkPkgEntSource metaSet.${key} ) tree;
+      srcTree = builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       installed = installPkgEnt ( rootEnt // {
-        nmDirCmd = pkgsFor.callPackage mkNmDirLinkCmd {
+        nmDirCmd = mkNmDirLinkCmd {
           tree         = srcTree;
           handleBindir = false;
           # Helps sanity check that our modules were installed.
-          postNmDir    = "ls $node_modules_path/../**;";
+          postNmDir = "ls $node_modules_path/../**;";
         };
       } );
       keepNm = installed.override { preInstall = ":"; };
@@ -153,10 +143,10 @@
       # Make sure that the file `greeting.txt' was created.
       # Also check that our `node_modules/' were installed to the expected path.
       expr = builtins.all pathExistsIfSameSystem [
-       "${installed}/farewell.txt"
+        ( installed + "/farewell.txt" )
        # Prevent `node_modules/' from being deleted during the install phase
        # so they get added to the output path.
-       "${keepNm}/node_modules/memfs/package.json"
+        ( keepNm + "/node_modules/memfs/package.json" )
       ];
       expected = true;
     };
@@ -164,18 +154,19 @@
 
 # ---------------------------------------------------------------------------- #
 
-    # This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
-    # It's built on top of lower level functions that allow for fine grained
-    # control of how the directory tree is built, what inputs are used, etc;
-    # but this form is your "grab a `node_modules/' dir off the shelf" routine
-    # that tries to do the right thing for a `package-lock.json(v2/3)'.
-    testMkNmDirPkgSetPlV3 = let
-      nmDirCmd = mkNmDirPlockV3 { inherit metaSet; };
-    in {
-      inherit nmDirCmd metaSet;
-      expr     = builtins.isString "${nmDirCmd}";
-      expected = true;
-    };
+    # FIXME: re-enable
+    ## This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
+    ## It's built on top of lower level functions that allow for fine grained
+    ## control of how the directory tree is built, what inputs are used, etc;
+    ## but this form is your "grab a `node_modules/' dir off the shelf" routine
+    ## that tries to do the right thing for a `package-lock.json(v2/3)'.
+    #testMkNmDirPkgSetPlV3 = let
+    #  nmDirCmd = mkNmDirPlockV3 { inherit metaSet; };
+    #in {
+    #  inherit nmDirCmd metaSet;
+    #  expr     = builtins.isString "${nmDirCmd}";
+    #  expected = true;
+    #};
 
 
 # ---------------------------------------------------------------------------- #

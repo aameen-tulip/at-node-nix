@@ -141,18 +141,24 @@
 
       inherit (pkgsFor) pacote pacoteModule genMeta;
 
-      tests = ( import ./tests {
-        inherit system pkgsFor rime;
-        inherit (pkgsFor)
+      tests = let
+        pf = pkgsFor.extend ( final: prev: {
+          # Use typechecks for tests.
+          lib = pkgsFor.lib.extend ( _: prevLib: {
+            laikaConfig.typecheck = true;
+          } );
+          flocoEnv = prev.flocoEnv // { typecheck = true; };
+        } );
+      in ( import ./tests {
+        inherit system rime;
+        inherit (pf)
+          lib
           writeText
           flocoUnpack
           flocoConfig
           flocoFetch
         ;
-        # Use typechecks for tests.
-        lib = pkgsFor.lib.extend ( _: prevLib: {
-          laikaConfig.typecheck = true;
-        } );
+        pkgsFor    = pf;
         keepFailed = false;
         doTrace    = true;
         limit      = 100;

@@ -69,7 +69,7 @@
 # ---------------------------------------------------------------------------- #
 
   identifyPlentLifecycleV3' = plent: let
-    plentFF   = lib.libplock.identifyPlentFetcherFamily plent;
+    plentFF = lib.libplock.identifyPlentFetcherFamily plent;
   in if plentFF != "path" then plentFF else
      if lib.hasPrefix "file:" ( plent.resolved or "" ) then "file" else
      if plent.link or false then "link" else "dir";
@@ -370,6 +370,7 @@
   , pure            ? flocoConfig.pure or lib.inPureEvalMode
   , ifd             ? true
   , typecheck       ? false
+  , allowedPaths    ? []
   , flocoConfig     ? lib.flocoConfig
   , plock           ? lib.importJSON ( lockDir + "/package-lock.json" )
   , includeTreeInfo ? false  # Includes info about this instance and changes
@@ -388,6 +389,11 @@
     hasBin = ( plent.bin or {} ) != {};
     key'   = ident + "/" + version;
     key    = if includeTreeInfo then key' + ":" + pkey else key';
+    extra  = builtins.intersectAttrs {
+      os      = true;
+      cpu     = true;
+      engines = true;
+    } plent;
     # Only included when `includeTreeInfo' is `true'.
     # Otherwise including this info would cause key collisions in `metaSet'.
     metaFiles = {
@@ -395,7 +401,7 @@
       plock = assert ! ( plent ? metaFiles );
               plent // { inherit pkey lockDir; };
     };
-    baseFields = {
+    baseFields = extra // {
       inherit key ident version;
       inherit hasBin;
       ltype            = lib.libplock.identifyPlentLifecycleV3' plent;
@@ -426,12 +432,14 @@
   , pure            ? flocoConfig.pure or lib.inPureEvalMode
   , ifd             ? true
   , typecheck       ? false
+  , allowedPaths    ? []
   , includeTreeInfo ? false
   , ...
   } @ args: assert lib.libplock.supportsPlV3 plock; let
     inherit (plock) lockfileVersion;
     mkOne = lib.libplock.metaEntFromPlockV3 {
-      inherit lockDir pure ifd typecheck flocoConfig plock includeTreeInfo;
+      inherit pure ifd typecheck allowedPaths;
+      inherit lockDir flocoConfig plock includeTreeInfo;
       inherit (plock) lockfileVersion;
     };
     # FIXME: we are going to merge multiple instances in a really dumb way here

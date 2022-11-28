@@ -124,25 +124,25 @@
       # XXX: `git' installs `devDependencies' for `prepare' scripts!
       # This is the only case where `devDependencies' will be installed for an
       # install other than `prepublish'.
-      prepare = true;  # effectively "setup"/"host-init"
-      pack    = false; # effectively "dist"
+      prepare = true;   # effectively "setup"/"host-init"
+      pack    = false;  # effectively "dist"
       publish = false;
       test    = false;
     };
     link = {
-      prepare = true;
-      pack    = true;
+      prepare = true;   # Not 100% sure on this. Erring towards "yes"
+      pack    = false;
       publish = false;
       test    = false;
     };
     dir = {
-      prepare = true;
+      prepare = true; # Runs for CWD when `npm install' is given with no args.
       pack    = true; # Runs `prepare'
       publish = true;
       test    = true; # Only test the project being build, so only for `dir'.
     };
     file = {
-      prepare = true;
+      prepare = false;
       pack    = false;
       publish = false;
       test    = false;
@@ -160,7 +160,27 @@
 
 # ---------------------------------------------------------------------------- #
 
-
+  metaEntLifecycleOverlay = final: prev: {
+    lifecycle = let
+      flt = ( eventsForLifecycleStrict' final.ltype ) // {
+        build = final.ltype != "file";
+      };
+      ifdef = {
+        build   = lib.libpkginfo.hasBuildFromScripts final.scripts;
+        prepare = lib.libpkginfo.hasPrepareFromScripts final.scripts;
+        pack    = lib.libpkginfo.hasPackFromScripts final.scripts;
+        test    = lib.libpkginfo.hasTestFromScripts final.scripts;
+        publish = lib.libpkginfo.hasPublishFromScripts final.scripts;
+        install = lib.libpkginfo.hasInstallFromScripts final.scripts;
+      };
+      # These are special and need to be set to `null' if we aren't sure.
+      hi' = if ( final.gypfile or null ) == null then { install = null; } else {
+        install = flt.install && ( ifdef.install || final.gypfile );
+      };
+      proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
+      base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
+    in base // hi';
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -172,6 +192,7 @@ in {
     eventHooksForLtype' eventHooksForLtype
 
     eventsForLifecycleStrict'
+    metaEntLifecycleOverlay
   ;
 
 }

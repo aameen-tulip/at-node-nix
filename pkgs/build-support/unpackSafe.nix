@@ -1,4 +1,5 @@
-# `unpackSafe { tarball, name ? ,  meta ? }'
+
+# `unpackSafe { tarball, name?,  metaEnt? }'
 #
 # Note: this is really meant for unpacking tarballs in pure mode.
 # It doesn't patch or set bin bin permissions.
@@ -6,11 +7,18 @@
 # All it does differently that regular `tar' is create directories before
 # unpacking to prevent them from being clobbered.
 #
-{ name        ? meta.name.src or throw "Let untarSanPerms set the name"
+# XXX: DO NOT PATCH SHEBANGS
+# XXX: DO NOT PATCH SHEBANGS
+# XXX: DO NOT PATCH SHEBANGS
+# XXX: `mkTarballFromLocal' and similar routines used to "un-Nixify" builds
+# rely on a `source' that is unpatched.
+# Patching is performed when modules are installed globally or into a
+# `node_modules/' directory anyway so don't worry about it here.
+
+{ name        ? metaEnt.names.src or ( throw "Let untarSanPerms set the name" )
 , tarball     ? args.outPath or args.src
-, meta        ? {}
+, metaEnt     ? {}
 , setBinPerms ? true
-#, patchShebangs ? false  # FIXME
 , untarSanPerms
 , jq
 , system
@@ -18,7 +26,7 @@
 , ...
 } @ args: let
   addBinPerms =
-    if ! ( ( args.meta.hasBin or true ) || setBinPerms ) then {} else {
+    if ! ( ( args.metaEnt.hasBin or true ) || setBinPerms ) then {} else {
       postTar = ''
         PATH="$PATH:${jq}/bin";
         for f in $( jq -r '( .bin // {} )[]' "$out/package.json"; ); do
@@ -43,6 +51,6 @@ in untarSanPerms ( {
   extraDrvAttrs.allowSubstitutes = allowSubstitutes;
   extraAttrs.meta = args.meta or {};
 } // ( if (
-  ( args.name or args.meta.names.tarball or null ) != null
-) then { name = args.name or args.meta.names.tarball; } else {} ) //
+  ( args.name or args.metaEnt.names.src or null ) != null
+) then { name = args.name or args.metaEnt.names.src; } else {} ) //
   addBinPerms )

@@ -17,10 +17,19 @@
   ts      = metaSet."typescript/4.8.2";
   projd   = metaSet."projd/1.0.0";
 
-  pl_proj2   = plock.packages."";
-  pl_lodash  = plock.packages."node_modules/lodash";
-  pl_ts      = plock.packages."node_modules/typescript";
-  pl_projd   = plock.packages."../projd";
+  # These assert that `resolved = pkey' fallbacks allow `dir' entries to be
+  # fetched correctly, without interfering with other types of entries -
+  # particularly `link' entries.
+  pl_proj2  = { resolved = ""; } // plock.packages."";
+  pl_lodash = {
+    resolved = "node_modules/lodash";
+  } // plock.packages."node_modules/lodash";
+  pl_ts = {
+    resolved = "node_modules/typescript";
+  } // plock.packages."node_modules/typescript";
+  pl_projd = {
+    resolved = "node_modules/projd";
+  } // plock.packages."node_modules/projd";
 
 
 # ---------------------------------------------------------------------------- #
@@ -33,7 +42,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    testFlocoFetcher = {
+    testFlocoFetcher_ms = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher {};
       in builtins.mapAttrs ( _: v: if v ? outPath then true else v ) {
@@ -43,13 +52,34 @@
         #       If you fork this repo and it crashes here, setup a key, auth it,
         #       and add it to secrets.
         git  = flocoFetcher lodash;
-        tar  = flocoFetcher ts;
+        file = flocoFetcher ts;
         link = flocoFetcher projd;
       };
       expected = {
         dir  = true;
         git  = true;
-        tar  = true;
+        file = true;
+        link = true;
+      };
+    };
+
+    testFlocoFetcher_pl = {
+      expr = let
+        flocoFetcher = lib.mkFlocoFetcher {};
+      in builtins.mapAttrs ( k: v: v.ltype == k  ) {
+        dir = flocoFetcher pl_proj2;
+        # NOTE: This test case will fail in GitHub Actions if you don't set up
+        #       an SSH key authorized for your repo.
+        #       If you fork this repo and it crashes here, setup a key, auth it,
+        #       and add it to secrets.
+        git  = flocoFetcher pl_lodash;
+        file = flocoFetcher pl_ts;
+        link = flocoFetcher pl_projd;
+      };
+      expected = {
+        dir  = true;
+        git  = true;
+        file = true;
         link = true;
       };
     };
@@ -60,8 +90,16 @@
     testCwdFlocoFetcher = {
       expr = let
         flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
-        mapFetch = builtins.mapAttrs ( _: flocoFetcher );
-      in builtins.mapAttrs ( _: v: builtins.deepSeq v true ) {
+        mapFetch = let
+          doFetchPlock = pkey: plent:
+            flocoFetcher ( { resolved = pkey; } // plent );
+          doFetch = key: x: let
+            fetched =
+              if x ? fetchInfo then flocoFetcher x else doFetchPlock key x;
+          in lib.ytypes.FlocoFetch.fetched.check fetched;
+        in builtins.mapAttrs doFetch;
+        checkAll = v: builtins.all ( b: b ) ( builtins.attrValues v );
+      in builtins.mapAttrs ( _: checkAll ) {
         plents = mapFetch metaSet.__meta.plock.packages;
         msents = mapFetch metaSet.__entries;
       };

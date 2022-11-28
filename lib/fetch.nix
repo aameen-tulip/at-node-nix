@@ -62,38 +62,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Fixup return value from `builtins.fetchTree' to align with `floco*Fetch'
-  # interfaces ( `{ fetchInfo, sourceInfo, outPath, type, passthru, meta }' ).
-  flocoProcessFTResult = type: fetchInfo: sourceInfo:
-    assert fetchInfo ? type -> type == fetchInfo.type;
-    {
-      _type = "fetched";
-      ltype = if builtins.elem type ["github" "git"] then "git" else
-              if builtins.elem type ["file" "tarball"] then "file" else
-              if type == "path" then "dir"
-              else throw ( "Cannot determine lifecycleType for unuspported " +
-                           "fetchInfo type '${type}'." );
-      ffamily = identifyFetchInfoFetcherFamily fetchInfo;
-      inherit fetchInfo sourceInfo;
-      inherit (sourceInfo) outPath;
-    };
-
-  # Generic `builtins.fetchTree' functor for `floco*Fetcher'.
-  flocoFTFunctor = type: self: x: let
-    fetchInfo  = self.__processArgs self x;
-    sourceInfo = self.__innerFunction fetchInfo;
-    result     = flocoProcessFTResult type fetchInfo sourceInfo;
-    msg = ''
-      flocoFetch(${type})
-        inputs:     ${builtins.toJSON ( x.__serial or x )}
-        fetchInfo:  ${builtins.toJSON fetchInfo}
-        sourceInfo: ${builtins.toJSON ( removeAttrs sourceInfo ["outPath"] )}
-    '';
-  in builtins.traceVerbose msg result;
-
-
-# ---------------------------------------------------------------------------- #
-
   flocoProcessGitArgs' = { typecheck, pure } @ fenv: self: x: let
     # TODO: `resolved' should be handled by `libplock', not here.
     rough =
@@ -146,8 +114,13 @@
                             else ( y: y );
         fetchInfo  = argt ( self.__processArgs self x );
         sourceInfo = self.__innerFunction fetchInfo;
-        fetched = flocoProcessFTResult ( fetchInfo.type or "git" ) fetchInfo
-                                                                   sourceInfo;
+        fetched = {
+          _type   = "fetched";
+          ffamily = "git";
+          ltype   = "git";
+          inherit fetchInfo sourceInfo;
+          inherit (sourceInfo) outPath;
+        };
       in rslt fetched;
   };
 
@@ -398,16 +371,21 @@
       # order to pass to `builtins.path' we need to make it a string.
       p = if builtins.isString x then x else
           x.path or x.resolved or x.outPath or "";
+      # `lib.libstr.baseName' handles store-path basenames.
+      name = x.name or ( lib.libfs.baseName p );
+    in ( lib.canPassStrict self.__innerFunction ( self.__thunk // {
+      inherit name;
       # Coerce an abspath
       path = let
         msg = "You must provide `flocoPathFetcher.__thunk.basedir', or " +
               "pass `basedir' as an argument to fetch relative paths.";
         basedir = x.basedir or self.__thunk.basedir or ( throw msg );
       in if lib.libpath.isAbspath p then p else basedir + "/" + p;
-      # `lib.libstr.baseName' handles store-path basenames.
-      name = x.name or ( lib.libfs.baseName p );
-    in lib.canPassStrict self.__innerFunction
-                         ( self.__thunk // { inherit name path; } );
+    } ) ) // {
+      ltype = if x.link or false then "link" else
+              if lib.hasPrefix "file:" ( x.resolved or "" ) then "file" else
+              "dir";
+    };
     # Convert the store-path returned by `pathW' to a `fetched' struct.
     __processResult = self: args: outPath: let
       # `filter' is a function so it cannot be added to `fetchInfo' if we want
@@ -422,15 +400,9 @@
       };
     in {
       _type = "fetched";
-      # From the perspective of consumers, it's a link.
-      # `ltype = "dir"' is only approriate for CWD and in rare cases a project
-      # could use them for sub-projects but I've literally never seen this in
-      # the field and getting NPM to actually behave that way requires such
-      # a non-sensical number of flags that I'm leaving it up to the user to
-      # unfuck the 3/4,000,00 projects that chose to be irrational.
-      ltype     = "link";
+      inherit (args) ltype;
       ffamily   = "path";
-      fetchInfo = removeAttrs args ["filter"];
+      fetchInfo = removeAttrs args ["filter" "ltype"];
       inherit outPath;
       sourceInfo = { inherit outPath; };
     } // passthru';
@@ -440,8 +412,9 @@
                           else ( y: y );
       rslt = if typecheck then builtins.elemAt self.__functionMeta.signature 1
                           else ( y: y );
-      args    = argt ( self.__processArgs self x );
-      outPath = self.__innerFunction args;
+      args    = self.__processArgs self x;
+      argsi   = argt ( removeAttrs args ["ltype"] );
+      outPath = self.__innerFunction argsi;
       fetched = self.__processResult self args outPath;
     in rslt fetched;
   };
@@ -460,24 +433,36 @@
   # A wrapper for your wrapper.
   # This pulls fetchers from your `flocoConfig', and routes inputs to the
   # proper fetcher.
-  # Largely relies on `entSubtype', `entries.plock', and `sourceInfo' data.
-  # You likely want to create a fetcher for each `lockDir'/`metaSet'; but it
-  # will check `entries.plock.lockDir' as a fallback.
+  # Largely relies on `ffamily', `fetchInfo', and `<PLENT>.resolved' data.
+  # You likely want to create a fetcher for each `lockDir'/`metaSet' if you
+  # are trying to fetch "raw" `package-lock.json' or `package.json' sources -
+  # although I strongly recommend using `lib.metaSetFrom*' for this since it
+  # handles relative path resolution for you, making it harder to shoot
+  # yourself in the foot.
   #
   # The following examples will handle `basedir' properly for "dir"/path and
   # "link"/symlink fetchers:
+  #
+  # With `metaSet' you can omit `basedir' since the `metaEnt' handles this -
+  # `<META-ENT>.fetchInfo.path' already sets an absolute path ( ".." persists ).
+  # This is the recommended pattern.
+  #   let
+  #     flocoFetcher = lib.mkFlocoFetcher {};
+  #     metaSet      = lib.metaSetFromPlockV3 { lockDir = toString ./.; }
+  #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
+  #
+  # You can use `flocoFetch' directly on package metadata, but you need to
+  # provide enough information for relative paths to be resolved.
+  # I do NOT recommend using this over `lib.metaSetFrom*' unless you really have
+  # a need for it.
   #   let
   #     lockDir      = toString ../../foo;
   #     plock        = lib.importJSON' "${lockDir}/package-lock.json";
   #     flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
-  #   in builtins.mapAttrs ( _: flocoFetcher ) plock.packages
-  #
-  # With `metaSet' it'll figure out `basedir' from the `entries.plock' attrs.
-  #   let
-  #     flocoFetcher = lib.mkFlocoFetcher {};
-  #     metaSet = lib.metaSetFromPlockV3 { lockDir = toString ./.; }
-  #   in builtins.mapAttrs ( _: flocoFetcher ) metaSet.__entries
-  #
+  #     # Push down `pkey' so that `dir' entries can be fetched.
+  #     # Existing `resolved' fields clobber, so this works out.
+  #     doFetch = pkey: plent: flocoFetcher ( { resolved = pkey; } // plent );
+  #   in builtins.mapAttrs doFetch plock.packages
 
   # XXX: This basically just processes args and merged configs.
   mkFlocoFetchers' = {

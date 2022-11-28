@@ -37,11 +37,18 @@
     # Works in pure mode and avoids tarball TTL.
     drv = lib.libfetch.fetchurlDrvW {
       inherit url hash;
-      unpack           = false;
-      #allowSubstitutes = ( system != ( builtins.currentSystem or null ) );
-      #preferLocalBuild = true;
+      unpack = false;
     };
-  in if preferFt then ft else drv
+    sourceInfo = if preferFt then ft else drv;
+  in ( if preferFt && ( type == "tarball" ) then {
+    passthru.unpacked = true;
+  } else {
+    tarball = sourceInfo;
+    passthru.unpacked = false;
+  } ) // {
+    inherit sourceInfo;
+    inherit (sourceInfo) outPath;
+  }
 
   # Unpacks and sets executable bits. For most packages this is "ready to use".
   # 99% of tarballs can use `builtins.fetch(Tree|Tarball)', but in rare cases
@@ -52,10 +59,10 @@
   # If you know that a tarball can be safely unpacked it's a nice optimization
   # to skip this.
   # Routines in `mkNmDirCmd' should still take care of setting bin perms.
-, flocoUnpack ? { outPath, ... } @ fetched:
-  if fetched.unpack or true then fetched else unpackSafe {
-    source           = outPath;
-    passthru.tarball = fetched;
+, flocoUnpack ? { name, tarball, ... } @ fetched:
+  if ! ( fetched.passthru.unpacked or false ) then fetched else unpackSafe {
+    inherit name;
+    source           = tarball;
     allowSubstitutes = ( system != ( builtins.currentSystem or null ) );
     preferLocalBuild = true;
   }
@@ -75,12 +82,16 @@
   version = args.version or metaSet.${metaSet.__meta.rootKey}.version;
 
   prepPkg = { fetchInfo, ... } @ ent: let
-    meta = ent.__serial or ent;  # Needed by `mkNmDirCmd' for `bin' entries.
     src = let
       fetched = flocoFileFetcher fetchInfo;
-      args    = fetched // { inherit meta; setBinPerms = ent.hasBin; };
+      args = fetched // {
+        name        = ent.names.src;
+        setBinPerms = ent.hasBin;
+        # Needed by `mkNmDirCmd' for `bin' entries.
+        passthru.metaEnt = ent.__entries or ent;
+      };
       preferLocalBuild = true;
-    in flocoUnpack args;
+    in lib.apply flocoUnpack args;
   # We can avoid running `evalScripts' or `buildGyp' because we have all
   # registry tarballs ( no builds ), and none of them have installs.
   in assert ! ( ent.hasInstallScript or false );

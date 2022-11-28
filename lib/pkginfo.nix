@@ -1,4 +1,8 @@
 # ============================================================================ #
+#
+#
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
 
@@ -6,150 +10,6 @@
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   pi = yt.PkgInfo;
-
-  defaultFlocoEnv = {
-    allowedPaths = [];
-    pure         = lib.inPureEvalMode;
-    ifd          = true;
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Typeclass for Package/Module "Scope" name.
-  Scope = let
-    coercibleSums = yt.sum {
-      ident = pi.Strings.identifier_any;
-      name  = pi.Strings.identifier_any;
-      meta  = yt.attrs yt.any;
-      inherit (pi.Strings) key;
-    };
-    coercibleStructs_l = [
-      ( yt.struct { inherit (pi.Strings) scope; } )
-      pi.Structs.scope
-      pi.Structs.identifier
-      pi.Structs.id_locator
-      pi.Structs.id_descriptor
-    ];
-    coercibleStrings_l = [
-      ( yt.restrict "scope(dirty)" ( lib.test "@([^@/]+)" ) yt.string )
-      pi.Strings.scope
-      pi.Strings.scopedir
-      pi.Strings.identifier_any
-      pi.Strings.id_locator
-      pi.Strings.id_descriptor
-      pi.Strings.key
-    ];
-    # null -> `{ scope = null; scopedir = ""; }'
-    coercibleType = let
-      eithers = coercibleStructs_l ++ coercibleStrings_l ++ [coercibleSums];
-    in yt.option ( yt.eitherN eithers );
-  in {
-    name = "Scope";
-    # Strict YANTS type for a string or attrset representation of a Scope.
-    # "foo" or { scope ? "foo"|null, scopedir = ( "" | "@${scope}/" ); }
-    ytype  = yt.either pi.Strings.id_part pi.Structs.scope;
-    isType = Scope.ytype.check;
-    # Is `x' coercible to `Scope'?
-    isCoercible = coercibleType.check;
-
-    # Nullable
-    empty = { scope = null; scopedir = ""; };
-    fromNull = yt.defun [yt.nil pi.Structs.scope] ( _: Scope.empty );
-
-    # Parser
-    fromString = let
-      inner = str: let
-        m         = builtins.match "((@([^@/]+)(/.*)?)|[^@/]+)" str;
-        scopeAt   = builtins.elemAt m 2;
-        scopeBare = builtins.head m;
-        scope     = if scopeAt == null then scopeBare else scopeAt;
-      in if ( m == null ) || ( scope == "unscoped" ) then Scope.empty else {
-        inherit scope;
-        scopedir = "@${scope}/";
-      };
-    in yt.defun [( yt.eitherN coercibleStrings_l ) yt.PkgInfo.Structs.scope]
-                inner;
-    # Writer
-    toString = let
-      inner = x:
-        if builtins.isString x then "@${x}" else
-        if x.scope == null then "" else "@${x.scope}";
-    in yt.defun [Scope.ytype yt.string] inner;
-
-    # Parser
-    fromAttrs = let
-      inner = x: let
-        fromField =
-          if ! ( x ? scope ) then Scope.empty else
-          if builtins.isString x.scope then Scope.fromString x.scope else
-          x.scope;
-      in if pi.Structs.scope.check x then x else
-         if x ? meta then Scope.fromAttrs x.meta else
-         if ( x ? key ) || ( x ? ident ) || ( x ? name ) then
-           Scope.fromString ( x.key or x.ident or x.name )
-         else fromField;
-      eithers = coercibleStructs_l ++ [coercibleSums];
-    in yt.defun [( yt.eitherN eithers ) pi.Structs.scope] inner;
-    # Serializer
-    toAttrs = x: { inherit (Scope.coerce x) scope; };
-
-    # Best effort conversion
-    coerce = let
-      inner = x:
-        if x == null           then Scope.empty else
-        if builtins.isString x then Scope.fromString x
-        else Scope.fromAttrs x;
-    in yt.defun [coercibleType pi.Structs.scope] inner;
-
-    # Object Constructor/Instantiator
-    __functor    = self: x: {
-      _type      = self.name;
-      val        = self.coerce x;
-      __toString = child: self.toString child.val;
-      __serial   = child: self.toAttrs child.val;
-      __vtype    = self.ytype;
-    };
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  # FIXME: move to `libparse'
-  parseNodeNames = identish: let
-    m     = builtins.match "((@([^@/]+)/)?([^@/])[^@/]+).*" identish;
-    ident = builtins.head m;
-    scope = builtins.elemAt m 2;
-    sl    = builtins.elemAt m 3;
-  in yt.PkgInfo.Structs.node_names {
-    _type = "NodeNames";
-    inherit ident scope;
-    bname = baseNameOf ident;
-    sdir  = if scope == null then "unscoped/${sl}" else scope; # shard dir
-  };
-
-
-# ---------------------------------------------------------------------------- #
-
-  node2nixName = { ident ? args.name, version, ... } @ args: let
-    fid = "${builtins.replaceStrings ["@" "/"] ["_at_" "_slash_"] ident
-            }-${version}";
-    fsb = ( if args.scope != null then "_at_${args.scope}_slash_" else "" ) +
-          "${args.bname}-${version}";
-  in if ( args ? bname ) && ( args ? scope ) then fsb else fid;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # NPM's registry does not include `scope' in its tarball names.
-  # However, running `npm pack' DOES produce tarballs with the scope as a
-  # a prefix to the name as: "${scope}-${bname}-${version}.tgz".
-  asLocalTarballName = { bname, scope ? null, version }:
-    if scope != null then "${scope}-${bname}-${version}.tgz"
-                     else "${bname}-${version}.tgz";
-
-  asNpmRegistryTarballName = { bname, version }: "${bname}-${version}.tgz";
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -159,13 +19,14 @@
   #       above is written as : hasGlob "foo/\\*/bar" ==> false
   #       When reading from a file however, the examples above are "accurate".
   hasGlob = p:
-    lib.test ".*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
+    lib.test ".*\\*.*" ( builtins.replaceStrings ["\\*"] [""] ( toString p ) );
 
   hasDoubleGlob = p:
-    lib.test ".*\\*\\*.*" ( builtins.replaceStrings ["\\*"] [""] p );
+    lib.test ".*\\*\\*.*"
+             ( builtins.replaceStrings ["\\*"] [""] ( toString p ) );
 
   hasSingleGlob = p: let
-    esc = builtins.replaceStrings ["\\*"] [""] p;
+    esc = builtins.replaceStrings ["\\*"] [""] ( toString p );
   in lib.test ".*[^*]\\*[^*].*|.*[^*]\\*|\\*" esc;
 
 
@@ -189,29 +50,40 @@
   # Expand globs in workspace paths for a `package.json' file.
   # XXX: This only supports globs at the end of paths.
   processWorkspacePath = p: let
+    ng  = lib.yank "([^*]+)/.*" ( toString p );
+    pds = dirOf ( toString p );
     dirs =
-      if ( hasSingleGlob p ) then ( lib.libfs.listSubdirs ( dirOf p ) ) else
-      if ( hasDoubleGlob p ) then ( lib.libfs.listDirsRecursive ( dirOf p ) )
-      else [p];
+      if ! ( builtins.pathExists ng ) then [] else
+      if hasSingleGlob ( toString p ) then lib.libfs.listSubdirs pds else
+      if hasDoubleGlob ( toString p ) then lib.libfs.listDirsRecursive pds else
+      [p];
     process = builtins.filter ( x: x != null );
     msg = "processGlobEnd: Only globs at the end of paths arg handled: ${p}";
-  in if ( hasGlob ( dirOf p ) ) then throw msg else ( process dirs );
+  in if hasGlob pds then throw msg else process dirs;
 
   # Looks up workspace paths ( if any ) in a `package.json'.
-  # This supports either NPM or Yarn style workspace fields
-  workspacePackages = dir: pkgInfo: let
-    packages = pkgInfo.workspaces.packages or pkgInfo.workspaces or [];
-    processPath = p: processWorkspacePath "${toString dir}/${p}";
+  # This supports either NPM or Yarn style workspace fields.
+  # Workspaces are returned as absolute path strings.
+  workspacePackages = dir: pjs: let
+    packages    = pjs.workspaces.packages or pjs.workspaces or [];
+    processPath = p:
+      map toString ( processWorkspacePath ( ( /. + dir ) + ( "/" + p ) ) );
   in builtins.concatLists ( map processPath packages );
+
+  # Make workspace paths relative.
+  normalizeWorkspaces = dir: pjs: let
+    parent     = toString dir;
+    dropParent = s: let
+      len = builtins.stringLength s;
+      sub = builtins.substring ( ( builtins.stringLength parent ) + 1 ) len s;
+    in "./" + sub;
+  in if ! ( pjs ? workspaces ) then [] else
+     map dropParent ( workspacePackages dir pjs );
+
 
   # Given a path to a project dir or `package.json', return list of ws paths.
   readWorkspacePackages = p: let pjp = pjsPath p; in
     workspacePackages ( dirOf pjp ) ( lib.importJSON' pjp );
-
-  # Make workspace paths absolute.
-  normalizeWorkspaces = dir: pjs:
-    if ! ( pjs ? workspaces ) then [] else
-    map ( lib.libpath.realpathRel dir ) ( workspacePackages dir pjs );
 
 
 # ---------------------------------------------------------------------------- #
@@ -242,24 +114,24 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # TODO: move to `ak-nix'
-
   # Reads a JSON file from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readJSONFromPath' = { allowedPaths, pure , ifd }: pathlike: let
-    p    = if pathlike ? __toString then toString pathlike else pathlike;
-    pjs  = lib.importJSON p;
-    msgD = "readPjsFromPath: Cannot read path '${p}' when `IFD' is disable.";
-    forD = if ifd then pjs else throw msgD;
-    msgP = "readPjsFromPath: Cannot read unlocked path '${p}' in pure mode.";
-    forP = if ( ! pure ) || ( lib.isStorePath p ) then pjs else throw msgP;
-  in if builtins.any ( allow: lib.hasPrefix allow p ) allowedPaths then pjs else
-     if ( lib.isDerivation pathlike ) then forD else forP;
-
-  readJSONFromPath = let
-    inner = readPjsFromPath' defaultFlocoEnv;
-  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  # Throws if path is not readable.
+  # We explicitly check the contained directory because of how frequently we
+  # work with tarballs, `builtins.pathExists "${my-tarball}/.";' fails because
+  # `my-tarball' is a file, so this works out.
+  readJSONFromPath' = { allowedPaths, pure, ifd, typecheck } @ fenv: let
+    inner = pathlike: let
+      doRead = p: let
+        isDir = builtins.pathExists ( ( dirOf ( toString p ) ) + "/." );
+      in if isDir then lib.importJSON' ( toString p ) else
+        throw ( "readJSONFromPath: path '${dirOf ( toString p )}' is not " +
+                "a directory." );
+      rjenv = removeAttrs fenv ["typecheck"];
+    in lib.libread.runReadOp rjenv doRead pathlike;
+    checked = yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -267,28 +139,26 @@
   # Reads a `package.json' from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readPjsFromPath' = { pure, ifd, allowedPaths } @ fenv: pathlike:
-    readJSONFromPath' fenv ( pjsPath pathlike );
-
-  readPjsFromPath = let
-    inner = readPjsFromPath' defaultFlocoEnv;
-  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  readPjsFromPath' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
+    inner   = pathlike: readJSONFromPath' fenv ( pjsPath pathlike );
+    checked = yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
 
   # Converts an attrset or pathlike to an attrset with `package.json' contents.
-  # If `x' is already the contetns of a `package.json' this is a no-op.
+  # If `x' is already the contents of a `package.json' this is a no-op.
   # Otherwise we will read/import from the path representation of `x', accepting
   # a path to `package.json' directly, or a dir containing `package.json'.
-  coercePjs' = { pure, ifd, allowedPaths } @ fenv: x: let
-    isPjs = ( builtins.isAttrs x ) && ( ! ( yt.Typeclasses.pathlike.check x ) );
-  in if isPjs then x else readPjsFromPath' fenv x;
-
-  coercePjs = let
-    inner = coercePjs' defaultFlocoEnv;
-    argt  = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
-  in yt.defun [argt ( yt.attrs yt.any )] inner;
+  coercePjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
+    inner = x: let
+      isPjs = ( builtins.isAttrs x ) &&
+              ( ! ( yt.Typeclasses.pathlike.check x ) );
+    in if isPjs then x else readPjsFromPath' fenv x;
+    argt    = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
+    checked = yt.defun [argt ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -300,7 +170,7 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pjsHasBin' = { pure, ifd, allowedPaths } @ fenv: {
+  pjsHasBin' = { pure, ifd, allowedPaths, typecheck } @ fenv: {
     __functionMeta = {
       name = "pjsHasBin";
       from = "at-node-nix#lib.libpkginfo";
@@ -323,23 +193,22 @@
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
     in x.pjs or coercePjs' fenv;
     __functor = self: x: let
-      loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-      pjs = self.__processArgs self x;
-      pp  = lib.generators.toPretty { allowPrettyValues = true; };
-      ec  = builtins.addErrorContext "(${loc}): called with ${pp x}";
-      rsl = self.__innerFunction pjs;
-    in ec rsl;
+      loc     = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      pjs     = self.__processArgs self x;
+      pp      = lib.generators.toPretty { allowPrettyValues = true; };
+      ec      = builtins.addErrorContext "(${loc}): called with ${pp x}";
+      rsl     = ec ( self.__innerFunction pjs );
+      checker = if typecheck then lib.libfunk.mkFunkTypechecker self else y: y;
+    in checker x rsl;
   };
-
-  pjsHasBin = pjsHasBin' defaultFlocoEnv;
 
 
 # ---------------------------------------------------------------------------- #
 
   # XXX: IFD, maybe impure depending on path
   pjsBinPairsFromDir = {
-    absdir ? src + "/${bindir}"
-  , bindir ? if directories != null then directories.bin else
+    absdir ? if bindir == null then null else src + "/${bindir}"
+  , bindir ? if directories != null then directories.bin or null else
              lib.yank "${src}/(.*)" args.absdir
   , directories ? args.pjs.directories or null
   , src ? throw (
@@ -352,7 +221,8 @@
     proc  = acc: fname: acc // {
       ${lib.libfs.baseNameOfDropExt fname} = "${bindir}/${fname}";
     };
-  in builtins.foldl' proc {} ( builtins.attrNames files );
+  in if absdir == null then {} else
+     builtins.foldl' proc {} ( builtins.attrNames files );
 
 
   # Normalize `bin' or `directories.bin' field to pairs of `{ <BIN> = <PATH>; }'
@@ -364,27 +234,20 @@
   # caller omits the `ident'/`bname' args.
   pjsBinPairs' = let
     loc = "at-node-nix#lib.libpkginfo.pjsBinPairs'";
-  in { ifd, pure, allowedPaths } @ fenv: {
+  in { ifd, pure, allowedPaths, typecheck } @ fenv: {
     bin         ? null
   , directories ? {}
   , bname       ? baseNameOf ident
-  , ident       ? ( coercePjs' fenv src ).name
-  , src ?
+  , ident       ? pjs.name or ( coercePjs' fenv _src ).name
+  , _src ?
     throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
-            "must pass `src' as an arg." )
+            "must pass `_src' as an arg." )
   } @ pjs: let
     stripDS = lib.yank "\\./(.*)";
   in if builtins.isAttrs bin  then builtins.mapAttrs ( _: stripDS ) bin else
      if builtins.isString bin then { ${bname} = stripDS bin; } else
-     pjsBinPairsFromDir { inherit src directories; };
-
-  # TODO: make `toError' for allowed read checker
-  #  if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
-  #  if pure && ( ! ( ( lib.isStorePath src ) || ( isAllowedPath allowedPaths src ) )
-  #  then throw "(${loc}): Cannot read non-store path in pure mode."
-  #  else < READ IT >
-
-  pjsBinPairs = pjsBinPairs' defaultFlocoEnv;
+     if ! ( directories ? bin ) then {} else
+     pjsBinPairsFromDir { inherit directories; src = _src; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -419,8 +282,8 @@
       merged = deps // parted'.wrong // applied;
     in merged;
     rewriteField = acc: f:
-      if ( ! ( acc ? ${f} ) ) then acc else
-      ( acc // { ${f} = rewriteDeps acc.${f}; } );
+      if ! ( acc ? ${f} ) then acc else
+      acc // { ${f} = rewriteDeps acc.${f}; };
     rewritten = builtins.foldl' rewriteField pjs depFields;
   in assert verifyFields; assert verifyResolves; rewritten;
 
@@ -443,12 +306,6 @@
             ( ( lib.libpath.categorizePath asPath ) == "directory" );
     hasGyp = isDir && ( builtins.pathExists ( asPath + "/binding.gyp" ) );
   in explicit || scripted || hasGyp;
-
-
-  pjsHasInstallScript = pjsHasInstallScript' {
-    pure = lib.inPureEvalMode;
-    ifd  = true;
-  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -491,35 +348,24 @@
 in {
 
   inherit
-    Scope
-  ;
-
-  inherit
     rewriteDescriptors
-    pjsHasInstallScript' pjsHasInstallScript
-    pjsHasBin'           pjsHasBin
+    pjsHasInstallScript'
+    pjsHasBin'
   ;
 
   # `package.json' locators
   inherit
-    readJSONFromPath' readJSONFromPath
-    pjsPath'          pjsPath
-    readPjsFromPath'  readPjsFromPath
-    coercePjs'        coercePjs
+    readJSONFromPath'
+    pjsPath'
+    pjsPath
+    readPjsFromPath'
+    coercePjs'
   ;
 
   # Normalize fields
   inherit
     pjsBinPairsFromDir
-    pjsBinPairs' pjsBinPairs
-  ;
-
-  # Names
-  inherit
-    parseNodeNames
-    node2nixName
-    asLocalTarballName
-    asNpmRegistryTarballName
+    pjsBinPairs'
   ;
 
   # Workspaces

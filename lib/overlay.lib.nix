@@ -40,11 +40,12 @@ in {
   # `ak-nix.lib' has a `libattrs' and `libstr' as well, so merge.
   libparse   = callLib  ./parse.nix;
   librange   = callLib  ./ranges.nix;
-  libpkginfo = callLib  ./pkginfo.nix;
+  libpkginfo = callLibs [./pkginfo.nix ./scope.nix];
   libattrs   = prev.libattrs // ( callLib  ./attrsets.nix );
   libplock   = callLib  ./pkg-lock.nix;
+  libpjs     = callLib  ./pkg-json.nix;
   libreg     = callLib  ./registry.nix;
-  libtree    = callLib  ./tree.nix;
+  libtree    = callLibs [./tree.nix ./focus-tree.nix];
   libsys     = callLib  ./system.nix;
   libmeta    = callLibs [./meta.nix ./meta-ent.nix];
   libdep     = callLib  ./depinfo.nix;
@@ -68,7 +69,6 @@ in {
 
   inherit (final.libpkginfo)
     Scope
-    parseNodeNames
   ;
 
 
@@ -82,6 +82,7 @@ in {
     parseIdent
     parseDescriptor
     parseLocator
+    parseNodeNames
   ;
 
   inherit (final.libattrs)

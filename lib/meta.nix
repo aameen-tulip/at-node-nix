@@ -361,10 +361,17 @@
   # Largely these hide additional fields which can be easily inferred using
   # `entFromtype`.
   metaEntSerialByFromtype = {
+    "package.json"          = metaEntSerialDefault;  # TODO
+    "vinfo"                 = metaEntSerialDefault;  # TODO
+    "packument"             = metaEntSerialDefault;  # TODO
     "package-lock.json"     = metaEntPlSerial;
     "package-lock.json(v1)" = metaEntPlSerial;
     "package-lock.json(v2)" = metaEntPlSerial;
     "package-lock.json(v3)" = metaEntPlSerial;
+    "yarn.lock"             = metaEntSerialDefault;  # TODO
+    "yarn.lock(v1)"         = metaEntSerialDefault;  # TODO
+    "yarn.lock(v2)"         = metaEntSerialDefault;  # TODO
+    "yarn.lock(v3)"         = metaEntSerialDefault;  # TODO
     raw                     = metaEntSerialDefault;
     _default                = metaEntSerialDefault;
   };
@@ -412,6 +419,11 @@
         r = "${final.names.flake-id-s}--${prev.version}";
       in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] r;
       flake-ref = { id = final.names.flake-id-s; ref = prev.version; };
+      shardScope = let
+        fl = builtins.substring 0 1 final.ident;
+      in if final.scoped then final.names.scope else
+        "unscoped/${fl}";
+      shardDir = final.names.shardScope + "/" + final.names.bname;
     } // ( lib.optionalAttrs final.scoped {
       scope = lib.yank "@([^/]+)/.*" prev.ident;
     } );
@@ -459,7 +471,7 @@
     inherit key ident version entFromtype;
     # We don't hard code this in the serializer in case the user actually does
     # want to serialize their `entries', allowing them the ability to override.
-    entries.__serial = false;
+    metaFiles.__serial = false;
   };
 
 
@@ -474,7 +486,9 @@
   , version ? baseNameOf members.key
   , key     ? "${ident}/${version}"
   , ...
-  } @ members: let
+  } @ members:
+  # XXX: You mispelled "entFromtype" in a `metaEnt' constructor.
+  assert ! ( members ? entFromType ); let
     args = { inherit ident version key; } // members;
     core = lib.apply mkMetaEntCore args;
     base = core.__update members;
@@ -500,9 +514,13 @@
     mapVals = fn: mapAttrs ( _: fn );
     getScope = x: x.scope or x.names.scope or x.meta.names.scope or "_";
     gs = groupBy getScope ( attrValues ( __entriesFn self ) );
-    getPname = x: baseNameOf x.ident;
+    getPname = x:
+      baseNameOf ( x.ident or
+                   ( builtins.head ( builtins.catAttrs "ident" x ) ) );
     is = mapVals ( groupBy getPname ) gs;
-    getVers = x: "v${replaceStrings ["." "+"] ["_" "_"] x.version}";
+    getVers = x: let
+      v = x.version or ( builtins.head ( builtins.catAttrs "version" x ) );
+    in "v${replaceStrings ["." "+"] ["_" "_"] v}";
     vs = mapVals ( mapVals ( ids: mapVals head ( groupBy getVers ids ) ) ) is;
   in vs;
 
