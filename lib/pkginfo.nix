@@ -128,7 +128,8 @@
       in if isDir then lib.importJSON' ( toString p ) else
         throw ( "readJSONFromPath: path '${dirOf ( toString p )}' is not " +
                 "a directory." );
-    in lib.libread.runReadOp fenv doRead pathlike;
+      rjenv = removeAttrs fenv ["typecheck"];
+    in lib.libread.runReadOp rjenv doRead pathlike;
     checked = yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
   in if typecheck then checked else inner;
 

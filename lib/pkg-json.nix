@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------- #
 
   stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
-    rjenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    rjenv = removeAttrs fenv ["metaEntOverlays"];
   in self: {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -36,7 +36,7 @@
   getFieldPjs' = { field, default ? null }: {
     pure, ifd, typecheck, allowedPaths
   } @ fenv: let
-    rjenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    rjenv = removeAttrs fenv ["metaEntOverlays"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -48,7 +48,7 @@
   getFieldsPjs' = { fields }: {
     pure, ifd, typecheck, allowedPaths
   } @ fenv: let
-    rjenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    rjenv = removeAttrs fenv ["metaEntOverlays"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -68,7 +68,7 @@
   getScriptsPjs' = getFieldPjs'  { field = "scripts"; default = {}; };
 
   getHasBinPjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
-    rjenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    rjenv = removeAttrs fenv ["metaEntOverlays"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -85,7 +85,7 @@
 
   # FIXME: `flocoConfig.metaEntOverlays'
   metaEntFromPjsNoWs' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
-    rjenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    rjenv = removeAttrs fenv ["metaEntOverlays"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
