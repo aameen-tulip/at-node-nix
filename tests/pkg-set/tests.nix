@@ -50,11 +50,7 @@
   };
 
   mkSrcEnt = lib.apply pkgsFor.mkSrcEnt' fenv;
-
-  metaSet = lib.callWith fenv lib.metaSetFromPlockV3 {
-    inherit lockDir;
-  };
-
+  metaSet  = lib.callWith fenv lib.metaSetFromPlockV3 { inherit lockDir; };
   # An arbitrary tarball to fetch.
   # We know this one doesn't have the directory permissions issue.
   tsMeta    = metaSet."typescript/4.7.4";
