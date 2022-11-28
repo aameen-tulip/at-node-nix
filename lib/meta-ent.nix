@@ -335,8 +335,17 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Returns lists of `metaEnt' records keyed by `<IDENT>/<VERSION>' associated
+  # with any metadata that can be scraped from a directory.
+  #
+  # In practice you'll want to merge this info before using it, but these
+  # unmerged lists are useful for a variety of purposes.
+  #
+  # If you're a regular user, or aren't looking to get into the ugly details of
+  # "how the sausage" is made - you probably want to call `metaSetFromDir'.
+  #
   # TODO: meta(Ent|Set)Overlays
-  metaSetFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
+  metaSetEntListsFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
     inner = pathlike: let
       msEmpty   = lib.libmeta.mkMetaSet {};
       mfd       = tryCollectMetaFromDir' fenv pathlike;
@@ -417,6 +426,64 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # This is "in broad strokes" the ranking for which metadata sources we trust
+  # over others.
+  # This does NOT speak to the quality of specific fields, and without going
+  # into the implementation details and progress on data normalization for
+  # individual fields/sources - suffice to say this is a generalization.
+  cmpMetaEntFroms = let
+    # 0      ::= "highest priority"/"most trusted"
+    # 999... ::= "total dogshit"/replace with any lower rank option
+    fromTypesRank = {
+      raw                     = 0;   # Assumed to be explitly defined by user.
+      "package.json"          = 5;   # Once normalized this is most accurate.
+      "package-lock.json(v2)" = 10;  # Contains more info than v3.
+      "package-lock.json(v3)" = 15;  # Actually "better" than v2, but less info.
+      "package-lock.json(v1)" = 20;  # Only "better" for pinning dep versions.
+      "package-lock.json"     = 25;  # No internal routines mark this.
+      # From Registry - this info is often inaccurate
+      vinfo     = 50;  # A specific "abbreviated version" record in Packument.
+      packument = 60;  # Registry record for all package versions.
+
+      # Not supported/Yarn is garbage and if you're reading this you should
+      # migrate your project away from it.
+      # It poses real security risks and after months of building support for it
+      # in this framework I arrived at the conclusion that, effort aside, it
+      # would be ethically wrong to build any tooling that made Yarn even
+      # remotely more usable than it was in in 2019 - if you or someone you know
+      # is still using Yarn please seek help.
+      #
+      # It may make sense to support Yarn v1; but let me be clear - this tool
+      # was originally designed to support Yarn v2 and v3 BEFORE NPM, and it
+      # was after several months of investigating "why are the
+      # hashes non-deterministic" that I realized that past Yarn v1 the code
+      # quality and security ( particularly regarding checksums ) became
+      # completely inexcusible.
+      # I'll admit that if I read this exact inline comment a few months ago,
+      # I would've said "wow this author sounds like a total crank, come on
+      # how bad could it really be?", to which I'd freely admit "look, I might
+      # be a kook, but I'm not a crank - go read the Yarn v2/3 sources for
+      # generating cache checksums and keys, or read the issue list's responses
+      # to 'why did you reimplement zlib?'".
+      "yarn.lock"     = throw "WARNING: Yarn is bad for your health.";
+      "yarn.lock(v1)" = throw "WARNING: Yarn is bad for your health.";
+      "yarn.lock(v2)" = throw "WARNING: Yarn is bad for your health.";
+      "yarn.lock(v3)" = throw "WARNING: Yarn is bad for your health.";
+      # the number is arbitrary, just ensure that it's always highest.
+      _default = 999;
+    };
+  in a: b:
+    fromTypesRank.${a.entFromType or "_default"} -
+    fromTypesRank.${b.entFromType or "_default"};
+
+  # returns true if "a <= b" or "a is more trusted than b".
+  cmpMetaEntFromsLE = a: b: ( cmpMetaEntFroms a b ) <= 0;
+
+  sortMetaEntriesByRank = builtins.sort cmpMetaEntFromsLE;
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     metaEntFromSerial
@@ -451,7 +518,11 @@ in {
   ;
   inherit
     tryCollectMetaFromDir'
-    metaSetFromDir'
+    metaSetEntListsFromDir'
+
+    cmpMetaEntFroms
+    cmpMetaEntFromsLE
+    sortMetaEntriesByRank
   ;
 }
 
