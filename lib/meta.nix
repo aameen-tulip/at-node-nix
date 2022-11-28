@@ -514,9 +514,13 @@
     mapVals = fn: mapAttrs ( _: fn );
     getScope = x: x.scope or x.names.scope or x.meta.names.scope or "_";
     gs = groupBy getScope ( attrValues ( __entriesFn self ) );
-    getPname = x: baseNameOf x.ident;
+    getPname = x:
+      baseNameOf ( x.ident or
+                   ( builtins.head ( builtins.catAttrs "ident" x ) ) );
     is = mapVals ( groupBy getPname ) gs;
-    getVers = x: "v${replaceStrings ["." "+"] ["_" "_"] x.version}";
+    getVers = x: let
+      v = x.version or ( builtins.head ( builtins.catAttrs "version" x ) );
+    in "v${replaceStrings ["." "+"] ["_" "_"] v}";
     vs = mapVals ( mapVals ( ids: mapVals head ( groupBy getVers ids ) ) ) is;
   in vs;
 

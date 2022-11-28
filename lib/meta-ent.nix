@@ -255,7 +255,8 @@
   # `null' means we aren't sure.
   # Input will be normalized to pairs.
   # If `metaEnt' has `directories.bin' we may use IFD in helper routines.
-  metaEntBinPairs' = { pure, ifd, allowedPaths } @ fenv: ent: let
+  # TODO: typecheck
+  metaEntBinPairs' = { pure, ifd, allowedPaths, typecheck } @ fenv: ent: let
       getBinPairs = lib.libpkginfo.pjsBinPairs' fenv;
       emptyIsNone = ( lib.libmeta.metaWasPlock ent ) ||
                     ( builtins.elem ent.entFromtype ["package.json" "raw"] );
@@ -289,14 +290,28 @@
       readAllowed = lib.libread.readAllowed { inherit pure ifd allowedPaths; };
       checkPl = if typecheck then yt.Typeclasses.pathlike pathlike
                              else pathlike;
-      dir      = lib.coercePath checkPl;
-      isDir    = builtins.pathExists ( dir + "/." );
-      pjs      = lib.importJSONOr null ( dir + "/package.json" );
-      binPairs =
-        if pjs == null then null else
-        lib.apply lib.libpkginfo.pjsBinPairs ( pjs // { src = pathlike; } );
+      dir   = lib.coercePath checkPl;
+      isDir = builtins.pathExists ( dir + "/." );
+      pjs   = lib.importJSONOr null ( dir + "/package.json" );
+      pjsBP = lib.libpkginfo.pjsBinPairs' fenv;
+      binPairs = if pjs == null then null else
+                 lib.apply pjsBP ( pjs // { _src = pathlike; } );
       bps' = if binPairs == null then {} else { bin = binPairs; };
-      rsl = if ( readAllowed dir ) && isDir then bps' // {
+      sourceInfo = let
+        pp  = lib.generators.toPretty { allowPrettyValues = true; };
+        msg = "tryCollectMetaFromDir: Unsure of how to coerce sourceInfo " +
+              "from value '${pp pathlike}'.";
+        fromString = if yt.FS.Strings.store_path.check pathlike then {
+          outPath = pathlike;
+        } else null;
+      in if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
+        if pathlike ? outPath then pathlike else
+        if builtins.isString pathlike then fromString else
+        throw msg;
+      sourceInfo' = if sourceInfo == null
+                    then { fetchInfo = { type = "path"; path = pathlike; }; }
+                    else { inherit sourceInfo; };
+      rsl = if ( readAllowed dir ) && isDir then bps' // sourceInfo' // {
         metaFiles = lib.filterAttrs ( _: v: v != null ) {
           inherit pjs;
           plock = lib.importJSONOr null ( dir + "/package-lock.json" );
@@ -306,23 +321,98 @@
             import ( dir + "/meta.nix" );
         };
         gypfile  = builtins.pathExists ( dir + "/binding.gyp" );
-        sourceInfo = let
-          pp  = lib.generators.toPretty { allowPrettyValues = true; };
-          msg = "tryCollectMetaFromDir: Unsure of how to coerce sourceInfo " +
-                "from value '${pp pathlike}'.";
-        in if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
-          if pathlike ? outPath then pathlike else
-          if builtins.isString pathlike then { outPath = pathlike; } else
-          throw msg;
       } else {};
       rsl_hit_t = yt.struct {
         bin        = yt.option yt.PkgInfo.bin_pairs;
         metaFiles  = yt.attrs yt.any;
         gypfile    = yt.bool;
-        sourceInfo = yt.FlocoFetch.Eithers.source_info_floco;
+        sourceInfo = yt.option yt.FlocoFetch.Eithers.source_info_floco;
+        fetchInfo  = yt.option yt.FlocoFetch.Structs.fetch_info_path;
       };
       rslt = yt.either yt.unit rsl_hit_t;
     in if typecheck then rslt rsl else rsl;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: meta(Ent|Set)Overlays
+  metaSetFromDir' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
+    inner = pathlike: let
+      msEmpty   = lib.libmeta.mkMetaSet {};
+      mfd       = tryCollectMetaFromDir' fenv pathlike;
+      # Exactly like `metaSetFromPlockV3' except we unfuck the `key' field.
+      mkOnePlV3 = pkey: plent: let
+        me = lib.libplock.metaEntFromPlockV3 {
+          lockDir         = toString pathlike;
+          includeTreeInfo = true;
+          inherit pure ifd typecheck allowedPaths;
+          inherit (mfd.metaFiles) plock;
+          inherit (mfd.metaFiles.plock) lockfileVersion;
+        } pkey plent;
+      in me // { key = me.ident + "/" + me.version; };
+      # This is a "raw" form of the `metaSetFromPlockV3' routine that doesn't
+      # require unique entries.
+      # In our case we are composing a bunch of entries so we want to work with
+      # a list of entries that do not necessarily need to be unique.
+      mesPl = if ! ( mfd ? metaFiles.plock ) then [] else
+              lib.mapAttrsToList mkOnePlV3 mfd.metaFiles.plock.packages;
+      # Also carries any info scraped from the directory ( `gypfile', etc ).
+      mePjs = let
+        base = lib.libpjs.metaEntFromPjsNoWs' fenv {
+          pjsDir  = toString pathlike;
+          basedir = pathlike.basedir or ( toString pathlike );
+          inherit (mfd.metaFiles) pjs;
+        };
+      in if ! ( mfd ? metaFiles.pjs ) then null else base.__update mfd;
+      mesPjs  = if mePjs == null then [] else [mePjs];
+      meMfRaw = mfd.metaFiles.metaN or mfd.metaFiles.metaJ or null;
+      mesMf   = let
+        fixTree = if ! ( meMfRaw ? __meta.trees ) then meMfRaw else meMfRaw // {
+          ${meMfRaw.__meta.rootKey} = meMfRaw.${meMfRaw.__meta.rootKey} // {
+            inherit (meMfRaw.__meta) trees;
+          };
+        };
+        proc = key: v: lib.metaEntFromSerial ( { inherit key; } // v );
+        ents = lib.mapAttrsToList proc ( removeAttrs fixTree ["__meta"] );
+        # `genMeta' writes `__meta.trees.{dev,prod}' which should really be
+        # pushed down into the `rootKey' entry.
+      in if meMfRaw == null then [] else ents;
+
+      allMetaEnts = mesPl ++ mesPjs ++ mesMf;
+      grouped     = builtins.groupBy ( x: x.key ) allMetaEnts;
+      members     = grouped // {
+        __meta = let
+          rootKey =
+            if meMfRaw ? __meta.rootKey then meMfRaw.__meta.rootKey else
+            if mfd ? metaFiles.pjs then mePjs.key else
+            if ! ( mfd ? metaFiles.plock ) then null else
+            mfd.metaFiles.plock.name + "/" + mfd.metaFiles.plock.version;
+          rootKey' = if rootKey == null then {} else { inherit rootKey; };
+        in rootKey' // {
+          __serial = false;
+          fromType = "directory-composite";
+          dir = toString pathlike;
+          inherit (mfd) metaFiles;
+          dirInfo = removeAttrs mfd ["metaFiles"];
+        };
+      };
+      ms = lib.libmeta.mkMetaSet members;
+
+      # If we merge entries, we prefer `bin', `hasBin', `ltype', `depInfo',
+      # `hasInstallScript', and `fetchInfo' from `package-lock.json', and
+      # `scripts', `gypfile', `hasBuild', `hasPrepare', `hasPack', `hasPublish',
+      # `hasTest', from `package.json'.
+      # NOTE: `package.json' gets priority on `gypfile' even over
+      # the filesystem!
+      # FIXME: Other routines fuck this up right now.
+      # TODO: After that `meta.{json,nix}' clobbering is something we need to
+      # sort out; but for now I'm giving them priority to act as overrides.
+
+    in if mfd == {} then msEmpty else ms;
+    # TODO: make a real typedef for this.
+    rslt = yt.restrict "metaSet" ( x: ( x._type or null ) == "metaSet" )
+                                 ( yt.attrs yt.any );
+  in if typecheck then yt.defun [yt.Typeclasses.pathlike rslt] inner else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -361,6 +451,7 @@ in {
   ;
   inherit
     tryCollectMetaFromDir'
+    metaSetFromDir'
   ;
 }
 

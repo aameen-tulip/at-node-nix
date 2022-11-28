@@ -11,13 +11,6 @@
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
   pi = yt.PkgInfo;
 
-  defaultFlocoEnv = {
-    allowedPaths = [];
-    pure         = lib.inPureEvalMode;
-    ifd          = true;
-  };
-
-
 # ---------------------------------------------------------------------------- #
 
   # Matches "/foo/*/bar", "/foo/*", "*".
@@ -128,17 +121,16 @@
   # We explicitly check the contained directory because of how frequently we
   # work with tarballs, `builtins.pathExists "${my-tarball}/.";' fails because
   # `my-tarball' is a file, so this works out.
-  readJSONFromPath' = { allowedPaths, pure, ifd } @ fenv: pathlike: let
-    doRead = p: let
-      isDir = builtins.pathExists ( ( dirOf ( toString p ) ) + "/." );
-    in if isDir then lib.importJSON' ( toString p ) else
-       throw ( "readJSONFromPath: path '${dirOf ( toString p )}' is not " +
-               "a directory." );
-  in lib.libread.runReadOp fenv doRead pathlike;
-
-  readJSONFromPath = let
-    inner = readPjsFromPath' defaultFlocoEnv;
-  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  readJSONFromPath' = { allowedPaths, pure, ifd, typecheck } @ fenv: let
+    inner = pathlike: let
+      doRead = p: let
+        isDir = builtins.pathExists ( ( dirOf ( toString p ) ) + "/." );
+      in if isDir then lib.importJSON' ( toString p ) else
+        throw ( "readJSONFromPath: path '${dirOf ( toString p )}' is not " +
+                "a directory." );
+    in lib.libread.runReadOp fenv doRead pathlike;
+    checked = yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -146,12 +138,10 @@
   # Reads a `package.json' from a pathlike input.
   # This will enforce the `pure' and `ifd' settings indicated even if the
   # runtime environment is more permissive.
-  readPjsFromPath' = { pure, ifd, allowedPaths } @ fenv: pathlike:
-    readJSONFromPath' fenv ( pjsPath pathlike );
-
-  readPjsFromPath = let
-    inner = readPjsFromPath' defaultFlocoEnv;
-  in yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  readPjsFromPath' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
+    inner   = pathlike: readJSONFromPath' fenv ( pjsPath pathlike );
+    checked = yt.defun [yt.Typeclasses.pathlike ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -160,14 +150,14 @@
   # If `x' is already the contents of a `package.json' this is a no-op.
   # Otherwise we will read/import from the path representation of `x', accepting
   # a path to `package.json' directly, or a dir containing `package.json'.
-  coercePjs' = { pure, ifd, allowedPaths } @ fenv: x: let
-    isPjs = ( builtins.isAttrs x ) && ( ! ( yt.Typeclasses.pathlike.check x ) );
-  in if isPjs then x else readPjsFromPath' fenv x;
-
-  coercePjs = let
-    inner = coercePjs' defaultFlocoEnv;
-    argt  = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
-  in yt.defun [argt ( yt.attrs yt.any )] inner;
+  coercePjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
+    inner = x: let
+      isPjs = ( builtins.isAttrs x ) &&
+              ( ! ( yt.Typeclasses.pathlike.check x ) );
+    in if isPjs then x else readPjsFromPath' fenv x;
+    argt    = yt.either yt.Typeclasses.pathlike ( yt.attrs yt.any );
+    checked = yt.defun [argt ( yt.attrs yt.any )] inner;
+  in if typecheck then checked else inner;
 
 
 # ---------------------------------------------------------------------------- #
@@ -179,7 +169,7 @@
   # a directory filled with executables using the `directories.bin' field.
   # This predicate lets us know if we need to handle "any sort of bin stuff"
   # for a `package.json'.
-  pjsHasBin' = { pure, ifd, allowedPaths } @ fenv: {
+  pjsHasBin' = { pure, ifd, allowedPaths, typecheck } @ fenv: {
     __functionMeta = {
       name = "pjsHasBin";
       from = "at-node-nix#lib.libpkginfo";
@@ -202,15 +192,14 @@
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
     in x.pjs or coercePjs' fenv;
     __functor = self: x: let
-      loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-      pjs = self.__processArgs self x;
-      pp  = lib.generators.toPretty { allowPrettyValues = true; };
-      ec  = builtins.addErrorContext "(${loc}): called with ${pp x}";
-      rsl = self.__innerFunction pjs;
-    in ec rsl;
+      loc     = "${self.__functionMeta.from}.${self.__functionMeta.name}";
+      pjs     = self.__processArgs self x;
+      pp      = lib.generators.toPretty { allowPrettyValues = true; };
+      ec      = builtins.addErrorContext "(${loc}): called with ${pp x}";
+      rsl     = ec ( self.__innerFunction pjs );
+      checker = if typecheck then lib.libfunk.mkFunkTypechecker self else y: y;
+    in checker x rsl;
   };
-
-  pjsHasBin = pjsHasBin' defaultFlocoEnv;
 
 
 # ---------------------------------------------------------------------------- #
@@ -244,28 +233,20 @@
   # caller omits the `ident'/`bname' args.
   pjsBinPairs' = let
     loc = "at-node-nix#lib.libpkginfo.pjsBinPairs'";
-  in { ifd, pure, allowedPaths } @ fenv: {
+  in { ifd, pure, allowedPaths, typecheck } @ fenv: {
     bin         ? null
   , directories ? {}
   , bname       ? baseNameOf ident
-  , ident       ? pjs.name or ( coercePjs' fenv src ).name
-  , src ?
+  , ident       ? pjs.name or ( coercePjs' fenv _src ).name
+  , _src ?
     throw ( "(${loc}): To produce binpairs from `directories.bin' you " +
-            "must pass `src' as an arg." )
+            "must pass `_src' as an arg." )
   } @ pjs: let
     stripDS = lib.yank "\\./(.*)";
   in if builtins.isAttrs bin  then builtins.mapAttrs ( _: stripDS ) bin else
      if builtins.isString bin then { ${bname} = stripDS bin; } else
      if ! ( directories ? bin ) then {} else
-     pjsBinPairsFromDir { inherit src directories; };
-
-  # TODO: make `toError' for allowed read checker
-  #  if ! ifd then throw "(${loc}): Cannot lookup `ident' without IFD." else
-  #  if pure && ( ! ( ( lib.isStorePath src ) || ( isAllowedPath allowedPaths src ) )
-  #  then throw "(${loc}): Cannot read non-store path in pure mode."
-  #  else < READ IT >
-
-  pjsBinPairs = pjsBinPairs' defaultFlocoEnv;
+     pjsBinPairsFromDir { inherit directories; src = _src; };
 
 
 # ---------------------------------------------------------------------------- #
@@ -326,12 +307,6 @@
   in explicit || scripted || hasGyp;
 
 
-  pjsHasInstallScript = pjsHasInstallScript' {
-    pure = lib.inPureEvalMode;
-    ifd  = true;
-  };
-
-
 # ---------------------------------------------------------------------------- #
 
   # FIXME: these don't actually reflect the lifecycle events run for various
@@ -373,22 +348,23 @@ in {
 
   inherit
     rewriteDescriptors
-    pjsHasInstallScript' pjsHasInstallScript
-    pjsHasBin'           pjsHasBin
+    pjsHasInstallScript'
+    pjsHasBin'
   ;
 
   # `package.json' locators
   inherit
-    readJSONFromPath' readJSONFromPath
-    pjsPath'          pjsPath
-    readPjsFromPath'  readPjsFromPath
-    coercePjs'        coercePjs
+    readJSONFromPath'
+    pjsPath'
+    pjsPath
+    readPjsFromPath'
+    coercePjs'
   ;
 
   # Normalize fields
   inherit
     pjsBinPairsFromDir
-    pjsBinPairs' pjsBinPairs
+    pjsBinPairs'
   ;
 
   # Workspaces

@@ -104,6 +104,7 @@
     in if basedir == pjsDir then "" else
        builtins.substring ( blen + 1 ) alen abs;
     forLocal = {
+      # NOTE: this won't work for store paths.
       # FIXME: when you serialize this you need to write relative paths.
       # You have that here, but other `fetchInfo' entries don't, and honestly
       # I'm not in love with this handling.
