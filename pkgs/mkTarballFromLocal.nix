@@ -40,6 +40,8 @@
 # particularly concerned about whether `plockFilt' was applied; we DO care about
 # `nodeFilt' though - because if it were skipped we may accidentally pull
 # "dirty" source tree files built outside of Nix into the tarball.
+#
+# TODO: handle `postpack' routines?
 snapDerivation {
   inherit name source prepared;
   PATH = "${coreutils}/bin:${pacote}/bin";

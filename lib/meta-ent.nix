@@ -308,11 +308,15 @@
         } else null;
       in if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
         if pathlike ? outPath then pathlike else
+        if builtins.isPath pathlike then fromString else
         if builtins.isString pathlike then fromString else
         throw msg;
-      sourceInfo' = if sourceInfo == null
-                    then { fetchInfo = { type = "path"; path = pathlike; }; }
-                    else { inherit sourceInfo; };
+      sourceInfo' = if sourceInfo != null then { inherit sourceInfo; } else {
+        fetchInfo  = { type = "path"; path = toString pathlike; };
+        sourceInfo = {
+          outPath = builtins.path { recursive = true; path = pathlike; };
+        };
+      };
       rsl = if ( readAllowed dir ) && isDir then bps' // sourceInfo' // {
         metaFiles = lib.filterAttrs ( _: v: v != null ) {
           inherit pjs;
@@ -325,7 +329,7 @@
         gypfile  = builtins.pathExists ( dir + "/binding.gyp" );
       } else {};
       rsl_hit_t = yt.struct {
-        bin        = yt.option yt.PkgInfo.bin_pairs;
+        bin        = yt.option ( yt.either yt.PkgInfo.bin_pairs yt.unit );
         metaFiles  = yt.attrs yt.any;
         gypfile    = yt.bool;
         sourceInfo = yt.option yt.FlocoFetch.Eithers.source_info_floco;

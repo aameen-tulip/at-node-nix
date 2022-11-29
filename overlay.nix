@@ -124,7 +124,15 @@ in {
 
   # Takes `source' ( original ) and `prepared' ( "built" ) as args.
   # Either `name' ( meta.names.tarball ) or `meta' are also required.
-  mkTarballFromLocal = callPackage ./pkgs/mkTarballFromLocal.nix;
+  mkTarballFromLocal = {
+    __functionArgs =
+      ( final.lib.functionArgs ( import ./pkgs/mkTarballFromLocal.nix ) ) // {
+        coreutils      = true;
+        pacote         = true;
+        snapDerivation = true;
+      };
+    __functor = _: callPackage ./pkgs/mkTarballFromLocal.nix;
+  };
 
   inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix ( {
     inherit (prev.xorg) lndir;
