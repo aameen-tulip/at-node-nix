@@ -24,23 +24,9 @@
 
 # ---------------------------------------------------------------------------- #
 
-  addFlocoPackages = prev: pkgs: let
-    fp = if prev ? flocoPackages.extend then prev.flocoPackages else
-         if prev ? flocoPackages
-         then lib.makeExtensible ( final: prev.flocoPackages )
-         else lib.makeExtensible ( final: {} );
-    pkgsE =
-      if ! ( lib.isFunction pkgs ) then ( _: _: pkgs ) else
-      if ! ( lib.isFunction ( pkgs {} ) ) then ( _: pkgs ) else pkgs;
-  in fp.extend pkgsE;
-
-
-# ---------------------------------------------------------------------------- #
-
 in {
   inherit
     pkgsAsAttrsets
-    addFlocoPackages
   ;
 }
 

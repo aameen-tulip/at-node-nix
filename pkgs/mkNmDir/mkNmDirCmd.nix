@@ -66,7 +66,7 @@
   # If you're creating an install script for use outside of Nix and you want
   # `npm rebuild' and similar commands to work you need those subdirs though.
   , ignoreSubBins ? false
-  # FIXME: currently the paragraph below is insaccurate
+  # FIXME: currently the paragraph below is inaccurate
   # For `package.json' inputs in pure eval mode, we may not know exactly which
   # bins need to be linked yet; so we have to perform additional checking and
   # globbing at runtime.

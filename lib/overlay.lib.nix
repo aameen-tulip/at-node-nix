@@ -65,6 +65,7 @@ in {
     getFlocoPkg'
     getFlocoPkgModule'
     getMetaEntFromFlocoPkg'
+    addFlocoPackages
   ;
 
   inherit (final.libpkginfo)
@@ -87,7 +88,6 @@ in {
 
   inherit (final.libattrs)
     pkgsAsAttrsets
-    addFlocoPackages
   ;
 
   inherit (final.libplock)
