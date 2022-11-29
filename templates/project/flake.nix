@@ -32,9 +32,10 @@
     # Metadata scraped from the lockfile without any overrides by the cache.
     lockMeta = let
       inherit (at-node-nix) lib;
-    in lib.callWith metaSetEvalSettings lib.metaSetFromPlockV3 {
-      lockDir = toString ./.;
-    };
+    in if ! ( builtins.pathExists ./package-lock.json ) then {} else
+      lib.callWith metaSetEvalSettings lib.metaSetFromPlockV3 {
+        lockDir = toString ./.;
+      };
     # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
     cacheMeta = let
       metaJSON = nixpkgs.lib.importJSON ./meta.json;
@@ -50,35 +51,11 @@
     # that this isn't showing any upstream or downstream overlays.
     # Nonetheless it's an incredibly useful hunk of data that you'll likely
     # reference often if you are analyzing/optimizing the build system.
-    metaSet = lockMeta.__extend ( _: _: cacheMeta.__entries or cacheMeta );
+    metaSet = if lockMeta == {} then cacheMeta else
+              lockMeta.__extend ( _: _: cacheMeta.__entries or cacheMeta );
 
 
 # ---------------------------------------------------------------------------- #
-
-    # Adds packages from `package-lock.json' to `flocoPackages' as "raw"
-    # sources - no builds are executed, tarballs are consumed "as is".
-    # We only ADD missing packages, we do not override existing ones.
-    # With that in mind, if you have dependencies that needs builds you can
-    # safely add them in other overlays without worrying about this lockfile's
-    # "raw sources" clobbering an explicitly defined builder.
-    overlays.lockPackages = final: prev: {
-      flocoEnv = prev.flocoEnv // {
-        allowedPaths = prev.lib.unique ( ( prev.flocoEnv.allowedPaths or [] ) ++
-                                         [( toString ./. )] );
-      };
-      flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
-        metaSet = final.lib.metaSetFromPlockV3 {
-          lockDir = toString ./.;
-          inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
-        };
-        proc = acc: k: if prev ? ${k} then acc else acc // {
-          ${k} = metaSet.${k};
-        };
-        ents = removeAttrs metaSet.__entries ["__meta" "_type"];
-        keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
-        # `mkPkgEntSource' fetches and unpacks for us.
-      in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
-    };
 
     # Adds packages from `meta.nix' or `meta.json' if they exist.
     #
@@ -99,27 +76,50 @@
     # See upstream Nixpkgs "overlays" documentation for details ( they're
     # honestly just a fancy "update"/merge operator like `a // b' ).
     overlays.cachePackages = final: prev: let
+      metaJSON = final.lib.importJSON ./meta.json;
+      metaRaw =
+        if builtins.pathExists ./meta.nix  then import ./meta.nix else
+        if builtins.pathExists ./meta.json then metaJSON else {};
+    in if metaRaw == {} then {} else {
+       flocoEnv = prev.flocoEnv // {
+         allowedPaths =
+           prev.lib.unique ( ( prev.flocoEnv.allowedPaths or [] ) ++
+                             [( toString ./. )] );
+       };
+       flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
+         metaSet = final.lib.metaSetFromSerial' {
+           inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
+         } metaRaw;
+         proc = acc: k: if prev ? ${k} then acc else acc // {
+           ${k} = final.mkSrcEnt metaSet.${k};
+         };
+         ents  = removeAttrs metaSet.__entries ["__meta" "_type"];
+       in builtins.foldl' proc {} ( builtins.attrNames ents ) );
+    };
+
+    # Adds packages from `package-lock.json' to `flocoPackages' as "raw"
+    # sources - no builds are executed, tarballs are consumed "as is".
+    # We only ADD missing packages, we do not override existing ones.
+    # With that in mind, if you have dependencies that needs builds you can
+    # safely add them in other overlays without worrying about this lockfile's
+    # "raw sources" clobbering an explicitly defined builder.
+    overlays.lockPackages = final: prev: let
+      metaSet = final.lib.metaSetFromPlockV3 {
+        lockDir = toString ./.;
+        inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
+      };
+    in if ! ( builtins.pathExists ./package-lock.json ) then {} else {
       flocoEnv = prev.flocoEnv // {
         allowedPaths = prev.lib.unique ( ( prev.flocoEnv.allowedPaths or [] ) ++
                                          [( toString ./. )] );
       };
-      metaJSON = final.lib.importJSON ./meta.json;
-      metaRaw =
-        if builtins.pathExists ./meta.nix  then import ./meta.nix else
-        if builtins.pathExists ./meta.json then metaJSON else
-        {};
-    in if metaRaw == {} then {} else {
-        flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
-          metaSet = final.lib.metaSetFromSerial' {
-            inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
-          } metaRaw;
-          proc = acc: k: if prev ? ${k} then acc else acc // {
-            ${k} = metaSet.${k};
-          };
-          ents  = removeAttrs metaSet.__entries ["__meta" "_type"];
-          keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
-        in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
-      };
+      flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
+        proc = acc: k: if prev ? ${k} then acc else acc // {
+          ${k} = final.mkSrcEnt metaSet.${k};
+        };
+        ents = removeAttrs metaSet.__entries ["__meta" "_type"];
+      in builtins.foldl' proc {} ( builtins.attrNames ents ) );
+    };
 
     # Composes upstream `flocoPackages' modules with definitions defined in
     # our lock and meta.{json,nix} ( see note above ).
@@ -235,10 +235,20 @@
           #     };
           #     ...
           #   };
-          nmDirs = final.mkNmDirPlockV3 {
-            lockDir = toString ./.;
-            pkgSet  = final.flocoPackages;
-          };
+          nmDirs =
+            if builtins.pathExists ./package-lock.json
+            then final.mkNmDirPlockV3 {
+              lockDir = toString ./.;
+              pkgSet  = final.flocoPackages;
+            } else final.mkNmDirLinkCmd {
+              tree = let
+                metaRaw =
+                  if builtins.pathExists ./meta.nix then import ./meta.nix else
+                  at-node-nix.lib.importJSONOr {} ./meta.json;
+              in metaRaw.__meta.trees.dev or
+                 ( throw "No tree definition found" );
+              pkgSet = final.flocoPackages;
+            };
         };  # End module definition
       } );  # End flocoPackages
     };  # End PROJECT Overlay
@@ -257,7 +267,7 @@
     # This can be safely removed without effecting the build - see note up top
     # for more info.
     inherit pjs lockMeta cacheMeta metaSet;
-    plock = nixpkgs.lib.importJSON ./package-lock.json;
+    plock = at-node-nix.lib.importJSONOr "No Such File" ./package-lock.json;
 
 # ---------------------------------------------------------------------------- #
 
@@ -289,7 +299,16 @@
         # For running the test suite we'll use symlinks of the production tree.
         # The `nmDirPlockV3' info we used previously can be referenced here so
         # we can avoid the boilerplate of generating `nmDirs' again.
-        nmDirCmd = package.passthru.nmDirs.nmDirCmds.prodLink;
+        nmDirCmd = package.passthru.nmDirs.nmDirCmds.prodLink or
+          ( pkgsFor.mkNmDirLinkCmd {
+              tree = let
+                metaRaw =
+                  if builtins.pathExists ./meta.nix then import ./meta.nix else
+                  at-node-nix.lib.importJSONOr {} ./meta.json;
+              in metaRaw.__meta.trees.prod or
+                 ( throw "No tree definition found" );
+            pkgSet = pkgsFor.flocoPackages;
+          } );
         runScripts = ["test"];
         checkPhase = ''
           grep -q '^PASS$' ./test.log||exit 1;
@@ -345,6 +364,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 4
+# SERIAL: 5
 #
 # ============================================================================ #

@@ -13,7 +13,7 @@
   name = "${baseNameOf ident}-built-${version}";
   inherit version src;
   # We'll use `devCopy' for our build.
-  nmDirCmd   = nmDirs.nmDirCmds.devCopy;
+  nmDirCmd   = nmDirs.nmDirCmds.devCopy or nmDirs;
   runScripts = ["build"];
   passthru   = { inherit nmDirs; };
 }
