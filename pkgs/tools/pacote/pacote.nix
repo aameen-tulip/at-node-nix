@@ -67,7 +67,9 @@
     preferLocalBuild = true;
   }
 
-, metaSet    ? lib.metaSetFromSerial ( import ./meta.nix )
+, metaSet ? lib.metaSetFromSerial' {
+    inherit pure ifd allowedPaths typecheck;
+  } ( import ./meta.nix )
 , pacote-src ? flocoFileFetcher metaSet.${metaSet.__meta.rootKey}.fetchInfo
 , mkNmDir    ? mkNmDirCopyCmd
 
@@ -75,6 +77,12 @@
 , evalScripts
 , mkNmDirCopyCmd
 , unpackSafe
+
+, ifd
+, pure
+, allowedPaths
+, typecheck
+
 , ...
 } @ args: let
 

@@ -92,7 +92,7 @@
   #      `lockDir', `pkey', or `lockfileVersion' values that are normally
   #      stashed there - those fields are "really" associated with the `metaSet'
   #      and the decision to exclude them after serialization is intentional.
-  metaEntFromSerial = {
+  metaEntFromSerial' = { ifd, pure, allowedPaths, typecheck } @ fenv: {
     key
   , ident       ? dirOf key
   , version     ? baseNameOf key
@@ -102,12 +102,12 @@
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
   , bin              ? {}
-  , hasBin           ? lib.libpkginfo.pjsHasBin ent
+  , hasBin           ? lib.libpkginfo.pjsHasBin' fenv ent
   , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
-  , gypfile          ? false  # XXX: do not read this field from registries
   , hasTest          ? entHasTestScript ent
+  , gypfile          ? false  # XXX: do not read this field from registries
   , scripts          ? {}
   , os               ? null
   , cpu              ? null
@@ -170,20 +170,22 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaSetFromSerial = members: let
-    deserial = name: value: let
-      forEnt  = metaEntFromSerial value;
-      # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
-      # FIXME: this no shouldn't be reading the filesystem without being marked
-      # as "impure" or "ifd".
-      forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
-        pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
-        plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
-      } ) // value;
-    in if name == "__meta" then forMeta else
-       if lib.hasPrefix "__" name then value else
-       forEnt;
-  in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
+  # TODO: enforce `fenv'
+  metaSetFromSerial' = { ifd, pure, allowedPaths, typecheck } @ fenv:
+    members: let
+      deserial = name: value: let
+        forEnt  = metaEntFromSerial' fenv value;
+        # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
+        # FIXME: this no shouldn't be reading the filesystem without being marked
+        # as "impure" or "ifd".
+        forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
+          pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
+          plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
+        } ) // value;
+      in if name == "__meta" then forMeta else
+        if lib.hasPrefix "__" name then value else
+        forEnt;
+    in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
 
 
 # ---------------------------------------------------------------------------- #
@@ -381,7 +383,7 @@
             inherit (meMfRaw.__meta) trees;
           };
         };
-        proc = key: v: lib.metaEntFromSerial ( { inherit key; } // v );
+        proc = key: v: lib.metaEntFromSerial' fenv ( { inherit key; } // v );
         ents = lib.mapAttrsToList proc ( removeAttrs fixTree ["__meta"] );
         # `genMeta' writes `__meta.trees.{dev,prod}' which should really be
         # pushed down into the `rootKey' entry.
@@ -557,8 +559,8 @@
 
 in {
   inherit
-    metaEntFromSerial
-    metaSetFromSerial
+    metaEntFromSerial'
+    metaSetFromSerial'
     metaEntIsSimple
     metaSetPartitionSimple  # by `metaEntIsSimple'
   ;

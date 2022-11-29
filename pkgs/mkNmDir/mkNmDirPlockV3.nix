@@ -29,13 +29,18 @@
 , mkSrcEnt
 , npmSys
 , system
-, flocoConfig
+
+, pure
+, ifd
+, allowedPaths
+, typecheck
+
 , flocoFetch
 , lockDir ? throw "You must provide an arg for me to find your package lock"
 , plock   ? lib.importJSON' ( lockDir + "/package-lock.json" )
 # This is the preferred argument
 , metaSet ? lib.metaSetFromPlockV3 {
-    inherit plock flocoConfig lockDir;
+    inherit plock lockDir pure ifd allowedPaths typecheck;
   }
 # Used to override paths used as "prepared"
 # If this isn't provided we will create a source tree.

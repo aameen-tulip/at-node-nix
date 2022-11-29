@@ -91,12 +91,6 @@ jobs:
           echo "# ---------------------------------------------------------------------------- #" >&2;
           nix flake check head --show-trace --impure;
 
-      # FIXME: `flocoPackages' is too big and hits the GHA
-      # RAM limit. 
-      # This needs to be fixed in that repo but because our template
-      # references it GHA kills us. 
-      # JFC: The template is fine and any box with real hardware can
-      # consume `flocoPackages' without issues.
       - name: Project Template
         if: always()
         run: |
@@ -106,10 +100,10 @@ jobs:
           git init;
           git add .;
           echo "Build Package:" >&2;
-          nix build --no-link -L;
+          nix build --no-link -L --override-input /flocoPackages/at-node-nix head;
           echo "# ---------------------------------------------------------------------------- #" >&2;
           echo "Test Package:" >&2;
-          nix build .#test --no-link -L;
+          nix build .#test --no-link -L --override-input /flocoPackages/at-node-nix head;
           cd -;
           rm -rf ./project;
 

@@ -137,8 +137,8 @@ in {
     genMetaEntExtend
     genMetaEntRules
 
-    metaEntFromSerial
-    metaSetFromSerial
+    metaEntFromSerial'
+    metaSetFromSerial'
   ;
 
   inherit (final.libtree)

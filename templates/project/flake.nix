@@ -59,7 +59,7 @@
         ents = removeAttrs metaSet.__entries ["__meta"];
         keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
         # `mkPkgEntSource' fetches and unpacks for us.
-      in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
+      in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
     };
 
     # Adds packages from `meta.nix' or `meta.json' if they exist.
@@ -88,13 +88,15 @@
         {};
     in if metaRaw == {} then {} else {
         flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
-          metaSet = final.lib.metaSetFromSerial metaRaw;
+          metaSet = final.lib.metaSetFromSerial' {
+            inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
+          } metaRaw;
           proc    = acc: k: if prev ? ${k} then acc else acc // {
             ${k} = metaSet.${k};
           };
           ents  = removeAttrs metaSet.__entries ["__meta"];
           keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
-        in builtins.mapAttrs ( _: final.mkPkgEntSource ) keeps );
+        in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
       };
 
     # Composes upstream `flocoPackages' modules with definitions defined in
@@ -309,6 +311,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 1.0.0
+# SERIAL: 2
 #
 # ============================================================================ #
