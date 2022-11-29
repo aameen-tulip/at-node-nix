@@ -293,8 +293,9 @@
     in {
       regen-cache.type    = "app";
       regen-cache.program = let
+        flakeRef = toString inputs.at-node-nix;
         script = pkgsFor.writeShellScript "regen-cache" ''
-          ${pkgsFor.nix}/bin/nix run at-node-nix#genMeta -- "''${@:---dev}"  \
+          ${pkgsFor.nix}/bin/nix run ${flakeRef}#genMeta -- "''${@:---dev}"   \
                                                             ${toString ./.};
         '';
       in script.outPath;
@@ -311,6 +312,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 2
+# SERIAL: 3
 #
 # ============================================================================ #
