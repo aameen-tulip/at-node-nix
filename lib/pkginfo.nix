@@ -198,8 +198,11 @@
       pp      = lib.generators.toPretty { allowPrettyValues = true; };
       ec      = builtins.addErrorContext "(${loc}): called with ${pp x}";
       rsl     = ec ( self.__innerFunction pjs );
-      checker = if typecheck then lib.libfunk.mkFunkTypechecker self else y: y;
-    in checker x rsl;
+      checked = if typecheck then lib.libfunk.mkFunkTypeChecker self {
+        args   = x;
+        result = rsl;
+      } else rsl;
+    in checked;
   };
 
 

@@ -23,9 +23,18 @@
     # information with `nix repl' or `nix eval'.
     # These will be exposed as flake outputs for your convenienct but can be
     # removed if you don't plan to poke around.
-
+    metaSetEvalSettings = {
+      pure         = true;
+      ifd          = false;
+      allowedPaths = [( toString ./. )];
+      typecheck    = true;
+    };
     # Metadata scraped from the lockfile without any overrides by the cache.
-    lockMeta  = at-node-nix.lib.metaSetFromPlockV3 { lockDir = toString ./.; };
+    lockMeta = let
+      inherit (at-node-nix) lib;
+    in lib.callWith metaSetEvalSettings lib.metaSetFromPlockV3 {
+      lockDir = toString ./.;
+    };
     # Metadata defined explicitly in `meta.nix' or `meta.json' ( if any )
     cacheMeta = let
       metaJSON = nixpkgs.lib.importJSON ./meta.json;
@@ -33,7 +42,9 @@
         if builtins.pathExists ./meta.nix  then import ./meta.nix else
         if builtins.pathExists ./meta.json then metaJSON else
         {};
-    in if metaRaw != {} then at-node-nix.lib.metaSetFromSerial else {};
+    in if metaRaw != {}
+       then at-node-nix.lib.metaSetFromSerial' metaSetEvalSettings metaRaw
+       else {};
     # The "merged" metadata from the lockfile and `meta.{json,nix}'.
     # This approximates the `flocoPackages' used to build - but keep in mind
     # that this isn't showing any upstream or downstream overlays.
@@ -51,12 +62,19 @@
     # safely add them in other overlays without worrying about this lockfile's
     # "raw sources" clobbering an explicitly defined builder.
     overlays.lockPackages = final: prev: {
+      flocoEnv = prev.flocoEnv // {
+        allowedPaths = prev.lib.unique ( ( prev.flocoEnv.allowedPaths or [] ) ++
+                                         [( toString ./. )] );
+      };
       flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
-        metaSet = final.lib.metaSetFromPlockV3 { lockDir = toString ./.; };
-        proc    = acc: k: if prev ? ${k} then acc else acc // {
+        metaSet = final.lib.metaSetFromPlockV3 {
+          lockDir = toString ./.;
+          inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
+        };
+        proc = acc: k: if prev ? ${k} then acc else acc // {
           ${k} = metaSet.${k};
         };
-        ents = removeAttrs metaSet.__entries ["__meta"];
+        ents = removeAttrs metaSet.__entries ["__meta" "_type"];
         keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
         # `mkPkgEntSource' fetches and unpacks for us.
       in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
@@ -81,6 +99,10 @@
     # See upstream Nixpkgs "overlays" documentation for details ( they're
     # honestly just a fancy "update"/merge operator like `a // b' ).
     overlays.cachePackages = final: prev: let
+      flocoEnv = prev.flocoEnv // {
+        allowedPaths = prev.lib.unique ( ( prev.flocoEnv.allowedPaths or [] ) ++
+                                         [( toString ./. )] );
+      };
       metaJSON = final.lib.importJSON ./meta.json;
       metaRaw =
         if builtins.pathExists ./meta.nix  then import ./meta.nix else
@@ -91,10 +113,10 @@
           metaSet = final.lib.metaSetFromSerial' {
             inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
           } metaRaw;
-          proc    = acc: k: if prev ? ${k} then acc else acc // {
+          proc = acc: k: if prev ? ${k} then acc else acc // {
             ${k} = metaSet.${k};
           };
-          ents  = removeAttrs metaSet.__entries ["__meta"];
+          ents  = removeAttrs metaSet.__entries ["__meta" "_type"];
           keeps = builtins.foldl' proc {} ( builtins.attrNames ents );
         in builtins.mapAttrs ( _: final.mkSrcEnt ) keeps );
       };
@@ -288,15 +310,26 @@
     #   nix run .#regen-cache -- --dev --json > meta.json && git add ./meta.json
     # Now Nix will be able to skip some runtime processing, only falling back
     # to the `package-lock.json' when the cache is missing new dependencies.
+    #
+    # NOTE: this
     apps = at-node-nix.lib.eachDefaultSystemMap ( system: let
       pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
+      flakeRef = toString inputs.at-node-nix;
     in {
       regen-cache.type    = "app";
       regen-cache.program = let
-        flakeRef = toString inputs.at-node-nix;
         script = pkgsFor.writeShellScript "regen-cache" ''
-          ${pkgsFor.nix}/bin/nix run ${flakeRef}#genMeta -- "''${@:---dev}"   \
-                                                            ${toString ./.};
+          _extra_args=""
+          if test -r ./package-lock.json; then
+            _extra_args="--lockfile $PWD/package-lock.json";
+          elif test -r ./package.json; then
+            _extra_args="$PWD";
+          else
+            echo "You must run this script in the root of the repo" >&2;
+            exit 1;
+          fi
+          ${pkgsFor.nix}/bin/nix run ${flakeRef}#genMeta -- "''${@:---dev}"  \
+                                                            $_extra_args;
         '';
       in script.outPath;
 
@@ -312,6 +345,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 3
+# SERIAL: 4
 #
 # ============================================================================ #
