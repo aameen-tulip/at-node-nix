@@ -90,6 +90,7 @@
       callPackages = callPackagesWith {};
       pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {
         mkNmDir = final.mkNmDirCopyCmd;
+        inherit (final.flocoEnv) ifd pure allowedPaths typecheck;
       };
       pacoteUtil   = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
     in {
