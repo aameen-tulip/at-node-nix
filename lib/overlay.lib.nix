@@ -62,9 +62,9 @@ in {
   libfloco = callLibs [./floco-flake.nix ./fpkgs.nix];
 
   inherit (final.libfloco)
-    getFlocoPkg
-    getFlocoPkgModule
-    getMetaEntFromFlocoPkg
+    getFlocoPkg'
+    getFlocoPkgModule'
+    getMetaEntFromFlocoPkg'
   ;
 
   inherit (final.libpkginfo)

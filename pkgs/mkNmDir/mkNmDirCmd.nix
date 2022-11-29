@@ -91,10 +91,11 @@
   , pure
   , ifd
   , allowedPaths
+  , typecheck
   , ...
   } @ args: let
 
-    fenv = { inherit pure ifd allowedPaths; };
+    fenv = { inherit pure ifd allowedPaths typecheck; };
 
     tree' = let
       subs = lib.filterAttrs ( k: v: ! ( lib.hasPrefix "../" k ) ) tree;
@@ -111,8 +112,8 @@
     # module will not have bins installed ( if it defined any ).
     haveBin = let
       hasBin = _: from: let
-        checkPjs = lib.libpkginfo.pjsHasBin' { inherit pure ifd allowedPaths; };
-        fpkg     = lib.getFlocoPkg flocoPackages from;
+        checkPjs = lib.libpkginfo.pjsHasBin' fenv;
+        fpkg     = lib.getFlocoPkg' fenv flocoPackages from;
         fmeta    = if fpkg == null then null else lib.getMetaEnt fpkg;
         tryMeta  = builtins.tryEval checkPjs.fmeta;
         yfields  = fmeta.hasBin or fmeta.bin or fmeta.directories.bin or null;
@@ -132,11 +133,11 @@
     # FIXME: handle `./.' ( `rootKey' ).
     addMods = let
       coerceModule = x: let
-        pkgFromKey = lib.getFlocoPkg flocoPackages x;
+        pkgFromKey = lib.getFlocoPkg' fenv flocoPackages x;
         pkg = if yt.PkgInfo.Strings.key.check x then pkgFromKey else
               if ( builtins.isString x ) || ( builtins.isPath x ) then null else
               x;
-        moduleFromPkg = lib.getFlocoPkgModule flocoPackages pkg;
+        moduleFromPkg = lib.getFlocoPkgModule' fenv flocoPackages pkg;
       in if pkg == null then x else moduleFromPkg;
       addOne = to: from: let
         sub  = if lib.test "../" to then throw "Out of tree path: ${to}" else

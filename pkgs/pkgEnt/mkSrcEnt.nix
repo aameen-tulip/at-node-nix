@@ -209,14 +209,17 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  coerceUnpacked'      = lib.callWith globalArgs coerceUnpacked';
-  coerceUnpacked       = lib.apply coerceUnpacked' globalArgs;
-  mkPkgEntSource'      = lib.callWith globalArgs mkPkgEntSource';
-  mkPkgEntSource       = lib.apply mkPkgEntSource' globalArgs;
+  coerceUnpacked' = lib.callWith globalArgs coerceUnpacked';
+  coerceUnpacked  = lib.apply coerceUnpacked' globalArgs;
+
+  mkPkgEntSource' = lib.callWith globalArgs mkPkgEntSource';
+  mkPkgEntSource  = lib.apply mkPkgEntSource' globalArgs;
+
   mkSrcEntFromMetaEnt' = lib.callWith globalArgs mkSrcEntFromMetaEnt';
   mkSrcEntFromMetaEnt  = lib.apply mkSrcEntFromMetaEnt' globalArgs;
-  mkSrcEnt'            = lib.callWith globalArgs mkSrcEnt';
-  mkSrcEnt             = lib.apply mkSrcEnt' globalArgs;
+
+  mkSrcEnt' = lib.callWith globalArgs mkSrcEnt';
+  mkSrcEnt  = lib.apply mkSrcEnt' globalArgs;
 }
 
 
