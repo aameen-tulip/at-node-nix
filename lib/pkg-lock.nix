@@ -428,11 +428,13 @@
   , lockDir         ? dirOf lockPath
   , lockPath        ? lockDir + "/package-lock.json"
 
-  , flocoConfig     ? lib.flocoConfig
+  # FIXME
+  , flocoConfig     ? lib.flocoConfig or {}
   , pure            ? flocoConfig.pure or lib.inPureEvalMode
-  , ifd             ? true
+  , ifd             ? false
   , typecheck       ? false
   , allowedPaths    ? []
+
   , includeTreeInfo ? false
   , ...
   } @ args: assert lib.libplock.supportsPlV3 plock; let
