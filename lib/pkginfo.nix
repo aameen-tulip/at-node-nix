@@ -199,9 +199,8 @@
       ec      = builtins.addErrorContext "(${loc}): called with ${pp x}";
       rsl     = ec ( self.__innerFunction pjs );
       checker = lib.libfunk.mkFunkTypeChecker self;
-      checked =
-        if ! typecheck then rsl else
-        ( checker { args = x; result = rsl; } ).result;
+      checked = if ! typecheck then rsl else
+                ( checker { args = x; result = rsl; } ).result;
     in checked;
   };
 
