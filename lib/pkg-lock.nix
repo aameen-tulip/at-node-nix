@@ -568,24 +568,26 @@
   # Same deal as `getIdentPlV3' but to lookup keys.
   getVersionPlV3' = plock: path: data: let
     plent = plock.packages.${path};
-  in data.version or plent.version or ( realEntry plock path ).version;
+  in data.version or plent.version or ( realEntry plock path ).version
+     or "0.0.0-none";
 
   getVersionPlV3 = plock: path: let
     plent = plock.packages.${path};
-  in plent.version or ( realEntry plock path ).version;
+  in plent.version or ( realEntry plock path ).version or "0.0.0-none";
 
 
   # Same deal as `getIdentPlV3' but to lookup keys.
   getKeyPlV3' = plock: path: data: let
     plent   = plock.packages.${path};
     ident   = getIdentPlV3' plock path data;
-    version = data.version or plent.version or ( realEntry plock path ).version;
+    version = data.version or plent.version or ( realEntry plock path ).version
+              or "0.0.0-none";
   in data.key or "${ident}/${version}";
 
   getKeyPlV3 = plock: path: let
     plent   = plock.packages.${path};
     ident   = plent.name or ( lookupRelPathIdentV3 plock path );
-    version = plent.version or ( realEntry plock path ).version;
+    version = plent.version or ( realEntry plock path ).version or "0.0.0-none";
   in "${ident}/${version}";
 
 
