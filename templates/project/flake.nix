@@ -339,8 +339,6 @@
     #   nix run .#regen-cache -- --dev --json > meta.json && git add ./meta.json
     # Now Nix will be able to skip some runtime processing, only falling back
     # to the `package-lock.json' when the cache is missing new dependencies.
-    #
-    # NOTE: this
     apps = at-node-nix.lib.eachDefaultSystemMap ( system: let
       pkgsFor = at-node-nix.legacyPackages.${system}.extend overlays.default;
       flakeRef = toString inputs.at-node-nix;
@@ -374,6 +372,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 6
+# SERIAL: 7
 #
 # ============================================================================ #

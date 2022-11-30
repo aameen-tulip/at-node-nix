@@ -429,9 +429,14 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
     serial = let
       base = metaSet.__serial;
       prepEnt = ent: let
-        for256 = e: if ( e.fetchInfo.type or null ) != "file" then e else e // {
+        for256 = e: if ( e.fetchInfo.type or null ) == "file" then e // {
           fetchInfo = pkgsFor.urlFetchInfo e.fetchInfo.url;
-        };
+        } else if ( e.fetchInfo.type or null ) == "path" then e // {
+          fetchInfo = e.fetchInfo // {
+            path = if e.fetchInfo.path == lockDir then "./." else
+                   builtins.replaceStrings [lockDir] ["."] e.fetchInfo.path;
+          };
+        } else e;
         # Optimize fetchInfo if DO_SHA256 is set
         optFi = if do256 then for256 else ( x: x );
         dropJunk = e: removeAttrs e ["scoped"];
@@ -476,7 +481,17 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
     in "# THIS FILE WAS GENERATED. Manual edits may be lost.\n" +
        "# Deserialze with:  lib.metaSetFromSerial\n" +
        "# Regen with: ${cmd}\n";
-    out = if dumpJSON then data else header + ( lib.librepl.pp data ) + "\n";
+    forNix = let
+      prettyNoEsc = lib.generators.toPretty { allowPrettyValues = true; } data;
+      pretty = builtins.replaceStrings [
+        " assert = "  " with = " " let = " " in = " " or = "
+        " inherit = " " rec = "
+      ] [
+        " \"assert\" = "  " \"with\" = " " \"let\" = " " \"in\" = " " \"or\" = "
+        " \"inherit\" = " " \"rec\" = "
+      ] prettyNoEsc;
+    in header + pretty + "\n";
+    out = if dumpJSON then data else forNix;
   in out
 '||advise_fail;
 

@@ -168,7 +168,7 @@
       };
     };
 
-    identifier = Strings.identifier_unreserved;
+    identifier = Strings.identifier_any;
 
     id_part     = restrict "id_part" ( lib.test RE.id_part_old_p ) string;
     id_part_new = restrict_new_s Strings.id_part;

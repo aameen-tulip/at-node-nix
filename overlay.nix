@@ -134,6 +134,13 @@ in {
     __functor = _: callPackage ./pkgs/mkTarballFromLocal.nix;
   };
 
+  inherit ( import ./pkgs/optimizeFetchInfo.nix {
+    inherit (final) lib urlFetchInfo;
+    inherit (final.flocoEnv) pure;
+  } ) optimizeFetchInfo' optimizeFetchInfo
+      optimizeFetchInfoSet' optimizeFetchInfoSet;
+
+
   inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix ( {
     inherit (prev.xorg) lndir;
   } // final.flocoEnv ))

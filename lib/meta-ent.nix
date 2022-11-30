@@ -92,7 +92,9 @@
   #      `lockDir', `pkey', or `lockfileVersion' values that are normally
   #      stashed there - those fields are "really" associated with the `metaSet'
   #      and the decision to exclude them after serialization is intentional.
-  metaEntFromSerial' = { ifd, pure, allowedPaths, typecheck } @ fenv: {
+  metaEntFromSerial' = {
+    ifd, pure, allowedPaths, typecheck, basedir ? null
+  } @ fenv: {
     key
   , ident       ? dirOf key
   , version     ? baseNameOf key
@@ -102,7 +104,6 @@
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
   , bin              ? {}
-  , hasBin           ? lib.libpkginfo.pjsHasBin' fenv ent
   , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
   , hasInstallScript ? entHasInstallScript ent
@@ -113,14 +114,20 @@
   , cpu              ? null
   , engines          ? null
   , trees            ? {}
+  , hasBin ? lib.libpkginfo.pjsHasBin' ( removeAttrs fenv ["basedir"] ) ent
   , ...
   } @ ent: let
     hasBuild' = lib.optionalAttrs ( hasBuild != null ) { inherit hasBuild; };
+    patchFetchInfo =
+      if basedir == null then {} else
+      if ( fetchInfo.type == "path" ) && ( yt.FS.relpath.check fetchInfo.path )
+      then { fetchInfo = fetchInfo // { inherit basedir; }; }
+      else {};
     members =
       { inherit ident version scoped entFromtype; } //
       ( lib.optionalAttrs ( ent ? bin || ent ? hasBin ) {
         inherit hasBin;
-      } ) // ent;
+      } ) // ent // patchFetchInfo;
     # Use these fallback fields for certain `entFromtype' values.
     fieldsForFT = {
       plock = {
@@ -171,10 +178,15 @@
 # ---------------------------------------------------------------------------- #
 
   # TODO: enforce `fenv'
-  metaSetFromSerial' = { ifd, pure, allowedPaths, typecheck } @ fenv:
-    members: let
+  metaSetFromSerial' = {
+    ifd, pure, allowedPaths, typecheck, basedir ? null
+  } @ fenv: members: let
+      meEnv = {
+        basedir = members.__meta.basedir or members.__meta.lockDir or
+                  members.__meta.pjsDir or toString ./.;
+      } // fenv;
       deserial = name: value: let
-        forEnt  = metaEntFromSerial' fenv value;
+        forEnt = metaEntFromSerial' meEnv value;
         # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
         # FIXME: this no shouldn't be reading the filesystem without being marked
         # as "impure" or "ifd".
@@ -224,6 +236,13 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: this is pretty dated and out of alignment with `events.nix', as well
+  # as `pkgEnt' and `genMeta'... so basically fucking everything.
+
+  # A nice alternative ( assuming you have applied the lifecycle OV ).
+  # ( metaEnt.hasBin or false ) ||
+  # ( builtins.any ( b: b ) ( builtins.attrValues metaEnt.lifecycle )
+
   # Determines if a package needs any `node_modules/' to prepare
   # for consumption.
   # This framework aims to build projects in isolation, so this helps us
@@ -233,23 +252,24 @@
   # XXX: It is strongly recommended that you provide a `hasBuild' field.
   # For tarballs we know there's no build, but aside from that we don't
   # make assumptions here.
-  metaEntIsSimple = {
+  metaEntIsSimple' = { ifd, pure, allowedPaths, typecheck } @ fenv: {
     hasBuild         ? ( attrs.ltype != "file" ) && ( entHasBuildScript attrs )
   , hasInstallScript ? entHasInstallScript attrs
   , hasPrepare       ? entHasPrepareScript attrs
-  , hasBin           ? lib.libpkginfo.pjsHasBin attrs
   , hasTest          ? entHasTestScript attrs
+  , hasBin           ? lib.libpkginfo.pjsHasBin' fenv attrs
   , ...
   } @ attrs: ! ( hasBuild || hasInstallScript || hasPrepare || hasBin );
 
   # Split a collection of packages based on `metaEntIsSimple'.
-  metaSetPartitionSimple = mset: let
-    lst = builtins.attrValues mset.__entries;
-    parted = builtins.partition metaEntIsSimple lst;
-  in {
-    simple       = parted.right;
-    needsModules = parted.wrong;
-  };
+  metaSetPartitionSimple' = { ifd, pure, allowedPaths, typecheck } @ fenv: mset:
+    let
+      lst = builtins.attrValues ( mset.__entries or mset );
+      parted = builtins.partition metaEntIsSimple' fenv lst;
+    in {
+      simple       = parted.right;
+      needsModules = parted.wrong;
+    };
 
 
 # ---------------------------------------------------------------------------- #
@@ -387,7 +407,10 @@
             inherit (meMfRaw.__meta) trees;
           };
         };
-        proc = key: v: lib.metaEntFromSerial' fenv ( { inherit key; } // v );
+        meEnv = fenv // {
+          basedir = pathlike.basedir or ( toString pathlike );
+        };
+        proc = key: v: lib.metaEntFromSerial' meEnv ( { inherit key; } // v );
         ents = lib.mapAttrsToList proc ( removeAttrs fixTree ["__meta"] );
         # `genMeta' writes `__meta.trees.{dev,prod}' which should really be
         # pushed down into the `rootKey' entry.
@@ -565,8 +588,8 @@ in {
   inherit
     metaEntFromSerial'
     metaSetFromSerial'
-    metaEntIsSimple
-    metaSetPartitionSimple  # by `metaEntIsSimple'
+    metaEntIsSimple'
+    metaSetPartitionSimple'  # by `metaEntIsSimple'
   ;
 
   inherit

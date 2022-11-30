@@ -11,6 +11,7 @@ final: prev: {
   PkgInfo      = import ./pkginfo.nix       { ytypes = final; };
   FlocoFetch   = import ./fetched.nix       { ytypes = final; };
   FlocoMeta    = import ./meta.nix          { ytypes = final; };
+  DepInfo      = import ./depinfo.nix       { ytypes = final; };
 }
 
 

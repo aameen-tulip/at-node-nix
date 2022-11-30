@@ -191,17 +191,17 @@
     __innerFunction = pjs: ( pjs.bin or pjs.directories.bin or {} ) != {};
     __processArgs = self: x: let
       loc = "${self.__functionMeta.from}.${self.__functionMeta.name}";
-    in x.pjs or coercePjs' fenv;
+    in x.pjs or ( coercePjs' fenv x );
     __functor = self: x: let
       loc     = "${self.__functionMeta.from}.${self.__functionMeta.name}";
       pjs     = self.__processArgs self x;
       pp      = lib.generators.toPretty { allowPrettyValues = true; };
       ec      = builtins.addErrorContext "(${loc}): called with ${pp x}";
       rsl     = ec ( self.__innerFunction pjs );
-      checked = if typecheck then lib.libfunk.mkFunkTypeChecker self {
-        args   = x;
-        result = rsl;
-      } else rsl;
+      checker = lib.libfunk.mkFunkTypeChecker self;
+      checked =
+        if ! typecheck then rsl else
+        ( checker { args = x; result = rsl; } ).result;
     in checked;
   };
 
