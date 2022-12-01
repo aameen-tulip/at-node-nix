@@ -85,8 +85,6 @@
   , coreutils     ? globalArgs.coreutils
   , lndir         ? globalArgs.lndir
   , flocoPackages ? {}
-  , flocoFetch
-  , flocoUnpack
   # Floco Env
   , pure
   , ifd
@@ -101,29 +99,32 @@
       subs = lib.filterAttrs ( k: v: ! ( lib.hasPrefix "../" k ) ) tree;
     in removeAttrs subs [""];
 
-    # FIXME: you did `binPairs' in `haveBin' and you opened up a real can of
-    # worms by possibly coercing PJS from tarballs in `lib'.
-    # Change it to actually `hasBin' and don't fuck with IFD for now.
-    # Do IFD as an optimization later.
+    keyToPkg = let
+      inner = key: let
+        tryPkg = lib.getFlocoPkg' fenv flocoPackages key;
+      in if tryPkg != null
+         then builtins.attErrorContext "Processing: ${key}" tryPkg
+         else throw "mkNmDirCmdWith: No definitions for ${key}";
+      # TODO: real type for `fpkg'.
+    in if typecheck then yt.defun [yt.PkgInfo.key ( yt.attrs.any )] inner else
+       inner;
+
+    keylikeHasBin = k: let
+      isKey = yt.PkgInfo.key.check k;
+      fpkg  = if isKey then lib.getFlocoPkg' fenv flocoPackages k else null;
+      me    = if fpkg != null then lib.getMetaEntFromFlocoPkg' fenv fpkg else
+              /* TODO */ null;
+      # Store Path case first
+      # TODO: use IFD if allowed
+    in if ( builtins.isString k ) && ( ! isKey ) then assumeHasBin else
+       # TODO: accessor
+       me.hasBin or assumeHasBin;
 
     # Accepts an attrset with `{ bin = { "foo" = "./bar/quux.js"; } }' pairs, or
     # a pathlike string, in which case we defer to build time checking.
     # If `assumeHasBin = false' we will not perform build time checks, and the
     # module will not have bins installed ( if it defined any ).
-    haveBin = let
-      hasBin = _: from: let
-        checkPjs = lib.libpkginfo.pjsHasBin' fenv;
-        fpkg     = lib.getFlocoPkg' fenv flocoPackages from;
-        fmeta    = if fpkg == null then null else lib.getMetaEnt fpkg;
-        tryMeta  = builtins.tryEval checkPjs.fmeta;
-        yfields  = fmeta.hasBin or fmeta.bin or fmeta.directories.bin or null;
-        fromKey  =
-          if fmeta == null then assumeHasBin else
-          if yfields != null then ! ( builtins.elem yfields [false {}] ) else
-          if tryMeta.success then tryMeta.value else assumeHasBin;
-      in if from ? bin then ( from.bin or {} ) != {} else
-         if yt.PkgInfo.key.check from then fromKey else assumeHasBin;
-    in lib.filterAttrs hasBin tree';
+    haveBin = lib.filterAttrs ( _: keylikeHasBin ) tree';
 
     # Run `addCmd' over each module and dump it to the script.
     # `to' is a "node_modules/@foo/bar/node_modules/baz" path, and
@@ -260,7 +261,7 @@
   mkNmDirLinkCmd = {
     tree
   , ignoreSubBins ? false
-  , assumeHasBin  ? false
+  , assumeHasBin  ? true
   , handleBindir  ? true
   , preNmDir      ? ""
   , postNmDir     ? ""
@@ -283,7 +284,7 @@
   mkNmDirCopyCmd = {
     tree
   , ignoreSubBins ? false
-  , assumeHasBin  ? false
+  , assumeHasBin  ? true
   , handleBindir  ? true
   , preNmDir      ? ""
   , postNmDir     ? ""

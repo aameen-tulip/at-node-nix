@@ -64,7 +64,7 @@ in {
       flocoUnpack
       snapDerivation unpackSafe evalScripts buildGyp coerceDrv
       installGlobal installGlobalNodeModuleHook mkBinPackage
-      mkSrcEnt buildPkgEnt installPkgEnt testPkgEnt
+      buildPkgEnt installPkgEnt testPkgEnt
       mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
       pjsUtil patchNodePackageHook
       nodejs-14_x
@@ -73,8 +73,28 @@ in {
     inherit (final.flocoEnv.nodejs) python;
     inherit (final.flocoEnv.nodejs.pkgs) node-gyp npm yarn;
     nodejs = prev.nodejs-14_x;
+
+    inherit (import ./pkgs/pkgEnt/mkSrcEnt.nix {
+      inherit (final) lib flocoUnpack;
+      inherit (final.flocoEnv) pure ifd typecheck allowedPaths flocoFetch;
+    } )
+      coerceUnpacked' coerceUnpacked
+      mkPkgEntSource' mkPkgEntSource
+      mkSrcEntFromMetaEnt' mkSrcEntFromMetaEnt
+      mkSrcEnt' mkSrcEnt
+    ;
   };
   applyFlocoEnv = f: final.lib.apply f final.flocoEnv;
+
+
+# ---------------------------------------------------------------------------- #
+
+  inherit (final.flocoEnv)
+    coerceUnpacked'
+    mkPkgEntSource'
+    mkSrcEntFromMetaEnt'
+    mkSrcEnt'
+  ;
 
 
 # ---------------------------------------------------------------------------- #
@@ -141,14 +161,15 @@ in {
       optimizeFetchInfoSet' optimizeFetchInfoSet;
 
 
-  inherit (callPackages ./pkgs/mkNmDir/mkNmDirCmd.nix ( {
+  inherit (final.lib.callWith final.flocoEnv ./pkgs/mkNmDir/mkNmDirCmd.nix {
     inherit (prev.xorg) lndir;
-  } // final.flocoEnv ))
-    mkNmDirCmdWith
-    mkNmDirCopyCmd
-    mkNmDirLinkCmd
-  ;
-  mkNmDirPlockV3   = callPackage ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
+    inherit (final.flocoEnv) ifd pure allowedPaths typecheck;
+  } ) mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd ;
+
+  mkNmDirPlockV3 = final.lib.callWith ( final.flocoEnv // {
+    inherit (final) mkSrcEnt';
+  } ) ./pkgs/mkNmDir/mkNmDirPlockV3.nix;
+
   mkNmDirSetupHook = callPackage ./pkgs/mkNmDir/mkNmDirSetupHook.nix;
 
   inherit (callPackages ./pkgs/build-support/setup-hooks {})
@@ -163,16 +184,6 @@ in {
   genMeta = callPackage ./pkgs/tools/genMeta {
     inherit (prev) pacote;
   };
-
-  inherit (import ./pkgs/pkgEnt/mkSrcEnt.nix {
-    inherit (final) lib flocoUnpack;
-    inherit (final.flocoEnv) pure ifd typecheck allowedPaths flocoFetch;
-  } )
-    coerceUnpacked' coerceUnpacked
-    mkPkgEntSource' mkPkgEntSource
-    mkSrcEntFromMetaEnt' mkSrcEntFromMetaEnt
-    mkSrcEnt' mkSrcEnt
-  ;
 
 }
 

@@ -1,22 +1,20 @@
-# THIS FILE WAS GENERATED. Manual edits may be lost.
-# Deserialze with:  lib.libmeta.metaSetFromSerial
-# Regen with: nix run --impure at-node-nix#genMeta -- --prod pacote@13.3.0
 {
   "@gar/promisify/1.1.3" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-q14DlqUn1aVF80MfLxXplN5KlRvV1R1JAXMmTViAPWo=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@gar/promisify/-/promisify-1.1.3.tgz";
+    };
     ident = "@gar/promisify";
     key = "@gar/promisify/1.1.3";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==";
-      sha512 = "k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==";
-      type = "file";
-      url = "https://registry.npmjs.org/@gar/promisify/-/promisify-1.1.3.tgz";
-    };
     version = "1.1.3";
   };
   "@npmcli/fs/1.1.1" = {
+    bin = { };
     depInfo = {
       "@gar/promisify" = {
         descriptor = "^1.0.1";
@@ -28,18 +26,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-sGmxA2bp/A+LtEi3+i9CE5NtYiM3UqtkdPDxEtnlKXA=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/fs/-/fs-1.1.1.tgz";
+    };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/1.1.1";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-8KG5RD0GVP4ydEzRn/I4BNDuxDtqVbOdm8675T49OIG/NGhaK0pjPX7ZcDlvKYbA+ulvVK3ztfcF4uBdOxuJbQ==";
-      sha512 = "8KG5RD0GVP4ydEzRn/I4BNDuxDtqVbOdm8675T49OIG/NGhaK0pjPX7ZcDlvKYbA+ulvVK3ztfcF4uBdOxuJbQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/fs/-/fs-1.1.1.tgz";
-    };
     version = "1.1.1";
   };
   "@npmcli/fs/2.1.2" = {
+    bin = { };
     depInfo = {
       "@gar/promisify" = {
         descriptor = "^1.1.3";
@@ -51,18 +49,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-xbnGGVcO6ee/Wllx/8Esksud2IDo6dVxJ5hmdCit3A0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/fs/-/fs-2.1.2.tgz";
+    };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/2.1.2";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-yOJKRvohFOaLqipNtwYB9WugyZKhC/DZC4VYPmpaCzDBrA8YpK3qHZ8/HGscMnE4GqbkLNuVcCnxkeQEdGt6LQ==";
-      sha512 = "yOJKRvohFOaLqipNtwYB9WugyZKhC/DZC4VYPmpaCzDBrA8YpK3qHZ8/HGscMnE4GqbkLNuVcCnxkeQEdGt6LQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/fs/-/fs-2.1.2.tgz";
-    };
     version = "2.1.2";
   };
   "@npmcli/git/3.0.2" = {
+    bin = { };
     depInfo = {
       "@npmcli/promise-spawn" = {
         descriptor = "^3.0.0";
@@ -102,15 +100,14 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-5dOoxgIFmntUJ/dtucXt2qJS8dvfDNDzPhU33y2RIPY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/git/-/git-3.0.2.tgz";
+    };
     ident = "@npmcli/git";
     key = "@npmcli/git/3.0.2";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-CAcd08y3DWBJqJDpfuVL0uijlq5oaXaOJEKHKc4wqrjd00gkvTZB+nFuLn+doOOKddaQS9JfqtNoFCO2LCvA3w==";
-      sha512 = "CAcd08y3DWBJqJDpfuVL0uijlq5oaXaOJEKHKc4wqrjd00gkvTZB+nFuLn+doOOKddaQS9JfqtNoFCO2LCvA3w==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/git/-/git-3.0.2.tgz";
-    };
     version = "3.0.2";
   };
   "@npmcli/installed-package-contents/1.0.7" = {
@@ -128,19 +125,19 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-qMSHFhmwbZ9Gp9vcKnHfCJqxFgTPC87N9WzPQDg6eDc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/installed-package-contents/-/installed-package-contents-1.0.7.tgz";
+    };
     hasBin = true;
     ident = "@npmcli/installed-package-contents";
     key = "@npmcli/installed-package-contents/1.0.7";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-9rufe0wnJusCQoLpV9ZPKIVP55itrM5BxOXs10DmdbRfgWtHy1LDyskbwRnBghuB0PrF7pNPOqREVtpz4HqzKw==";
-      sha512 = "9rufe0wnJusCQoLpV9ZPKIVP55itrM5BxOXs10DmdbRfgWtHy1LDyskbwRnBghuB0PrF7pNPOqREVtpz4HqzKw==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/installed-package-contents/-/installed-package-contents-1.0.7.tgz";
-    };
     version = "1.0.7";
   };
   "@npmcli/move-file/1.1.2" = {
+    bin = { };
     depInfo = {
       mkdirp = {
         descriptor = "^1.0.4";
@@ -152,18 +149,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-P9JjmfeMEHO6k6i04aRRA2A0WS0i7l2GFWOcDLxXZfE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/move-file/-/move-file-1.1.2.tgz";
+    };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/1.1.2";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-1SUf/Cg2GzGDyaf15aR9St9TWlb+XvbZXWpDx8YKs7MLzMH/BCeopv+y9vzrzgkfykCGuWOlSu3mZhj2+FQcrg==";
-      sha512 = "1SUf/Cg2GzGDyaf15aR9St9TWlb+XvbZXWpDx8YKs7MLzMH/BCeopv+y9vzrzgkfykCGuWOlSu3mZhj2+FQcrg==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/move-file/-/move-file-1.1.2.tgz";
-    };
     version = "1.1.2";
   };
   "@npmcli/move-file/2.0.1" = {
+    bin = { };
     depInfo = {
       mkdirp = {
         descriptor = "^1.0.4";
@@ -175,32 +172,32 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-SiXkW7ZoPcAdXgojdC12evp8tEQIiommzWyuwuFglZU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/move-file/-/move-file-2.0.1.tgz";
+    };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/2.0.1";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-mJd2Z5TjYWq/ttPLLGqArdtnC74J6bOzg4rMDnN+p1xTacZ2yPRCk2y0oSWQtygLR9YVQXgOcONrwtnk3JupxQ==";
-      sha512 = "mJd2Z5TjYWq/ttPLLGqArdtnC74J6bOzg4rMDnN+p1xTacZ2yPRCk2y0oSWQtygLR9YVQXgOcONrwtnk3JupxQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/move-file/-/move-file-2.0.1.tgz";
-    };
     version = "2.0.1";
   };
   "@npmcli/node-gyp/2.0.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-i5K99BDKF025sNtvFLqHzxcTgolEIhXUdVRii8ELjnQ=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/node-gyp/-/node-gyp-2.0.0.tgz";
+    };
     ident = "@npmcli/node-gyp";
     key = "@npmcli/node-gyp/2.0.0";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-doNI35wIe3bBaEgrlPfdJPaCpUR89pJWep4Hq3aRdh6gKazIVWfs0jHttvSSoq47ZXgC7h73kDsUl8AoIQUB+A==";
-      sha512 = "doNI35wIe3bBaEgrlPfdJPaCpUR89pJWep4Hq3aRdh6gKazIVWfs0jHttvSSoq47ZXgC7h73kDsUl8AoIQUB+A==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/node-gyp/-/node-gyp-2.0.0.tgz";
-    };
     version = "2.0.0";
   };
   "@npmcli/promise-spawn/3.0.0" = {
+    bin = { };
     depInfo = {
       infer-owner = {
         descriptor = "^1.0.4";
@@ -208,18 +205,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-931TjfDoCp62DLlwLR4563ZgNFmfPk8j9mhYja+KtX8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/promise-spawn/-/promise-spawn-3.0.0.tgz";
+    };
     ident = "@npmcli/promise-spawn";
     key = "@npmcli/promise-spawn/3.0.0";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-s9SgS+p3a9Eohe68cSI3fi+hpcZUmXq5P7w0kMlAsWVtR7XbK3ptkZqKT2cK1zLDObJ3sR+8P59sJE0w/KTL1g==";
-      sha512 = "s9SgS+p3a9Eohe68cSI3fi+hpcZUmXq5P7w0kMlAsWVtR7XbK3ptkZqKT2cK1zLDObJ3sR+8P59sJE0w/KTL1g==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/promise-spawn/-/promise-spawn-3.0.0.tgz";
-    };
     version = "3.0.0";
   };
   "@npmcli/run-script/3.0.3" = {
+    bin = { };
     depInfo = {
       "@npmcli/node-gyp" = {
         descriptor = "^2.0.0";
@@ -239,48 +236,2162 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-wv3HiROrrXBCITAVxaOns1QyF/w1ZecuhenAi0hkIN4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@npmcli/run-script/-/run-script-3.0.3.tgz";
+    };
     ident = "@npmcli/run-script";
     key = "@npmcli/run-script/3.0.3";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-ZXL6qgC5NjwfZJ2nET+ZSLEz/PJgJ/5CU90C2S66dZY4Jw73DasS4ZCXuy/KHWYP0imjJ4VtA+Gebb5BxxKp9Q==";
-      sha512 = "ZXL6qgC5NjwfZJ2nET+ZSLEz/PJgJ/5CU90C2S66dZY4Jw73DasS4ZCXuy/KHWYP0imjJ4VtA+Gebb5BxxKp9Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/@npmcli/run-script/-/run-script-3.0.3.tgz";
-    };
     version = "3.0.3";
   };
   "@tootallnate/once/1.1.2" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-PuDVi/61es6vfKMXunY8H7aa2xh4hYFAx98PxUrQDk0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@tootallnate/once/-/once-1.1.2.tgz";
+    };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/1.1.2";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==";
-      sha512 = "RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==";
-      type = "file";
-      url = "https://registry.npmjs.org/@tootallnate/once/-/once-1.1.2.tgz";
-    };
     version = "1.1.2";
   };
   "@tootallnate/once/2.0.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-imdXqP9nQzoswIhPopt3R9FXTR8Hu3wT0ZgBE5jiD8c=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.0.tgz";
+    };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/2.0.0";
     scoped = true;
-    fetchInfo = {
-      hash = "sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==";
-      sha512 = "XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==";
-      type = "file";
-      url = "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.0.tgz";
-    };
     version = "2.0.0";
   };
   __meta = {
     fromType = "package-lock.json(v3)";
     rootKey = "pacote/13.3.0";
+  };
+  "abbrev/1.1.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-yk075w2zPxROzkZzeyrgw2i5oI3QmUM8I8YJ/HKEZgw=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/abbrev/-/abbrev-1.1.1.tgz";
+    };
+    ident = "abbrev";
+    key = "abbrev/1.1.1";
+    scoped = false;
+    version = "1.1.1";
+  };
+  "agent-base/6.0.2" = {
+    bin = { };
+    depInfo = {
+      debug = {
+        descriptor = "4";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-AQld7XJmKIUaV57uNtAsbtxHDp/V8psPWC/xn8srfhE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz";
+    };
+    ident = "agent-base";
+    key = "agent-base/6.0.2";
+    scoped = false;
+    version = "6.0.2";
+  };
+  "agentkeepalive/4.2.1" = {
+    bin = { };
+    depInfo = {
+      debug = {
+        descriptor = "^4.1.0";
+        runtime = true;
+      };
+      depd = {
+        descriptor = "^1.1.2";
+        runtime = true;
+      };
+      humanize-ms = {
+        descriptor = "^1.2.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-8lX5DhkJp2Aa4ed1ZTrLA9REyD1//DRYV6hWOY3f7qk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/agentkeepalive/-/agentkeepalive-4.2.1.tgz";
+    };
+    ident = "agentkeepalive";
+    key = "agentkeepalive/4.2.1";
+    scoped = false;
+    version = "4.2.1";
+  };
+  "aggregate-error/3.1.0" = {
+    bin = { };
+    depInfo = {
+      clean-stack = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      indent-string = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-6e6HGR4f2uXsclbpUzWKV+EHj6+bxMAV0o2y65uBJws=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/aggregate-error/-/aggregate-error-3.1.0.tgz";
+    };
+    ident = "aggregate-error";
+    key = "aggregate-error/3.1.0";
+    scoped = false;
+    version = "3.1.0";
+  };
+  "ansi-regex/5.0.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-8FjueDq8OfpA4/cbcsda1vVcNseZPDYf+YqM56zD03Y=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.1.tgz";
+    };
+    ident = "ansi-regex";
+    key = "ansi-regex/5.0.1";
+    scoped = false;
+    version = "5.0.1";
+  };
+  "aproba/2.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-tHMypoTH0DTXyFngVVjGRKsGfj8V3s33MwGg9LCyEPE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/aproba/-/aproba-2.0.0.tgz";
+    };
+    ident = "aproba";
+    key = "aproba/2.0.0";
+    scoped = false;
+    version = "2.0.0";
+  };
+  "are-we-there-yet/3.0.1" = {
+    bin = { };
+    depInfo = {
+      delegates = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+      readable-stream = {
+        descriptor = "^3.6.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-2sB0sE3v7PLi9E/CCZHM9JMDTS3B9i5DDqWi7Z6Ol3k=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/are-we-there-yet/-/are-we-there-yet-3.0.1.tgz";
+    };
+    ident = "are-we-there-yet";
+    key = "are-we-there-yet/3.0.1";
+    scoped = false;
+    version = "3.0.1";
+  };
+  "balanced-match/1.0.2" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-YH1+osaAiJvWUUR4VCe/Hh4eHhXS0gN3Lnr+Xd3cCzg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz";
+    };
+    ident = "balanced-match";
+    key = "balanced-match/1.0.2";
+    scoped = false;
+    version = "1.0.2";
+  };
+  "brace-expansion/1.1.11" = {
+    bin = { };
+    depInfo = {
+      balanced-match = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+      concat-map = {
+        descriptor = "0.0.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-3iQ502QjW10IEFOh3qnkAIivIbQ1TO1pgQTi7p9eado=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.11.tgz";
+    };
+    ident = "brace-expansion";
+    key = "brace-expansion/1.1.11";
+    scoped = false;
+    version = "1.1.11";
+  };
+  "brace-expansion/2.0.1" = {
+    bin = { };
+    depInfo = {
+      balanced-match = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-aPgI6NNc6Qn7C9eHJmAl8OWaFvBf7tMfn2RlMC/o898=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.0.1.tgz";
+    };
+    ident = "brace-expansion";
+    key = "brace-expansion/2.0.1";
+    scoped = false;
+    version = "2.0.1";
+  };
+  "builtins/5.0.1" = {
+    bin = { };
+    depInfo = {
+      semver = {
+        descriptor = "^7.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-9zWNomp2xLZvtlfjovg0EczcXEfAUiS7wpDmMb33RXI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/builtins/-/builtins-5.0.1.tgz";
+    };
+    ident = "builtins";
+    key = "builtins/5.0.1";
+    scoped = false;
+    version = "5.0.1";
+  };
+  "cacache/15.3.0" = {
+    bin = { };
+    depInfo = {
+      "@npmcli/fs" = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+      "@npmcli/move-file" = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      chownr = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      fs-minipass = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      glob = {
+        descriptor = "^7.1.4";
+        runtime = true;
+      };
+      infer-owner = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      lru-cache = {
+        descriptor = "^6.0.0";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.1";
+        runtime = true;
+      };
+      minipass-collect = {
+        descriptor = "^1.0.2";
+        runtime = true;
+      };
+      minipass-flush = {
+        descriptor = "^1.0.5";
+        runtime = true;
+      };
+      minipass-pipeline = {
+        descriptor = "^1.2.2";
+        runtime = true;
+      };
+      mkdirp = {
+        descriptor = "^1.0.3";
+        runtime = true;
+      };
+      p-map = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+      promise-inflight = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      rimraf = {
+        descriptor = "^3.0.2";
+        runtime = true;
+      };
+      ssri = {
+        descriptor = "^8.0.1";
+        runtime = true;
+      };
+      tar = {
+        descriptor = "^6.0.2";
+        runtime = true;
+      };
+      unique-filename = {
+        descriptor = "^1.1.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-2asHt93lVa5OeAXPrhV8QqPgfDQ6n/uSrkteo/fVQ50=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/cacache/-/cacache-15.3.0.tgz";
+    };
+    ident = "cacache";
+    key = "cacache/15.3.0";
+    scoped = false;
+    version = "15.3.0";
+  };
+  "cacache/16.1.3" = {
+    bin = { };
+    depInfo = {
+      "@npmcli/fs" = {
+        descriptor = "^2.1.0";
+        runtime = true;
+      };
+      "@npmcli/move-file" = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      chownr = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      fs-minipass = {
+        descriptor = "^2.1.0";
+        runtime = true;
+      };
+      glob = {
+        descriptor = "^8.0.1";
+        runtime = true;
+      };
+      infer-owner = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      lru-cache = {
+        descriptor = "^7.7.1";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.6";
+        runtime = true;
+      };
+      minipass-collect = {
+        descriptor = "^1.0.2";
+        runtime = true;
+      };
+      minipass-flush = {
+        descriptor = "^1.0.5";
+        runtime = true;
+      };
+      minipass-pipeline = {
+        descriptor = "^1.2.4";
+        runtime = true;
+      };
+      mkdirp = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      p-map = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+      promise-inflight = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      rimraf = {
+        descriptor = "^3.0.2";
+        runtime = true;
+      };
+      ssri = {
+        descriptor = "^9.0.0";
+        runtime = true;
+      };
+      tar = {
+        descriptor = "^6.1.11";
+        runtime = true;
+      };
+      unique-filename = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-emielGJJkuXr1aMr/HcJoQE3iubt+5FfTa9zQvpDBEY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/cacache/-/cacache-16.1.3.tgz";
+    };
+    ident = "cacache";
+    key = "cacache/16.1.3";
+    scoped = false;
+    version = "16.1.3";
+  };
+  "chownr/2.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-P8fmuhs4prbrmpSYt6OpPLFNZD07GXVnT3yCWoMutkY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/chownr/-/chownr-2.0.0.tgz";
+    };
+    ident = "chownr";
+    key = "chownr/2.0.0";
+    scoped = false;
+    version = "2.0.0";
+  };
+  "clean-stack/2.2.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-xuCHcTjuD7QIIYUObyniMxdY6E2A8SWwv2gHZKVJ7Jo=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/clean-stack/-/clean-stack-2.2.0.tgz";
+    };
+    ident = "clean-stack";
+    key = "clean-stack/2.2.0";
+    scoped = false;
+    version = "2.2.0";
+  };
+  "color-support/1.1.3" = {
+    bin = {
+      color-support = "bin.js";
+    };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-vZ9L7c+Kd0WtoUgypubQv0rKb6qJx6AjOEILv2W1ZNc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/color-support/-/color-support-1.1.3.tgz";
+    };
+    hasBin = true;
+    ident = "color-support";
+    key = "color-support/1.1.3";
+    scoped = false;
+    version = "1.1.3";
+  };
+  "concat-map/0.0.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-ZY5/rMtzNK56p81EGaPcoIRr+J9j7yWh4szGxIOFYFA=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz";
+    };
+    ident = "concat-map";
+    key = "concat-map/0.0.1";
+    scoped = false;
+    version = "0.0.1";
+  };
+  "console-control-strings/1.1.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-A1gJ50/y9X+dl+/votziGfPTaAexpBBaZxdsEqc9o6Y=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/console-control-strings/-/console-control-strings-1.1.0.tgz";
+    };
+    ident = "console-control-strings";
+    key = "console-control-strings/1.1.0";
+    scoped = false;
+    version = "1.1.0";
+  };
+  "debug/4.3.4" = {
+    bin = { };
+    depInfo = {
+      ms = {
+        descriptor = "2.1.2";
+        runtime = true;
+      };
+      supports-color = {
+        optional = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-S6cB3bQG4QiKORndkECqPyzcgJwPgetsh/AcbjSrW3I=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/debug/-/debug-4.3.4.tgz";
+    };
+    ident = "debug";
+    key = "debug/4.3.4";
+    scoped = false;
+    version = "4.3.4";
+  };
+  "delegates/1.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Ywqj6RmSWzMRJD5/oxk9aGAuHhCwUHiBWo1himFWKjA=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/delegates/-/delegates-1.0.0.tgz";
+    };
+    ident = "delegates";
+    key = "delegates/1.0.0";
+    scoped = false;
+    version = "1.0.0";
+  };
+  "depd/1.1.2" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-/mmHmickQMCJUhJfBGpuSMQhwECyUQ/MUfC6ruC9AhM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/depd/-/depd-1.1.2.tgz";
+    };
+    ident = "depd";
+    key = "depd/1.1.2";
+    scoped = false;
+    version = "1.1.2";
+  };
+  "emoji-regex/8.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-WRW3MHslwJkKGL+xt09TThHNLeRiKIcUGIk1j+ewTpc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz";
+    };
+    ident = "emoji-regex";
+    key = "emoji-regex/8.0.0";
+    scoped = false;
+    version = "8.0.0";
+  };
+  "encoding/0.1.13" = {
+    bin = { };
+    depInfo = {
+      iconv-lite = {
+        descriptor = "^0.6.2";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-MAzreXe5/aRMilKcvPhyhuN2uoNwHEdnw9Fsb9p8U34=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/encoding/-/encoding-0.1.13.tgz";
+    };
+    ident = "encoding";
+    key = "encoding/0.1.13";
+    scoped = false;
+    version = "0.1.13";
+  };
+  "env-paths/2.2.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-LOuBHhPrx99UQ18s8lcCzuRIhrqKysps3RqSN3AWiDY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/env-paths/-/env-paths-2.2.1.tgz";
+    };
+    ident = "env-paths";
+    key = "env-paths/2.2.1";
+    scoped = false;
+    version = "2.2.1";
+  };
+  "err-code/2.0.3" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Mu74mg7yyf9qrKRkHgAKhVpy/wdxhrE9nGtXaGJy3kI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/err-code/-/err-code-2.0.3.tgz";
+    };
+    ident = "err-code";
+    key = "err-code/2.0.3";
+    scoped = false;
+    version = "2.0.3";
+  };
+  "fs-minipass/2.1.0" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-QwXLMphyJpgEhnYzVy2Zw1BIS/VBU1pDKL7LlpfE5nU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/fs-minipass/-/fs-minipass-2.1.0.tgz";
+    };
+    ident = "fs-minipass";
+    key = "fs-minipass/2.1.0";
+    scoped = false;
+    version = "2.1.0";
+  };
+  "fs.realpath/1.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-oPk2F5VP+ECdKr8qs3h0dziW0mK71uwTUrbgulLI/ks=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz";
+    };
+    ident = "fs.realpath";
+    key = "fs.realpath/1.0.0";
+    scoped = false;
+    version = "1.0.0";
+  };
+  "function-bind/1.1.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-9SZTeDBJ87ogdiEHyC3b2/wr1Bv8qb8rCJeD+OYvf9A=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/function-bind/-/function-bind-1.1.1.tgz";
+    };
+    ident = "function-bind";
+    key = "function-bind/1.1.1";
+    scoped = false;
+    version = "1.1.1";
+  };
+  "gauge/4.0.4" = {
+    bin = { };
+    depInfo = {
+      aproba = {
+        descriptor = "^1.0.3 || ^2.0.0";
+        runtime = true;
+      };
+      color-support = {
+        descriptor = "^1.1.3";
+        runtime = true;
+      };
+      console-control-strings = {
+        descriptor = "^1.1.0";
+        runtime = true;
+      };
+      has-unicode = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+      signal-exit = {
+        descriptor = "^3.0.7";
+        runtime = true;
+      };
+      string-width = {
+        descriptor = "^4.2.3";
+        runtime = true;
+      };
+      strip-ansi = {
+        descriptor = "^6.0.1";
+        runtime = true;
+      };
+      wide-align = {
+        descriptor = "^1.1.5";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-qpWm1ZOxo0q9Ds+kb4QFOAGaJ/sVwOEmiYSuKaVuQNc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/gauge/-/gauge-4.0.4.tgz";
+    };
+    ident = "gauge";
+    key = "gauge/4.0.4";
+    scoped = false;
+    version = "4.0.4";
+  };
+  "glob/7.2.3" = {
+    bin = { };
+    depInfo = {
+      "fs.realpath" = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+      inflight = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      inherits = {
+        descriptor = "2";
+        runtime = true;
+      };
+      minimatch = {
+        descriptor = "^3.1.1";
+        runtime = true;
+      };
+      once = {
+        descriptor = "^1.3.0";
+        runtime = true;
+      };
+      path-is-absolute = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-QWp5le1Zd7QYp0SXrWVhX3TLZylTpU48NZ+D04pf6b4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/glob/-/glob-7.2.3.tgz";
+    };
+    ident = "glob";
+    key = "glob/7.2.3";
+    scoped = false;
+    version = "7.2.3";
+  };
+  "glob/8.0.3" = {
+    bin = { };
+    depInfo = {
+      "fs.realpath" = {
+        descriptor = "^1.0.0";
+        runtime = true;
+      };
+      inflight = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      inherits = {
+        descriptor = "2";
+        runtime = true;
+      };
+      minimatch = {
+        descriptor = "^5.0.1";
+        runtime = true;
+      };
+      once = {
+        descriptor = "^1.3.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-owIbj5VFktIMNrRzFgyGU/DFJ5BkDAprWTH/4DV3hD4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/glob/-/glob-8.0.3.tgz";
+    };
+    ident = "glob";
+    key = "glob/8.0.3";
+    scoped = false;
+    version = "8.0.3";
+  };
+  "graceful-fs/4.2.10" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-AUh4d+JbA0dSyhYmzx3ijrByR9pa70BABBehjnWiwG0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.10.tgz";
+    };
+    ident = "graceful-fs";
+    key = "graceful-fs/4.2.10";
+    scoped = false;
+    version = "4.2.10";
+  };
+  "has-unicode/2.0.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Nn77NY5wo5A8+koRIbKljRFHGFcwz7L/ExJqmgt3t3E=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/has-unicode/-/has-unicode-2.0.1.tgz";
+    };
+    ident = "has-unicode";
+    key = "has-unicode/2.0.1";
+    scoped = false;
+    version = "2.0.1";
+  };
+  "has/1.0.3" = {
+    bin = { };
+    depInfo = {
+      function-bind = {
+        descriptor = "^1.1.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-z8QWvFmgxmKtQJ34TpRAZljXFJmXY0WUMPj1K64SHx4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/has/-/has-1.0.3.tgz";
+    };
+    ident = "has";
+    key = "has/1.0.3";
+    scoped = false;
+    version = "1.0.3";
+  };
+  "hosted-git-info/5.2.1" = {
+    bin = { };
+    depInfo = {
+      lru-cache = {
+        descriptor = "^7.5.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-O1oU3wu85zvptdhwrWeFs04gTQFZKJWRVq8T3LfFI4A=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/hosted-git-info/-/hosted-git-info-5.2.1.tgz";
+    };
+    ident = "hosted-git-info";
+    key = "hosted-git-info/5.2.1";
+    scoped = false;
+    version = "5.2.1";
+  };
+  "http-cache-semantics/4.1.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-wJXkdmGNUDTytbVL9LCQVoLTKTZz+HJBuZ9p0dkthfQ=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/http-cache-semantics/-/http-cache-semantics-4.1.0.tgz";
+    };
+    ident = "http-cache-semantics";
+    key = "http-cache-semantics/4.1.0";
+    scoped = false;
+    version = "4.1.0";
+  };
+  "http-proxy-agent/4.0.1" = {
+    bin = { };
+    depInfo = {
+      "@tootallnate/once" = {
+        descriptor = "1";
+        runtime = true;
+      };
+      agent-base = {
+        descriptor = "6";
+        runtime = true;
+      };
+      debug = {
+        descriptor = "4";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-O0SMclOVpPuhX70iTuX73AeluwsKSDmL3YfuthL5ohM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-4.0.1.tgz";
+    };
+    ident = "http-proxy-agent";
+    key = "http-proxy-agent/4.0.1";
+    scoped = false;
+    version = "4.0.1";
+  };
+  "http-proxy-agent/5.0.0" = {
+    bin = { };
+    depInfo = {
+      "@tootallnate/once" = {
+        descriptor = "2";
+        runtime = true;
+      };
+      agent-base = {
+        descriptor = "6";
+        runtime = true;
+      };
+      debug = {
+        descriptor = "4";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-8a7NywPQQPUQ+Vopnfsac/PAkj7rYUthODimqQEN5wE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-5.0.0.tgz";
+    };
+    ident = "http-proxy-agent";
+    key = "http-proxy-agent/5.0.0";
+    scoped = false;
+    version = "5.0.0";
+  };
+  "https-proxy-agent/5.0.1" = {
+    bin = { };
+    depInfo = {
+      agent-base = {
+        descriptor = "6";
+        runtime = true;
+      };
+      debug = {
+        descriptor = "4";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-02M71F+3Y2l1gbLk9upzpL6IU7T0t6cbtIgaQzGFQW8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz";
+    };
+    ident = "https-proxy-agent";
+    key = "https-proxy-agent/5.0.1";
+    scoped = false;
+    version = "5.0.1";
+  };
+  "humanize-ms/1.2.1" = {
+    bin = { };
+    depInfo = {
+      ms = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-x7vcChv+U2bEhLUbKzIjqWvIo639OXoEu0KdELFrvCI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/humanize-ms/-/humanize-ms-1.2.1.tgz";
+    };
+    ident = "humanize-ms";
+    key = "humanize-ms/1.2.1";
+    scoped = false;
+    version = "1.2.1";
+  };
+  "iconv-lite/0.6.3" = {
+    bin = { };
+    depInfo = {
+      safer-buffer = {
+        descriptor = ">= 2.1.2 < 3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-5WTD6wj4xQL0yKVTnCsqIUkbWZ6/A1wPKJeLlMvP6xA=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.6.3.tgz";
+    };
+    ident = "iconv-lite";
+    key = "iconv-lite/0.6.3";
+    scoped = false;
+    version = "0.6.3";
+  };
+  "ignore-walk/5.0.1" = {
+    bin = { };
+    depInfo = {
+      minimatch = {
+        descriptor = "^5.0.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-90PC3hlGDSO1hsdtMukdB8Ol6eLZ/WHc5sGUYxlTbtI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ignore-walk/-/ignore-walk-5.0.1.tgz";
+    };
+    ident = "ignore-walk";
+    key = "ignore-walk/5.0.1";
+    scoped = false;
+    version = "5.0.1";
+  };
+  "imurmurhash/0.1.4" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-kQg6DzTfAqCJNsP9gs1WygIi03+4/AGeF43p9h4LH30=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/imurmurhash/-/imurmurhash-0.1.4.tgz";
+    };
+    ident = "imurmurhash";
+    key = "imurmurhash/0.1.4";
+    scoped = false;
+    version = "0.1.4";
+  };
+  "indent-string/4.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-W9b4E+WHsnHAhViCA940yL6iiSaz/wzLiPzdXvX1MXw=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/indent-string/-/indent-string-4.0.0.tgz";
+    };
+    ident = "indent-string";
+    key = "indent-string/4.0.0";
+    scoped = false;
+    version = "4.0.0";
+  };
+  "infer-owner/1.0.4" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-qsfARJ/KS56KNVx4b3t7tG4OOv1WJRGJArO6lhzlWtM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/infer-owner/-/infer-owner-1.0.4.tgz";
+    };
+    ident = "infer-owner";
+    key = "infer-owner/1.0.4";
+    scoped = false;
+    version = "1.0.4";
+  };
+  "inflight/1.0.6" = {
+    bin = { };
+    depInfo = {
+      once = {
+        descriptor = "^1.3.0";
+        runtime = true;
+      };
+      wrappy = {
+        descriptor = "1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-QYcVNxVNod45ft7XJVhWJCKuVPN95a8FwfAefYWKqhg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/inflight/-/inflight-1.0.6.tgz";
+    };
+    ident = "inflight";
+    key = "inflight/1.0.6";
+    scoped = false;
+    version = "1.0.6";
+  };
+  "inherits/2.0.4" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-EnwyCC7V9GbsUCFpqRNJtPNfbbEqyJTYxbRqR5SgYW0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz";
+    };
+    ident = "inherits";
+    key = "inherits/2.0.4";
+    scoped = false;
+    version = "2.0.4";
+  };
+  "ip/2.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-2DDZlTSMc1SzHR9ef9OlHzZUeCThLWIcU3V56F4Zf8k=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ip/-/ip-2.0.0.tgz";
+    };
+    ident = "ip";
+    key = "ip/2.0.0";
+    scoped = false;
+    version = "2.0.0";
+  };
+  "is-core-module/2.11.0" = {
+    bin = { };
+    depInfo = {
+      has = {
+        descriptor = "^1.0.3";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-/nUASoPE2TWgzP0+HyPY6qEb67Kw1stZTtWMMykFcdY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/is-core-module/-/is-core-module-2.11.0.tgz";
+    };
+    ident = "is-core-module";
+    key = "is-core-module/2.11.0";
+    scoped = false;
+    version = "2.11.0";
+  };
+  "is-fullwidth-code-point/3.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-FAwh/1ODBHIw/Tm2EQLvleV6Xkb1qy7AKy6kBEi9ei8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz";
+    };
+    ident = "is-fullwidth-code-point";
+    key = "is-fullwidth-code-point/3.0.0";
+    scoped = false;
+    version = "3.0.0";
+  };
+  "is-lambda/1.0.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-9aa077zq3bErmDHDXMRsiP1/safFzjixLxXzC0E0a4k=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/is-lambda/-/is-lambda-1.0.1.tgz";
+    };
+    ident = "is-lambda";
+    key = "is-lambda/1.0.1";
+    scoped = false;
+    version = "1.0.1";
+  };
+  "isexe/2.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-l3Fv+HpHS6H1TqfC1WSGjsGlX08oDHyHdsEu9JQkvhE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz";
+    };
+    ident = "isexe";
+    key = "isexe/2.0.0";
+    scoped = false;
+    version = "2.0.0";
+  };
+  "json-parse-even-better-errors/2.3.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-JLmbiGbR2cXNIiFjyKZj8WvbNwUEVpADUgztOocgA1s=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz";
+    };
+    ident = "json-parse-even-better-errors";
+    key = "json-parse-even-better-errors/2.3.1";
+    scoped = false;
+    version = "2.3.1";
+  };
+  "jsonparse/1.3.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Qsq2UkbP+RhtzyXCykzSPCBHIUw7GdrSockvTFn0qvs=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/jsonparse/-/jsonparse-1.3.1.tgz";
+    };
+    ident = "jsonparse";
+    key = "jsonparse/1.3.1";
+    scoped = false;
+    version = "1.3.1";
+  };
+  "lru-cache/6.0.0" = {
+    bin = { };
+    depInfo = {
+      yallist = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-lBc6340YZYAh1Numj5iz418ChtGb3UUtRZLOYj/WJXg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz";
+    };
+    ident = "lru-cache";
+    key = "lru-cache/6.0.0";
+    scoped = false;
+    version = "6.0.0";
+  };
+  "lru-cache/7.14.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-LGV53LYpFPY2UBsEZWVf5yQu+uTOaCEG1z0bqrSjMic=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/lru-cache/-/lru-cache-7.14.0.tgz";
+    };
+    ident = "lru-cache";
+    key = "lru-cache/7.14.0";
+    scoped = false;
+    version = "7.14.0";
+  };
+  "make-fetch-happen/10.2.1" = {
+    bin = { };
+    depInfo = {
+      agentkeepalive = {
+        descriptor = "^4.2.1";
+        runtime = true;
+      };
+      cacache = {
+        descriptor = "^16.1.0";
+        runtime = true;
+      };
+      http-cache-semantics = {
+        descriptor = "^4.1.0";
+        runtime = true;
+      };
+      http-proxy-agent = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      https-proxy-agent = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      is-lambda = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      lru-cache = {
+        descriptor = "^7.7.1";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.6";
+        runtime = true;
+      };
+      minipass-collect = {
+        descriptor = "^1.0.2";
+        runtime = true;
+      };
+      minipass-fetch = {
+        descriptor = "^2.0.3";
+        runtime = true;
+      };
+      minipass-flush = {
+        descriptor = "^1.0.5";
+        runtime = true;
+      };
+      minipass-pipeline = {
+        descriptor = "^1.2.4";
+        runtime = true;
+      };
+      negotiator = {
+        descriptor = "^0.6.3";
+        runtime = true;
+      };
+      promise-retry = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+      socks-proxy-agent = {
+        descriptor = "^7.0.0";
+        runtime = true;
+      };
+      ssri = {
+        descriptor = "^9.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-EBiQu9k8Bi6UGFht6hT7XDlqz5JFd4SsI3MO5qxsTGM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-10.2.1.tgz";
+    };
+    ident = "make-fetch-happen";
+    key = "make-fetch-happen/10.2.1";
+    scoped = false;
+    version = "10.2.1";
+  };
+  "make-fetch-happen/9.1.0" = {
+    bin = { };
+    depInfo = {
+      agentkeepalive = {
+        descriptor = "^4.1.3";
+        runtime = true;
+      };
+      cacache = {
+        descriptor = "^15.2.0";
+        runtime = true;
+      };
+      http-cache-semantics = {
+        descriptor = "^4.1.0";
+        runtime = true;
+      };
+      http-proxy-agent = {
+        descriptor = "^4.0.1";
+        runtime = true;
+      };
+      https-proxy-agent = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      is-lambda = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      lru-cache = {
+        descriptor = "^6.0.0";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.3";
+        runtime = true;
+      };
+      minipass-collect = {
+        descriptor = "^1.0.2";
+        runtime = true;
+      };
+      minipass-fetch = {
+        descriptor = "^1.3.2";
+        runtime = true;
+      };
+      minipass-flush = {
+        descriptor = "^1.0.5";
+        runtime = true;
+      };
+      minipass-pipeline = {
+        descriptor = "^1.2.4";
+        runtime = true;
+      };
+      negotiator = {
+        descriptor = "^0.6.2";
+        runtime = true;
+      };
+      promise-retry = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+      socks-proxy-agent = {
+        descriptor = "^6.0.0";
+        runtime = true;
+      };
+      ssri = {
+        descriptor = "^8.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-meDMcu4Aw9tZiLm7g2EeqtcZy5ESODQkNgZNuT2ccxk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-9.1.0.tgz";
+    };
+    ident = "make-fetch-happen";
+    key = "make-fetch-happen/9.1.0";
+    scoped = false;
+    version = "9.1.0";
+  };
+  "minimatch/3.1.2" = {
+    bin = { };
+    depInfo = {
+      brace-expansion = {
+        descriptor = "^1.1.7";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-lngTO0Bk/Spf3t/zG5/j7C2STufjXWF5DlmKjvj1M8s=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minimatch/-/minimatch-3.1.2.tgz";
+    };
+    ident = "minimatch";
+    key = "minimatch/3.1.2";
+    scoped = false;
+    version = "3.1.2";
+  };
+  "minimatch/5.1.0" = {
+    bin = { };
+    depInfo = {
+      brace-expansion = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-a475ZyZgM7xIKcgELTcHHlFCrJWnGu9YopUUbwLvwiY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minimatch/-/minimatch-5.1.0.tgz";
+    };
+    ident = "minimatch";
+    key = "minimatch/5.1.0";
+    scoped = false;
+    version = "5.1.0";
+  };
+  "minipass-collect/1.0.2" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-aGeUFFUmngD+NCgDrtang/j4T0lUoM+D7Vx+EcvMKB8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-collect/-/minipass-collect-1.0.2.tgz";
+    };
+    ident = "minipass-collect";
+    key = "minipass-collect/1.0.2";
+    scoped = false;
+    version = "1.0.2";
+  };
+  "minipass-fetch/1.4.1" = {
+    bin = { };
+    depInfo = {
+      encoding = {
+        descriptor = "^0.1.12";
+        optional = true;
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.0";
+        runtime = true;
+      };
+      minipass-sized = {
+        descriptor = "^1.0.3";
+        runtime = true;
+      };
+      minizlib = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-6UwtKQYhg2NIhuhvPVoY1YAwBtWmL53QT0PybQ/MgiY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-fetch/-/minipass-fetch-1.4.1.tgz";
+    };
+    ident = "minipass-fetch";
+    key = "minipass-fetch/1.4.1";
+    scoped = false;
+    version = "1.4.1";
+  };
+  "minipass-fetch/2.1.2" = {
+    bin = { };
+    depInfo = {
+      encoding = {
+        descriptor = "^0.1.13";
+        optional = true;
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.6";
+        runtime = true;
+      };
+      minipass-sized = {
+        descriptor = "^1.0.3";
+        runtime = true;
+      };
+      minizlib = {
+        descriptor = "^2.1.2";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-7yy+z2KOhxnK/qvEcdUmWg/yEukUBcM7Mr6I6agNi8g=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-fetch/-/minipass-fetch-2.1.2.tgz";
+    };
+    ident = "minipass-fetch";
+    key = "minipass-fetch/2.1.2";
+    scoped = false;
+    version = "2.1.2";
+  };
+  "minipass-flush/1.0.5" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-W9Q6ydEgCsNddtC7HFPlcNyjn1slLuX9kox1ckJHLgw=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-flush/-/minipass-flush-1.0.5.tgz";
+    };
+    ident = "minipass-flush";
+    key = "minipass-flush/1.0.5";
+    scoped = false;
+    version = "1.0.5";
+  };
+  "minipass-json-stream/1.0.1" = {
+    bin = { };
+    depInfo = {
+      jsonparse = {
+        descriptor = "^1.3.1";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-QdOVuFjK6JEyszJfYd9KhCuQbzg/mkQxu2ejBnrw29o=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-json-stream/-/minipass-json-stream-1.0.1.tgz";
+    };
+    ident = "minipass-json-stream";
+    key = "minipass-json-stream/1.0.1";
+    scoped = false;
+    version = "1.0.1";
+  };
+  "minipass-pipeline/1.2.4" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-IN08aDTxhlMOrhne44r0a7akG3u8PO6y4Rh4NNFqyvY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-pipeline/-/minipass-pipeline-1.2.4.tgz";
+    };
+    ident = "minipass-pipeline";
+    key = "minipass-pipeline/1.2.4";
+    scoped = false;
+    version = "1.2.4";
+  };
+  "minipass-sized/1.0.3" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-bpGKs0xmPKPQXWQmmfdxxpCsnytlGrgQZC47HExv8/8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass-sized/-/minipass-sized-1.0.3.tgz";
+    };
+    ident = "minipass-sized";
+    key = "minipass-sized/1.0.3";
+    scoped = false;
+    version = "1.0.3";
+  };
+  "minipass/3.3.4" = {
+    bin = { };
+    depInfo = {
+      yallist = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-9StEk5VI6gUt0//qZy9vJds5ErqJOIoVPOujJxuVPBg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minipass/-/minipass-3.3.4.tgz";
+    };
+    ident = "minipass";
+    key = "minipass/3.3.4";
+    scoped = false;
+    version = "3.3.4";
+  };
+  "minizlib/2.1.2" = {
+    bin = { };
+    depInfo = {
+      minipass = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+      yallist = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-wTrwx8sskCvs9IpE4tRWg3B/4t+nZUGwwIe68dIutmY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/minizlib/-/minizlib-2.1.2.tgz";
+    };
+    ident = "minizlib";
+    key = "minizlib/2.1.2";
+    scoped = false;
+    version = "2.1.2";
+  };
+  "mkdirp/1.0.4" = {
+    bin = {
+      mkdirp = "bin/cmd.js";
+    };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-FsQ8klkGEeQftp/5a3F9KrZPqo9wpR1tuRwqS9WTDxU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/mkdirp/-/mkdirp-1.0.4.tgz";
+    };
+    hasBin = true;
+    ident = "mkdirp";
+    key = "mkdirp/1.0.4";
+    scoped = false;
+    version = "1.0.4";
+  };
+  "ms/2.1.2" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Y87ut99BMamY3YJBX3Cj3DvOJWkqW+7MrPm7bLyuT50=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ms/-/ms-2.1.2.tgz";
+    };
+    ident = "ms";
+    key = "ms/2.1.2";
+    scoped = false;
+    version = "2.1.2";
+  };
+  "negotiator/0.6.3" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-DUoNvtWFVWjTl64o46Lz1IqWVQA+AUtnsufCUJ6d1F8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz";
+    };
+    ident = "negotiator";
+    key = "negotiator/0.6.3";
+    scoped = false;
+    version = "0.6.3";
+  };
+  "node-gyp/8.4.1" = {
+    bin = {
+      node-gyp = "bin/node-gyp.js";
+    };
+    depInfo = {
+      env-paths = {
+        descriptor = "^2.2.0";
+        runtime = true;
+      };
+      glob = {
+        descriptor = "^7.1.4";
+        runtime = true;
+      };
+      graceful-fs = {
+        descriptor = "^4.2.6";
+        runtime = true;
+      };
+      make-fetch-happen = {
+        descriptor = "^9.1.0";
+        runtime = true;
+      };
+      nopt = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      npmlog = {
+        descriptor = "^6.0.0";
+        runtime = true;
+      };
+      rimraf = {
+        descriptor = "^3.0.2";
+        runtime = true;
+      };
+      semver = {
+        descriptor = "^7.3.5";
+        runtime = true;
+      };
+      tar = {
+        descriptor = "^6.1.2";
+        runtime = true;
+      };
+      which = {
+        descriptor = "^2.0.2";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-pK23vjLmxJ28eWJEQ/YcOyEAQ2lVL07CVq2HtGANg6c=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/node-gyp/-/node-gyp-8.4.1.tgz";
+    };
+    hasBin = true;
+    ident = "node-gyp";
+    key = "node-gyp/8.4.1";
+    scoped = false;
+    version = "8.4.1";
+  };
+  "nopt/5.0.0" = {
+    bin = {
+      nopt = "bin/nopt.js";
+    };
+    depInfo = {
+      abbrev = {
+        descriptor = "1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-V8Sa0wPxhzKmkBC2vyDOXRz7eL4Bn8UnjYE3S061Pzk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/nopt/-/nopt-5.0.0.tgz";
+    };
+    hasBin = true;
+    ident = "nopt";
+    key = "nopt/5.0.0";
+    scoped = false;
+    version = "5.0.0";
+  };
+  "normalize-package-data/4.0.1" = {
+    bin = { };
+    depInfo = {
+      hosted-git-info = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      is-core-module = {
+        descriptor = "^2.8.1";
+        runtime = true;
+      };
+      semver = {
+        descriptor = "^7.3.5";
+        runtime = true;
+      };
+      validate-npm-package-license = {
+        descriptor = "^3.0.4";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-sgfUNX80w6VSUsqpIGAl9RvmcqqNfDuh/f+Qpzxw3O4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/normalize-package-data/-/normalize-package-data-4.0.1.tgz";
+    };
+    ident = "normalize-package-data";
+    key = "normalize-package-data/4.0.1";
+    scoped = false;
+    version = "4.0.1";
+  };
+  "npm-bundled/1.1.2" = {
+    bin = { };
+    depInfo = {
+      npm-normalize-package-bin = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-BC5gAp80McYoqhDm8ckW7mkiT4Rg7st6gqFkxmwIXGs=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-bundled/-/npm-bundled-1.1.2.tgz";
+    };
+    ident = "npm-bundled";
+    key = "npm-bundled/1.1.2";
+    scoped = false;
+    version = "1.1.2";
+  };
+  "npm-bundled/2.0.1" = {
+    bin = { };
+    depInfo = {
+      npm-normalize-package-bin = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-M17LCwPUHbh4EdtaTzQ/owex3CCgRzB4fa+R2SI8+2g=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-bundled/-/npm-bundled-2.0.1.tgz";
+    };
+    ident = "npm-bundled";
+    key = "npm-bundled/2.0.1";
+    scoped = false;
+    version = "2.0.1";
+  };
+  "npm-install-checks/5.0.0" = {
+    bin = { };
+    depInfo = {
+      semver = {
+        descriptor = "^7.1.1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-IjQRzBSdZsg8qnLbs5/mAVcQBaHTn+MNMnzYhhKdzB8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-install-checks/-/npm-install-checks-5.0.0.tgz";
+    };
+    ident = "npm-install-checks";
+    key = "npm-install-checks/5.0.0";
+    scoped = false;
+    version = "5.0.0";
+  };
+  "npm-normalize-package-bin/1.0.1" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-ReXfwCTOnUjQpBJGXkgxFldWyS3eYnErDJKsGsw7Ypk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-normalize-package-bin/-/npm-normalize-package-bin-1.0.1.tgz";
+    };
+    ident = "npm-normalize-package-bin";
+    key = "npm-normalize-package-bin/1.0.1";
+    scoped = false;
+    version = "1.0.1";
+  };
+  "npm-normalize-package-bin/2.0.0" = {
+    bin = { };
+    depInfo = { };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-6FmqLBnCxjDB98lbimfRPZH7H8vk/K+jBvpZujQ760w=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-normalize-package-bin/-/npm-normalize-package-bin-2.0.0.tgz";
+    };
+    ident = "npm-normalize-package-bin";
+    key = "npm-normalize-package-bin/2.0.0";
+    scoped = false;
+    version = "2.0.0";
+  };
+  "npm-package-arg/9.1.2" = {
+    bin = { };
+    depInfo = {
+      hosted-git-info = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      proc-log = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+      semver = {
+        descriptor = "^7.3.5";
+        runtime = true;
+      };
+      validate-npm-package-name = {
+        descriptor = "^4.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Xj0y5lD1v7mXlK8UrItBbqypGiRI2JJ9hrSgy1M3Ikk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-package-arg/-/npm-package-arg-9.1.2.tgz";
+    };
+    ident = "npm-package-arg";
+    key = "npm-package-arg/9.1.2";
+    scoped = false;
+    version = "9.1.2";
+  };
+  "npm-packlist/5.1.3" = {
+    bin = {
+      npm-packlist = "bin/index.js";
+    };
+    depInfo = {
+      glob = {
+        descriptor = "^8.0.1";
+        runtime = true;
+      };
+      ignore-walk = {
+        descriptor = "^5.0.1";
+        runtime = true;
+      };
+      npm-bundled = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      npm-normalize-package-bin = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-6UVanKyHpUx6naMX0b+CyT1jMeWr7ZsZ4TnUeUNa6A0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-packlist/-/npm-packlist-5.1.3.tgz";
+    };
+    hasBin = true;
+    ident = "npm-packlist";
+    key = "npm-packlist/5.1.3";
+    scoped = false;
+    version = "5.1.3";
+  };
+  "npm-pick-manifest/7.0.2" = {
+    bin = { };
+    depInfo = {
+      npm-install-checks = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      npm-normalize-package-bin = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      npm-package-arg = {
+        descriptor = "^9.0.0";
+        runtime = true;
+      };
+      semver = {
+        descriptor = "^7.3.5";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-sIJHKFvtZEnoKNTqHY599OXJmAIuUw6UMyX10R/jEkc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-pick-manifest/-/npm-pick-manifest-7.0.2.tgz";
+    };
+    ident = "npm-pick-manifest";
+    key = "npm-pick-manifest/7.0.2";
+    scoped = false;
+    version = "7.0.2";
+  };
+  "npm-registry-fetch/13.3.1" = {
+    bin = { };
+    depInfo = {
+      make-fetch-happen = {
+        descriptor = "^10.0.6";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.6";
+        runtime = true;
+      };
+      minipass-fetch = {
+        descriptor = "^2.0.3";
+        runtime = true;
+      };
+      minipass-json-stream = {
+        descriptor = "^1.0.1";
+        runtime = true;
+      };
+      minizlib = {
+        descriptor = "^2.1.2";
+        runtime = true;
+      };
+      npm-package-arg = {
+        descriptor = "^9.0.1";
+        runtime = true;
+      };
+      proc-log = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-HJnfnbQOIvpVKG2BkHI9ixyQZLhjql3YAhzo9uMExlM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npm-registry-fetch/-/npm-registry-fetch-13.3.1.tgz";
+    };
+    ident = "npm-registry-fetch";
+    key = "npm-registry-fetch/13.3.1";
+    scoped = false;
+    version = "13.3.1";
+  };
+  "npmlog/6.0.2" = {
+    bin = { };
+    depInfo = {
+      are-we-there-yet = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+      console-control-strings = {
+        descriptor = "^1.1.0";
+        runtime = true;
+      };
+      gauge = {
+        descriptor = "^4.0.3";
+        runtime = true;
+      };
+      set-blocking = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-4byd5uuapLd0pGp7vP32YcOpmnU9d+XEnJLXca27kf8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/npmlog/-/npmlog-6.0.2.tgz";
+    };
+    ident = "npmlog";
+    key = "npmlog/6.0.2";
+    scoped = false;
+    version = "6.0.2";
+  };
+  "once/1.4.0" = {
+    bin = { };
+    depInfo = {
+      wrappy = {
+        descriptor = "1";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-2NvvDZICNRZJPY258mO8rrRBg4fY7mlMjFEl2R+m348=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/once/-/once-1.4.0.tgz";
+    };
+    ident = "once";
+    key = "once/1.4.0";
+    scoped = false;
+    version = "1.4.0";
+  };
+  "p-map/4.0.0" = {
+    bin = { };
+    depInfo = {
+      aggregate-error = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-9kfDIj1LTyKMJ7yg8yRhsheTUfd4laq4opkCXSMvd1U=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/p-map/-/p-map-4.0.0.tgz";
+    };
+    ident = "p-map";
+    key = "p-map/4.0.0";
+    scoped = false;
+    version = "4.0.0";
+  };
+  "pacote/13.3.0" = {
+    bin = {
+      pacote = "lib/bin.js";
+    };
+    depInfo = {
+      "@npmcli/git" = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+      "@npmcli/installed-package-contents" = {
+        descriptor = "^1.0.7";
+        runtime = true;
+      };
+      "@npmcli/promise-spawn" = {
+        descriptor = "^3.0.0";
+        runtime = true;
+      };
+      "@npmcli/run-script" = {
+        descriptor = "^3.0.1";
+        runtime = true;
+      };
+      cacache = {
+        descriptor = "^16.0.0";
+        runtime = true;
+      };
+      chownr = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      fs-minipass = {
+        descriptor = "^2.1.0";
+        runtime = true;
+      };
+      infer-owner = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      minipass = {
+        descriptor = "^3.1.6";
+        runtime = true;
+      };
+      mkdirp = {
+        descriptor = "^1.0.4";
+        runtime = true;
+      };
+      npm-package-arg = {
+        descriptor = "^9.0.0";
+        runtime = true;
+      };
+      npm-packlist = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      npm-pick-manifest = {
+        descriptor = "^7.0.0";
+        runtime = true;
+      };
+      npm-registry-fetch = {
+        descriptor = "^13.0.1";
+        runtime = true;
+      };
+      proc-log = {
+        descriptor = "^2.0.0";
+        runtime = true;
+      };
+      promise-retry = {
+        descriptor = "^2.0.1";
+        runtime = true;
+      };
+      read-package-json = {
+        descriptor = "^5.0.0";
+        runtime = true;
+      };
+      read-package-json-fast = {
+        descriptor = "^2.0.3";
+        runtime = true;
+      };
+      rimraf = {
+        descriptor = "^3.0.2";
+        runtime = true;
+      };
+      ssri = {
+        descriptor = "^9.0.0";
+        runtime = true;
+      };
+      tar = {
+        descriptor = "^6.1.11";
+        runtime = true;
+      };
+    };
+    entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-RN8gBXHMJ9sekHLlVFBYhRf5iziJDFWmAxKw5mlAswA=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/pacote/-/pacote-13.3.0.tgz";
+    };
+    hasBin = true;
+    ident = "pacote";
+    key = "pacote/13.3.0";
+    scoped = false;
     trees = {
       prod = {
         "node_modules/@gar/promisify" = "@gar/promisify/1.1.3";
@@ -432,2172 +2543,52 @@
         "node_modules/yallist" = "yallist/4.0.0";
       };
     };
-  };
-  "abbrev/1.1.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "abbrev";
-    key = "abbrev/1.1.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==";
-      sha512 = "nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/abbrev/-/abbrev-1.1.1.tgz";
-    };
-    version = "1.1.1";
-  };
-  "agent-base/6.0.2" = {
-    depInfo = {
-      debug = {
-        descriptor = "4";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "agent-base";
-    key = "agent-base/6.0.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==";
-      sha512 = "RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz";
-    };
-    version = "6.0.2";
-  };
-  "agentkeepalive/4.2.1" = {
-    depInfo = {
-      debug = {
-        descriptor = "^4.1.0";
-        runtime = true;
-      };
-      depd = {
-        descriptor = "^1.1.2";
-        runtime = true;
-      };
-      humanize-ms = {
-        descriptor = "^1.2.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "agentkeepalive";
-    key = "agentkeepalive/4.2.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-Zn4cw2NEqd+9fiSVWMscnjyQ1a8Yfoc5oBajLeo5w+YBHgDUcEBY2hS4YpTz6iN5f/2zQiktcuM6tS8x1p9dpA==";
-      sha512 = "Zn4cw2NEqd+9fiSVWMscnjyQ1a8Yfoc5oBajLeo5w+YBHgDUcEBY2hS4YpTz6iN5f/2zQiktcuM6tS8x1p9dpA==";
-      type = "file";
-      url = "https://registry.npmjs.org/agentkeepalive/-/agentkeepalive-4.2.1.tgz";
-    };
-    version = "4.2.1";
-  };
-  "aggregate-error/3.1.0" = {
-    depInfo = {
-      clean-stack = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      indent-string = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "aggregate-error";
-    key = "aggregate-error/3.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==";
-      sha512 = "4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==";
-      type = "file";
-      url = "https://registry.npmjs.org/aggregate-error/-/aggregate-error-3.1.0.tgz";
-    };
-    version = "3.1.0";
-  };
-  "ansi-regex/5.0.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "ansi-regex";
-    key = "ansi-regex/5.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==";
-      sha512 = "quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.1.tgz";
-    };
-    version = "5.0.1";
-  };
-  "aproba/2.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "aproba";
-    key = "aproba/2.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==";
-      sha512 = "lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/aproba/-/aproba-2.0.0.tgz";
-    };
-    version = "2.0.0";
-  };
-  "are-we-there-yet/3.0.1" = {
-    depInfo = {
-      delegates = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-      readable-stream = {
-        descriptor = "^3.6.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "are-we-there-yet";
-    key = "are-we-there-yet/3.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-QZW4EDmGwlYur0Yyf/b2uGucHQMa8aFUP7eu9ddR73vvhFyt4V0Vl3QHPcTNJ8l6qYOBdxgXdnBXQrHilfRQBg==";
-      sha512 = "QZW4EDmGwlYur0Yyf/b2uGucHQMa8aFUP7eu9ddR73vvhFyt4V0Vl3QHPcTNJ8l6qYOBdxgXdnBXQrHilfRQBg==";
-      type = "file";
-      url = "https://registry.npmjs.org/are-we-there-yet/-/are-we-there-yet-3.0.1.tgz";
-    };
-    version = "3.0.1";
-  };
-  "balanced-match/1.0.2" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "balanced-match";
-    key = "balanced-match/1.0.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==";
-      sha512 = "3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==";
-      type = "file";
-      url = "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz";
-    };
-    version = "1.0.2";
-  };
-  "brace-expansion/1.1.11" = {
-    depInfo = {
-      balanced-match = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-      concat-map = {
-        descriptor = "0.0.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "brace-expansion";
-    key = "brace-expansion/1.1.11";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==";
-      sha512 = "iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==";
-      type = "file";
-      url = "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.11.tgz";
-    };
-    version = "1.1.11";
-  };
-  "brace-expansion/2.0.1" = {
-    depInfo = {
-      balanced-match = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "brace-expansion";
-    key = "brace-expansion/2.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==";
-      sha512 = "XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==";
-      type = "file";
-      url = "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.0.1.tgz";
-    };
-    version = "2.0.1";
-  };
-  "builtins/5.0.1" = {
-    depInfo = {
-      semver = {
-        descriptor = "^7.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "builtins";
-    key = "builtins/5.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==";
-      sha512 = "qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/builtins/-/builtins-5.0.1.tgz";
-    };
-    version = "5.0.1";
-  };
-  "cacache/15.3.0" = {
-    depInfo = {
-      "@npmcli/fs" = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-      "@npmcli/move-file" = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      chownr = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      fs-minipass = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      glob = {
-        descriptor = "^7.1.4";
-        runtime = true;
-      };
-      infer-owner = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      lru-cache = {
-        descriptor = "^6.0.0";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.1";
-        runtime = true;
-      };
-      minipass-collect = {
-        descriptor = "^1.0.2";
-        runtime = true;
-      };
-      minipass-flush = {
-        descriptor = "^1.0.5";
-        runtime = true;
-      };
-      minipass-pipeline = {
-        descriptor = "^1.2.2";
-        runtime = true;
-      };
-      mkdirp = {
-        descriptor = "^1.0.3";
-        runtime = true;
-      };
-      p-map = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-      promise-inflight = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      rimraf = {
-        descriptor = "^3.0.2";
-        runtime = true;
-      };
-      ssri = {
-        descriptor = "^8.0.1";
-        runtime = true;
-      };
-      tar = {
-        descriptor = "^6.0.2";
-        runtime = true;
-      };
-      unique-filename = {
-        descriptor = "^1.1.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "cacache";
-    key = "cacache/15.3.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-VVdYzXEn+cnbXpFgWs5hTT7OScegHVmLhJIR8Ufqk3iFD6A6j5iSX1KuBTfNEv4tdJWE2PzA6IVFtcLC7fN9wQ==";
-      sha512 = "VVdYzXEn+cnbXpFgWs5hTT7OScegHVmLhJIR8Ufqk3iFD6A6j5iSX1KuBTfNEv4tdJWE2PzA6IVFtcLC7fN9wQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/cacache/-/cacache-15.3.0.tgz";
-    };
-    version = "15.3.0";
-  };
-  "cacache/16.1.3" = {
-    depInfo = {
-      "@npmcli/fs" = {
-        descriptor = "^2.1.0";
-        runtime = true;
-      };
-      "@npmcli/move-file" = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      chownr = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      fs-minipass = {
-        descriptor = "^2.1.0";
-        runtime = true;
-      };
-      glob = {
-        descriptor = "^8.0.1";
-        runtime = true;
-      };
-      infer-owner = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      lru-cache = {
-        descriptor = "^7.7.1";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.6";
-        runtime = true;
-      };
-      minipass-collect = {
-        descriptor = "^1.0.2";
-        runtime = true;
-      };
-      minipass-flush = {
-        descriptor = "^1.0.5";
-        runtime = true;
-      };
-      minipass-pipeline = {
-        descriptor = "^1.2.4";
-        runtime = true;
-      };
-      mkdirp = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      p-map = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-      promise-inflight = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      rimraf = {
-        descriptor = "^3.0.2";
-        runtime = true;
-      };
-      ssri = {
-        descriptor = "^9.0.0";
-        runtime = true;
-      };
-      tar = {
-        descriptor = "^6.1.11";
-        runtime = true;
-      };
-      unique-filename = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "cacache";
-    key = "cacache/16.1.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-/+Emcj9DAXxX4cwlLmRI9c166RuL3w30zp4R7Joiv2cQTtTtA+jeuCAjH3ZlGnYS3tKENSrKhAzVVP9GVyzeYQ==";
-      sha512 = "/+Emcj9DAXxX4cwlLmRI9c166RuL3w30zp4R7Joiv2cQTtTtA+jeuCAjH3ZlGnYS3tKENSrKhAzVVP9GVyzeYQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/cacache/-/cacache-16.1.3.tgz";
-    };
-    version = "16.1.3";
-  };
-  "chownr/2.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "chownr";
-    key = "chownr/2.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==";
-      sha512 = "bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/chownr/-/chownr-2.0.0.tgz";
-    };
-    version = "2.0.0";
-  };
-  "clean-stack/2.2.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "clean-stack";
-    key = "clean-stack/2.2.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A==";
-      sha512 = "4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A==";
-      type = "file";
-      url = "https://registry.npmjs.org/clean-stack/-/clean-stack-2.2.0.tgz";
-    };
-    version = "2.2.0";
-  };
-  "color-support/1.1.3" = {
-    bin = {
-      color-support = "bin.js";
-    };
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "color-support";
-    key = "color-support/1.1.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==";
-      sha512 = "qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==";
-      type = "file";
-      url = "https://registry.npmjs.org/color-support/-/color-support-1.1.3.tgz";
-    };
-    version = "1.1.3";
-  };
-  "concat-map/0.0.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "concat-map";
-    key = "concat-map/0.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==";
-      sha512 = "/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==";
-      type = "file";
-      url = "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz";
-    };
-    version = "0.0.1";
-  };
-  "console-control-strings/1.1.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "console-control-strings";
-    key = "console-control-strings/1.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==";
-      sha512 = "ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/console-control-strings/-/console-control-strings-1.1.0.tgz";
-    };
-    version = "1.1.0";
-  };
-  "debug/4.3.4" = {
-    depInfo = {
-      ms = {
-        descriptor = "2.1.2";
-        runtime = true;
-      };
-      supports-color = {
-        optional = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "debug";
-    key = "debug/4.3.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==";
-      sha512 = "PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/debug/-/debug-4.3.4.tgz";
-    };
-    version = "4.3.4";
-  };
-  "delegates/1.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "delegates";
-    key = "delegates/1.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-bd2L678uiWATM6m5Z1VzNCErI3jiGzt6HGY8OVICs40JQq/HALfbyNJmp0UDakEY4pMMaN0Ly5om/B1VI/+xfQ==";
-      sha512 = "bd2L678uiWATM6m5Z1VzNCErI3jiGzt6HGY8OVICs40JQq/HALfbyNJmp0UDakEY4pMMaN0Ly5om/B1VI/+xfQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/delegates/-/delegates-1.0.0.tgz";
-    };
-    version = "1.0.0";
-  };
-  "depd/1.1.2" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "depd";
-    key = "depd/1.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-7emPTl6Dpo6JRXOXjLRxck+FlLRX5847cLKEn00PLAgc3g2hTZZgr+e4c2v6QpSmLeFP3n5yUo7ft6avBK/5jQ==";
-      sha512 = "7emPTl6Dpo6JRXOXjLRxck+FlLRX5847cLKEn00PLAgc3g2hTZZgr+e4c2v6QpSmLeFP3n5yUo7ft6avBK/5jQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/depd/-/depd-1.1.2.tgz";
-    };
-    version = "1.1.2";
-  };
-  "emoji-regex/8.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "emoji-regex";
-    key = "emoji-regex/8.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==";
-      sha512 = "MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==";
-      type = "file";
-      url = "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz";
-    };
-    version = "8.0.0";
-  };
-  "encoding/0.1.13" = {
-    depInfo = {
-      iconv-lite = {
-        descriptor = "^0.6.2";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "encoding";
-    key = "encoding/0.1.13";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==";
-      sha512 = "ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==";
-      type = "file";
-      url = "https://registry.npmjs.org/encoding/-/encoding-0.1.13.tgz";
-    };
-    version = "0.1.13";
-  };
-  "env-paths/2.2.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "env-paths";
-    key = "env-paths/2.2.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==";
-      sha512 = "+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==";
-      type = "file";
-      url = "https://registry.npmjs.org/env-paths/-/env-paths-2.2.1.tgz";
-    };
-    version = "2.2.1";
-  };
-  "err-code/2.0.3" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "err-code";
-    key = "err-code/2.0.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-2bmlRpNKBxT/CRmPOlyISQpNj+qSeYvcym/uT0Jx2bMOlKLtSy1ZmLuVxSEKKyor/N5yhvp/ZiG1oE3DEYMSFA==";
-      sha512 = "2bmlRpNKBxT/CRmPOlyISQpNj+qSeYvcym/uT0Jx2bMOlKLtSy1ZmLuVxSEKKyor/N5yhvp/ZiG1oE3DEYMSFA==";
-      type = "file";
-      url = "https://registry.npmjs.org/err-code/-/err-code-2.0.3.tgz";
-    };
-    version = "2.0.3";
-  };
-  "fs-minipass/2.1.0" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "fs-minipass";
-    key = "fs-minipass/2.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==";
-      sha512 = "V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==";
-      type = "file";
-      url = "https://registry.npmjs.org/fs-minipass/-/fs-minipass-2.1.0.tgz";
-    };
-    version = "2.1.0";
-  };
-  "fs.realpath/1.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "fs.realpath";
-    key = "fs.realpath/1.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==";
-      sha512 = "OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==";
-      type = "file";
-      url = "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz";
-    };
-    version = "1.0.0";
-  };
-  "function-bind/1.1.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "function-bind";
-    key = "function-bind/1.1.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==";
-      sha512 = "yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==";
-      type = "file";
-      url = "https://registry.npmjs.org/function-bind/-/function-bind-1.1.1.tgz";
-    };
-    version = "1.1.1";
-  };
-  "gauge/4.0.4" = {
-    depInfo = {
-      aproba = {
-        descriptor = "^1.0.3 || ^2.0.0";
-        runtime = true;
-      };
-      color-support = {
-        descriptor = "^1.1.3";
-        runtime = true;
-      };
-      console-control-strings = {
-        descriptor = "^1.1.0";
-        runtime = true;
-      };
-      has-unicode = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-      signal-exit = {
-        descriptor = "^3.0.7";
-        runtime = true;
-      };
-      string-width = {
-        descriptor = "^4.2.3";
-        runtime = true;
-      };
-      strip-ansi = {
-        descriptor = "^6.0.1";
-        runtime = true;
-      };
-      wide-align = {
-        descriptor = "^1.1.5";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "gauge";
-    key = "gauge/4.0.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-f9m+BEN5jkg6a0fZjleidjN51VE1X+mPFQ2DJ0uv1V39oCLCbsGe6yjbBnp7eK7z/+GAon99a3nHuqbuuthyPg==";
-      sha512 = "f9m+BEN5jkg6a0fZjleidjN51VE1X+mPFQ2DJ0uv1V39oCLCbsGe6yjbBnp7eK7z/+GAon99a3nHuqbuuthyPg==";
-      type = "file";
-      url = "https://registry.npmjs.org/gauge/-/gauge-4.0.4.tgz";
-    };
-    version = "4.0.4";
-  };
-  "glob/7.2.3" = {
-    depInfo = {
-      "fs.realpath" = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-      inflight = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      inherits = {
-        descriptor = "2";
-        runtime = true;
-      };
-      minimatch = {
-        descriptor = "^3.1.1";
-        runtime = true;
-      };
-      once = {
-        descriptor = "^1.3.0";
-        runtime = true;
-      };
-      path-is-absolute = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "glob";
-    key = "glob/7.2.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==";
-      sha512 = "nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/glob/-/glob-7.2.3.tgz";
-    };
-    version = "7.2.3";
-  };
-  "glob/8.0.3" = {
-    depInfo = {
-      "fs.realpath" = {
-        descriptor = "^1.0.0";
-        runtime = true;
-      };
-      inflight = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      inherits = {
-        descriptor = "2";
-        runtime = true;
-      };
-      minimatch = {
-        descriptor = "^5.0.1";
-        runtime = true;
-      };
-      once = {
-        descriptor = "^1.3.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "glob";
-    key = "glob/8.0.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-ull455NHSHI/Y1FqGaaYFaLGkNMMJbavMrEGFXG/PGrg6y7sutWHUHrz6gy6WEBH6akM1M414dWKCNs+IhKdiQ==";
-      sha512 = "ull455NHSHI/Y1FqGaaYFaLGkNMMJbavMrEGFXG/PGrg6y7sutWHUHrz6gy6WEBH6akM1M414dWKCNs+IhKdiQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/glob/-/glob-8.0.3.tgz";
-    };
-    version = "8.0.3";
-  };
-  "graceful-fs/4.2.10" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "graceful-fs";
-    key = "graceful-fs/4.2.10";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==";
-      sha512 = "9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==";
-      type = "file";
-      url = "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.10.tgz";
-    };
-    version = "4.2.10";
-  };
-  "has-unicode/2.0.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "has-unicode";
-    key = "has-unicode/2.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-8Rf9Y83NBReMnx0gFzA8JImQACstCYWUplepDa9xprwwtmgEZUF0h/i5xSA625zB/I37EtrswSST6OXxwaaIJQ==";
-      sha512 = "8Rf9Y83NBReMnx0gFzA8JImQACstCYWUplepDa9xprwwtmgEZUF0h/i5xSA625zB/I37EtrswSST6OXxwaaIJQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/has-unicode/-/has-unicode-2.0.1.tgz";
-    };
-    version = "2.0.1";
-  };
-  "has/1.0.3" = {
-    depInfo = {
-      function-bind = {
-        descriptor = "^1.1.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "has";
-    key = "has/1.0.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==";
-      sha512 = "f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==";
-      type = "file";
-      url = "https://registry.npmjs.org/has/-/has-1.0.3.tgz";
-    };
-    version = "1.0.3";
-  };
-  "hosted-git-info/5.2.1" = {
-    depInfo = {
-      lru-cache = {
-        descriptor = "^7.5.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "hosted-git-info";
-    key = "hosted-git-info/5.2.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-xIcQYMnhcx2Nr4JTjsFmwwnr9vldugPy9uVm0o87bjqqWMv9GaqsTeT+i99wTl0mk1uLxJtHxLb8kymqTENQsw==";
-      sha512 = "xIcQYMnhcx2Nr4JTjsFmwwnr9vldugPy9uVm0o87bjqqWMv9GaqsTeT+i99wTl0mk1uLxJtHxLb8kymqTENQsw==";
-      type = "file";
-      url = "https://registry.npmjs.org/hosted-git-info/-/hosted-git-info-5.2.1.tgz";
-    };
-    version = "5.2.1";
-  };
-  "http-cache-semantics/4.1.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "http-cache-semantics";
-    key = "http-cache-semantics/4.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-carPklcUh7ROWRK7Cv27RPtdhYhUsela/ue5/jKzjegVvXDqM2ILE9Q2BGn9JZJh1g87cp56su/FgQSzcWS8cQ==";
-      sha512 = "carPklcUh7ROWRK7Cv27RPtdhYhUsela/ue5/jKzjegVvXDqM2ILE9Q2BGn9JZJh1g87cp56su/FgQSzcWS8cQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/http-cache-semantics/-/http-cache-semantics-4.1.0.tgz";
-    };
-    version = "4.1.0";
-  };
-  "http-proxy-agent/4.0.1" = {
-    depInfo = {
-      "@tootallnate/once" = {
-        descriptor = "1";
-        runtime = true;
-      };
-      agent-base = {
-        descriptor = "6";
-        runtime = true;
-      };
-      debug = {
-        descriptor = "4";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "http-proxy-agent";
-    key = "http-proxy-agent/4.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-k0zdNgqWTGA6aeIRVpvfVob4fL52dTfaehylg0Y4UvSySvOq/Y+BOyPrgpUrA7HylqvU8vIZGsRuXmspskV0Tg==";
-      sha512 = "k0zdNgqWTGA6aeIRVpvfVob4fL52dTfaehylg0Y4UvSySvOq/Y+BOyPrgpUrA7HylqvU8vIZGsRuXmspskV0Tg==";
-      type = "file";
-      url = "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-4.0.1.tgz";
-    };
-    version = "4.0.1";
-  };
-  "http-proxy-agent/5.0.0" = {
-    depInfo = {
-      "@tootallnate/once" = {
-        descriptor = "2";
-        runtime = true;
-      };
-      agent-base = {
-        descriptor = "6";
-        runtime = true;
-      };
-      debug = {
-        descriptor = "4";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "http-proxy-agent";
-    key = "http-proxy-agent/5.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==";
-      sha512 = "n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==";
-      type = "file";
-      url = "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-5.0.0.tgz";
-    };
-    version = "5.0.0";
-  };
-  "https-proxy-agent/5.0.1" = {
-    depInfo = {
-      agent-base = {
-        descriptor = "6";
-        runtime = true;
-      };
-      debug = {
-        descriptor = "4";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "https-proxy-agent";
-    key = "https-proxy-agent/5.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==";
-      sha512 = "dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==";
-      type = "file";
-      url = "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz";
-    };
-    version = "5.0.1";
-  };
-  "humanize-ms/1.2.1" = {
-    depInfo = {
-      ms = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "humanize-ms";
-    key = "humanize-ms/1.2.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==";
-      sha512 = "Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/humanize-ms/-/humanize-ms-1.2.1.tgz";
-    };
-    version = "1.2.1";
-  };
-  "iconv-lite/0.6.3" = {
-    depInfo = {
-      safer-buffer = {
-        descriptor = ">= 2.1.2 < 3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "iconv-lite";
-    key = "iconv-lite/0.6.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==";
-      sha512 = "4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==";
-      type = "file";
-      url = "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.6.3.tgz";
-    };
-    version = "0.6.3";
-  };
-  "ignore-walk/5.0.1" = {
-    depInfo = {
-      minimatch = {
-        descriptor = "^5.0.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "ignore-walk";
-    key = "ignore-walk/5.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-yemi4pMf51WKT7khInJqAvsIGzoqYXblnsz0ql8tM+yi1EKYTY1evX4NAbJrLL/Aanr2HyZeluqU+Oi7MGHokw==";
-      sha512 = "yemi4pMf51WKT7khInJqAvsIGzoqYXblnsz0ql8tM+yi1EKYTY1evX4NAbJrLL/Aanr2HyZeluqU+Oi7MGHokw==";
-      type = "file";
-      url = "https://registry.npmjs.org/ignore-walk/-/ignore-walk-5.0.1.tgz";
-    };
-    version = "5.0.1";
-  };
-  "imurmurhash/0.1.4" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "imurmurhash";
-    key = "imurmurhash/0.1.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==";
-      sha512 = "JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==";
-      type = "file";
-      url = "https://registry.npmjs.org/imurmurhash/-/imurmurhash-0.1.4.tgz";
-    };
-    version = "0.1.4";
-  };
-  "indent-string/4.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "indent-string";
-    key = "indent-string/4.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg==";
-      sha512 = "EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg==";
-      type = "file";
-      url = "https://registry.npmjs.org/indent-string/-/indent-string-4.0.0.tgz";
-    };
-    version = "4.0.0";
-  };
-  "infer-owner/1.0.4" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "infer-owner";
-    key = "infer-owner/1.0.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-IClj+Xz94+d7irH5qRyfJonOdfTzuDaifE6ZPWfx0N0+/ATZCbuTPq2prFl526urkQd90WyUKIh1DfBQ2hMz9A==";
-      sha512 = "IClj+Xz94+d7irH5qRyfJonOdfTzuDaifE6ZPWfx0N0+/ATZCbuTPq2prFl526urkQd90WyUKIh1DfBQ2hMz9A==";
-      type = "file";
-      url = "https://registry.npmjs.org/infer-owner/-/infer-owner-1.0.4.tgz";
-    };
-    version = "1.0.4";
-  };
-  "inflight/1.0.6" = {
-    depInfo = {
-      once = {
-        descriptor = "^1.3.0";
-        runtime = true;
-      };
-      wrappy = {
-        descriptor = "1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "inflight";
-    key = "inflight/1.0.6";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==";
-      sha512 = "k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==";
-      type = "file";
-      url = "https://registry.npmjs.org/inflight/-/inflight-1.0.6.tgz";
-    };
-    version = "1.0.6";
-  };
-  "inherits/2.0.4" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "inherits";
-    key = "inherits/2.0.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==";
-      sha512 = "k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz";
-    };
-    version = "2.0.4";
-  };
-  "ip/2.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "ip";
-    key = "ip/2.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-WKa+XuLG1A1R0UWhl2+1XQSi+fZWMsYKffMZTTYsiZaUD8k2yDAj5atimTUD2TZkyCkNEeYE5NhFZmupOGtjYQ==";
-      sha512 = "WKa+XuLG1A1R0UWhl2+1XQSi+fZWMsYKffMZTTYsiZaUD8k2yDAj5atimTUD2TZkyCkNEeYE5NhFZmupOGtjYQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/ip/-/ip-2.0.0.tgz";
-    };
-    version = "2.0.0";
-  };
-  "is-core-module/2.11.0" = {
-    depInfo = {
-      has = {
-        descriptor = "^1.0.3";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "is-core-module";
-    key = "is-core-module/2.11.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-RRjxlvLDkD1YJwDbroBHMb+cukurkDWNyHx7D3oNB5x9rb5ogcksMC5wHCadcXoo67gVr/+3GFySh3134zi6rw==";
-      sha512 = "RRjxlvLDkD1YJwDbroBHMb+cukurkDWNyHx7D3oNB5x9rb5ogcksMC5wHCadcXoo67gVr/+3GFySh3134zi6rw==";
-      type = "file";
-      url = "https://registry.npmjs.org/is-core-module/-/is-core-module-2.11.0.tgz";
-    };
-    version = "2.11.0";
-  };
-  "is-fullwidth-code-point/3.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "is-fullwidth-code-point";
-    key = "is-fullwidth-code-point/3.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==";
-      sha512 = "zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==";
-      type = "file";
-      url = "https://registry.npmjs.org/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz";
-    };
-    version = "3.0.0";
-  };
-  "is-lambda/1.0.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "is-lambda";
-    key = "is-lambda/1.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-z7CMFGNrENq5iFB9Bqo64Xk6Y9sg+epq1myIcdHaGnbMTYOxvzsEtdYqQUylB7LxfkvgrrjP32T6Ywciio9UIQ==";
-      sha512 = "z7CMFGNrENq5iFB9Bqo64Xk6Y9sg+epq1myIcdHaGnbMTYOxvzsEtdYqQUylB7LxfkvgrrjP32T6Ywciio9UIQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/is-lambda/-/is-lambda-1.0.1.tgz";
-    };
-    version = "1.0.1";
-  };
-  "isexe/2.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "isexe";
-    key = "isexe/2.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==";
-      sha512 = "RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==";
-      type = "file";
-      url = "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz";
-    };
-    version = "2.0.0";
-  };
-  "json-parse-even-better-errors/2.3.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "json-parse-even-better-errors";
-    key = "json-parse-even-better-errors/2.3.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==";
-      sha512 = "xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==";
-      type = "file";
-      url = "https://registry.npmjs.org/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz";
-    };
-    version = "2.3.1";
-  };
-  "jsonparse/1.3.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "jsonparse";
-    key = "jsonparse/1.3.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==";
-      sha512 = "POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==";
-      type = "file";
-      url = "https://registry.npmjs.org/jsonparse/-/jsonparse-1.3.1.tgz";
-    };
-    version = "1.3.1";
-  };
-  "lru-cache/6.0.0" = {
-    depInfo = {
-      yallist = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "lru-cache";
-    key = "lru-cache/6.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==";
-      sha512 = "Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==";
-      type = "file";
-      url = "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz";
-    };
-    version = "6.0.0";
-  };
-  "lru-cache/7.14.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "lru-cache";
-    key = "lru-cache/7.14.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-EIRtP1GrSJny0dqb50QXRUNBxHJhcpxHC++M5tD7RYbvLLn5KVWKsbyswSSqDuU15UFi3bgTQIY8nhDMeF6aDQ==";
-      sha512 = "EIRtP1GrSJny0dqb50QXRUNBxHJhcpxHC++M5tD7RYbvLLn5KVWKsbyswSSqDuU15UFi3bgTQIY8nhDMeF6aDQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/lru-cache/-/lru-cache-7.14.0.tgz";
-    };
-    version = "7.14.0";
-  };
-  "make-fetch-happen/10.2.1" = {
-    depInfo = {
-      agentkeepalive = {
-        descriptor = "^4.2.1";
-        runtime = true;
-      };
-      cacache = {
-        descriptor = "^16.1.0";
-        runtime = true;
-      };
-      http-cache-semantics = {
-        descriptor = "^4.1.0";
-        runtime = true;
-      };
-      http-proxy-agent = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      https-proxy-agent = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      is-lambda = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      lru-cache = {
-        descriptor = "^7.7.1";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.6";
-        runtime = true;
-      };
-      minipass-collect = {
-        descriptor = "^1.0.2";
-        runtime = true;
-      };
-      minipass-fetch = {
-        descriptor = "^2.0.3";
-        runtime = true;
-      };
-      minipass-flush = {
-        descriptor = "^1.0.5";
-        runtime = true;
-      };
-      minipass-pipeline = {
-        descriptor = "^1.2.4";
-        runtime = true;
-      };
-      negotiator = {
-        descriptor = "^0.6.3";
-        runtime = true;
-      };
-      promise-retry = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-      socks-proxy-agent = {
-        descriptor = "^7.0.0";
-        runtime = true;
-      };
-      ssri = {
-        descriptor = "^9.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "make-fetch-happen";
-    key = "make-fetch-happen/10.2.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-NgOPbRiaQM10DYXvN3/hhGVI2M5MtITFryzBGxHM5p4wnFxsVCbxkrBrDsk+EZ5OB4jEOT7AjDxtdF+KVEFT7w==";
-      sha512 = "NgOPbRiaQM10DYXvN3/hhGVI2M5MtITFryzBGxHM5p4wnFxsVCbxkrBrDsk+EZ5OB4jEOT7AjDxtdF+KVEFT7w==";
-      type = "file";
-      url = "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-10.2.1.tgz";
-    };
-    version = "10.2.1";
-  };
-  "make-fetch-happen/9.1.0" = {
-    depInfo = {
-      agentkeepalive = {
-        descriptor = "^4.1.3";
-        runtime = true;
-      };
-      cacache = {
-        descriptor = "^15.2.0";
-        runtime = true;
-      };
-      http-cache-semantics = {
-        descriptor = "^4.1.0";
-        runtime = true;
-      };
-      http-proxy-agent = {
-        descriptor = "^4.0.1";
-        runtime = true;
-      };
-      https-proxy-agent = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      is-lambda = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      lru-cache = {
-        descriptor = "^6.0.0";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.3";
-        runtime = true;
-      };
-      minipass-collect = {
-        descriptor = "^1.0.2";
-        runtime = true;
-      };
-      minipass-fetch = {
-        descriptor = "^1.3.2";
-        runtime = true;
-      };
-      minipass-flush = {
-        descriptor = "^1.0.5";
-        runtime = true;
-      };
-      minipass-pipeline = {
-        descriptor = "^1.2.4";
-        runtime = true;
-      };
-      negotiator = {
-        descriptor = "^0.6.2";
-        runtime = true;
-      };
-      promise-retry = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-      socks-proxy-agent = {
-        descriptor = "^6.0.0";
-        runtime = true;
-      };
-      ssri = {
-        descriptor = "^8.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "make-fetch-happen";
-    key = "make-fetch-happen/9.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-+zopwDy7DNknmwPQplem5lAZX/eCOzSvSNNcSKm5eVwTkOBzoktEfXsa9L23J/GIRhxRsaxzkPEhrJEpE2F4Gg==";
-      sha512 = "+zopwDy7DNknmwPQplem5lAZX/eCOzSvSNNcSKm5eVwTkOBzoktEfXsa9L23J/GIRhxRsaxzkPEhrJEpE2F4Gg==";
-      type = "file";
-      url = "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-9.1.0.tgz";
-    };
-    version = "9.1.0";
-  };
-  "minimatch/3.1.2" = {
-    depInfo = {
-      brace-expansion = {
-        descriptor = "^1.1.7";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minimatch";
-    key = "minimatch/3.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==";
-      sha512 = "J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==";
-      type = "file";
-      url = "https://registry.npmjs.org/minimatch/-/minimatch-3.1.2.tgz";
-    };
-    version = "3.1.2";
-  };
-  "minimatch/5.1.0" = {
-    depInfo = {
-      brace-expansion = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minimatch";
-    key = "minimatch/5.1.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-9TPBGGak4nHfGZsPBohm9AWg6NoT7QTCehS3BIJABslyZbzxfV78QM2Y6+i741OPZIafFAaiiEMh5OyIrJPgtg==";
-      sha512 = "9TPBGGak4nHfGZsPBohm9AWg6NoT7QTCehS3BIJABslyZbzxfV78QM2Y6+i741OPZIafFAaiiEMh5OyIrJPgtg==";
-      type = "file";
-      url = "https://registry.npmjs.org/minimatch/-/minimatch-5.1.0.tgz";
-    };
-    version = "5.1.0";
-  };
-  "minipass-collect/1.0.2" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-collect";
-    key = "minipass-collect/1.0.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-6T6lH0H8OG9kITm/Jm6tdooIbogG9e0tLgpY6mphXSm/A9u8Nq1ryBG+Qspiub9LjWlBPsPS3tWQ/Botq4FdxA==";
-      sha512 = "6T6lH0H8OG9kITm/Jm6tdooIbogG9e0tLgpY6mphXSm/A9u8Nq1ryBG+Qspiub9LjWlBPsPS3tWQ/Botq4FdxA==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-collect/-/minipass-collect-1.0.2.tgz";
-    };
-    version = "1.0.2";
-  };
-  "minipass-fetch/1.4.1" = {
-    depInfo = {
-      encoding = {
-        descriptor = "^0.1.12";
-        optional = true;
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.0";
-        runtime = true;
-      };
-      minipass-sized = {
-        descriptor = "^1.0.3";
-        runtime = true;
-      };
-      minizlib = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-fetch";
-    key = "minipass-fetch/1.4.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-CGH1eblLq26Y15+Azk7ey4xh0J/XfJfrCox5LDJiKqI2Q2iwOLOKrlmIaODiSQS8d18jalF6y2K2ePUm0CmShw==";
-      sha512 = "CGH1eblLq26Y15+Azk7ey4xh0J/XfJfrCox5LDJiKqI2Q2iwOLOKrlmIaODiSQS8d18jalF6y2K2ePUm0CmShw==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-fetch/-/minipass-fetch-1.4.1.tgz";
-    };
-    version = "1.4.1";
-  };
-  "minipass-fetch/2.1.2" = {
-    depInfo = {
-      encoding = {
-        descriptor = "^0.1.13";
-        optional = true;
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.6";
-        runtime = true;
-      };
-      minipass-sized = {
-        descriptor = "^1.0.3";
-        runtime = true;
-      };
-      minizlib = {
-        descriptor = "^2.1.2";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-fetch";
-    key = "minipass-fetch/2.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-LT49Zi2/WMROHYoqGgdlQIZh8mLPZmOrN2NdJjMXxYe4nkN6FUyuPuOAOedNJDrx0IRGg9+4guZewtp8hE6TxA==";
-      sha512 = "LT49Zi2/WMROHYoqGgdlQIZh8mLPZmOrN2NdJjMXxYe4nkN6FUyuPuOAOedNJDrx0IRGg9+4guZewtp8hE6TxA==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-fetch/-/minipass-fetch-2.1.2.tgz";
-    };
-    version = "2.1.2";
-  };
-  "minipass-flush/1.0.5" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-flush";
-    key = "minipass-flush/1.0.5";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-JmQSYYpPUqX5Jyn1mXaRwOda1uQ8HP5KAT/oDSLCzt1BYRhQU0/hDtsB1ufZfEEzMZ9aAVmsBw8+FWsIXlClWw==";
-      sha512 = "JmQSYYpPUqX5Jyn1mXaRwOda1uQ8HP5KAT/oDSLCzt1BYRhQU0/hDtsB1ufZfEEzMZ9aAVmsBw8+FWsIXlClWw==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-flush/-/minipass-flush-1.0.5.tgz";
-    };
-    version = "1.0.5";
-  };
-  "minipass-json-stream/1.0.1" = {
-    depInfo = {
-      jsonparse = {
-        descriptor = "^1.3.1";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-json-stream";
-    key = "minipass-json-stream/1.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-ODqY18UZt/I8k+b7rl2AENgbWE8IDYam+undIJONvigAz8KR5GWblsFTEfQs0WODsjbSXWlm+JHEv8Gr6Tfdbg==";
-      sha512 = "ODqY18UZt/I8k+b7rl2AENgbWE8IDYam+undIJONvigAz8KR5GWblsFTEfQs0WODsjbSXWlm+JHEv8Gr6Tfdbg==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-json-stream/-/minipass-json-stream-1.0.1.tgz";
-    };
-    version = "1.0.1";
-  };
-  "minipass-pipeline/1.2.4" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-pipeline";
-    key = "minipass-pipeline/1.2.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-xuIq7cIOt09RPRJ19gdi4b+RiNvDFYe5JH+ggNvBqGqpQXcru3PcRmOZuHBKWK1Txf9+cQ+HMVN4d6z46LZP7A==";
-      sha512 = "xuIq7cIOt09RPRJ19gdi4b+RiNvDFYe5JH+ggNvBqGqpQXcru3PcRmOZuHBKWK1Txf9+cQ+HMVN4d6z46LZP7A==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-pipeline/-/minipass-pipeline-1.2.4.tgz";
-    };
-    version = "1.2.4";
-  };
-  "minipass-sized/1.0.3" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass-sized";
-    key = "minipass-sized/1.0.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-MbkQQ2CTiBMlA2Dm/5cY+9SWFEN8pzzOXi6rlM5Xxq0Yqbda5ZQy9sU75a673FE9ZK0Zsbr6Y5iP6u9nktfg2g==";
-      sha512 = "MbkQQ2CTiBMlA2Dm/5cY+9SWFEN8pzzOXi6rlM5Xxq0Yqbda5ZQy9sU75a673FE9ZK0Zsbr6Y5iP6u9nktfg2g==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass-sized/-/minipass-sized-1.0.3.tgz";
-    };
-    version = "1.0.3";
-  };
-  "minipass/3.3.4" = {
-    depInfo = {
-      yallist = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minipass";
-    key = "minipass/3.3.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-I9WPbWHCGu8W+6k1ZiGpPu0GkoKBeorkfKNuAFBNS1HNFJvke82sxvI5bzcCNpWPorkOO5QQ+zomzzwRxejXiw==";
-      sha512 = "I9WPbWHCGu8W+6k1ZiGpPu0GkoKBeorkfKNuAFBNS1HNFJvke82sxvI5bzcCNpWPorkOO5QQ+zomzzwRxejXiw==";
-      type = "file";
-      url = "https://registry.npmjs.org/minipass/-/minipass-3.3.4.tgz";
-    };
-    version = "3.3.4";
-  };
-  "minizlib/2.1.2" = {
-    depInfo = {
-      minipass = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-      yallist = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "minizlib";
-    key = "minizlib/2.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==";
-      sha512 = "bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==";
-      type = "file";
-      url = "https://registry.npmjs.org/minizlib/-/minizlib-2.1.2.tgz";
-    };
-    version = "2.1.2";
-  };
-  "mkdirp/1.0.4" = {
-    bin = {
-      mkdirp = "bin/cmd.js";
-    };
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "mkdirp";
-    key = "mkdirp/1.0.4";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==";
-      sha512 = "vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==";
-      type = "file";
-      url = "https://registry.npmjs.org/mkdirp/-/mkdirp-1.0.4.tgz";
-    };
-    version = "1.0.4";
-  };
-  "ms/2.1.2" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "ms";
-    key = "ms/2.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==";
-      sha512 = "sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==";
-      type = "file";
-      url = "https://registry.npmjs.org/ms/-/ms-2.1.2.tgz";
-    };
-    version = "2.1.2";
-  };
-  "negotiator/0.6.3" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "negotiator";
-    key = "negotiator/0.6.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==";
-      sha512 = "+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==";
-      type = "file";
-      url = "https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz";
-    };
-    version = "0.6.3";
-  };
-  "node-gyp/8.4.1" = {
-    bin = {
-      node-gyp = "bin/node-gyp.js";
-    };
-    depInfo = {
-      env-paths = {
-        descriptor = "^2.2.0";
-        runtime = true;
-      };
-      glob = {
-        descriptor = "^7.1.4";
-        runtime = true;
-      };
-      graceful-fs = {
-        descriptor = "^4.2.6";
-        runtime = true;
-      };
-      make-fetch-happen = {
-        descriptor = "^9.1.0";
-        runtime = true;
-      };
-      nopt = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      npmlog = {
-        descriptor = "^6.0.0";
-        runtime = true;
-      };
-      rimraf = {
-        descriptor = "^3.0.2";
-        runtime = true;
-      };
-      semver = {
-        descriptor = "^7.3.5";
-        runtime = true;
-      };
-      tar = {
-        descriptor = "^6.1.2";
-        runtime = true;
-      };
-      which = {
-        descriptor = "^2.0.2";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "node-gyp";
-    key = "node-gyp/8.4.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-olTJRgUtAb/hOXG0E93wZDs5YiJlgbXxTwQAFHyNlRsXQnYzUaF2aGgujZbw+hR8aF4ZG/rST57bWMWD16jr9w==";
-      sha512 = "olTJRgUtAb/hOXG0E93wZDs5YiJlgbXxTwQAFHyNlRsXQnYzUaF2aGgujZbw+hR8aF4ZG/rST57bWMWD16jr9w==";
-      type = "file";
-      url = "https://registry.npmjs.org/node-gyp/-/node-gyp-8.4.1.tgz";
-    };
-    version = "8.4.1";
-  };
-  "nopt/5.0.0" = {
-    bin = {
-      nopt = "bin/nopt.js";
-    };
-    depInfo = {
-      abbrev = {
-        descriptor = "1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "nopt";
-    key = "nopt/5.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==";
-      sha512 = "Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/nopt/-/nopt-5.0.0.tgz";
-    };
-    version = "5.0.0";
-  };
-  "normalize-package-data/4.0.1" = {
-    depInfo = {
-      hosted-git-info = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      is-core-module = {
-        descriptor = "^2.8.1";
-        runtime = true;
-      };
-      semver = {
-        descriptor = "^7.3.5";
-        runtime = true;
-      };
-      validate-npm-package-license = {
-        descriptor = "^3.0.4";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "normalize-package-data";
-    key = "normalize-package-data/4.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-EBk5QKKuocMJhB3BILuKhmaPjI8vNRSpIfO9woLC6NyHVkKKdVEdAO1mrT0ZfxNR1lKwCcTkuZfmGIFdizZ8Pg==";
-      sha512 = "EBk5QKKuocMJhB3BILuKhmaPjI8vNRSpIfO9woLC6NyHVkKKdVEdAO1mrT0ZfxNR1lKwCcTkuZfmGIFdizZ8Pg==";
-      type = "file";
-      url = "https://registry.npmjs.org/normalize-package-data/-/normalize-package-data-4.0.1.tgz";
-    };
-    version = "4.0.1";
-  };
-  "npm-bundled/1.1.2" = {
-    depInfo = {
-      npm-normalize-package-bin = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-bundled";
-    key = "npm-bundled/1.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-x5DHup0SuyQcmL3s7Rx/YQ8sbw/Hzg0rj48eN0dV7hf5cmQq5PXIeioroH3raV1QC1yh3uTYuMThvEQF3iKgGQ==";
-      sha512 = "x5DHup0SuyQcmL3s7Rx/YQ8sbw/Hzg0rj48eN0dV7hf5cmQq5PXIeioroH3raV1QC1yh3uTYuMThvEQF3iKgGQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-bundled/-/npm-bundled-1.1.2.tgz";
-    };
-    version = "1.1.2";
-  };
-  "npm-bundled/2.0.1" = {
-    depInfo = {
-      npm-normalize-package-bin = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-bundled";
-    key = "npm-bundled/2.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-gZLxXdjEzE/+mOstGDqR6b0EkhJ+kM6fxM6vUuckuctuVPh80Q6pw/rSZj9s4Gex9GxWtIicO1pc8DB9KZWudw==";
-      sha512 = "gZLxXdjEzE/+mOstGDqR6b0EkhJ+kM6fxM6vUuckuctuVPh80Q6pw/rSZj9s4Gex9GxWtIicO1pc8DB9KZWudw==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-bundled/-/npm-bundled-2.0.1.tgz";
-    };
-    version = "2.0.1";
-  };
-  "npm-install-checks/5.0.0" = {
-    depInfo = {
-      semver = {
-        descriptor = "^7.1.1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-install-checks";
-    key = "npm-install-checks/5.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-65lUsMI8ztHCxFz5ckCEC44DRvEGdZX5usQFriauxHEwt7upv1FKaQEmAtU0YnOAdwuNWCmk64xYiQABNrEyLA==";
-      sha512 = "65lUsMI8ztHCxFz5ckCEC44DRvEGdZX5usQFriauxHEwt7upv1FKaQEmAtU0YnOAdwuNWCmk64xYiQABNrEyLA==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-install-checks/-/npm-install-checks-5.0.0.tgz";
-    };
-    version = "5.0.0";
-  };
-  "npm-normalize-package-bin/1.0.1" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-normalize-package-bin";
-    key = "npm-normalize-package-bin/1.0.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-EPfafl6JL5/rU+ot6P3gRSCpPDW5VmIzX959Ob1+ySFUuuYHWHekXpwdUZcKP5C+DS4GEtdJluwBjnsNDl+fSA==";
-      sha512 = "EPfafl6JL5/rU+ot6P3gRSCpPDW5VmIzX959Ob1+ySFUuuYHWHekXpwdUZcKP5C+DS4GEtdJluwBjnsNDl+fSA==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-normalize-package-bin/-/npm-normalize-package-bin-1.0.1.tgz";
-    };
-    version = "1.0.1";
-  };
-  "npm-normalize-package-bin/2.0.0" = {
-    depInfo = { };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-normalize-package-bin";
-    key = "npm-normalize-package-bin/2.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-awzfKUO7v0FscrSpRoogyNm0sajikhBWpU0QMrW09AMi9n1PoKU6WaIqUzuJSQnpciZZmJ/jMZ2Egfmb/9LiWQ==";
-      sha512 = "awzfKUO7v0FscrSpRoogyNm0sajikhBWpU0QMrW09AMi9n1PoKU6WaIqUzuJSQnpciZZmJ/jMZ2Egfmb/9LiWQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-normalize-package-bin/-/npm-normalize-package-bin-2.0.0.tgz";
-    };
-    version = "2.0.0";
-  };
-  "npm-package-arg/9.1.2" = {
-    depInfo = {
-      hosted-git-info = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      proc-log = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-      semver = {
-        descriptor = "^7.3.5";
-        runtime = true;
-      };
-      validate-npm-package-name = {
-        descriptor = "^4.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-package-arg";
-    key = "npm-package-arg/9.1.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-pzd9rLEx4TfNJkovvlBSLGhq31gGu2QDexFPWT19yCDh0JgnRhlBLNo5759N0AJmBk+kQ9Y/hXoLnlgFD+ukmg==";
-      sha512 = "pzd9rLEx4TfNJkovvlBSLGhq31gGu2QDexFPWT19yCDh0JgnRhlBLNo5759N0AJmBk+kQ9Y/hXoLnlgFD+ukmg==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-package-arg/-/npm-package-arg-9.1.2.tgz";
-    };
-    version = "9.1.2";
-  };
-  "npm-packlist/5.1.3" = {
-    bin = {
-      npm-packlist = "bin/index.js";
-    };
-    depInfo = {
-      glob = {
-        descriptor = "^8.0.1";
-        runtime = true;
-      };
-      ignore-walk = {
-        descriptor = "^5.0.1";
-        runtime = true;
-      };
-      npm-bundled = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      npm-normalize-package-bin = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "npm-packlist";
-    key = "npm-packlist/5.1.3";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-263/0NGrn32YFYi4J533qzrQ/krmmrWwhKkzwTuM4f/07ug51odoaNjUexxO4vxlzURHcmYMH1QjvHjsNDKLVg==";
-      sha512 = "263/0NGrn32YFYi4J533qzrQ/krmmrWwhKkzwTuM4f/07ug51odoaNjUexxO4vxlzURHcmYMH1QjvHjsNDKLVg==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-packlist/-/npm-packlist-5.1.3.tgz";
-    };
-    version = "5.1.3";
-  };
-  "npm-pick-manifest/7.0.2" = {
-    depInfo = {
-      npm-install-checks = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      npm-normalize-package-bin = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      npm-package-arg = {
-        descriptor = "^9.0.0";
-        runtime = true;
-      };
-      semver = {
-        descriptor = "^7.3.5";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-pick-manifest";
-    key = "npm-pick-manifest/7.0.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-gk37SyRmlIjvTfcYl6RzDbSmS9Y4TOBXfsPnoYqTHARNgWbyDiCSMLUpmALDj4jjcTZpURiEfsSHJj9k7EV4Rw==";
-      sha512 = "gk37SyRmlIjvTfcYl6RzDbSmS9Y4TOBXfsPnoYqTHARNgWbyDiCSMLUpmALDj4jjcTZpURiEfsSHJj9k7EV4Rw==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-pick-manifest/-/npm-pick-manifest-7.0.2.tgz";
-    };
-    version = "7.0.2";
-  };
-  "npm-registry-fetch/13.3.1" = {
-    depInfo = {
-      make-fetch-happen = {
-        descriptor = "^10.0.6";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.6";
-        runtime = true;
-      };
-      minipass-fetch = {
-        descriptor = "^2.0.3";
-        runtime = true;
-      };
-      minipass-json-stream = {
-        descriptor = "^1.0.1";
-        runtime = true;
-      };
-      minizlib = {
-        descriptor = "^2.1.2";
-        runtime = true;
-      };
-      npm-package-arg = {
-        descriptor = "^9.0.1";
-        runtime = true;
-      };
-      proc-log = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npm-registry-fetch";
-    key = "npm-registry-fetch/13.3.1";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-eukJPi++DKRTjSBRcDZSDDsGqRK3ehbxfFUcgaRd0Yp6kRwOwh2WVn0r+8rMB4nnuzvAk6rQVzl6K5CkYOmnvw==";
-      sha512 = "eukJPi++DKRTjSBRcDZSDDsGqRK3ehbxfFUcgaRd0Yp6kRwOwh2WVn0r+8rMB4nnuzvAk6rQVzl6K5CkYOmnvw==";
-      type = "file";
-      url = "https://registry.npmjs.org/npm-registry-fetch/-/npm-registry-fetch-13.3.1.tgz";
-    };
-    version = "13.3.1";
-  };
-  "npmlog/6.0.2" = {
-    depInfo = {
-      are-we-there-yet = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-      console-control-strings = {
-        descriptor = "^1.1.0";
-        runtime = true;
-      };
-      gauge = {
-        descriptor = "^4.0.3";
-        runtime = true;
-      };
-      set-blocking = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "npmlog";
-    key = "npmlog/6.0.2";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-/vBvz5Jfr9dT/aFWd0FIRf+T/Q2WBsLENygUaFUqstqsycmZAP/t5BvFJTK0viFmSUxiUKTUplWy5vt+rvKIxg==";
-      sha512 = "/vBvz5Jfr9dT/aFWd0FIRf+T/Q2WBsLENygUaFUqstqsycmZAP/t5BvFJTK0viFmSUxiUKTUplWy5vt+rvKIxg==";
-      type = "file";
-      url = "https://registry.npmjs.org/npmlog/-/npmlog-6.0.2.tgz";
-    };
-    version = "6.0.2";
-  };
-  "once/1.4.0" = {
-    depInfo = {
-      wrappy = {
-        descriptor = "1";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "once";
-    key = "once/1.4.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==";
-      sha512 = "lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==";
-      type = "file";
-      url = "https://registry.npmjs.org/once/-/once-1.4.0.tgz";
-    };
-    version = "1.4.0";
-  };
-  "p-map/4.0.0" = {
-    depInfo = {
-      aggregate-error = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    ident = "p-map";
-    key = "p-map/4.0.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-/bjOqmgETBYB5BoEeGVea8dmvHb2m9GLy1E9W43yeyfP6QQCZGFNa+XRceJEuDB6zqr+gKpIAmlLebMpykw/MQ==";
-      sha512 = "/bjOqmgETBYB5BoEeGVea8dmvHb2m9GLy1E9W43yeyfP6QQCZGFNa+XRceJEuDB6zqr+gKpIAmlLebMpykw/MQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/p-map/-/p-map-4.0.0.tgz";
-    };
-    version = "4.0.0";
-  };
-  "pacote/13.3.0" = {
-    bin = {
-      pacote = "lib/bin.js";
-    };
-    depInfo = {
-      "@npmcli/git" = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-      "@npmcli/installed-package-contents" = {
-        descriptor = "^1.0.7";
-        runtime = true;
-      };
-      "@npmcli/promise-spawn" = {
-        descriptor = "^3.0.0";
-        runtime = true;
-      };
-      "@npmcli/run-script" = {
-        descriptor = "^3.0.1";
-        runtime = true;
-      };
-      cacache = {
-        descriptor = "^16.0.0";
-        runtime = true;
-      };
-      chownr = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      fs-minipass = {
-        descriptor = "^2.1.0";
-        runtime = true;
-      };
-      infer-owner = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      minipass = {
-        descriptor = "^3.1.6";
-        runtime = true;
-      };
-      mkdirp = {
-        descriptor = "^1.0.4";
-        runtime = true;
-      };
-      npm-package-arg = {
-        descriptor = "^9.0.0";
-        runtime = true;
-      };
-      npm-packlist = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      npm-pick-manifest = {
-        descriptor = "^7.0.0";
-        runtime = true;
-      };
-      npm-registry-fetch = {
-        descriptor = "^13.0.1";
-        runtime = true;
-      };
-      proc-log = {
-        descriptor = "^2.0.0";
-        runtime = true;
-      };
-      promise-retry = {
-        descriptor = "^2.0.1";
-        runtime = true;
-      };
-      read-package-json = {
-        descriptor = "^5.0.0";
-        runtime = true;
-      };
-      read-package-json-fast = {
-        descriptor = "^2.0.3";
-        runtime = true;
-      };
-      rimraf = {
-        descriptor = "^3.0.2";
-        runtime = true;
-      };
-      ssri = {
-        descriptor = "^9.0.0";
-        runtime = true;
-      };
-      tar = {
-        descriptor = "^6.1.11";
-        runtime = true;
-      };
-    };
-    entFromtype = "package-lock.json(v3)";
-    hasBin = true;
-    ident = "pacote";
-    key = "pacote/13.3.0";
-    scoped = false;
-    fetchInfo = {
-      hash = "sha512-auhJAUlfC2TALo6I0s1vFoPvVFgWGx+uz/PnIojTTgkGwlK3Np8sGJ0ghfFhiuzJXTZoTycMLk8uLskdntPbDw==";
-      sha512 = "auhJAUlfC2TALo6I0s1vFoPvVFgWGx+uz/PnIojTTgkGwlK3Np8sGJ0ghfFhiuzJXTZoTycMLk8uLskdntPbDw==";
-      type = "file";
-      url = "https://registry.npmjs.org/pacote/-/pacote-13.3.0.tgz";
-    };
     version = "13.3.0";
   };
   "path-is-absolute/1.0.1" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-+DjPlEsONpIJ3kBveAhTRCV2aRZt3KN8RNLsgoC+jXk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/path-is-absolute/-/path-is-absolute-1.0.1.tgz";
+    };
     ident = "path-is-absolute";
     key = "path-is-absolute/1.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==";
-      sha512 = "AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==";
-      type = "file";
-      url = "https://registry.npmjs.org/path-is-absolute/-/path-is-absolute-1.0.1.tgz";
-    };
     version = "1.0.1";
   };
   "proc-log/2.0.1" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-TYre/Z+1bczpVQD2wkoepDAs7JLUdq1fvjZaewsQaKo=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/proc-log/-/proc-log-2.0.1.tgz";
+    };
     ident = "proc-log";
     key = "proc-log/2.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-Kcmo2FhfDTXdcbfDH76N7uBYHINxc/8GW7UAVuVP9I+Va3uHSerrnKV6dLooga/gh7GlgzuCCr/eoldnL1muGw==";
-      sha512 = "Kcmo2FhfDTXdcbfDH76N7uBYHINxc/8GW7UAVuVP9I+Va3uHSerrnKV6dLooga/gh7GlgzuCCr/eoldnL1muGw==";
-      type = "file";
-      url = "https://registry.npmjs.org/proc-log/-/proc-log-2.0.1.tgz";
-    };
     version = "2.0.1";
   };
   "promise-inflight/1.0.1" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-XV8M3LYInv6Vpkkw1pPu7EwW3rny87h6tRiZAEYLkz4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/promise-inflight/-/promise-inflight-1.0.1.tgz";
+    };
     ident = "promise-inflight";
     key = "promise-inflight/1.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==";
-      sha512 = "6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==";
-      type = "file";
-      url = "https://registry.npmjs.org/promise-inflight/-/promise-inflight-1.0.1.tgz";
-    };
     version = "1.0.1";
   };
   "promise-retry/2.0.1" = {
+    bin = { };
     depInfo = {
       err-code = {
         descriptor = "^2.0.2";
@@ -2609,18 +2600,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-dNrmMImqAzbT+4Vt7Qg5tBQ5m2wy1SAShhLkY55nkP8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/promise-retry/-/promise-retry-2.0.1.tgz";
+    };
     ident = "promise-retry";
     key = "promise-retry/2.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-y+WKFlBR8BGXnsNlIHFGPZmyDf3DFMoLhaflAnyZgV6rG6xu+JwesTo2Q9R6XwYmtmwAFCkAk3e35jEdoeh/3g==";
-      sha512 = "y+WKFlBR8BGXnsNlIHFGPZmyDf3DFMoLhaflAnyZgV6rG6xu+JwesTo2Q9R6XwYmtmwAFCkAk3e35jEdoeh/3g==";
-      type = "file";
-      url = "https://registry.npmjs.org/promise-retry/-/promise-retry-2.0.1.tgz";
-    };
     version = "2.0.1";
   };
   "read-package-json-fast/2.0.3" = {
+    bin = { };
     depInfo = {
       json-parse-even-better-errors = {
         descriptor = "^2.3.0";
@@ -2632,18 +2623,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-L6EaJgpQmiqmMr4KHZXMITEJ5FoU7LP7561KR/spZN8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/read-package-json-fast/-/read-package-json-fast-2.0.3.tgz";
+    };
     ident = "read-package-json-fast";
     key = "read-package-json-fast/2.0.3";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-W/BKtbL+dUjTuRL2vziuYhp76s5HZ9qQhd/dKfWIZveD0O40453QNyZhC0e63lqZrAQ4jiOapVoeJ7JrszenQQ==";
-      sha512 = "W/BKtbL+dUjTuRL2vziuYhp76s5HZ9qQhd/dKfWIZveD0O40453QNyZhC0e63lqZrAQ4jiOapVoeJ7JrszenQQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/read-package-json-fast/-/read-package-json-fast-2.0.3.tgz";
-    };
     version = "2.0.3";
   };
   "read-package-json/5.0.2" = {
+    bin = { };
     depInfo = {
       glob = {
         descriptor = "^8.0.1";
@@ -2663,18 +2654,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-DbEYUCND6pejBC+45kMpBbFPZsPIr38uylM9StI7GBY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/read-package-json/-/read-package-json-5.0.2.tgz";
+    };
     ident = "read-package-json";
     key = "read-package-json/5.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-BSzugrt4kQ/Z0krro8zhTwV1Kd79ue25IhNN/VtHFy1mG/6Tluyi+msc0UpwaoQzxSHa28mntAjIZY6kEgfR9Q==";
-      sha512 = "BSzugrt4kQ/Z0krro8zhTwV1Kd79ue25IhNN/VtHFy1mG/6Tluyi+msc0UpwaoQzxSHa28mntAjIZY6kEgfR9Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/read-package-json/-/read-package-json-5.0.2.tgz";
-    };
     version = "5.0.2";
   };
   "readable-stream/3.6.0" = {
+    bin = { };
     depInfo = {
       inherits = {
         descriptor = "^2.0.3";
@@ -2690,29 +2681,28 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-pvwBMxYeE5paPfTTAXnvO9IJIEcvBww9FyIr95bDA7Y=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/readable-stream/-/readable-stream-3.6.0.tgz";
+    };
     ident = "readable-stream";
     key = "readable-stream/3.6.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==";
-      sha512 = "BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==";
-      type = "file";
-      url = "https://registry.npmjs.org/readable-stream/-/readable-stream-3.6.0.tgz";
-    };
     version = "3.6.0";
   };
   "retry/0.12.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-dSPaNLog9TaWiPokeHcz2ZUdkQfvLb0IZC6r92b6VfQ=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/retry/-/retry-0.12.0.tgz";
+    };
     ident = "retry";
     key = "retry/0.12.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==";
-      sha512 = "9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==";
-      type = "file";
-      url = "https://registry.npmjs.org/retry/-/retry-0.12.0.tgz";
-    };
     version = "0.12.0";
   };
   "rimraf/3.0.2" = {
@@ -2726,44 +2716,43 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-5ZflqftTdzdyQtoHawWDKLP29TBYks2sneUZTaH6VJM=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/rimraf/-/rimraf-3.0.2.tgz";
+    };
     hasBin = true;
     ident = "rimraf";
     key = "rimraf/3.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==";
-      sha512 = "JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==";
-      type = "file";
-      url = "https://registry.npmjs.org/rimraf/-/rimraf-3.0.2.tgz";
-    };
     version = "3.0.2";
   };
   "safe-buffer/5.2.1" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-wXBrp88QpZPUzawZ33OaWsjCtWTVMsflFJRBg2/U4y8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz";
+    };
     ident = "safe-buffer";
     key = "safe-buffer/5.2.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==";
-      sha512 = "rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz";
-    };
     version = "5.2.1";
   };
   "safer-buffer/2.1.2" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-3h6PTqFTKFv3m2ETKDUSOB1rI9KcqogKnSfrV1qnJc0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz";
+    };
     ident = "safer-buffer";
     key = "safer-buffer/2.1.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==";
-      sha512 = "YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==";
-      type = "file";
-      url = "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz";
-    };
     version = "2.1.2";
   };
   "semver/7.3.8" = {
@@ -2777,61 +2766,61 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-vqtjrIFs0Yw18hcdfShdL7BwyzqXdZ+K60Rp3oLNo/A=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/semver/-/semver-7.3.8.tgz";
+    };
     hasBin = true;
     ident = "semver";
     key = "semver/7.3.8";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-NB1ctGL5rlHrPJtFDVIVzTyQylMLu9N9VICA6HSFJo8MCGVTMW6gfpicwKmmK/dAjTOrqu5l63JJOpDSrAis3A==";
-      sha512 = "NB1ctGL5rlHrPJtFDVIVzTyQylMLu9N9VICA6HSFJo8MCGVTMW6gfpicwKmmK/dAjTOrqu5l63JJOpDSrAis3A==";
-      type = "file";
-      url = "https://registry.npmjs.org/semver/-/semver-7.3.8.tgz";
-    };
     version = "7.3.8";
   };
   "set-blocking/2.0.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-v/iCe60xEPwDGC6+iEAS+xvV8ilPSlIyUSmLMfS2bwQ=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/set-blocking/-/set-blocking-2.0.0.tgz";
+    };
     ident = "set-blocking";
     key = "set-blocking/2.0.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==";
-      sha512 = "KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==";
-      type = "file";
-      url = "https://registry.npmjs.org/set-blocking/-/set-blocking-2.0.0.tgz";
-    };
     version = "2.0.0";
   };
   "signal-exit/3.0.7" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-2mSrADWJKHoX/YwLWk/Mdb4mjpL/6QYU8Evqtm24fdE=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/signal-exit/-/signal-exit-3.0.7.tgz";
+    };
     ident = "signal-exit";
     key = "signal-exit/3.0.7";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==";
-      sha512 = "wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/signal-exit/-/signal-exit-3.0.7.tgz";
-    };
     version = "3.0.7";
   };
   "smart-buffer/4.2.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-IUxIDwNI5kPaW5+sqahq2lh6rGvobXK+Ub/4ixdZz+o=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/smart-buffer/-/smart-buffer-4.2.0.tgz";
+    };
     ident = "smart-buffer";
     key = "smart-buffer/4.2.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==";
-      sha512 = "94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==";
-      type = "file";
-      url = "https://registry.npmjs.org/smart-buffer/-/smart-buffer-4.2.0.tgz";
-    };
     version = "4.2.0";
   };
   "socks-proxy-agent/6.2.1" = {
+    bin = { };
     depInfo = {
       agent-base = {
         descriptor = "^6.0.2";
@@ -2847,18 +2836,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-vBwjvYBKyT8spSD0Pfmv1lQsuuZgODtH5o3F0GznFO0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/socks-proxy-agent/-/socks-proxy-agent-6.2.1.tgz";
+    };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/6.2.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-a6KW9G+6B3nWZ1yB8G7pJwL3ggLy1uTzKAgCb7ttblwqdz9fMGJUuTy3uFzEP48FAs9FLILlmzDlE2JJhVQaXQ==";
-      sha512 = "a6KW9G+6B3nWZ1yB8G7pJwL3ggLy1uTzKAgCb7ttblwqdz9fMGJUuTy3uFzEP48FAs9FLILlmzDlE2JJhVQaXQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/socks-proxy-agent/-/socks-proxy-agent-6.2.1.tgz";
-    };
     version = "6.2.1";
   };
   "socks-proxy-agent/7.0.0" = {
+    bin = { };
     depInfo = {
       agent-base = {
         descriptor = "^6.0.2";
@@ -2874,18 +2863,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-RZBddA4J4WcXpeTGcHl3SmQxxBlkAPp/XcCc0gKpPD8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/socks-proxy-agent/-/socks-proxy-agent-7.0.0.tgz";
+    };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/7.0.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-Fgl0YPZ902wEsAyiQ+idGd1A7rSFx/ayC1CQVMw5P+EQx2V0SgpGtf6OKFhVjPflPUl9YMmEOnmfjCdMUsygww==";
-      sha512 = "Fgl0YPZ902wEsAyiQ+idGd1A7rSFx/ayC1CQVMw5P+EQx2V0SgpGtf6OKFhVjPflPUl9YMmEOnmfjCdMUsygww==";
-      type = "file";
-      url = "https://registry.npmjs.org/socks-proxy-agent/-/socks-proxy-agent-7.0.0.tgz";
-    };
     version = "7.0.0";
   };
   "socks/2.7.1" = {
+    bin = { };
     depInfo = {
       ip = {
         descriptor = "^2.0.0";
@@ -2897,18 +2886,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-/8rHeSB0iSV5wx9Y34C2+xSSHa3lvF5fMIdUD1d8lXI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/socks/-/socks-2.7.1.tgz";
+    };
     ident = "socks";
     key = "socks/2.7.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-7maUZy1N7uo6+WVEX6psASxtNlKaNVMlGQKkG/63nEDdLOWNbiUMoLK7X4uYoLhQstau72mLgfEWcXcwsaHbYQ==";
-      sha512 = "7maUZy1N7uo6+WVEX6psASxtNlKaNVMlGQKkG/63nEDdLOWNbiUMoLK7X4uYoLhQstau72mLgfEWcXcwsaHbYQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/socks/-/socks-2.7.1.tgz";
-    };
     version = "2.7.1";
   };
   "spdx-correct/3.1.1" = {
+    bin = { };
     depInfo = {
       spdx-expression-parse = {
         descriptor = "^3.0.0";
@@ -2920,32 +2909,32 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-LRoJS+j5IDHTdE7dudfp5OB6pzaztCGOpJnlR5UzShI=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/spdx-correct/-/spdx-correct-3.1.1.tgz";
+    };
     ident = "spdx-correct";
     key = "spdx-correct/3.1.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-cOYcUWwhCuHCXi49RhFRCyJEK3iPj1Ziz9DpViV3tbZOwXD49QzIN3MpOLJNxh2qwq2lJJZaKMVw9qNi4jTC0w==";
-      sha512 = "cOYcUWwhCuHCXi49RhFRCyJEK3iPj1Ziz9DpViV3tbZOwXD49QzIN3MpOLJNxh2qwq2lJJZaKMVw9qNi4jTC0w==";
-      type = "file";
-      url = "https://registry.npmjs.org/spdx-correct/-/spdx-correct-3.1.1.tgz";
-    };
     version = "3.1.1";
   };
   "spdx-exceptions/2.3.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-8oTcNAH2o2kY7XueSX1ZqvtWoUEntJ1X9aqg4Po1uXY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/spdx-exceptions/-/spdx-exceptions-2.3.0.tgz";
+    };
     ident = "spdx-exceptions";
     key = "spdx-exceptions/2.3.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-/tTrYOC7PPI1nUAgx34hUpqXuyJG+DTHJTnIULG4rDygi4xu/tfgmq1e1cIRwRzwZgo4NLySi+ricLkZkw4i5A==";
-      sha512 = "/tTrYOC7PPI1nUAgx34hUpqXuyJG+DTHJTnIULG4rDygi4xu/tfgmq1e1cIRwRzwZgo4NLySi+ricLkZkw4i5A==";
-      type = "file";
-      url = "https://registry.npmjs.org/spdx-exceptions/-/spdx-exceptions-2.3.0.tgz";
-    };
     version = "2.3.0";
   };
   "spdx-expression-parse/3.0.1" = {
+    bin = { };
     depInfo = {
       spdx-exceptions = {
         descriptor = "^2.1.0";
@@ -2957,32 +2946,32 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-LCMRuYaQjyV+uyE5y4d4HaBpVpGuyU9x7jQwRoJB/QU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/spdx-expression-parse/-/spdx-expression-parse-3.0.1.tgz";
+    };
     ident = "spdx-expression-parse";
     key = "spdx-expression-parse/3.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-cbqHunsQWnJNE6KhVSMsMeH5H/L9EpymbzqTQ3uLwNCLZ1Q481oWaofqH7nO6V07xlXwY6PhQdQ2IedWx/ZK4Q==";
-      sha512 = "cbqHunsQWnJNE6KhVSMsMeH5H/L9EpymbzqTQ3uLwNCLZ1Q481oWaofqH7nO6V07xlXwY6PhQdQ2IedWx/ZK4Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/spdx-expression-parse/-/spdx-expression-parse-3.0.1.tgz";
-    };
     version = "3.0.1";
   };
   "spdx-license-ids/3.0.12" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-lmmikT/gYSLHSJruZI9Ljr5XT7pglk6rh6cx/Hq/BCc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/spdx-license-ids/-/spdx-license-ids-3.0.12.tgz";
+    };
     ident = "spdx-license-ids";
     key = "spdx-license-ids/3.0.12";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-rr+VVSXtRhO4OHbXUiAF7xW3Bo9DuuF6C5jH+q/x15j2jniycgKbxU09Hr0WqlSLUs4i4ltHGXqTe7VHclYWyA==";
-      sha512 = "rr+VVSXtRhO4OHbXUiAF7xW3Bo9DuuF6C5jH+q/x15j2jniycgKbxU09Hr0WqlSLUs4i4ltHGXqTe7VHclYWyA==";
-      type = "file";
-      url = "https://registry.npmjs.org/spdx-license-ids/-/spdx-license-ids-3.0.12.tgz";
-    };
     version = "3.0.12";
   };
   "ssri/8.0.1" = {
+    bin = { };
     depInfo = {
       minipass = {
         descriptor = "^3.1.1";
@@ -2990,18 +2979,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-oQEI1+TC6rhwrGO891nY5S6GxRL9QGlBDbMOmUl0RIU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ssri/-/ssri-8.0.1.tgz";
+    };
     ident = "ssri";
     key = "ssri/8.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-97qShzy1AiyxvPNIkLWoGua7xoQzzPjQ0HAH4B0rWKo7SZ6USuPcrUiAFrws0UH8RrbWmgq3LMTObhPIHbbBeQ==";
-      sha512 = "97qShzy1AiyxvPNIkLWoGua7xoQzzPjQ0HAH4B0rWKo7SZ6USuPcrUiAFrws0UH8RrbWmgq3LMTObhPIHbbBeQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/ssri/-/ssri-8.0.1.tgz";
-    };
     version = "8.0.1";
   };
   "ssri/9.0.1" = {
+    bin = { };
     depInfo = {
       minipass = {
         descriptor = "^3.1.1";
@@ -3009,18 +2998,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-qWhpG6QjJSwk2d7vgQ9s41otllikZ2FtdaJdCUDoCWY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/ssri/-/ssri-9.0.1.tgz";
+    };
     ident = "ssri";
     key = "ssri/9.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-o57Wcn66jMQvfHG1FlYbWeZWW/dHZhJXjpIcTfXldXEk5nz5lStPo3mK0OJQfGR3RbZUlbISexbljkJzuEj/8Q==";
-      sha512 = "o57Wcn66jMQvfHG1FlYbWeZWW/dHZhJXjpIcTfXldXEk5nz5lStPo3mK0OJQfGR3RbZUlbISexbljkJzuEj/8Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/ssri/-/ssri-9.0.1.tgz";
-    };
     version = "9.0.1";
   };
   "string-width/4.2.3" = {
+    bin = { };
     depInfo = {
       emoji-regex = {
         descriptor = "^8.0.0";
@@ -3036,18 +3025,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-UkdpzgZbqh+d2lMxcCqdnxter5D6KYGgaYMta2Dhqn4=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz";
+    };
     ident = "string-width";
     key = "string-width/4.2.3";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==";
-      sha512 = "wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==";
-      type = "file";
-      url = "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz";
-    };
     version = "4.2.3";
   };
   "string_decoder/1.3.0" = {
+    bin = { };
     depInfo = {
       safe-buffer = {
         descriptor = "~5.2.0";
@@ -3055,18 +3044,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-eazGQAivX9/7FphEMbSzJR9w+AWaAUazWJjVCVdriUY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/string_decoder/-/string_decoder-1.3.0.tgz";
+    };
     ident = "string_decoder";
     key = "string_decoder/1.3.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==";
-      sha512 = "hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==";
-      type = "file";
-      url = "https://registry.npmjs.org/string_decoder/-/string_decoder-1.3.0.tgz";
-    };
     version = "1.3.0";
   };
   "strip-ansi/6.0.1" = {
+    bin = { };
     depInfo = {
       ansi-regex = {
         descriptor = "^5.0.1";
@@ -3074,18 +3063,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-mMRzEL6fWJXYmQ2ZhRAhnYMcjdNCfvGF3Y7NekoLgXc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz";
+    };
     ident = "strip-ansi";
     key = "strip-ansi/6.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==";
-      sha512 = "Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==";
-      type = "file";
-      url = "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz";
-    };
     version = "6.0.1";
   };
   "tar/6.1.12" = {
+    bin = { };
     depInfo = {
       chownr = {
         descriptor = "^2.0.0";
@@ -3113,18 +3102,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-0XURbM67Zo3SLsZTBKy5MKG8BsgjnRcfJ+diCbMlLQk=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/tar/-/tar-6.1.12.tgz";
+    };
     ident = "tar";
     key = "tar/6.1.12";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-jU4TdemS31uABHd+Lt5WEYJuzn+TJTCBLljvIAHZOz6M9Os5pJ4dD+vRFLxPa/n3T0iEFzpi+0x1UfuDZYbRMw==";
-      sha512 = "jU4TdemS31uABHd+Lt5WEYJuzn+TJTCBLljvIAHZOz6M9Os5pJ4dD+vRFLxPa/n3T0iEFzpi+0x1UfuDZYbRMw==";
-      type = "file";
-      url = "https://registry.npmjs.org/tar/-/tar-6.1.12.tgz";
-    };
     version = "6.1.12";
   };
   "unique-filename/1.1.1" = {
+    bin = { };
     depInfo = {
       unique-slug = {
         descriptor = "^2.0.0";
@@ -3132,18 +3121,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-gWqYPcPboDMP4GKNzj1RUBGN32KD1yWrcdP8mh0gl9g=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/unique-filename/-/unique-filename-1.1.1.tgz";
+    };
     ident = "unique-filename";
     key = "unique-filename/1.1.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-Vmp0jIp2ln35UTXuryvjzkjGdRyf9b2lTXuSYUiPmzRcl3FDtYqAwOnTJkAngD9SWhnoJzDbTKwaOrZ+STtxNQ==";
-      sha512 = "Vmp0jIp2ln35UTXuryvjzkjGdRyf9b2lTXuSYUiPmzRcl3FDtYqAwOnTJkAngD9SWhnoJzDbTKwaOrZ+STtxNQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/unique-filename/-/unique-filename-1.1.1.tgz";
-    };
     version = "1.1.1";
   };
   "unique-filename/2.0.1" = {
+    bin = { };
     depInfo = {
       unique-slug = {
         descriptor = "^3.0.0";
@@ -3151,18 +3140,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-oDyvhs3WyBA5CTblPr9HYJvjY0zHfX+2w9FcQsy6PE8=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/unique-filename/-/unique-filename-2.0.1.tgz";
+    };
     ident = "unique-filename";
     key = "unique-filename/2.0.1";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-ODWHtkkdx3IAR+veKxFV+VBkUMcN+FaqzUUd7IZzt+0zhDZFPFxhlqwPF3YQvMHx1TD0tdgYl+kuPnJ8E6ql7A==";
-      sha512 = "ODWHtkkdx3IAR+veKxFV+VBkUMcN+FaqzUUd7IZzt+0zhDZFPFxhlqwPF3YQvMHx1TD0tdgYl+kuPnJ8E6ql7A==";
-      type = "file";
-      url = "https://registry.npmjs.org/unique-filename/-/unique-filename-2.0.1.tgz";
-    };
     version = "2.0.1";
   };
   "unique-slug/2.0.2" = {
+    bin = { };
     depInfo = {
       imurmurhash = {
         descriptor = "^0.1.4";
@@ -3170,18 +3159,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-62VcWr2HHzj7Z3BXIvqsDE6c+BH5G4dJPvisKKysH8w=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/unique-slug/-/unique-slug-2.0.2.tgz";
+    };
     ident = "unique-slug";
     key = "unique-slug/2.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-zoWr9ObaxALD3DOPfjPSqxt4fnZiWblxHIgeWqW8x7UqDzEtHEQLzji2cuJYQFCU6KmoJikOYAZlrTHHebjx2w==";
-      sha512 = "zoWr9ObaxALD3DOPfjPSqxt4fnZiWblxHIgeWqW8x7UqDzEtHEQLzji2cuJYQFCU6KmoJikOYAZlrTHHebjx2w==";
-      type = "file";
-      url = "https://registry.npmjs.org/unique-slug/-/unique-slug-2.0.2.tgz";
-    };
     version = "2.0.2";
   };
   "unique-slug/3.0.0" = {
+    bin = { };
     depInfo = {
       imurmurhash = {
         descriptor = "^0.1.4";
@@ -3189,32 +3178,32 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-ASKDRDp5bziQTLbFUmU3TADM7lvSjCcwpfUjVzmpbLg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/unique-slug/-/unique-slug-3.0.0.tgz";
+    };
     ident = "unique-slug";
     key = "unique-slug/3.0.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-8EyMynh679x/0gqE9fT9oilG+qEt+ibFyqjuVTsZn1+CMxH+XLlpvr2UZx4nVcCwTpx81nICr2JQFkM+HPLq4w==";
-      sha512 = "8EyMynh679x/0gqE9fT9oilG+qEt+ibFyqjuVTsZn1+CMxH+XLlpvr2UZx4nVcCwTpx81nICr2JQFkM+HPLq4w==";
-      type = "file";
-      url = "https://registry.npmjs.org/unique-slug/-/unique-slug-3.0.0.tgz";
-    };
     version = "3.0.0";
   };
   "util-deprecate/1.0.2" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-rIdgRwu72yh5o+nvWoU8FWww1LMLAIKmtv8wPKglaeY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz";
+    };
     ident = "util-deprecate";
     key = "util-deprecate/1.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==";
-      sha512 = "EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==";
-      type = "file";
-      url = "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz";
-    };
     version = "1.0.2";
   };
   "validate-npm-package-license/3.0.4" = {
+    bin = { };
     depInfo = {
       spdx-correct = {
         descriptor = "^3.0.0";
@@ -3226,18 +3215,18 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-CNe0POqcC+Wvyftds8P4h4leM1+PYJxbHWYS6Baqecg=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/validate-npm-package-license/-/validate-npm-package-license-3.0.4.tgz";
+    };
     ident = "validate-npm-package-license";
     key = "validate-npm-package-license/3.0.4";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==";
-      sha512 = "DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==";
-      type = "file";
-      url = "https://registry.npmjs.org/validate-npm-package-license/-/validate-npm-package-license-3.0.4.tgz";
-    };
     version = "3.0.4";
   };
   "validate-npm-package-name/4.0.0" = {
+    bin = { };
     depInfo = {
       builtins = {
         descriptor = "^5.0.0";
@@ -3245,15 +3234,14 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-Lalu+wGzmv5I2oWKO8BgNCH8u28RFns8ygeqdTOM4pc=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/validate-npm-package-name/-/validate-npm-package-name-4.0.0.tgz";
+    };
     ident = "validate-npm-package-name";
     key = "validate-npm-package-name/4.0.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-mzR0L8ZDktZjpX4OB46KT+56MAhl4EIazWP/+G/HPGuvfdaqg4YsCdtOm6U9+LOFyYDoh4dpnpxZRB9MQQns5Q==";
-      sha512 = "mzR0L8ZDktZjpX4OB46KT+56MAhl4EIazWP/+G/HPGuvfdaqg4YsCdtOm6U9+LOFyYDoh4dpnpxZRB9MQQns5Q==";
-      type = "file";
-      url = "https://registry.npmjs.org/validate-npm-package-name/-/validate-npm-package-name-4.0.0.tgz";
-    };
     version = "4.0.0";
   };
   "which/2.0.2" = {
@@ -3267,19 +3255,19 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-u114pFUXCCiUamLVVZma0Au+didZhD6RCoGTbrh2OhU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/which/-/which-2.0.2.tgz";
+    };
     hasBin = true;
     ident = "which";
     key = "which/2.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==";
-      sha512 = "BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==";
-      type = "file";
-      url = "https://registry.npmjs.org/which/-/which-2.0.2.tgz";
-    };
     version = "2.0.2";
   };
   "wide-align/1.1.5" = {
+    bin = { };
     depInfo = {
       string-width = {
         descriptor = "^1.0.2 || 2 || 3 || 4";
@@ -3287,43 +3275,42 @@
       };
     };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-uHa8iuh3X8Zzmok/1A4ml8nER3SqYaiDysZU2tmzyWY=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/wide-align/-/wide-align-1.1.5.tgz";
+    };
     ident = "wide-align";
     key = "wide-align/1.1.5";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==";
-      sha512 = "eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==";
-      type = "file";
-      url = "https://registry.npmjs.org/wide-align/-/wide-align-1.1.5.tgz";
-    };
     version = "1.1.5";
   };
   "wrappy/1.0.2" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-8EvxGsoK2efCTAOoAHPbfbCoPOJvkmOLPM4XA1rEcVU=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz";
+    };
     ident = "wrappy";
     key = "wrappy/1.0.2";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==";
-      sha512 = "l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==";
-      type = "file";
-      url = "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz";
-    };
     version = "1.0.2";
   };
   "yallist/4.0.0" = {
+    bin = { };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
+    fetchInfo = {
+      narHash = "sha256-JQNNkqswg1ZH4o8PQS2R8WsZWJtv/5R3vRgc4d1vDR0=";
+      type = "tarball";
+      url = "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz";
+    };
     ident = "yallist";
     key = "yallist/4.0.0";
     scoped = false;
-    fetchInfo = {
-      hash = "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==";
-      sha512 = "3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==";
-      type = "file";
-      url = "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz";
-    };
     version = "4.0.0";
   };
 }

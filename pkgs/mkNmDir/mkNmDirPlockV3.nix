@@ -1,5 +1,5 @@
 #
-# mkNmDirPlockV3 { lockDir | plock | metaSet | pkgSet }
+# mkNmDirPlockV3 { lockDir | plock | metaSet | flocoPackages }
 #
 # This is the "magic" `package-lock.json(v2/3)' -> `node_modules/' builder.
 # It's built on top of lower level functions that allow for fine grained
@@ -26,7 +26,9 @@
 { lib
 # You default
 , mkNmDirCmdWith
-, mkSrcEnt
+, mkNmDirCopyCmd
+, mkNmDirLinkCmd
+
 , npmSys
 , system
 
@@ -35,7 +37,9 @@
 , allowedPaths
 , typecheck
 
-, flocoFetch
+, mkSrcEnt'
+, mkSrcEnt ? mkSrcEnt' { inherit pure ifd allowedPaths typecheck; }
+
 , lockDir ? throw "You must provide an arg for me to find your package lock"
 , plock   ? lib.importJSON' ( lockDir + "/package-lock.json" )
 # This is the preferred argument
@@ -44,23 +48,28 @@
   }
 # Used to override paths used as "prepared"
 # If this isn't provided we will create a source tree.
-, pkgSet ? builtins.mapAttrs ( _: mkSrcEnt ) metaSet.__entries
-
+, flocoPackages ? lib.makeExtensible ( _:
+    builtins.mapAttrs ( _: mkSrcEnt ) metaSet.__entries
+  )
 , coreutils
 , lndir ? xorg.lndir
 , xorg
 } @ args: let
   # The `pkgEnt' for the lock we've parsed.
   rootEnt  = metaSet.__meta.rootKey;
+  fenv = { inherit pure ifd allowedPaths typecheck; };
   mkNm = { copy ? false, dev ? true, ... } @ nmArgs: let
     # Get our ideal tree, filtering out packages that are incompatible with
     # out system.
     keyTree = lib.idealTreePlockV3 { inherit metaSet npmSys dev; };
     # Using the filtered tree, pull contents from our package set.
-    pkgTree = builtins.mapAttrs ( path: key: pkgSet.${key} ) keyTree;
-    nmDirCmd = mkNmDirCmdWith ( {
-      inherit copy coreutils lndir;
-      tree = pkgTree;
+    pkgTree =
+      builtins.mapAttrs ( path: lib.getFlocoPkg' fenv flocoPackages ) keyTree;
+    nmDirCmd = ( if copy then mkNmDirCopyCmd else mkNmDirLinkCmd ) ( {
+      inherit
+        coreutils lndir flocoPackages ifd pure allowedPaths typecheck
+      ;
+      tree          = pkgTree;
       ignoreSubBins = false;
       assumeHasBin  = false;
       handleBindir  = false;
@@ -68,30 +77,27 @@
       postNmDir     = "";
     } // ( removeAttrs nmArgs ["dev"] ) );
   in nmDirCmd // {
-    meta = nmDirCmd.meta // {
+    passthru = ( nmDirCmd.passthru or {} ) // {
       inherit metaSet copy dev;
+      inherit pkgTree fenv;
     };
-    passthru = nmDirCmd.passthru // { inherit pkgTree; };
-  };
-  defaultNm = mkNm {};
-in {
-  nmDirCmd   = defaultNm;
-  cmd        = defaultNm.cmd;
-  __toString = self: self.nmDirCmd.cmd;
-  # Cache of most common types.
-  nmDirCmds = {
-    devLink  = defaultNm;
-    devCopy  = mkNm { copy = true; };
-    prodLink = mkNm { dev = false; };
-    prodCopy = mkNm { dev = false; copy = true; };
   };
 
-  # Build a new NM dir with custom args.
-  __functor = self: args: let
-    nmDirCmd = mkNm args;
-  in self // { inherit nmDirCmd; inherit (nmDirCmd) cmd; };
-  __functionArgs = let
-      base = lib.functionArgs mkNmDirCmdWith;
-      clean = removeAttrs base ["override" "overrideDerivation"];
-    in clean // { dev = true; };
-}
+  funk = {
+    __functionArgs =
+      ( lib.functionArgs mkNmDirCmdWith ) // { dev = true; copy = true; };
+    __toString = self: self.nmDirCmd.cmd + "\ninstallNodeModules;\n";
+    __innerFunction = mkNm;
+    # Build a new NM dir with custom args.
+    __functor = self: args: self // { nmDirCmd = self.__innerFunction args; };
+    nmDirCmd = funk.__innerFunction {};
+    # Cache of most common types.
+    passthru = {
+      devLink  = funk.__innerFunction { copy = false; dev = true; };
+      devCopy  = funk.__innerFunction { copy = true;  dev = true; };
+      prodLink = funk.__innerFunction { copy = false; dev = false; };
+      prodCopy = funk.__innerFunction { copy = true;  dev = false; };
+    };
+  };
+
+in funk
