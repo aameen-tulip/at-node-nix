@@ -116,7 +116,7 @@
       };
       flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
         proc = acc: k: if prev ? ${k} then acc else acc // {
-          ${k} = ( prev.lib.apply final.mkSrcEnt final.flocoEnv ) metaSet.${k};
+          ${k} = ( prev.lib.apply final.mkSrcEnt' final.flocoEnv ) metaSet.${k};
         };
         ents = removeAttrs metaSet.__entries ["__meta" "_type"];
       in builtins.foldl' proc {} ( builtins.attrNames ents ) );
