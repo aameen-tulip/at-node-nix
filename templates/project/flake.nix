@@ -91,7 +91,7 @@
            inherit (final.flocoEnv) pure ifd allowedPaths typecheck;
          } metaRaw;
          proc = acc: k: if prev ? ${k} then acc else acc // {
-           ${k} = final.mkSrcEnt metaSet.${k};
+           ${k} = ( lib.apply final.mkSrcEnt' final.flocoEnv ) metaSet.${k};
          };
          ents  = removeAttrs metaSet.__entries ["__meta" "_type"];
        in builtins.foldl' proc {} ( builtins.attrNames ents ) );
@@ -115,7 +115,7 @@
       };
       flocoPackages = prev.flocoPackages.extend ( fpFinal: fpPrev: let
         proc = acc: k: if prev ? ${k} then acc else acc // {
-          ${k} = final.mkSrcEnt metaSet.${k};
+          ${k} = ( lib.apply final.mkSrcEnt final.flocoEnv ) metaSet.${k};
         };
         ents = removeAttrs metaSet.__entries ["__meta" "_type"];
       in builtins.foldl' proc {} ( builtins.attrNames ents ) );
@@ -372,6 +372,6 @@
 
 # ---------------------------------------------------------------------------- #
 #
-# SERIAL: 7
+# SERIAL: 8
 #
 # ============================================================================ #
