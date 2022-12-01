@@ -181,10 +181,8 @@ nativeBuildInputs = let
   configurePhase = lib.withHooks "configure" ''
     if test -d "$node_modules_path"; then
       export PATH="$PATH:$node_modules_path/.bin";
-      export NODE_PATH="$node_modules_path''${NODE_PATH:+:$NODE_PATH}";
     elif test -d "./node_modules"; then
       export PATH="$PATH:$PWD/node_modules/.bin";
-      export NODE_PATH="$PWD/node_modules:''${NODE_PATH:+:$NODE_PATH}";
     fi
   '';
 
@@ -209,12 +207,21 @@ nativeBuildInputs = let
       fi
     else
       echo "Builder's 'node_modules' was not deleted and will be installed" >&2;
+      if test "''${moduleInstall:-0}" != 0; then
+        if test -n "''${node_modules_path:-}"; then
+          if test -e "$node_modules_path"; then
+            mkdir -p "$out";
+            mv "$node_modules_path" "$out/node_modules";
+          fi
+          unset node_modules_path;
+        fi
+      fi
     fi
   '';
 
   installPhase = lib.withHooks "install" ''
     if test "''${moduleInstall:-0}" != 0; then
-      pjsAddMod . "${"$" + moduleOutput}"
+      pjsAddModCopy . "${"$" + moduleOutput}"
     fi
     if test "''${globalInstall:-0}" != 0; then
       installGlobalNodeModule "${"$" + globalOutput}";

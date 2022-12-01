@@ -273,7 +273,7 @@
     inherit ignoreSubBins assumeHasBin handleBindir postNmDir;
     inherit coreutils lndir;
     preNmDir = ''
-      ADD_MOD=pjsAddModLink;
+      : "''${ADD_MOD:=pjsAddModLink}";
       ${args.preNmDir or ""}
     '';
   } // args );
@@ -296,7 +296,7 @@
     inherit ignoreSubBins assumeHasBin handleBindir postNmDir;
     inherit coreutils lndir;
     preNmDir = ''
-      ADD_MOD=pjsAddModCopy;
+      : "''${ADD_MOD:=pjsAddModCopy}";
       ${args.preNmDir or ""}
     '';
   } // args );

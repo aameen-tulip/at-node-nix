@@ -48,7 +48,7 @@ installGlobalNodeModule_runNmDirCmd() {
 
   if test -n "${globalNmDirCmdPath:-}"; then
     mkdir -p "$node_modules_path";
-    source "$globalNmDirCmdPath";
+    ( export ADD_MOD=pjsAddModCopy; . "$globalNmDirCmdPath"; )
   else
     mkdir -p "$node_modules_path";
     eval "${globalNmDirCmd:-:}";
@@ -59,7 +59,7 @@ installGlobalNodeModule_runNmDirCmd() {
   fi
   # FIXME: this was needed to fix existing builders, but I'm not in love with it
   if test -n "$( declare -F installNodeModules; )"; then
-    installNodeModules;
+    ( export ADD_MOD=pjsAddModCopy; installNodeModules; )
   fi
 
   # Restore original value;
@@ -76,7 +76,7 @@ installGlobalNodeModule() {
   installGlobalNodeModule_setup "$@";
   runHook preInstallGlobalNodeModule;
   echo "Adding Module to $idir" >&2;
-  pjsAddMod . "$idir";
+  pjsAddModCopy . "$idir";
   echo "Symlinking bins" >&2;
   installGlobalNodeModule_symlink_bins;
   echo "Running nmDirCmd" >&2;
