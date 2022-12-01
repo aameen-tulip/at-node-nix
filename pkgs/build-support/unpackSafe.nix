@@ -49,7 +49,8 @@ in untarSanPerms ( {
     "--no-overwrite-dir"
   ];
   extraDrvAttrs.allowSubstitutes = allowSubstitutes;
-  extraAttrs.meta = args.meta or {};
+  extraAttrs.meta     = args.meta or {};
+  extraAttrs.passthru = args.passthru or {};
 } // ( if (
   ( args.name or args.metaEnt.names.src or null ) != null
 ) then { name = args.name or args.metaEnt.names.src; } else {} ) //

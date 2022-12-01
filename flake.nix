@@ -80,27 +80,26 @@
     # Avoid overriding the `nodejs' version just because you are building other
     # packages which require a specific `nodejs' version.
     overlays.pacote = final: prev: let
-      callPackageWith  = auto: nixpkgs.lib.callPackageWith ( final // {
-        nodejs = prev.nodejs-14_x;
-      } // auto );
-      callPackagesWith = auto: nixpkgs.lib.callPackagesWith ( final // {
-        nodejs = prev.nodejs-14_x;
-      } // auto );
-      callPackage  = callPackageWith {};
-      callPackages = callPackagesWith {};
-      pacoteModule = callPackage ./pkgs/tools/pacote/pacote.nix {
-        mkNmDir = final.mkNmDirCopyCmd;
-        inherit (final.flocoEnv) ifd pure allowedPaths typecheck;
-      };
-      pacoteUtil   = callPackages ./pkgs/tools/pacote/pacote-cli.nix {};
+      fenv = { ifd = false; pure = true; allowedPaths = []; typecheck = true; };
     in {
-      flocoPackages.pacote = final.lib.addFlocoPackages ( _: _: {
-        "pacote/${pacoteModule.version}" = pacoteModule;
-        pacote = pacoteModule;
-      } );
-      inherit pacoteModule;
-      pacote = pacoteModule.global;
-      inherit (pacoteUtil) pacotecli pacote-manifest;
+      flocoPackages = let
+        pacoteDef = import ./pkgs/tools/pacote/pacote.nix ( fenv // {
+          inherit (final) lib evalScripts system mkNmDirCopyCmd;
+          mkNmDir = final.mkNmDirCopyCmd;
+        } );
+      in final.lib.addFlocoPackages prev (
+        pacoteDef.passthru.pkgSet // { ${pacoteDef.key} = pacoteDef; }
+      );
+      pacote = let
+        latest = final.lib.libfloco.satisfyFlocoPkg' fenv final.flocoPackages {
+          ident      = "pacote";
+          includePre = false;
+        };
+      in latest.global;
+      inherit (import ./pkgs/tools/pacote/pacote-cli.nix {
+        inherit (final) pacote;
+        inherit (prev) runCommandNoCC;
+      }) pacotecli pacote-manifest;
     };
 
 
@@ -140,7 +139,7 @@
       pkgsFor = nixpkgs.legacyPackages.${system}.extend overlays.default;
     in {
 
-      inherit (pkgsFor) pacote pacoteModule genMeta;
+      inherit (pkgsFor) pacote genMeta;
 
       tests = let
         pf = pkgsFor.extend ( final: prev: {

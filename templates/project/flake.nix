@@ -239,7 +239,7 @@
             if builtins.pathExists ./package-lock.json
             then final.mkNmDirPlockV3 {
               lockDir = toString ./.;
-              pkgSet  = final.flocoPackages;
+              inherit (final) flocoPackages;
             } else final.mkNmDirLinkCmd {
               tree = let
                 metaRaw =
@@ -247,7 +247,7 @@
                   at-node-nix.lib.importJSONOr {} ./meta.json;
               in metaRaw.__meta.trees.dev or
                  ( throw "No tree definition found" );
-              pkgSet = final.flocoPackages;
+              inherit (final) flocoPackages;
             };
         };  # End module definition
       } );  # End flocoPackages
@@ -299,7 +299,7 @@
         # For running the test suite we'll use symlinks of the production tree.
         # The `nmDirPlockV3' info we used previously can be referenced here so
         # we can avoid the boilerplate of generating `nmDirs' again.
-        nmDirCmd = package.passthru.nmDirs.nmDirCmds.prodLink or
+        nmDirCmd = package.passthru.nmDirs.passthru.prodLink or
           ( pkgsFor.mkNmDirLinkCmd {
               tree = let
                 metaRaw =
@@ -307,8 +307,8 @@
                   at-node-nix.lib.importJSONOr {} ./meta.json;
               in metaRaw.__meta.trees.prod or
                  ( throw "No tree definition found" );
-            pkgSet = pkgsFor.flocoPackages;
-          } );
+              inherit (pkgsFor) flocoPackages;
+            } );
         runScripts = ["test"];
         checkPhase = ''
           grep -q '^PASS$' ./test.log||exit 1;
