@@ -27,11 +27,12 @@
 # to that package set.
 
 { lib
-, name    ? meta.names.prepared or "${baseNameOf ident}-eval-${version}"
-, ident   ? args.meta.ident
-, version ? args.meta.version or ( lib.last ( lib.splitString "-" name ) )
+, name    ? metaEnt.names.prepared or "${baseNameOf ident}-eval-${version}"
+, ident   ? args.metaEnt.ident
+, version ? args.metaEnt.version or ( lib.last ( lib.splitString "-" name ) )
 , src
-, meta    ? lib.libmeta.mkMetaEntCore { inherit ident version; }
+, metaEnt ? lib.libmeta.mkMetaEntCore { inherit ident version; }
+, meta    ? {}  # TODO
 
 # Scripts to be run during `builPhase'.
 # These are executed in the order they appear, and may appear multiple times.
@@ -88,6 +89,7 @@ let
       "globalOutput" "moduleOutput"
       "doStrip"
       "override" "overrideDerivation" "__functionArgs" "__functor"
+      "metaEnt"
       "nativeBuildInputs"  # We extend this
       "passthru"           # We extend this
     ];
@@ -99,20 +101,12 @@ let
   nmDirCmd =
     if ! ( args ? nmDirCmd ) then ":" else
     if builtins.isString args.nmDirCmd then args.nmDirCmd else
-    if args.nmDirCmd ? cmd then ''
-      ${args.nmDirCmd.cmd}
-      installNodeModules;
-    '' else
     if args.nmDirCmd ? __toString then toString args.nmDirCmd else
     throw "No idea how to treat this as a `node_modules/' directory builder.";
 
   globalNmDirCmd =
     if ! ( args ? globalNmDirCmd ) then nmDirCmd else
     if builtins.isString args.globalNmDirCmd then args.globalNmDirCmd else
-    if args.globalNmDirCmd ? cmd then ''
-      ${args.globalNmDirCmd.cmd}
-      installNodeModules;
-    '' else
     if args.globalNmDirCmd ? __toString then toString args.globalNmDirCmd else
     throw "No idea how to treat this as a `node_modules/' directory builder.";
 
@@ -227,9 +221,13 @@ nativeBuildInputs = let
     fi
   '';
 
-  passthru = ( args.passthru or {} ) // {
-    inherit src nodejs nmDirCmd globalNmDirCmd;
-  };
+  passthru = let
+    nmsExplicit = builtins.intersectAttrs {
+      nmDirCmd       = true;
+      globalNmDirCmd = true;
+    } args;
+    nms = nmDirScripts // nmsExplicit;
+  in ( args.passthru or {} ) // { inherit src nodejs; } // nms;
 
   dontStrip = true;
 

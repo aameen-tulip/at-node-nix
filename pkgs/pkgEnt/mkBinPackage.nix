@@ -14,19 +14,19 @@
 # ---------------------------------------------------------------------------- #
 
 { lib
-, name        ? meta.names.global or "${baseNameOf ident}-${version}"
-, ident       ? args.meta.ident or ( dirOf args.key )
-, version     ? args.meta.version or ( baseNameOf args.key )
-, key         ? args.meta.key or "${ident}/${version}"
+, name        ? metaEnt.names.global or "${baseNameOf ident}-${version}"
+, ident       ? args.metaEnt.ident or ( dirOf args.key )
+, version     ? args.metaEnt.version or ( baseNameOf args.key )
+, key         ? args.metaEnt.key or "${ident}/${version}"
 , src
 , globalNmDirCmd ? args.nmDirCmd or ":"
-, meta           ? lib.libmeta.mkMetaEntCore { inherit ident version; }
+, metaEnt        ? lib.libmetaEnt.mkMetaEntCore { inherit ident version; }
 , evalScripts
 , ...
 } @ args: let
   mkDrvArgs = removeAttrs args ["evalScripts"];
 in evalScripts ( {
-  inherit name ident version src globalNmDirCmd meta;
+  inherit name ident version src globalNmDirCmd metaEnt;
   runScripts    = [];
   globalInstall = true;
   postUnpack    = ":";

@@ -238,6 +238,7 @@
       # Original input tree.
       fullTree = tree;
     };
+    __toString = self: self.cmd + "\ninstallNodeModules;\n";
   };
 
   # Defining `__functionArgs' is what allows users to run `callPackage' on this

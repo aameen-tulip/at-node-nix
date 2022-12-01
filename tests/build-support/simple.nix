@@ -30,6 +30,7 @@ in evalScripts {
     cp -r --reflink=auto -- ${nan} $node_modules_path/nan;
     chmod -R +w "$node_modules_path";
   '';
+  globalNmDirCmd.__toString = self: self.cmd + "\ninstallNodeModules;\n";
   globalNmDirCmd.cmd = ''
     installNodeModules() {
       mkdir -p "$node_modules_path";
