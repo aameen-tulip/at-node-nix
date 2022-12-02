@@ -27,7 +27,9 @@
 # ---------------------------------------------------------------------------- #
 { lib
 , coreutils
-, lndir           # From `nixpkgs.xorg.lndir'
+, lndir       # From `nixpkgs.xorg.lndir'
+, system      # For filtering `npmSys'
+#, nodejs     # TODO: For `engines'
 , ...
 } @ globalArgs: let
 
@@ -90,24 +92,34 @@
   , ifd
   , allowedPaths
   , typecheck
+
+  , system ? globalArgs.system
   , ...
   } @ args: let
 
     fenv = { inherit pure ifd allowedPaths typecheck; };
 
-    tree' = let
-      subs = lib.filterAttrs ( k: v: ! ( lib.hasPrefix "../" k ) ) tree;
-    in removeAttrs subs [""];
-
     keyToPkg = let
       inner = key: let
         tryPkg = lib.getFlocoPkg' fenv flocoPackages key;
       in if tryPkg != null
-         then builtins.attErrorContext "Processing: ${key}" tryPkg
+         then builtins.addErrorContext "Processing: ${key}" tryPkg
          else throw "mkNmDirCmdWith: No definitions for ${key}";
       # TODO: real type for `fpkg'.
-    in if typecheck then yt.defun [yt.PkgInfo.key ( yt.attrs.any )] inner else
+    in if typecheck then yt.defun [yt.PkgInfo.key ( yt.attrs yt.any )] inner else
        inner;
+
+    tree' = let
+      npmSys   = lib.getNpmSys { inherit system; };
+      cond     = k: v: let
+        fpkg    = keyToPkg v;
+        metaEnt =
+          if fpkg != null then lib.getMetaEntFromFlocoPkg' fenv fpkg else null;
+        supported = if metaEnt == null then true else
+                    lib.pkgSysCond metaEnt npmSys;
+      in ( ! ( lib.hasPrefix "../" k ) ) && supported;
+      subs = lib.filterAttrs cond tree;
+    in removeAttrs subs [""];
 
     keylikeHasBin = k: let
       isKey = yt.PkgInfo.key.check k;
