@@ -54,6 +54,7 @@ struct NpmArchiveInputScheme : InputScheme
                           url.url );
           }
 
+
         auto path = tokenizeString<std::vector<std::string>>( url.path, "/" );
 
         std::string ident;
@@ -85,6 +86,8 @@ struct NpmArchiveInputScheme : InputScheme
           }
         else if ( size == 2 )
           {
+            auto spat =
+              tokenizeString<std::vector<std::string>>( path[1], "@" );
             /* baz/1.0.0, %40foo%2Fbar/1.0.0, @foo%2fbar/1.0.0 */
             if ( std::regex_match( path[0], npmUnescapedBnameRegex ) &&
                  std::regex_match( path[1], npmVersionRegex ) )
@@ -100,6 +103,13 @@ struct NpmArchiveInputScheme : InputScheme
                   ident, std::regex( "\%2[fF]" ), "/"
                 );
               }
+            else if ( std::regex_match( path[0], npmUnescapedScopeRegex ) &&
+                 std::regex_match( spat[0], npmUnescapedBnameRegex ) &&
+                 std::regex_match( spat[1], npmVersionRegex ) )
+              {
+                ident   = path[0] + "/" + spat[0];
+                version = spat[1];
+              }
             else
               {
                 throw BadURL(
@@ -112,11 +122,11 @@ struct NpmArchiveInputScheme : InputScheme
           {
             auto spat =
               tokenizeString<std::vector<std::string>>( path[0], "@" );
-            if ( std::regex_match( path[0], npmUnescapedBnameRegex ) &&
-                 std::regex_match( path[1], npmVersionRegex ) )
+            if ( std::regex_match( spat[0], npmUnescapedBnameRegex ) &&
+                 std::regex_match( spat[1], npmVersionRegex ) )
               {
-                ident   = path[0];
-                version = path[1];
+                ident   = spat[0];
+                version = spat[1];
               }
             else
               {
@@ -138,7 +148,6 @@ struct NpmArchiveInputScheme : InputScheme
 
         for ( auto &[name, value] : url.query )
           {
-            std::cerr << "Name: " << name << "\n" << "Value: " << value << "\n";
             if ( name == "unpack" )
               {
                 input.attrs.insert_or_assign(
@@ -172,7 +181,7 @@ struct NpmArchiveInputScheme : InputScheme
 
         getStrAttr( attrs, "ident" );
         getStrAttr( attrs, "version" );
-        getStrAttr( attrs, "sha512" );
+        maybeGetStrAttr( attrs, "sha512" );
         maybeGetBoolAttr( attrs, "unpack" );
 
         Input input;
