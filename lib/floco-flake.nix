@@ -37,6 +37,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # TODO: `fenv'
+
   # FIXME: if plock and cache are disable use `metaEntFromSerial'
   # on `package.json'.
   # FIXME: read packuments?
@@ -44,7 +46,6 @@
   loadMetaFiles' = {
     pdir
   , cacheFile   ? null
-  , flocoConfig ? {}
   , enablePlock ? true
   , enableCache ? true
   , metaSet     ? lib.mkMetaSet {}
@@ -53,7 +54,6 @@
     lockMeta = let
       lm = lib.metaSetFromPlockV3 {
         lockDir = pdir;
-        inherit flocoConfig;
       };
     in if builtins.pathExists ( pdir + "/package-lock.json" ) then lm else {};
 

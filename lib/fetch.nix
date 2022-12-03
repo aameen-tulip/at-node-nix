@@ -16,14 +16,6 @@
 #
 # ---------------------------------------------------------------------------- #
 
-  defaultFlocoEnv = {
-    pure      = lib.inPureEvalMode or true;
-    typecheck = false;
-    # TODO: ifd
-  };
-
-
-# ---------------------------------------------------------------------------- #
 
   # Given a `resolved' URI from a `package-lock.json', ROUGHLY discern its
   # `builtins.fetchTree' source "type".
@@ -62,28 +54,29 @@
 
 # ---------------------------------------------------------------------------- #
 
-  flocoProcessGitArgs' = { typecheck, pure } @ fenv: self: x: let
-    # TODO: `resolved' should be handled by `libplock', not here.
-    rough =
-      if yt.NpmLock.pkg_git_v3.check x
-      then lib.libplock.plockEntryToGenericGitArgs' fenv x
-      else if x ? rev then x else
-      lib.libplock.plockEntryToGenericGitArgs' fenv ( x // {
-        resolved = x.url or x.resolved;
-      } );
-    tas     = ( self.__thunk or {} ) // rough;
-    type    = if lib.libfetch.isGithubUrl rough.url then "github" else "git";
-    fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
-              lib.libfetch.fetchGitW;
-    args = if type != "github" then tas else
-           removeAttrs ( tas // { inherit type; } ) ["url"];
-  in lib.canPassStrict fetcher args;
+  flocoProcessGitArgs' = { typecheck, pure, ifd, allowedPaths } @ fenv: self: x:
+    let
+      # TODO: `resolved' should be handled by `libplock', not here.
+      rough =
+        if yt.NpmLock.pkg_git_v3.check x
+        then lib.libplock.plockEntryToGenericGitArgs' fenv {} x
+        else if x ? rev then x else
+             lib.libplock.plockEntryToGenericGitArgs' fenv {} ( x // {
+               resolved = x.url or x.resolved;
+             } );
+      tas     = ( self.__thunk or {} ) // rough;
+      type    = if lib.libfetch.isGithubUrl rough.url then "github" else "git";
+      fetcher = if type == "github" then lib.libfetch.fetchTreeGithubW else
+                lib.libfetch.fetchGitW;
+      args = if type != "github" then tas else
+            removeAttrs ( tas // { inherit type; } ) ["url"];
+    in lib.canPassStrict fetcher args;
 
 
 # ---------------------------------------------------------------------------- #
 
-  flocoGitFetcher' = { typecheck, pure } @ fenv: let
-    lfc = lib.libfetch.laikaFetchersConfigured fenv;
+  flocoGitFetcher' = { typecheck, pure, ifd, allowedPaths } @ fenv: let
+    lfc = lib.apply lib.libfetch.laikaFetchersConfigured fenv;
   in lfc.fetchGitW // {
       __functionMeta = {
         name      = "flocoGitFetcher";
@@ -106,7 +99,7 @@
                                     lib.libfetch.genericGitArgFields;
       in tfields // { resolved = true; };
       __thunk       = lfc.fetchGitW.__thunk // { allRefs = true; };
-      __processArgs = flocoProcessGitArgs' { inherit typecheck pure; };
+      __processArgs = flocoProcessGitArgs' fenv;
       __functor     = self: x: let
         argt = if typecheck then builtins.head self.__functionMeta.signature
                             else ( y: y );
@@ -124,14 +117,6 @@
       in rslt fetched;
   };
 
-  flocoGitFetcherUntyped = flocoGitFetcher' ( defaultFlocoEnv // {
-    typecheck = false;
-  } );
-  flocoGitFetcherTyped = flocoGitFetcher' ( defaultFlocoEnv // {
-    typecheck = true;
-  } );
-  flocoGitFetcher = flocoGitFetcher' defaultFlocoEnv;
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -140,8 +125,8 @@
   # split the fetch/unpack processes into two parts.
   # In our case we /can/ and sometimes want to, so we have two distinct fetchers
   # for each flow.
-  flocoUrlFetcher' = { typecheck, pure } @ fenv: let
-    lfc = lib.libfetch.laikaFetchersConfigured fenv;
+  flocoUrlFetcher' = { ifd, typecheck, pure, allowedPaths } @ fenv: let
+    lfc = lib.apply lib.libfetch.laikaFetchersConfigured fenv;
     loc = "at-node-nix#lib.libfetch.flocoUrlFetcher";
   in {
     __functionMeta = {
@@ -149,7 +134,7 @@
       from       = "at-node-nix#lib.libfetch";
       innerName  = "laika#lib.libfetch.<fetchTreeW|fetchurlDrvW>";
       signature  = [yt.any yt.FlocoFetch.fetched];
-      properties = fenv;
+      properties = { inherit pure typecheck; };
     };
 
     __functionArgs = {
@@ -189,10 +174,10 @@
        throw "(${loc}): Args are not suitable for any available fetcher";
 
     __processArgs = self: x: let
-      plArgs = lib.libplock.plockEntryToGenericUrlArgs' {
-        inherit typecheck pure;
+      plArgs = lib.libplock.plockEntryToGenericUrlArgs' fenv {
         postFn = lib.libfetch.asGenericUrlArgsImpure;
       } ( self.__thunk // x );
+      # FIXME:
       rawArgs = lib.libfetch.asGenericUrlArgsImpure ( self.__thunk // x );
       args    = if x ? resolved then plArgs else rawArgs;
       fetcher = self.__pickFetcher self ( self.__thunk // args );
@@ -248,7 +233,7 @@
 
   # NOTE: in `passthru' the `fetcher' field will be `fetchTreeW' not
   # `fetchTreeTarballW' beacuse it is set by the wrapped function.
-  flocoTarballFetcher' = { typecheck, pure } @ fenv: {
+  flocoTarballFetcher' = { typecheck, pure, ifd, allowedPaths } @ fenv: {
     __functionMeta = {
       name      = "flocoTarballFetcher";
       from      = "at-node-nix#lib.libfetch";
@@ -273,18 +258,10 @@
     __functor = self: x: self.__innerFunction ( self.__processArgs self x );
   };
 
-  flocoTarballFetcherUntyped = flocoTarballFetcher' ( defaultFlocoEnv // {
-    typecheck = false;
-  } );
-  flocoTarballFetcherTyped = flocoTarballFetcher' ( defaultFlocoEnv // {
-    typecheck = true;
-  } );
-  flocoTarballFetcher = flocoTarballFetcher' defaultFlocoEnv;
-
 
 # ---------------------------------------------------------------------------- #
 
-  flocoFileFetcher' = { typecheck, pure } @ fenv: {
+  flocoFileFetcher' = { typecheck, pure, ifd, allowedPaths } @ fenv: {
     __functionMeta = {
       name      = "flocoFileFetcher";
       from      = "at-node-nix#lib.libfetch";
@@ -311,14 +288,6 @@
     __functor = self: x: self.__innerFunction ( self.__processArgs self x );
   };
 
-  flocoFileFetcherUntyped = flocoFileFetcher' ( defaultFlocoEnv // {
-    typecheck = false;
-  } );
-  flocoFileFetcherTyped = flocoFileFetcher' ( defaultFlocoEnv // {
-    typecheck = true;
-  } );
-  flocoFileFetcher = flocoFileFetcher' defaultFlocoEnv;
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -342,8 +311,9 @@
   # in `metaEnt' data ( this still applies `filter' if it is defined ).
   # If `outPath' is an arg no filtering is applied; the path it taken "as is",
   # which helps avoid needlessly duplicating store paths.
-  flocoPathFetcher' = { typecheck, pure } @ fenv: let
-    lfc = lib.libfetch.laikaFetchersConfigured fenv;
+  flocoPathFetcher' = { typecheck, pure, ifd, allowedPaths } @ fenv: let
+    lfc = lib.apply lib.libfetch.laikaFetchersConfigured fenv;
+    flocoPathFetcher = flocoPathFetcher' fenv;
   in {
     __functionMeta = {
       name      = "flocoPathFetcher";
@@ -419,14 +389,6 @@
     in rslt fetched;
   };
 
-  flocoPathFetcherUntyped = flocoPathFetcher' ( defaultFlocoEnv // {
-    typecheck = false;
-  } );
-  flocoPathFetcherTyped = flocoPathFetcher' ( defaultFlocoEnv // {
-    typecheck = true;
-  } );
-  flocoPathFetcher = flocoPathFetcher' defaultFlocoEnv;
-
 
 # ---------------------------------------------------------------------------- #
 
@@ -481,14 +443,14 @@
       allowSubstitutes = true;
     };
 
-    __functor = self: x: let
-      flocoConfig      = x.flocoConfig or lib.flocoConfig or {};
-      args             = flocoConfig.flocoFetchArgs // x;
+    __functor = self: args: let
       allowSubstitutes = args.allowSubstitues or true;
-      pure             = args.pure or defaultFlocoEnv.pure;
-      typecheck        = args.typecheck or defaultFlocoEnv.typecheck;
+      pure             = args.pure;
+      typecheck        = args.typecheck;
+      ifd              = args.ifd;
+      allowedPaths     = args.allowedPaths;
       defaultFetchers = let
-        fa = { inherit typecheck pure; };
+        fa = { inherit typecheck pure ifd allowedPaths; };
       in {
         tarballFetcher = lib.libfetch.flocoTarballFetcher' fa;
         fileFetcher    = lib.libfetch.flocoFileFetcher'    fa;
@@ -504,17 +466,18 @@
         else fetchersNoConf // {
           pathFetcher = fetchersNoConf.pathFetcher // {
             __thunk   = fetchersNoConf.pathFetcher.__thunk // {
-              basedir = x.basedir or null;  # Should throw internally if needed.
+              # Should throw internally if needed.
+              basedir = args.basedir or null;
             };
           };
         };
-    in { inherit typecheck pure fetchers; };
+    in { inherit typecheck pure ifd allowedPaths fetchers; };
   };  # End `mkFlocoFetchers''`
 
 
 # ---------------------------------------------------------------------------- #
 
-  mkFlocoFetcher' = { fetchers, pure, typecheck }: {
+  mkFlocoFetcher' = { fetchers, pure, typecheck, ifd, allowedPaths }: {
     __functor = self: x: let
       pp = lib.generators.toPretty {};
       forPlent = lib.libplock.identifyPlentFetcherFamily x;
@@ -541,7 +504,8 @@
 
   _fenvFns = {
     inherit
-      flocoProcessGitArgs'     flocoGitFetcher'
+      flocoProcessGitArgs'
+      flocoGitFetcher'
       #flocoProcessUrlArgs'
       flocoUrlFetcher'
       #flocoProcessFileArgs'
@@ -550,8 +514,8 @@
       flocoTarballFetcher'
       #flocoProcessPathArgs'
       flocoPathFetcher'
-      # TODO: mkFlocoFetchers'
-      # TODO: mkFlocoFetcher'
+      mkFlocoFetchers'
+      mkFlocoFetcher'
     ;
   };
 
@@ -565,11 +529,10 @@ in {
 
     flocoUrlFetcher'
 
-    flocoGitFetcher'     flocoGitFetcherUntyped     flocoGitFetcherTyped
-    flocoTarballFetcher' flocoTarballFetcherUntyped flocoTarballFetcherTyped
-    flocoFileFetcher'    flocoFileFetcherUntyped    flocoFileFetcherTyped
-    flocoPathFetcher'    flocoPathFetcherUntyped    flocoPathFetcherTyped
-    flocoGitFetcher flocoTarballFetcher flocoFileFetcher flocoPathFetcher
+    flocoGitFetcher'
+    flocoTarballFetcher'
+    flocoFileFetcher'
+    flocoPathFetcher'
 
     mkFlocoFetchers'
     mkFlocoFetcher
