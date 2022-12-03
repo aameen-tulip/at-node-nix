@@ -393,8 +393,6 @@
 # ---------------------------------------------------------------------------- #
 
   # A wrapper for your wrapper.
-  # This pulls fetchers from your `flocoConfig', and routes inputs to the
-  # proper fetcher.
   # Largely relies on `ffamily', `fetchInfo', and `<PLENT>.resolved' data.
   # You likely want to create a fetcher for each `lockDir'/`metaSet' if you
   # are trying to fetch "raw" `package-lock.json' or `package.json' sources -
