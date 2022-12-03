@@ -86,22 +86,6 @@
       expected = { os = "linux"; cpu = "x64"; };
     };
 
-    testGetNpmSys'_flocoConfigPlat = {
-      expr = getNpmSys' {
-        flocoConfig.buildPlatform = lib.systems.elaborate "x86_64-linux";
-        flocoConfig.hostPlatform  = lib.systems.elaborate "x86_64-linux";
-      };
-      expected = { os = "linux"; cpu = "x64"; };
-    };
-
-    testGetNpmSys'_flocoConfigNpmSys = {
-      expr = getNpmSys' {
-        flocoConfig.npmSys = { os = "linux"; cpu = "x64"; };
-      };
-      expected = { os = "linux"; cpu = "x64"; };
-    };
-
-
     # We really just care that the `(builtins|lib).functionArgs' align.
     testGetNpmSys = {
       expr = [

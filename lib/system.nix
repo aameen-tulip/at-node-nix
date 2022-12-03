@@ -108,39 +108,31 @@
   #
   # You can comb through the conditionals to see the fallback behavior, but
   # the priority is:
-  #   os|cpu       ( if passed `flocoConfig.npmSys' can supply these  )
+  #   os|cpu
   #   system
   #   hostPlaform  ( from `stdenv'. `buildPlatform' is used as a fallback )
-  #   builtins.currentSystem ( iff flocoConfig.enableImpureMeta = true ).
   #
   # Personally, I would pass `system' here unless you're cross-compiling, in
   # which case you'll want to pass `hostPlatform'.
   getNpmSys' = {
-    system ? if enableImpureMeta then builtins.currentSystem else null
+    system ? null
   , cpu ?
       if args ? npmSys.cpu then npmSys.cpu else
-      if args ? flocoConfig.npmSys.cpu then flocoConfig.npmSys.cpu else
       if args ? system then getNpmCpuForSystem system else
       if hostPlatform != null then getNpmCpuForPlatform hostPlatform else
       # `system' bottoms out to `null' in pure mode.
       if system != null then getNpmCpuForSystem system else null
   , os ?
       if args ? npmSys.os then npmSys.os else
-      if args ? flocoConfig.npmSys.os then flocoConfig.npmSys.os else
       if args ? system then getNpmOSForSystem system else
       if hostPlatform != null then getNpmOSForPlatform hostPlatform else
       # `system' bottoms out to `null' in pure mode.
       if system != null then getNpmOSForSystem system else null
   # Priority for platforms aligns with Nixpkgs' fallbacks
-  , hostPlatform     ? if stdenv != null then stdenv.hostPlatform else
-                       args.flocoConfig.hostPlatform or buildPlatform
-  , buildPlatform    ? if stdenv != null then stdenv.buildPlatform else
-                       args.flocoConfig.buildPlatform or null
-  , enableImpureMeta ? args.flocoConfig.enableImpureMeta or
-                       lib.flocoConfig.enableImpureMeta # (false)
-  , stdenv      ? args.pkgsFor.stdenv or args.pkgs.stdenv or null
-  , npmSys      ? throw "(getNpmSys'): UNREACHABLE"
-  , flocoConfig ? throw "(getNpmSys'): UNREACHABLE"
+  , hostPlatform ? if stdenv != null then stdenv.hostPlatform else buildPlatform
+  , buildPlatform ? if stdenv != null then stdenv.buildPlatform else null
+  , stdenv ? args.pkgsFor.stdenv or args.pkgs.stdenv or null
+  , npmSys ? throw "(getNpmSys'): UNREACHABLE"
   , ...
   } @ args: if ( os == null ) ||( cpu == null ) then null else {
     inherit cpu os;
@@ -154,8 +146,7 @@
   # codebase I'm just going to do this the ugly way so the `builtin' works.
   getNpmSys = {
     system ? null, cpu ? null, os ? null, hostPlatform ? null
-  , buildPlatform ? null, enableImpureMeta ? null, stdenv ? null
-  , flocoConfig ? null, npmSys ? null, ...
+  , buildPlatform ? null, stdenv ? null, npmSys ? null, ...
   } @ args: let
     rsl = getNpmSys' args;
     msg = "(getNpmSys): Failed to derive OS and/or CPU from args";
