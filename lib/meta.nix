@@ -1,155 +1,78 @@
 # ============================================================================ #
+#
+# In an ideal world: metadata would always be "flat" plain old data.
+# No derivations, no store paths, no string contexts.
+# If you want any of those things, scroll down and use `passthru'.
+# This ideal is maintained when "serializing" metadata to disk to be read back
+# later - however, in practice we often need to allow metadata representations
+# to carry functions or thunks so that they may be specialized and optimized.
+#
+# In general we aim to keep those types of routines to a strict minimum.
+# One clever trick to achieve this is by defining metadata as a recursive set
+# of "layers" which may depend on one another - effectively this lets us express
+# metadata as a pipeline from "raw" info into processed info, in such a way that
+# these transformations are performed lazily.
+#
+# Ideally, metadata fields should not need to be "recomputed" once retrieved,
+# and need to be able to write to/from JSON to be saved on disk.
+# Derivations cannot be serialized, except in the Nix store;
+# similarly Store Paths cannot be read from a regular file or from JSON,
+# because Nix has no way of determining which derivation produced the path.
+# This is why the separation between `passthru' and `meta' exists.
+# Even when evaluating metadata recursively you should keep derivations and
+# store paths in `passthru'!
+# If you see existing routines that break this rule please file an issue.
+#
+#
+# ---------------------------------------------------------------------------- #
+#
+# NOTE: It is fine to "fill metadata" fields from things like a REGISTERED
+# `package.json' or `packument' file ( NOT a local tree/git checkout! ), but
+# you need to be absolutely positive that this metadata will never change for
+# this package version, and in theory you should be able to carve this in
+# stone on disk as `read-only' forever and always.
+# If you do so, be sure to run `builtins.unsafeRemoveStringContext' so Nix
+# knows "no seriously this data is not ever going to change" so that it can
+# be dynamically repacked into a regular string.
+#
+# XXX: For a local tree, you generally shouldn't record that metadata to disk,
+# because presumably whatever version number is in your `package.json'
+# isn't "real".
+# You could add some ridiculous hash to ensure you don't write "bad"
+# metadata, OR you can let Nix do that for you - all you do it
+# "don't call `builtins.unsafeRemoveStringContext'".
+# Yep, that's it, pretty easy.
+# No need to generate a unique hash for your source tree, because y'know,
+# that's that thing that Nix does all the time for every file using
+# string contexts.
+#
+# This giant block about "meta" is really aiming to tell you "meta" is the
+# exception to Nix's tracking, so we treat it with exceptional caution.
+#
+# These functions never call `builtins.unsafeDiscardStringConext' - and this
+# is intentional ( and I know it seems inconvenient ).
+# This is because we NEED the user to take responsibility for explicitly
+# deciding when contexts should be stripped, so that we can use `meta' tags
+# in "impure" builds without poisoning the cache.
+#
+# Scripts like `genMeta' and certain specialized "serializers" are explicitly
+# intended for handling local trees; but this should always be done with
+# real caution or some form of infrastructure to auto-update cached info in
+# favor of updated metadata.
+# See this [[file:../templates/project/flake.nix][project template]] for an
+# example of managing a metadata cache as an optimization for a local project.
+#
+# ---------------------------------------------------------------------------- #
 
 { lib }: let
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  inherit (yt.FlocoMeta) _meta_ext_fields;
 
-# ---------------------------------------------------------------------------- #
-
-  # Metadata must be "flat" plain old data.
-  # No derivations, no store paths, no string contexts.
-  # If you want any of those things, scroll down and use `passthru'.
-  #
-  # Metadata fields should not need to be "recomputed" once retrieved, and
-  # need to be able to write to/from JSON to be saved on disk.
-  # Derivations cannot be serialized, except in the Nix store;
-  # similarly Store Paths cannot be read from a regular file or from JSON,
-  # because Nix has no way of determining which derivation produced the path.
-  # This is why the separation between `passthru' and `meta' exists.
-  #
-  # NOTE: It is fine to "fill metadata" fields from things like a REGISTERED
-  # `package.json' or `packument' file ( NOT a local tree/git checkout! ), but
-  # you need to be absolutely positive that this metadata will never change for
-  # this package version, and in theory you should be able to carve this in
-  # stone on disk as `read-only' forever and always.
-  # If you do so, be sure to run `builtins.unsafeRemoveStringContext' so Nix
-  # knows "no seriously this data is not ever going to change" so that it can
-  # be dynamically repacked into a regular string.
-  #
-  # XXX: For a local tree, you shouldn't record that metadata to disk, because
-  # presumably whatever version number is in your `package.json' isn't "real".
-  # You could add some ridiculous hash to ensure you don't write "bad"
-  # metadata, OR you can let Nix do that for you - all you do it
-  # "don't call `builtins.unsafeRemoveStringContext'".
-  # Yep, that's it, pretty easy.
-  # No need to generate a unique hash for your source tree, because y'know,
-  # that's that thing that Nix does all the time for every file using
-  # string contexts.
-  # This giant block about "meta" is really aiming to tell you "meta" is the
-  # exception to Nix's tracking, so we treat it with exceptional caution.
-  #
-  # These functions never call `builtins.unsafeDiscardStringConext' - and this
-  # is intentional ( and I know it seems inconvenient ).
-  # This is because we NEED the user to take responsibility for explicitly
-  # deciding when contexts should be stripped, so that we can use `meta' tags
-  # in "impure" builds without poisoning the cache.
-
-
-# ---------------------------------------------------------------------------- #
-
-  extInfoExtras = let
-    names = [
-      "__add"
-      "__entries"
-      "__extend"
-      "__extendEx"
-      "__new"
-      "__serial"
-      "__thunkWith"
-      "__unfix__"
-      "__update"
-      "__updateEx"
-    ];
-  in assert names == yt.FlocoMeta._meta_ext_fields;
-     names;
-
-# ---------------------------------------------------------------------------- #
-#
-# `__serial' is a functor attached to attrsets which produces a reduced
-# attrset of fields which may be written to disk.
-# This functor is recursive by default, so any fields which are attrsets and
-# have their own `__serial' function will be respected recursively.
-# The use case here is largely for stashing values which were realized through
-# impure operations or "import from derivation" routines, which we want to
-# purify in later builds.
-#
-# For example, we may as an optimization lookup the `narHash' of fetched
-# tarballs to allow us to use `builtins.fetchTree' in pure evaluation mode in
-# later runs.
-# Alternatively we may query an NPM registry to look up package information
-# that we want to save for later runs to avoid running those queries again.
-#
-# `__serial' functions are written with the intention of being used with
-# "recursive attrsets", such as those seen in overlays and fixed-points.
-# With that in mind they are always written to accept the argument `self' -
-# with the single exception of `serialIgnore' which accepts no argument and
-# is simply the boolean value `false' ( indicating that this attrset should
-# be ignored entirely - this is done to distinguish from the literal value
-# false, and is a slight optimization over `serialDrop' which requires
-# string comparison ).
-#
-# I expect that in many cases you will want to write your own implementation
-# of `__serial' to suit your use case; but a sane default implementation may
-# be found below and used as a jumping off point for your own custom routine.
-# Please remember our rules for serializing data in Nix though:
-#   1. Serialized data must be readable and writable by `(to|from)JSON' -
-#      this means only attrsets, strings, booleans, lists, floats, and
-#      integers may be written.
-#   2. Store paths must not appear in strings - this means derivations may
-#      not be serialized because both their inputs and `outPath' fields
-#      contain Nix store paths.
-#   3. Fields with the name `__serial', `__extend', and `passthru' should
-#      never be written, and in general you should treat any field beginning
-#      with "__" as hidden by default.
-#      You may have cases where you actually do want to write "__" prefixed
-#      fields, but you are expected to explicitly whitelist those in a custom
-#      `__serial' implementation.
-#   4. The string value "__DROP__" is reserved and should not be written.
-#      This allows recursive `__serial' functions to dynamically hide fields.
-#   5. You should always respect the `serialIgnore' pattern for recursive
-#      `__serial' functions.
-#      This simply means ignoring `v ? __serial && v.__serial == serialIgnore'
-#      attrset values in an object ( see `serialDefault' `keepAttrs' ).
-#
-# ---------------------------------------------------------------------------- #
-
-  # The simplest type of serializer.
-  serialAsIs   = self: removeAttrs self ( extInfoExtras ++ ["passthru"] );
-  # Do not serialize attrsets with this serializer, you must explicitly check
-  # for this reserved serializer.
-  # See notes in section above.
-  serialIgnore = false;
-  # A second type of reserved serializer which allows recursive `__serialize'
-  # routines to dynamically hide members.
-  # See notes in section above.
-  serialDrop   = self: "__DROP__";
-
-  # A sane default serializer.
-  # Use this as a model for your implementations.
-  serialDefault = self: let
-    keepF = k: v: let
-      inherit (builtins) isAttrs isString typeOf elem;
-      keepType = elem ( typeOf v ) ["set" "string" "bool" "list" "int" "float"];
-      keepAttrs =
-        if v ? __serial then v.__serial != serialIgnore else
-          ( ! lib.isDerivation v );
-      keepStr = ! lib.hasPrefix "/nix/store/" v;
-      keepT =
-        if isAttrs  v then keepAttrs else
-        if isString v then keepStr   else keepType;
-      keepKey = ! lib.hasPrefix "__" k;
-    in keepKey && keepT;
-    keeps = lib.filterAttrs keepF ( serialAsIs self );
-    serializeF = k: v: let
-      fromSerial =
-        if builtins.isFunction v.__serial then v.__serial v else v.__serial;
-      fromAttrs = if v ? __serial then fromSerial else
-                  if v ? __toString then toString v else
-                  serialDefault v;
-    in if builtins.isAttrs v then fromAttrs else v;
-    serialized = builtins.mapAttrs serializeF keeps;
-  in lib.filterAttrs ( _: v: v != "__DROP__" ) serialized;
-
+  inherit (lib.libmeta)
+    serialAsIs serialIgnore serialDrop serialDefault
+    metaEntSerialDefault metaEntSerial
+  ;
 
 # ---------------------------------------------------------------------------- #
 
@@ -158,6 +81,31 @@
   asRecur = x: if builtins.isFunction x then x else
     assert builtins.isAttrs x;
     ( self: x );
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Convert package "keys" ( "@foo/bar/1.0.0" ) to attrsets as:
+  #   foo = { bar = { v1_0_0 = { ... }; }; };
+  # Keys are grouped by scope, name, and the final version field holds the
+  # original keys' values.
+  # XXX: Please do not use this in any routines; it was written exclusively for
+  # convenience when `nix repl' is being used to avoid having to quote fields
+  # and allow <TAB> autocompletion to behave as expected.
+  unkeyAttrs = __entriesFn: self: let
+    inherit (builtins) groupBy attrValues mapAttrs replaceStrings head;
+    mapVals = fn: mapAttrs ( _: fn );
+    getScope = x: x.scope or x.names.scope or x.meta.names.scope or "_";
+    gs = groupBy getScope ( attrValues ( __entriesFn self ) );
+    getPname = x:
+      baseNameOf ( x.ident or
+                   ( builtins.head ( builtins.catAttrs "ident" x ) ) );
+    is = mapVals ( groupBy getPname ) gs;
+    getVers = x: let
+      v = x.version or ( builtins.head ( builtins.catAttrs "version" x ) );
+    in "v${replaceStrings ["." "+"] ["_" "_"] v}";
+    vs = mapVals ( mapVals ( ids: mapVals head ( groupBy getVers ids ) ) ) is;
+  in vs;
 
 
 # ---------------------------------------------------------------------------- #
@@ -176,8 +124,8 @@
   # `__entries' scrubs any "non-entry" fields which is useful for mapping over
   # "real" entries to avoid processing meta fields.
   # You may pass in your own definition to hide additional fields; when doing so
-  # I strongly recommend using `extInfoExtras' as a base list of fields to
-  # always exclude.
+  # I strongly recommend using `yt.FlocoMeta._meta_ext_fields' as a base list of
+  # fields to always exclude.
   #
   # `__serial' scrubs any entries or fields of those entries which should not
   # be written to disk in the even that entries are serialized with a function
@@ -237,7 +185,7 @@
   mkExtInfo' = {
     __serial  ? serialDefault
   , __entries ? self:
-      removeAttrs self ( extInfoExtras ++ ( builtins.attrNames extra ) )
+      removeAttrs self ( _meta_ext_fields ++ ( builtins.attrNames extra ) )
   , strict ? false  # Checks `__unfix__' before applying any extensions.
   , ...
   } @ extra: info: let
@@ -315,65 +263,6 @@
   metaSupportsPlV3 = _metaWasFrom [
     "package-lock.json(v2)" "package-lock.json(v3)"
   ];
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Hide values which can be easily inferred from `package-lock.json' entry.
-  # For example we know the entry must declare `hasInstallScript' so we can
-  # safely omit it.
-  metaEntPlSerial = self: let
-    # Start with the default serializer's output.
-    dft = metaEntSerialDefault self;
-    # Drop values which are assumed to be false when unspecified.
-    hides = [
-      "hasBin"
-      "hasBuild"
-      "hasInstallScript"
-    # When `hasInstallScript == true' we always preserve `gypfile', otherwise
-    # we always drop it.
-    ] ++ ( lib.optional ( ! ( self.hasInstallScript or false ) ) "gypfile" );
-    hide = removeAttrs dft hides;
-    keepTrue = let
-      cond = k: v:
-        ( builtins.elem k hides ) && ( builtins.isBool v ) && v;
-    in lib.filterAttrs cond dft;
-  in assert metaWasPlock self;
-     hide // keepTrue;
-
-
-# ---------------------------------------------------------------------------- #
-
-  metaEntSerialDefault = self: let
-    drops = ["_type" "scoped"];
-    base = removeAttrs ( serialDefault self ) drops;
-    # TODO: fetchInfo relative paths
-  in base;
-
-
-# ---------------------------------------------------------------------------- #
-
-  # Maps `entFromtype' to default serializers.
-  # Largely these hide additional fields which can be easily inferred using
-  # `entFromtype`.
-  metaEntSerialByFromtype = {
-    "package.json"          = metaEntSerialDefault;  # TODO
-    "vinfo"                 = metaEntSerialDefault;  # TODO
-    "packument"             = metaEntSerialDefault;  # TODO
-    "package-lock.json"     = metaEntPlSerial;
-    "package-lock.json(v1)" = metaEntPlSerial;
-    "package-lock.json(v2)" = metaEntPlSerial;
-    "package-lock.json(v3)" = metaEntPlSerial;
-    "yarn.lock"             = metaEntSerialDefault;  # TODO
-    "yarn.lock(v1)"         = metaEntSerialDefault;  # TODO
-    "yarn.lock(v2)"         = metaEntSerialDefault;  # TODO
-    "yarn.lock(v3)"         = metaEntSerialDefault;  # TODO
-    raw                     = metaEntSerialDefault;
-    _default                = metaEntSerialDefault;
-  };
-
-  metaEntSerial = { entFromtype ? "_default", ... } @ self:
-    metaEntSerialByFromtype.${entFromtype} self;
 
 
 # ---------------------------------------------------------------------------- #
@@ -457,7 +346,7 @@
     __serial  = metaEntSerial;
     # Ignore extra fields, and similar to `__serial' recur `__entries' calls.
     __entries = self: let
-      scrub = removeAttrs self ( extInfoExtras ++ [
+      scrub = removeAttrs self ( _meta_ext_fields ++ [
         "_type" "__pscope"
       ] );
       subEnts = _: v: if ( v ? __entries ) then v.__entries else v;
@@ -498,31 +387,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # Convert package "keys" ( "@foo/bar/1.0.0" ) to attrsets as:
-  #   foo = { bar = { v1_0_0 = { ... }; }; };
-  # Keys are grouped by scope, name, and the final version field holds the
-  # original keys' values.
-  # XXX: Please do not use this in any routines; it was written exclusively for
-  # convenience when `nix repl' is being used to avoid having to quote fields
-  # and allow <TAB> autocompletion to behave as expected.
-  unkeyAttrs = __entriesFn: self: let
-    inherit (builtins) groupBy attrValues mapAttrs replaceStrings head;
-    mapVals = fn: mapAttrs ( _: fn );
-    getScope = x: x.scope or x.names.scope or x.meta.names.scope or "_";
-    gs = groupBy getScope ( attrValues ( __entriesFn self ) );
-    getPname = x:
-      baseNameOf ( x.ident or
-                   ( builtins.head ( builtins.catAttrs "ident" x ) ) );
-    is = mapVals ( groupBy getPname ) gs;
-    getVers = x: let
-      v = x.version or ( builtins.head ( builtins.catAttrs "version" x ) );
-    in "v${replaceStrings ["." "+"] ["_" "_"] v}";
-    vs = mapVals ( mapVals ( ids: mapVals head ( groupBy getVers ids ) ) ) is;
-  in vs;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Represents a collection of `metaEnt' attrs which organizes entries by "key".
   # This carries some additional helper functors aimed at making it easy to
   # operate on entries within the set.
@@ -559,7 +423,7 @@
        assert builtins.isAttrs members;
        membersRFromAS;
     extras = let
-      __entries = self: removeAttrs self ( extInfoExtras ++ [
+      __entries = self: removeAttrs self ( _meta_ext_fields ++ [
         "__meta" "__pscope" "__unkey" "__mapEnts" "_type"
         "__maybeApplyEnt"
       ] );
@@ -672,13 +536,6 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  # Base Serializers
-  inherit
-    serialAsIs
-    serialIgnore
-    serialDrop
-    serialDefault
-  ;
   # Base ExtInfo
   inherit
     mkExtInfo'
@@ -686,8 +543,6 @@ in {
   ;
   # Meta Entries
   inherit
-    metaEntSerialDefault
-    metaEntSerial
     metaEntExtendWithNames
     metaEntNames
     mkMetaEntCore
@@ -704,7 +559,6 @@ in {
   # Utils and Misc
   inherit
     unkeyAttrs
-    extInfoExtras
   ;
 
   inherit

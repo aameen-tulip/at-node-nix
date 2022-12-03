@@ -58,7 +58,7 @@ in {
   libreg     = callLib  ./registry.nix;
   libtree    = callLibs [./tree.nix ./focus-tree.nix];
   libsys     = callLib  ./system.nix;
-  libmeta    = callLibs [./meta.nix ./meta-ent.nix];
+  libmeta    = callLibs [./meta.nix ./meta-ent.nix ./serial.nix];
   libdep     = callLib  ./depinfo.nix;
   libsat     = callLib  ./sat.nix;
   libevent   = callLib  ./events.nix;
@@ -134,12 +134,6 @@ in {
   ;
 
   inherit (final.libmeta)
-    serialAsIs
-    serialDefault
-    serialIgnore
-    serialDrop
-
-    extInfoExtras
     mkExtInfo'
     mkExtInfo
     metaWasPlock

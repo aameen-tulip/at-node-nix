@@ -98,6 +98,7 @@
       in if ok then { inherit ok; } else { inherit ok err; };
     };
 
+
     meta_ent = yt.restrict "metaEnt" ( x: ( x._type or null ) == "metaEnt" )
                                      yt.FlocoMeta.Typeclasses.meta_ext;
     meta_set = yt.restrict "metaSet" ( x: ( x._type or null ) == "metaSet" )
