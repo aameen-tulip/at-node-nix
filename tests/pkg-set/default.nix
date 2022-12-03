@@ -14,9 +14,13 @@
 , writeText ? pkgsFor.writeText
 
 # Configured/Util
-, flocoUnpack ? pkgsFor.flocoUnpack
-, flocoConfig ? pkgsFor.flocoConfig
-, flocoFetch  ? lib.mkFlocoFetcher { inherit flocoConfig; }
+, flocoUnpack  ? pkgsFor.flocoUnpack
+, flocoFetch   ? lib.mkFlocoFetcher { inherit ifd pure allowedPaths typecheck; }
+
+, ifd          ? ( builtins.currentSystem or null ) == system
+, pure         ? lib.inPureEvalMode
+, typecheck    ? true
+, allowedPaths ? []
 
 , keepFailed ? false  # Useful if you run the test explicitly.
 , doTrace    ? true   # We want this disabled for `nix flake check'
@@ -27,10 +31,25 @@
 
   # Used to import test files.
   autoArgs = {
-    inherit lib system flocoConfig flocoFetch pkgsFor flocoUnpack;
     inherit (pkgsFor)
-      mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
+      mkNmDirCmdWith
+      mkNmDirCopyCmd
+      mkNmDirLinkCmd
+      mkNmDirPlockV3
       mkTarballFromLocal
+      buildPkgEnt
+      installPkgEnt
+    ;
+    inherit
+      lib
+      system
+      flocoFetch
+      pkgsFor
+      flocoUnpack
+      ifd
+      pure
+      allowedPaths
+      typecheck
     ;
   } // args;
 

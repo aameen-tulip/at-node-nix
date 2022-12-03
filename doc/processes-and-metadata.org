@@ -20,7 +20,6 @@ With that in mind it's good to know exactly what information we /really/ need to
 * Process Prerequisites
 ** Fetch Source
 - Create =fetchInfo= member ( ideally from =plock= input )
-- Handle unpacking if necessary, depending on a user's =flocoConfig= this may mean performing a dry run of unpacking to see if anything fails.
   See =lib.libfetch.fetchurlNoteUnpackDrvW= for details.
   + Executing an unpack routine may be deferred to a later build, install, or prepare process - but it must be identified and marked immediately.
 

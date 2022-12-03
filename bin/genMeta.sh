@@ -388,13 +388,7 @@ export FLAKE_REF EXTRA_NPM_FLAGS EXTRA_NIX_FLAGS;
 $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
   $FLAKE_REF#legacyPackages --apply '
   lp: let
-    pkgsFor = lp.${builtins.currentSystem}.extend ( final: prev: {
-      lib = prev.lib.extend ( _: libPrev: {
-        flocoConfig = libPrev.flocoConfig // {
-          enableImpureMeta = true;
-        };
-      } );
-    } );
+    pkgsFor = lp.${builtins.currentSystem};
     inherit (pkgsFor) lib;
 
     # Yank args from ENV vars.
@@ -422,7 +416,11 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
     # Generate a metaSet
     metaSet = lib.metaSetFromPlockV3 {
       inherit lockDir;
-      plock = if isDev then plock else plockND;
+      plock        = if isDev then plock else plockND;
+      pure         = false;
+      ifd          = true;
+      allowedPaths = [lockDir];
+      typecheck    = true;
     };
 
     # Prep metadata for export/serialization
@@ -482,7 +480,7 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
        "# Deserialze with:  lib.metaSetFromSerial\n" +
        "# Regen with: ${cmd}\n";
     forNix = let
-      prettyNoEsc = lib.generators.toPretty { allowPrettyValues = true; } data;
+      prettyNoEsc = lib.generators.toPretty { allowPrettyValues = false; } data;
       pretty = builtins.replaceStrings [
         " assert = "  " with = " " let = " " in = " " or = "
         " inherit = " " rec = "

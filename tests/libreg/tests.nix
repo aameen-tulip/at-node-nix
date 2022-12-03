@@ -24,9 +24,9 @@
     bar      = "https://npm.pkgs.github.com";
   };
 
-  flocoConfig0 = lib.mkFlocoConfig { registryScopes = registryScopes0; };
-
-  lib0 = lib.extend ( _: _: { flocoConfig = flocoConfig0; } );
+  registryForScope0 = lib.libreg.registryForScope // {
+    __thunk.registryScopes = registryScopes0;
+  };
 
 
 # ---------------------------------------------------------------------------- #
@@ -48,7 +48,7 @@
         { key   = "@foo/bar/1.0.0-pre"; } { meta.key   = "@foo/bar/1.0.0-pre"; }
       ];
     in {
-      expr     = map lib0.libreg.registryForScope args;
+      expr     = map registryForScope0 args;
       expected = map ( _: registryScopes0.foo ) args;
     };
 
@@ -68,7 +68,7 @@
         { key   = "@foo/baz/1.0.0"; meta.key   = "@bar/baz/1.0.0"; }
       ];
     in {
-      expr     = map lib0.libreg.registryForScope args;
+      expr     = map registryForScope0 args;
       expected = map ( _: registryScopes0.foo ) args;
     };
 
@@ -77,7 +77,7 @@
 
     # Test `_default'/fallback.
     testRegistryForScope2 = {
-      expr = map lib0.libreg.registryForScope [
+      expr = map registryForScope0 [
         "baz" "@baz/bar" "."
         # NOTE: This isn't specified in the docs because I don't want people to
         # rely on it; but it's supported to align with the use of

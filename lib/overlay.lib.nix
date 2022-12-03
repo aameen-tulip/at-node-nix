@@ -38,16 +38,6 @@ final: prev: let
 
 in {
 
-  # FIXME: this is evil and it really contradicts the idea of "pure" libs.
-  # You need to make the effected routines explicitly accept relevant args
-  # and handle any config options like this at the call site.
-  # As convenient as this has been while developing libs, it is difficult to
-  # use from the context of a Nixpkgs overlay.
-  flocoConfig = (
-    callLib ./config.nix
-  ).mkFlocoConfig ( prev.flocoConfig or {} );
-
-
 # ---------------------------------------------------------------------------- #
 
   libcfg = callLib ./config.nix;
@@ -93,8 +83,11 @@ in {
 
 
   inherit (final.libfetch)
-    flocoPathFetcher
-    flocoGitFetcher
+    flocoUrlFetcher'
+    flocoTarballFetcher'
+    flocoFileFetcher'
+    flocoPathFetcher'
+    flocoGitFetcher'
     mkFlocoFetcher
   ;
 
@@ -166,8 +159,6 @@ in {
 
   inherit (final.libcfg)
     getDefaultRegistry
-    mkFlocoConfig
-
     mkFenvLibSet
   ;
 

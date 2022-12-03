@@ -22,11 +22,8 @@
   # Because `package-lock.json(V2)' supports schemas v1 and v3, these helpers
   # shorten schema checks.
 
-  supportsPlV1 = { lockfileVersion, ... }:
-    ( lockfileVersion == 1 ) || ( lockfileVersion == 2 );
-
-  supportsPlV3 = { lockfileVersion, ... }:
-    ( lockfileVersion == 2 ) || ( lockfileVersion == 3 );
+  supportsPlV1 = yt.NpmLock.plock_supports_v1.check;
+  supportsPlV3 = yt.NpmLock.plock_supports_v3.check;
 
 
 # ---------------------------------------------------------------------------- #
@@ -90,10 +87,8 @@
   # They just have an assert that freaks out if you're missing a hash field.
   # Our inner fetchers will catch that anyway so don't sweat it.
   plockEntryToGenericUrlArgs' = {
-    postFn    ? ( x: x )
-  , typecheck
-  , pure  # TODO: currently unused
-  } @ fenv: let
+    ifd, pure, typecheck, allowedPaths
+  } @ fenv: { postFn ? ( x: x ) }: let
     inner = {
       resolved
     , sha1_hash ? plent.sha1 or plent.shasum or null
@@ -153,10 +148,8 @@
   # XXX: I'm not sure we can get away with using `type = "github";' unless we
   # are sure that we know the right `ref'/`branch'. Needs testing.
   plockEntryToGenericGitArgs' = {
-    postFn    ? ( x: x )
-  , typecheck
-  , pure  # TODO: currently unused
-  } @ fenv: let
+    ifd, pure, typecheck, allowedPaths
+  } @ fenv: { postFn ? ( x: x ) }: let
     inner = { resolved, ... } @ args: let
       inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
       allRefs' = let
@@ -228,10 +221,8 @@
 
   #yt.defun [yt.NpmLock.Structs.pkg_git_v3 rtype] inner;
   plockEntryToGenericPathArgs' = {
-    postFn    ? ( x: x )
-  , typecheck
-  , pure  # TODO: currently unused
-  } @ fenv: let
+    typecheck, pure, ifd, allowedPaths
+  } @ fenv: { postFn ? ( x: x ) }: let
     inner = {
       resolved ? _pkey
     , link     ? false
@@ -325,9 +316,7 @@
   # With that in mind you might see this routine as a reference spec for more
   # optimized "practical" scrapers.
   fetchInfoGenericFromPlentV3' = {
-    pure      ? lib.inPureEvalMode
-  , ifd       ? true
-  , typecheck ? false
+    pure, ifd, typecheck, allowedPaths
   } @ fenv: {
     lockDir
   , postFn  ? ( x: x )  # Applied to generic argset before returning
@@ -339,15 +328,15 @@
     # more reasonable before they become part of the `metaEnt' or get sent
     # to fetchers.
     toGenericArgs = lib.matchLam {
-      git  = plockEntryToGenericGitArgs'  { inherit typecheck pure; };
-      file = plockEntryToGenericUrlArgs'  { inherit typecheck pure; };
-      path = plockEntryToGenericPathArgs' { inherit typecheck pure; };
+      git  = plockEntryToGenericGitArgs'  fenv {};
+      file = plockEntryToGenericUrlArgs'  fenv {};
+      path = plockEntryToGenericPathArgs' fenv {};
     };
   in { pkey, plent }: let
     byFF  = discrPlentFetcherFamily plent;
     ftype = lib.tagName byFF;
-    prep  = if ftype == "path" then { path = { inherit lockDir pkey plent; }; }
-                               else byFF;
+    prep  = if ftype != "path" then byFF else
+            { path = { inherit lockDir pkey plent; }; };
   in postFn ( toGenericArgs prep );
 
 
@@ -360,6 +349,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: `fenv'
+
   # Three args.
   # First holds "global" settings while the second is the actual plock entry.
   # Second and Third are the "path" and "entry" from `<PLOCK>.packages', and
@@ -367,11 +358,10 @@
   metaEntFromPlockV3 = {
     lockDir
   , lockfileVersion ? 3
-  , pure            ? flocoConfig.pure or lib.inPureEvalMode
+  , pure            ? lib.inPureEvalMode
   , ifd             ? true
   , typecheck       ? false
   , allowedPaths    ? []
-  , flocoConfig     ? lib.flocoConfig
   , plock           ? lib.importJSON ( lockDir + "/package-lock.json" )
   , includeTreeInfo ? false  # Includes info about this instance and changes
                              # the `key' field to include the `pkey' path.
@@ -409,13 +399,15 @@
       hasInstallScript = plent.hasInstallScript or false;
       entFromtype      = "package-lock.json(v${toString lockfileVersion})";
       fetchInfo        = lib.libplock.fetchInfoGenericFromPlentV3' {
-        inherit pure ifd typecheck;
+        inherit pure ifd typecheck allowedPaths;
       } { inherit lockDir; } { inherit pkey; plent = args; };
     } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
       // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } );
     meta = lib.libmeta.mkMetaEnt baseFields;
     ex = let
-      ovs = flocoConfig.metaEntOverlays or [];
+      # FIXME:
+      #ovs = metaEntOverlays or [];
+      ovs = [];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
     in if ( ovs != [] ) then meta.__extend ov else meta;
   in ex;
@@ -430,8 +422,7 @@
   , lockPath        ? lockDir + "/package-lock.json"
 
   # FIXME
-  , flocoConfig     ? lib.flocoConfig or {}
-  , pure            ? flocoConfig.pure or lib.inPureEvalMode
+  , pure            ? lib.inPureEvalMode
   , ifd             ? false
   , typecheck       ? false
   , allowedPaths    ? []
@@ -442,7 +433,7 @@
     inherit (plock) lockfileVersion;
     mkOne = lib.libplock.metaEntFromPlockV3 {
       inherit pure ifd typecheck allowedPaths;
-      inherit lockDir flocoConfig plock includeTreeInfo;
+      inherit lockDir plock includeTreeInfo;
       inherit (plock) lockfileVersion;
     };
     # FIXME: we are going to merge multiple instances in a really dumb way here
@@ -494,7 +485,9 @@
     };
     base = lib.libmeta.mkMetaSet members;
     ex = let
-      ovs = flocoConfig.metaSetOverlays or [];
+      # FIXME:
+      #ovs = metaSetOverlays or [];
+      ovs = [];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
     in if ( ovs != [] ) then base.__extend ov else base;
   in ex;

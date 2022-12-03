@@ -143,7 +143,6 @@
   # more details. PREFER: `system' and `hostPlatform'.
   , system ? null, hostPlatform ? null, buildPlatform ? null
   , cpu ? null, os ? null, enableImpureMeta ? null, stdenv ? null
-  , flocoConfig ? null
   , ...
   } @ args: let
 
@@ -199,16 +198,13 @@
 
   # Returns the prod and dev tree from a `package-lock.json'.
   # The output format is convenient for merging with a `metaSet'.
-  treesFromPlockV3 = { plock , flocoConfig ? lib.flocoConfig }: let
+  treesFromPlockV3 = { plock }: let
     ident   = plock.name or plock.packages."".name;
     version = plock.version or plock.packages."".version;
   in {
     rootKey = "${ident}/${version}";
-    trees.prod = lib.libtree.idealTreePlockV3 {
-      inherit plock flocoConfig;
-      dev = false;
-    };
-    trees.dev = lib.libtree.idealTreePlockV3 { inherit plock flocoConfig; };
+    trees.prod = lib.libtree.idealTreePlockV3 { inherit plock; dev = false; };
+    trees.dev = lib.libtree.idealTreePlockV3 { inherit plock; };
   };
 
 

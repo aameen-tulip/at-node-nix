@@ -83,7 +83,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: `flocoConfig.metaEntOverlays'
+  # FIXME: `metaEntOverlays'
   metaEntFromPjsNoWs' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
     rjenv = removeAttrs fenv ["metaEntOverlays"];
     raenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
@@ -198,7 +198,7 @@
           if lib.libpkginfo.hasInstallFromScripts prev.scripts then true else
           null;
       };
-      #ovs = flocoConfig.metaEntOverlays or [];
+      #ovs = metaEntOverlays or [];
       #...
       ov = lib.composeExtensions ( _: prev:
         extra // infoFs // prev

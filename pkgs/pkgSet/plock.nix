@@ -1,18 +1,28 @@
 { lib
 , lockDir
-, flocoConfig
 
-, mkPkgEntSource
+, mkSrcEnt
 , mkNmDirPlockV3
+
 , runCommandNoCC
 , buildPkgEnt
 , installPkgEnt
 , testPkgEnt
 
+, ifd
+, pure
+, allowedPaths
+, typecheck
+, basedir ? toString lockDir
+
 }: let
-  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
+
+  fenv = { inherit ifd pure allowedPaths typecheck; };
+
+  metaSet = lib.metaSetFromPlockV3 ( fenv // { inherit lockDir basedir; } );
+
   pkgSet = builtins.mapAttrs ( path: metaEnt: let
-    basePkgEnt = mkPkgEntSource metaEnt;
+    basePkgEnt = mkSrcEnt metaEnt;
     doBins = runCommandNoCC basePkgEnt.meta.names.prepared {
       src = basePkgEnt.source;
       # The version on `node-js' that we can't `patchShebangs' to use.
@@ -30,6 +40,7 @@
        if basePkgEnt.meta.hasBin           then doBins                   else
        basePkgEnt
   ) metaSet.__entries;
+
   nmd = mkNmDirPlockV3 {
     # Packages will be pulled from here when their "key" ( "<IDENT>/<VERSION>" )
     # matches an attribute in the set.

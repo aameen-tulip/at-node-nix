@@ -12,11 +12,13 @@
 , pkgsFor     ? at-node-nix.legacyPackages.${system}
 , lib         ? at-node-nix.lib
 , writeText   ? pkgsFor.writeText
-, rime        ? at-node-nix.inputs.rime
 
-, flocoUnpack ? pkgsFor.flocoUnpack
-, flocoConfig ? pkgsFor.flocoConfig
-, flocoFetch  ? pkgsFor.flocoFetch
+, flocoUnpack  ? pkgsFor.flocoUnpack
+, flocoFetch   ? lib.mkFlocoFetcher { inherit ifd pure allowedPaths typecheck; }
+, ifd          ? ( builtins.currentSystem or null ) == system
+, pure         ? lib.inPureEvalMode
+, allowedPaths ? []
+, typecheck    ? true
 
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
@@ -37,7 +39,14 @@
       mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
       mkTarballFromLocal
     ;
-    inherit flocoUnpack flocoConfig flocoFetch;
+    inherit
+      flocoUnpack
+      flocoFetch
+      ifd
+      pure
+      typecheck
+      allowedPaths
+    ;
   } // args;
 
   tests = let

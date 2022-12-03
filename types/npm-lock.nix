@@ -17,6 +17,7 @@
   lib.test = patt: s: ( builtins.match patt s ) != null;
 
   _lock_uris = import ./npm/lock/uri.nix { inherit ytypes; };
+  _lock_base = import ./npm/lock/generic.nix { inherit ytypes; };
 
 # ---------------------------------------------------------------------------- #
 
@@ -186,17 +187,14 @@
 
 in {
 
-  Enums = ( _lock_uris.Enums or {} ) // {
-    # Add some
-  };
-  Sums = ( _lock_uris.Sums or {} ) // Sums;
-  Eithers = ( _lock_uris.Eithers or {} ) // {
+  Attrs   = ( _lock_uris.Attrs or {} ) // ( _lock_base.Attrs or {} );
+  Enums   = ( _lock_uris.Enums or {} ) // ( _lock_base.Structs or {} );
+  Sums    = ( _lock_uris.Sums or {} ) // ( _lock_base.Structs or {} ) // Sums;
+  Strings = ( _lock_uris.Strings or {} ) // ( _lock_base.Structs or {} );
+  Eithers = ( _lock_uris.Eithers or {} ) // ( _lock_base.Structs or {} ) // {
     inherit pkey;
   };
-  Strings = ( _lock_uris.Strings or {} ) // {
-    # Add some
-  };
-  Structs = ( _lock_uris.Structs or {} ) // {
+  Structs = ( _lock_uris.Structs or {} ) // ( _lock_base.Structs or {} ) // {
     inherit
       pkg_path_v3  # used by fetchers, not exposed to users.
       pkg_dir_v3
@@ -206,6 +204,13 @@ in {
       package
     ;
   };
+
+  inherit (_lock_base)
+    plock_shallow
+    plock_supports_v1
+    plock_supports_v3
+  ;
+
   inherit
     pkg_any_fields_v3
     pkg_dir_v3

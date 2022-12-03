@@ -40,7 +40,7 @@ Note that all =metaExt= fields are removed by =mkPkgEntSource= essentially "fina
 Metadata should not be modified past that point, at least not in a way that anyone expects to modify builds.
 If you need to modify metadata do it before building ( makes sense ) and if you have to change something regenerate your recipes. 
 
-Users are free to inject additional fields to use with custom builders ( =flocoConfig.meta*Overlays= ) but this is what you get out of the box.
+Users are free to inject additional fields to use with custom builders ( =meta*Overlays= ) but this is what you get out of the box.
 
 See [[file:../../lib/meta-ent.nix][metaEnt lib]] for more info.
 

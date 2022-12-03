@@ -6,7 +6,6 @@
 
 { lib
 , system
-, flocoConfig
 , flocoFetch
 , flocoUnpack
 , pkgsFor
