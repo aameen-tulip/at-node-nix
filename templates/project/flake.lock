@@ -54,11 +54,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1670044921,
-        "narHash": "sha256-QV5o3hgJ7jjq/XBrQDAZtVJo49EDJ2tEFYLJZIxuB5o=",
+        "lastModified": 1670080959,
+        "narHash": "sha256-4jI35m/jmdAz0aitDYTdCeg8mlnd/R+nbINrpZzbxSA=",
         "owner": "aakropotkin",
         "repo": "flocoPackages",
-        "rev": "9d66408b177169088f105522de43b56bd49bb358",
+        "rev": "97a5ff662ea1fbd8a4b1fe5f7ce55ebaf2ab7669",
         "type": "github"
       },
       "original": {
