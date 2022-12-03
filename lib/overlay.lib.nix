@@ -14,8 +14,23 @@ final: prev: let
                                    ( { inherit lib; } // auto );
   in f args;
   callLib = callLibWith {};
-  callLibsWith = auto:
-    builtins.foldl' ( acc: x: acc // ( callLibWith auto x ) ) {};
+  callLibsWith = auto: libs: let
+    proc = acc: x: let
+      l     = callLibWith auto x;
+      comm  = builtins.intersectAttrs acc l;
+      merge = f: let
+        aa  = acc.${f};
+        la  = l.${f};
+        msg = "(at-node-nix#callLibsWith): Cannot merge conflicting " +
+              "definitions for member '${f}' of types '${builtins.typeOf aa}'" +
+              " and '${builtins.typeOf la}'.";
+      in if builtins.isAttrs acc.${f}
+         then assert builtins.isAttrs l.${f}; acc.${f} // l.${f}
+         else throw msg;
+      merged = builtins.foldl' ( sa: f: sa // ( merge f ) ) l
+                               ( builtins.attrNames comm );
+    in acc // merged;
+  in builtins.foldl' proc {} libs;
   callLibs = callLibsWith {};
 
 
@@ -60,7 +75,9 @@ in {
 
   # Probably going to change this name.
   libfloco = callLibs [
-    ./floco-flake.nix ./fpkgs.nix ./pkgref.nix
+    ./floco-flake.nix
+    ./fpkgs.nix
+    ./pkgref.nix
   ];
 
   inherit (final.libfloco)
@@ -150,6 +167,8 @@ in {
   inherit (final.libcfg)
     getDefaultRegistry
     mkFlocoConfig
+
+    mkFenvLibSet
   ;
 
   inherit (final.libsys)

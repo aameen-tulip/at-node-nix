@@ -80,11 +80,54 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # These libs contain functions which take `fenv' as an arg.
+  # NOTE: some libs are merges of multiple files and only some files might
+  # contain effected libs.
+  # TODO: this list is not magically auto-updated or audited, so try not to fuck
+  # that up by forgetting to add new libs here as new routines are added.
+  # TODO: certain `laika', `rime', and `ak-nix' lib routines could/should get
+  # handled here as well.
+  takeFenv = [
+    "libfetch"
+    "libmeta"
+    "libpjs"
+    "libpkginfo"
+    "libplock"
+    "libtree"
+    "libfloco"
+  ];
+
+  # Makes a "configured" subset of lib routines that share common `fenv' args.
+  # These do not necessarily need to be used together - it's often fine to
+  # mix routines across sets, but you're on your own in terms of "consistency"
+  # if you choose to do that.
+  #
+  # Any routines marked as "primes" ( foo', bar', and baz' ) are thunked with
+  # fallbacks of `fenv' args so `foo' { pure = true; }' is effectively similar
+  # to `callPackageWith { pure = false; } foo' { pure = true; }'.
+  # Any routines not marked "prime" have applied `fenv' and are ready to accept
+  # "regular" arguments.
+  mkFenvLibSet = {
+    pure
+  , ifd
+  , allowedPaths
+  , basedir
+  , typecheck
+  } @ fenv: let
+    proc= acc: libname: acc // {
+      ${libname} = lib.${libname}.__withFenv fenv;
+    };
+  in builtins.foldl' proc {} takeFenv;
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     getDefaultRegistry
     validateFlocoConfig
     mkFlocoConfig
+    mkFenvLibSet
   ;
 }
 

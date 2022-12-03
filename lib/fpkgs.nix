@@ -205,7 +205,7 @@ in {
   };
 
   # TODO: fenv/typed forms need to be implemented in most cases
-  __withFlocoEnv = { ifd, pure, typecheck, allowedPaths } @ fenv: let
+  __withFenv = { ifd, pure, typecheck, allowedPaths } @ fenv: let
     app = builtins.mapAttrs ( _: f: lib.apply f fenv ) {
       satisfyFlocoPkg         = lib.libfloco.satisfyFlocoPkg';
       getFlocoPkg            = lib.libfloco.getFlocoPkg';
