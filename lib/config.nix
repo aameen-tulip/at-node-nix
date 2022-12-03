@@ -108,7 +108,7 @@
 
   # These libs contain functions which take `fenv' as an arg.
   # NOTE: some libs are merges of multiple files and only some files might
-  # contain effected libs.
+  # contain effected functions.
   # TODO: this list is not magically auto-updated or audited, so try not to fuck
   # that up by forgetting to add new libs here as new routines are added.
   # TODO: certain `laika', `rime', and `ak-nix' lib routines could/should get
@@ -137,7 +137,6 @@
     pure
   , ifd
   , allowedPaths
-  , basedir
   , typecheck
   } @ fenv: let
     proc= acc: libname: acc // {
