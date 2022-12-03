@@ -26,27 +26,22 @@ in {
   # Nixpkgs has a major breaking change to `meta' fields that puts me in
   # a nasty spot... since I have a shitload of custom `meta' fields.
   config = prev.config // { checkMeta = false; };
-  lib = let
-    unconfigured = prev.lib.extend ( import ./lib/overlay.lib.nix );
-  in unconfigured.extend ( libFinal: libPrev: {
-    # TODO: remove `flocoConfig' entirely.
-    flocoConfig = libPrev.mkFlocoConfig {
-      # Most likely this will get populated by `stdenv'
-      npmSys = libPrev.libsys.getNpmSys' { inherit (final) system; };
-    };
-  } );
-  inherit (final.lib.flocoConfig) npmSys;
-  inherit (final.lib) flocoConfig;
-  # Using this to migrate away from `flocoConfig'.
+  lib = prev.lib.extend ( import ./lib/overlay.lib.nix );
+
+  flocoEvalEnvRt = {
+    pure         = final.lib.inPureEvalMode;
+    ifd          = final.system == ( builtins.currentSystem or null );
+    allowedPaths = [];
+    typecheck    = false;
+  };
+
   # This will be used as an argument to all functions that are effected by
   # relevant configuration options.
   # TODO: these aren't directed into most libs yet, start making those
   # connections in our libs and with `laika' and `ak-nix'.
   flocoEnv = {
-    pure         = final.lib.inPureEvalMode;
-    ifd          = final.system == ( builtins.currentSystem or null );
-    allowedPaths = [];
-    typecheck    = false;
+    inherit (final.flocoEvalEnvRt) pure ifd allowedPaths typecheck;
+    npmSys = final.lib.getNpmSys' { inherit (final) system; };
     # Default fetchers, prefers `fetchTree' for URLs, `path', and `fetchGit'
     # builtins fetchers ( wrapped by `laika' ).
     # For URLs `sha512' is accepted using `laika#lib.fetchurlDrv'.
@@ -60,7 +55,7 @@ in {
       writeText nix-gitignore makeSetupHook runCommandNoCC gnutar makeWrapper
       nix linkFarm xorg
       untarSanPerms copyOut
-      lib pacote system npmSys
+      lib pacote system
       flocoUnpack
       snapDerivation unpackSafe evalScripts buildGyp coerceDrv
       installGlobal installGlobalNodeModuleHook mkBinPackage
@@ -84,7 +79,6 @@ in {
       mkSrcEnt' mkSrcEnt
     ;
   };
-  applyFlocoEnv = f: final.lib.apply f final.flocoEnv;
 
 
 # ---------------------------------------------------------------------------- #
@@ -165,7 +159,6 @@ in {
 
   inherit (final.lib.callWith final.flocoEnv ./pkgs/mkNmDir/mkNmDirCmd.nix {
     inherit (prev.xorg) lndir;
-    inherit (final.flocoEnv) ifd pure allowedPaths typecheck;
   } ) mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd ;
 
   mkNmDirPlockV3 = final.lib.callWith ( final.flocoEnv // {

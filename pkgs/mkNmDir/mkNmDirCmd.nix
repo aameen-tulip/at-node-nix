@@ -260,7 +260,7 @@
   mkNmDirCmdWith = {
     __functionArgs = lib.functionArgs _mkNmDirCmdWith;
     __functor = self: args: let
-      nmd = lib.callPackageWith globalArgs _mkNmDirCmdWith args;
+      nmd = lib.callWith globalArgs _mkNmDirCmdWith args;
     in nmd;
   };
 

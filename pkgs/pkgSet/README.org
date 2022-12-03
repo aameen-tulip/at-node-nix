@@ -7,7 +7,6 @@ Another snippet below shows the current way to deal with non-root packages that 
 #+BEGIN_SRC nix
   { lib
   , lockDir
-  , flocoConfig
 
   , pkgsFor
   , mkPkgEntSource

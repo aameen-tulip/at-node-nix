@@ -6,8 +6,6 @@
 
 { lib }: let
 
-  inherit (lib.flocoConfig) registryScopes;
-  dftReg = registryScopes._default;
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
 
 # ---------------------------------------------------------------------------- #
@@ -20,9 +18,7 @@
   , name           ? meta.name  or ( dirOf key )
   , key            ? meta.key
   , meta           ? {}
-  , registryScopes ?
-    flocoConfig.registryScopes or { _default = lib.getDefaultRegistry; }
-  , flocoConfig    ? lib.flocoConfig or {}
+  , registryScopes ? { _default = lib.getDefaultRegistry; }
   , ...
   } @ args: let
     stripped = lib.yank "@?([^/]+)/?" scope;
@@ -45,13 +41,11 @@
 
   Ex:  registryForScope "foo"                                  ==> "https://registry.npmjs.org"
   Ex:  registryForScope { ident = "@foo/bar"; }                ==> "https://registry.npmjs.org"
-  Ex:  registryForScope { flocoConfig = ...; scope = "foo"; }  ==> http://myregistry.com
 
   Recommended Attr Args: { scope, registryScopes }
-  Fallback Attr Args:    { scope <- ident|name|key|meta, registryScopes <- flocoConfig }  ;;  `meta' may provide (ident|name|key) fallbacks
+  Fallback Attr Args:    { scope <- ident|name|key|meta, registryScopes }  ;;  `meta' may provide (ident|name|key) fallbacks
 
-  Uses `lib.flocoConfig.registryScopes' by default.
-  You may also set `__thunk.(registryScopes|flocoConfig)' to specialize this functor to use alternate scope settings.
+  You may also set `__thunk.registryScopes' to specialize this functor to use alternate scope settings.
 
   When a string argument is passed, the default registry scope list is used, and the string is parsed using `lib.libpkginfo.normalizePkgScope'.
   NOTE: this means that passing "@foo/bar" OR "foo" uses "foo" as the scope - which might not be what you expect.
@@ -65,19 +59,18 @@
       name = true;
       key  = true;
     };
-    __processArgs = self: arg: let
+
+    __processArgs = self: x: let
       scopeFromString =
-        if ! ( lib.libpkginfo.Scope.isCoercible arg ) then { scope = null; }
-        else { inherit (lib.libpkginfo.Scope.fromString arg) scope; };
-   in if builtins.isString arg then scopeFromString else
-      if builtins.isAttrs arg then arg else
-      if arg == null then { scope = null; } else
-      throw "registryForScope: arg must be a string (scope) or attrset";
-    __thunk = let
-      flocoConfig = lib.flocoConfig or {
-        registryScopes._default = lib.getDefaultRegistry;
-      };
-    in { inherit (flocoConfig) registryScopes; };
+        if ! ( lib.libpkginfo.Scope.isCoercible x ) then { scope = null; }
+        else { inherit (lib.libpkginfo.Scope.fromString x) scope; };
+      arg = if builtins.isString x then scopeFromString else
+      if builtins.isAttrs x then x else
+      if x == null then { scope = null; } else
+      throw "registryForScope: x must be a string (scope) or attrset";
+    in self.__thunk // arg;
+
+    __thunk.registryScopes._default = lib.getDefaultRegistry;
     __innerFunction = _registryForScope;
   };
 
@@ -102,7 +95,6 @@
     __functor = self: arg:
       self.__innerFunction ( self.__processArgs self arg );
     __functionArgs = {
-      flocoConfig    = true;
       registryScopes = true;
       registry       = true;
       name           = true;
@@ -110,11 +102,7 @@
       meta           = true;
       key            = true;
     };
-    __thunk = let
-      flocoConfig = lib.flocoConfig or {
-        registryScopes._default = lib.getDefaultRegistry;
-      };
-    in { inherit (flocoConfig) registryScopes; };
+    __thunk.registryScopes._default = lib.getDefaultRegistry;
     __processArgs = self: arg: let
       regArgs = if builtins.isAttrs arg then self.__thunk // arg else
         self.__thunk // {

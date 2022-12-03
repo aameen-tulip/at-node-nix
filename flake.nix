@@ -155,7 +155,6 @@
           lib
           writeText
           flocoUnpack
-          flocoConfig
           flocoFetch
         ;
         pkgsFor    = pf;

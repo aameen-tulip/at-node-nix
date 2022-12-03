@@ -34,9 +34,8 @@
 
   # Normally we might use `metaSetFromSerial', but here we already have
   # "complete" metadata and don't have any need to extend it.
-, metaSet    ? import ./meta.nix
+, metaSet ? import ./meta.nix
 
-, mkNmDir        ? mkNmDirCopyCmd
 , mkNmDirCopyCmd
 
 , system
@@ -99,15 +98,16 @@ in lib.makeExtensibleWithCustomName "__extend" ( self:
     } );
     inherit (self.prepared) outPath global meta;
     bin = self.global;
-    nmDirCmds =
-      lib.makeOverridable ( { mkNmDir, flocoPackages ? null, tree }: let
-        # TODO: move `pkgTree' creation here.
-      in {
-        prod =  mkNmDir {
+    # TODO: move `pkgTree' creation here.
+    nmDirCmds = let
+      mkTrees = { mkNmDir ? mkNmDirCopyCmd, flocoPackages ? null, tree }: {
+        prod = mkNmDir {
           tree         = pkgTree;
           assumeHasBin = false;
           handleBindir = false;
+          inherit ifd pure allowedPaths typecheck system;
         };
-      } ) { inherit mkNmDir; tree = pkgTree; };
+      };
+    in lib.makeOverridable mkTrees { tree = pkgTree; };
     passthru = pacoteEnt.passthru // { inherit pkgSet; };
   } )

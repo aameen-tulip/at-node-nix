@@ -94,12 +94,16 @@
 # ---------------------------------------------------------------------------- #
 
     testLinkFromPlTree = {
-      expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
+      expr = let
+        nmd = mkNmDirLinkCmd ( fenv // { tree = sourceTree; } );
+      in builtins.isString nmd.cmd;
       expected = true;
     };
 
     testCopyFromPlTree = {
-      expr = builtins.isString ( mkNmDirCopyCmd { tree = sourceTree; } ).cmd;
+      expr = let
+        nmd = mkNmDirCopyCmd ( fenv // { tree = sourceTree; } );
+      in builtins.isString nmd.cmd;
       expected = true;
     };
 
@@ -111,7 +115,7 @@
     # projects filesystem "subtree".
     testNoOutOfTreePaths = {
       expr = let
-        nmd = mkNmDirCopyCmd { tree = sourceTree; };
+        nmd = mkNmDirCopyCmd ( fenv // { tree = sourceTree; } );
         isSub = p: ! ( lib.hasPrefix ".." p );
       in builtins.all isSub ( builtins.attrNames nmd.passthru.subtree );
       expected = true;
@@ -121,25 +125,18 @@
 # ---------------------------------------------------------------------------- #
 
     testLinkFromMS = {
-      expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
+      expr = let
+        nmd = mkNmDirLinkCmd ( fenv // { tree = msTreeP; } );
+      in builtins.isString nmd.cmd;
       expected = true;
     };
 
     testCopyFromMS = {
-      expr = builtins.isString ( mkNmDirLinkCmd { tree = sourceTree; } ).cmd;
+      expr = let
+        nmd = mkNmDirCopyCmd ( fenv // { tree = msTreeP; } );
+      in builtins.isString nmd.cmd;
       expected = true;
     };
-
-    testLinkFromITP = {
-      expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
-      expected = true;
-    };
-
-    testCopyFromITP = {
-      expr = builtins.isString ( mkNmDirLinkCmd { tree = msTreeP; } ).cmd;
-      expected = true;
-    };
-
 
 # ---------------------------------------------------------------------------- #
 

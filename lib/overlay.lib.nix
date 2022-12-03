@@ -159,8 +159,6 @@ in {
 
   inherit (final.libcfg)
     getDefaultRegistry
-    mkFlocoConfig
-
     mkFenvLibSet
   ;
 

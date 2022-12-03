@@ -480,7 +480,7 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
        "# Deserialze with:  lib.metaSetFromSerial\n" +
        "# Regen with: ${cmd}\n";
     forNix = let
-      prettyNoEsc = lib.generators.toPretty { allowPrettyValues = true; } data;
+      prettyNoEsc = lib.generators.toPretty { allowPrettyValues = false; } data;
       pretty = builtins.replaceStrings [
         " assert = "  " with = " " let = " " in = " " or = "
         " inherit = " " rec = "

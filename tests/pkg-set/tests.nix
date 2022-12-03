@@ -6,20 +6,20 @@
 
 { lib
 , system
-, flocoUnpack
 , pkgsFor
+, flocoUnpack
+, flocoFetch
+
+, ifd
+, pure
+, typecheck
+, allowedPaths
+
+, buildPkgEnt
+, installPkgEnt
+, mkNmDirLinkCmd
+, mkNmDirPlockV3
 }: let
-
-# ---------------------------------------------------------------------------- #
-
-  inherit (pkgsFor)
-    buildPkgEnt
-    installPkgEnt
-    mkNmDirLinkCmd
-    mkNmDirPlockV3
-    flocoConfig
-    flocoFetch
-  ;
 
 # ---------------------------------------------------------------------------- #
 
@@ -42,12 +42,13 @@
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data;
-  fenv    = {
-    pure         = lib.inPureEvalMode;
-    ifd          = isSameSystem;
-    allowedPaths = [lockDir];
-    typecheck    = true;
+
+  fenv = {
+    inherit ifd pure typecheck;
+    allowedPaths = lib.unique ( allowedPaths ++ [lockDir] );
   };
+
+# ---------------------------------------------------------------------------- #
 
   mkSrcEnt = lib.apply pkgsFor.mkSrcEnt' fenv;
   metaSet  = lib.callWith fenv lib.metaSetFromPlockV3 { inherit lockDir; };
@@ -92,12 +93,12 @@
       srcTree = builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       built = buildPkgEnt ( rootEnt // {
-        nmDirCmd = mkNmDirLinkCmd {
+        nmDirCmd = mkNmDirLinkCmd ( fenv // {
           tree         = srcTree;
           handleBindir = false;
           # Helps sanity check that our modules were installed.
           postNmDir = "ls $node_modules_path/../**;";
-        };
+        } );
       } );
     in {
       # Make sure that the file `greeting.txt' was created.
@@ -130,12 +131,12 @@
       srcTree = builtins.mapAttrs ( _: key: mkSrcEnt metaSet.${key} ) tree;
       # Run the build routine for the root package.
       installed = installPkgEnt ( rootEnt // {
-        nmDirCmd = mkNmDirLinkCmd {
+        nmDirCmd = mkNmDirLinkCmd ( fenv // {
           tree         = srcTree;
           handleBindir = false;
           # Helps sanity check that our modules were installed.
           postNmDir = "ls $node_modules_path/../**;";
-        };
+        } );
       } );
       keepNm = installed.override { preInstall = ":"; };
     in {
