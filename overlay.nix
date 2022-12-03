@@ -151,7 +151,9 @@ in {
         pacote         = true;
         snapDerivation = true;
       };
-    __functor = _: callPackage ./pkgs/mkTarballFromLocal.nix;
+    __functor = _: callPackageWith {
+      inherit (final) coreutils pacote snapDerivation;
+    } ./pkgs/mkTarballFromLocal.nix;
   };
 
   inherit ( import ./pkgs/optimizeFetchInfo.nix {

@@ -31,11 +31,11 @@
         "rime": "rime"
       },
       "locked": {
-        "lastModified": 1669740060,
-        "narHash": "sha256-3YkWNHAoam97G3nadwUeVofauKoFvZFIWArAPT1pnoU=",
+        "lastModified": 1670006803,
+        "narHash": "sha256-/NLPCGTMRjNd9Xpng/EqTASHeGuxfKoZeD9kKErh28Y=",
         "owner": "aameen-tulip",
         "repo": "at-node-nix",
-        "rev": "39c343de209cc78ef58054b239b8702c65c39808",
+        "rev": "0f009645e1a68c9325c28397a719c098cff9e3e4",
         "type": "github"
       },
       "original": {
@@ -54,11 +54,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1669752527,
-        "narHash": "sha256-nSvovLmd+g8MofvEilIQQniYkB2/02g5Bhj31y3M9vc=",
+        "lastModified": 1670018744,
+        "narHash": "sha256-4YUZi/GQUovBfPGNBYOvwRANaSv4SfAK7PisNsf8zoI=",
         "owner": "aakropotkin",
         "repo": "flocoPackages",
-        "rev": "97d66f1e64f1fa3079776271ee3e65094315e47b",
+        "rev": "c84e318204fb7b12755aaf60369f054366036f1e",
         "type": "github"
       },
       "original": {

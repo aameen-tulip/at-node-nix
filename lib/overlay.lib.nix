@@ -59,7 +59,9 @@ in {
   ytypes = prev.ytypes.extend ( import ../types/overlay.yt.nix );
 
   # Probably going to change this name.
-  libfloco = callLibs [./floco-flake.nix ./fpkgs.nix];
+  libfloco = callLibs [
+    ./floco-flake.nix ./fpkgs.nix ./pkgref.nix
+  ];
 
   inherit (final.libfloco)
     getFlocoPkg'

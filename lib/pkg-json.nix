@@ -175,9 +175,12 @@
 
     infoFs = let
       hasDef  = lib.libpkginfo.hasInstallFromScripts infoNoFs.scripts;
-      gypfile = if lib.libread.readAllowed raenv ( pjsDir + "/binding.gyp" )
-                then builtins.pathExists ( pjsDir + "/binding.gyp" )
-                else null;
+      # Don't override the field from `pjs'
+      gypfile = pjs.gypfile or (
+        if lib.libread.readAllowed raenv ( pjsDir + "/binding.gyp" )
+        then builtins.pathExists ( pjsDir + "/binding.gyp" )
+        else null
+      );
     in ( if gypfile == true then {
       scripts = { install = "node-gyp rebuild"; } // infoNoFs.scripts;
     } else {} ) // { inherit gypfile; };

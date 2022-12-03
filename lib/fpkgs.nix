@@ -74,14 +74,8 @@
 # ---------------------------------------------------------------------------- #
 
   getFlocoPkgModule' = { ... } @ fenv: flocoPackages: keylike: let
-    coercedKey =
-      if builtins.isString keylike then keylike else
-      if ( keylike ? key ) then keylike.key else
-      if ( ( keylike ? version ) &&
-           ( ( keylike.ident or keylike.name or null ) != null ) )
-      then ( keylike.ident or keylike.name ) + "/" + keylike.version else
-      toString keylike;
     # Check to see if it's already a package.
+    coercedKey = lib.libfloco.coerceIVKey keylike;
     fpkg =
       if ( ( keylike._type or null ) == "pkgEnt" ) ||
          ( ( keylike ? outPath ) || ( keylike ? module ) ||

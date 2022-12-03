@@ -71,17 +71,33 @@
 
 { lib }: let
 
-  yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  yt    = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
+  ivkey = yt.PkgInfo.Strings.key;
+  mkLoc = n: "(at-node-nix#lib.libfloco.${n}):";
+  pp    = lib.generators.toPretty { allowPrettyValues = true; };
 
 # ---------------------------------------------------------------------------- #
 
-
+  coerceIVKey = keylike: let
+    ident = keylike.ident or keylike.name or null;
+    str   = toString keylike;
+    msg   = "${mkLoc "coerceIVKey"} Cannot convert value '${pp keylike}' of " +
+            "type '${builtins.typeOf keylike}' an '<IDENT>/<VERSION>' key.";
+  in if ivkey.check keylike then keylike else
+     if ( keylike ? key ) && ( ivkey.check keylike.key ) then keylike.key else
+     if ( keylike ? version ) && ( ident != null )
+     then ident + "/" + keylike.version
+     else if ( yt.Typeclasses.stringy.check keylike ) && ( ivkey.check str )
+     then str
+     else throw msg;
 
 
 # ---------------------------------------------------------------------------- #
 
 in {
-
+  inherit
+    coerceIVKey
+  ;
 }
 
 # ---------------------------------------------------------------------------- #
