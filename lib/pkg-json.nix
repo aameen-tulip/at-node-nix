@@ -210,6 +210,20 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _fenvFns = {
+    inherit
+      # TODO: reorder args getField[s]Pjs'
+      getIdentPjs'
+      getVersionPjs'
+      getScriptsPjs'
+      getHasBinPjs'
+      metaEntFromPjsNoWs'
+    ;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
 
   inherit
@@ -221,6 +235,16 @@ in {
     getHasBinPjs'
     metaEntFromPjsNoWs'
   ;
+
+  __withFenv = fenv: let
+    cw  = builtins.mapAttrs ( _: lib.callWith fenv ) _fenvFns;
+    app = let
+      proc = acc: name: acc // {
+        ${lib.yank "(.*)'" name} = lib.apply _fenvFns.${name} fenv;
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames _fenvFns );
+  in cw // app;
+
 
 }
 

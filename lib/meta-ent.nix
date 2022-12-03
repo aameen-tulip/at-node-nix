@@ -584,6 +584,22 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _fenvFns = {
+    inherit
+      metaEntFromSerial'
+      metaSetFromSerial'
+      metaEntIsSimple'
+      metaSetPartitionSimple'
+      metaEntBinPairs'
+      tryCollectMetaFromDir'
+      metaSetEntListsFromDir'
+      metaSetFromDir'
+    ;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     metaEntFromSerial'
@@ -627,6 +643,16 @@ in {
     mergeMetaEntList
     metaSetFromDir'
   ;
+
+  __withFenv = fenv: let
+    cw  = builtins.mapAttrs ( _: lib.callWith fenv ) _fenvFns;
+    app = let
+      proc = acc: name: acc // {
+        ${lib.yank "(.*)'" name} = lib.apply _fenvFns.${name} fenv;
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames _fenvFns );
+  in cw // app;
+
 }
 
 

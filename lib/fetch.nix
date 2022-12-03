@@ -539,6 +539,25 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _fenvFns = {
+    inherit
+      flocoProcessGitArgs'     flocoGitFetcher'
+      #flocoProcessUrlArgs'
+      flocoUrlFetcher'
+      #flocoProcessFileArgs'
+      flocoFileFetcher'
+      #flocoProcessTarballArgs'
+      flocoTarballFetcher'
+      #flocoProcessPathArgs'
+      flocoPathFetcher'
+      # TODO: mkFlocoFetchers'
+      # TODO: mkFlocoFetcher'
+    ;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     identifyResolvedFetcherFamily
@@ -555,6 +574,16 @@ in {
     mkFlocoFetchers'
     mkFlocoFetcher
   ;
+
+  __withFenv = fenv: let
+    cw  = builtins.mapAttrs ( _: lib.callWith fenv ) _fenvFns;
+    app = let
+      proc = acc: name: acc // {
+        ${lib.yank "(.*)'" name} = lib.apply _fenvFns.${name} fenv;
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames _fenvFns );
+  in cw // app;
+
 }
 
 

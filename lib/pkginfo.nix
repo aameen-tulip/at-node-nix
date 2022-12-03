@@ -297,7 +297,9 @@
   # package entry from a `package-lock.json' to see if it has an install script.
   # It is best to use this with a path or `package-lock.json' entry, since this
   # will fail to detect `node-gyp' installs with a regular `package.json'.
-  pjsHasInstallScript' = { pure, ifd }: x: let
+  #
+  # TODO: take other `fenv' args.
+  pjsHasInstallScript' = { pure, ifd } @ fenv: x: let
     pjs      = coercePjs' { inherit pure ifd; } x;
     explicit = pjs.hasInstallScript or false;  # for lock entries
     scripted = ( pjs ? scripts ) && builtins.any ( a: pjs.scripts ? a ) [
@@ -347,6 +349,19 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _fenvFns = {
+    inherit
+      readJSONFromPath'
+      coercePjs'
+      pjsHasBin'
+      pjsBinPairs'
+      pjsHasInstallScript'
+    ;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
 
   inherit
@@ -387,6 +402,15 @@ in {
     hasPublishFromScripts
     hasDepScriptFromScripts
   ;
+
+  __withFenv = fenv: let
+    cw  = builtins.mapAttrs ( _: lib.callWith fenv ) _fenvFns;
+    app = let
+      proc = acc: name: acc // {
+        ${lib.yank "(.*)'" name} = lib.apply _fenvFns.${name} fenv;
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames _fenvFns );
+  in cw // app;
 
 }
 

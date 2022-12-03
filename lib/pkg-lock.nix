@@ -93,7 +93,7 @@
     postFn    ? ( x: x )
   , typecheck
   , pure  # TODO: currently unused
-  }: let
+  } @ fenv: let
     inner = {
       resolved
     , sha1_hash ? plent.sha1 or plent.shasum or null
@@ -156,7 +156,7 @@
     postFn    ? ( x: x )
   , typecheck
   , pure  # TODO: currently unused
-  }: let
+  } @ fenv: let
     inner = { resolved, ... } @ args: let
       inherit (lib.libfetch.parseGitUrl resolved) owner rev repo type ref;
       allRefs' = let
@@ -231,7 +231,7 @@
     postFn    ? ( x: x )
   , typecheck
   , pure  # TODO: currently unused
-  }: let
+  } @ fenv: let
     inner = {
       resolved ? _pkey
     , link     ? false
@@ -328,7 +328,7 @@
     pure      ? lib.inPureEvalMode
   , ifd       ? true
   , typecheck ? false
-  }: {
+  } @ fenv: {
     lockDir
   , postFn  ? ( x: x )  # Applied to generic argset before returning
   }: let
@@ -423,6 +423,7 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # TODO: `fenv'
   metaSetFromPlockV3 = {
     plock           ? lib.importJSON' lockPath
   , lockDir         ? dirOf lockPath
@@ -839,6 +840,19 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _fenvFns = {
+    # TODO: meta(Ent|Set)FromPlockV3
+    inherit
+      plockEntryToGenericUrlArgs'
+      plockEntryToGenericGitArgs'
+      plockEntryToGenericPathArgs'
+      fetchInfoGenericFromPlentV3'
+    ;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     discrPlentFetcherFamily
@@ -886,6 +900,16 @@ in {
 
   # TODO: make configurable
   fetchInfoFromPlentV3' = fetchInfoGenericFromPlentV3';
+
+  __withFenv = fenv: let
+    cw  = builtins.mapAttrs ( _: lib.callWith fenv ) _fenvFns;
+    app = let
+      proc = acc: name: acc // {
+        ${lib.yank "(.*)'" name} = lib.apply _fenvFns.${name} fenv;
+      };
+    in builtins.foldl' proc {} ( builtins.attrNames _fenvFns );
+  in cw // app;
+
 }
 
 # ---------------------------------------------------------------------------- #
