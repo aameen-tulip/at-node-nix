@@ -47,56 +47,71 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # `__serial' is a functor attached to attrsets which produces a reduced
-  # attrset of fields which may be written to disk.
-  # This functor is recursive by default, so any fields which are attrsets and
-  # have their own `__serial' function will be respected recursively.
-  # The use case here is largely for stashing values which were realized through
-  # impure operations or "import from derivation" routines, which we want to
-  # purify in later builds.
-  #
-  # For example, we may as an optimization lookup the `narHash' of fetched
-  # tarballs to allow us to use `builtins.fetchTree' in pure evaluation mode in
-  # later runs.
-  # Alternatively we may query an NPM registry to look up package information
-  # that we want to save for later runs to avoid running those queries again.
-  #
-  # `__serial' functions are written with the intention of being used with
-  # "recursive attrsets", such as those seen in overlays and fixed-points.
-  # With that in mind they are always written to accept the argument `self' -
-  # with the single exception of `serialIgnore' which accepts no argument and
-  # is simply the boolean value `false' ( indicating that this attrset should
-  # be ignored entirely - this is done to distinguish from the literal value
-  # false, and is a slight optimization over `serialDrop' which requires
-  # string comparison ).
-  #
-  # I expect that in many cases you will want to write your own implementation
-  # of `__serial' to suit your use case; but a sane default implementation may
-  # be found below and used as a jumping off point for your own custom routine.
-  # Please remember our rules for serializing data in Nix though:
-  #   1. Serialized data must be readable and writable by `(to|from)JSON' -
-  #      this means only attrsets, strings, booleans, lists, floats, and
-  #      integers may be written.
-  #   2. Store paths must not appear in strings - this means derivations may
-  #      not be serialized because both their inputs and `outPath' fields
-  #      contain Nix store paths.
-  #   3. Fields with the name `__serial', `__extend', and `passthru' should
-  #      never be written, and in general you should treat any field beginning
-  #      with "__" as hidden by default.
-  #      You may have cases where you actually do want to write "__" prefixed
-  #      fields, but you are expected to explicitly whitelist those in a custom
-  #      `__serial' implementation.
-  #   4. The string value "__DROP__" is reserved and should not be written.
-  #      This allows recursive `__serial' functions to dynamically hide fields.
-  #   5. You should always respect the `serialIgnore' pattern for recursive
-  #      `__serial' functions.
-  #      This simply means ignoring `v ? __serial && v.__serial == serialIgnore'
-  #      attrset values in an object ( see `serialDefault' `keepAttrs' ).
+  extInfoExtras = let
+    names = [
+      "__add"
+      "__entries"
+      "__extend"
+      "__extendEx"
+      "__new"
+      "__serial"
+      "__thunkWith"
+      "__unfix__"
+      "__update"
+      "__updateEx"
+    ];
+  in assert names == yt.FlocoMeta._meta_ext_fields;
+     names;
 
-  extInfoExtras = [
-    "__update" "__add" "__extend" "__serial" "__entries" "__unfix__"
-    "__updateEx" "__extendEx" "__new" "__thunkWith"
-  ];
+# ---------------------------------------------------------------------------- #
+#
+# `__serial' is a functor attached to attrsets which produces a reduced
+# attrset of fields which may be written to disk.
+# This functor is recursive by default, so any fields which are attrsets and
+# have their own `__serial' function will be respected recursively.
+# The use case here is largely for stashing values which were realized through
+# impure operations or "import from derivation" routines, which we want to
+# purify in later builds.
+#
+# For example, we may as an optimization lookup the `narHash' of fetched
+# tarballs to allow us to use `builtins.fetchTree' in pure evaluation mode in
+# later runs.
+# Alternatively we may query an NPM registry to look up package information
+# that we want to save for later runs to avoid running those queries again.
+#
+# `__serial' functions are written with the intention of being used with
+# "recursive attrsets", such as those seen in overlays and fixed-points.
+# With that in mind they are always written to accept the argument `self' -
+# with the single exception of `serialIgnore' which accepts no argument and
+# is simply the boolean value `false' ( indicating that this attrset should
+# be ignored entirely - this is done to distinguish from the literal value
+# false, and is a slight optimization over `serialDrop' which requires
+# string comparison ).
+#
+# I expect that in many cases you will want to write your own implementation
+# of `__serial' to suit your use case; but a sane default implementation may
+# be found below and used as a jumping off point for your own custom routine.
+# Please remember our rules for serializing data in Nix though:
+#   1. Serialized data must be readable and writable by `(to|from)JSON' -
+#      this means only attrsets, strings, booleans, lists, floats, and
+#      integers may be written.
+#   2. Store paths must not appear in strings - this means derivations may
+#      not be serialized because both their inputs and `outPath' fields
+#      contain Nix store paths.
+#   3. Fields with the name `__serial', `__extend', and `passthru' should
+#      never be written, and in general you should treat any field beginning
+#      with "__" as hidden by default.
+#      You may have cases where you actually do want to write "__" prefixed
+#      fields, but you are expected to explicitly whitelist those in a custom
+#      `__serial' implementation.
+#   4. The string value "__DROP__" is reserved and should not be written.
+#      This allows recursive `__serial' functions to dynamically hide fields.
+#   5. You should always respect the `serialIgnore' pattern for recursive
+#      `__serial' functions.
+#      This simply means ignoring `v ? __serial && v.__serial == serialIgnore'
+#      attrset values in an object ( see `serialDefault' `keepAttrs' ).
+#
+# ---------------------------------------------------------------------------- #
 
   # The simplest type of serializer.
   serialAsIs   = self: removeAttrs self ( extInfoExtras ++ ["passthru"] );
@@ -265,35 +280,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: make `entFromtype' use this to type-check in `metaEntCore'.
-  metaEntryFromtypes = [
-    "package.json"
-    "package-lock.json"      # Detect version
-    "package-lock.json(v1)"
-    "package-lock.json(v2)"
-    "package-lock.json(v3)"
-    "yarn.lock"              # Detect version
-    "yarn.lock(v1)"
-    "yarn.lock(v2)"
-    "yarn.lock(v3)"
-    "vinfo"
-    "packument"
-    "raw"                    # Fallback/Default for manual entries
-  ];
-
-  ylockTypes = [
-    "yarn.lock"
-    "yarn.lock(v1)"
-    "yarn.lock(v2)"
-    "yarn.lock(v3)"
-  ];
-  plockTypes = [
-    "package-lock.json"
-    "package-lock.json(v1)"
-    "package-lock.json(v2)"
-    "package-lock.json(v3)"
-  ];
-
   # Was `x' a `meta(Set|Ent)' created from one of `allowedTypes'?
   # `allowedTypes' can be specialized.
   #
@@ -311,16 +297,21 @@
       in [arg1 yt.string];
     };
     __functionArgs = { fromType = true; entFromType = true; __meta = true; };
+
+    # TODO: yell at user for deprecated names
     __processArgs = self: arg: let
       dargs = arg.fromType or arg.__meta.fromType or arg.entFromtype or "raw";
     in if builtins.isString arg then arg else dargs;
-    __innerFunction = self: targ: builtins.elem targ self.allowedTypes;
+
+    __innerFunction = self: targ:
+      builtins.elem targ self.allowedTypes;
+
     __functor = self: arg:
       self.__innerFunction self ( self.__processArgs self arg );
   };
 
-  metaWasPlock = _metaWasFrom plockTypes;
-  metaWasYlock = _metaWasFrom ylockTypes;
+  metaWasPlock     = _metaWasFrom yt.FlocoMeta._plock_fromtypes;
+  metaWasYlock     = _metaWasFrom yt.FlocoMeta._ylock_fromtypes;
   metaSupportsPlV3 = _metaWasFrom [
     "package-lock.json(v2)" "package-lock.json(v3)"
   ];
@@ -353,9 +344,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaEntSerialDefault = self: removeAttrs ( serialDefault self ) [
-    "_type" "__pscope"
-  ];
+  metaEntSerialDefault = self: let
+    drops = ["_type" "scoped"];
+    base = removeAttrs ( serialDefault self ) drops;
+    # TODO: fetchInfo relative paths
+  in base;
+
+
+# ---------------------------------------------------------------------------- #
 
   # Maps `entFromtype' to default serializers.
   # Largely these hide additional fields which can be easily inferred using
@@ -638,19 +634,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-  isMeta = x: let
-    byTypeF  = builtins.elem ( x._type or null ) ["metaEnt" "metaSet"];
-    byFields = ( builtins.isAttrs x ) && ( x ? __extend ) && ( x ? __entries );
-  in byTypeF || byFields;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Merge `metaExt' objects ( of the same type preferably ) by recursively
   # updating attrsets, and recursively merging child `metaExt' members.
   # NOTE: This will not pick up `<metaExt>.<attrSet>.<metaExt>' "grandchild"
   # records in it's recursion; those get merged using `recursiveUpdate'.
   metaExtsMerge = a: b: let
+    isMeta = let
+      t = yt.either yt.FlocoMeta.meta_ent_shallow yt.FlocoMeta.meta_set_shallow;
+    in t.check;
     typeCheck = v: let
       tf = lib.throwIfNot ( ( a._type or null ) == ( b._type or null ) )
            "metaExtMerge: both arguments must be of meta `_type'";
@@ -695,7 +686,6 @@ in {
   ;
   # Meta Entries
   inherit
-    metaEntryFromtypes
     metaEntSerialDefault
     metaEntSerial
     metaEntExtendWithNames
@@ -732,7 +722,6 @@ in {
   ;
 
   inherit
-    isMeta
     metaExtsMerge
   ;
 }

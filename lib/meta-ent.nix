@@ -95,9 +95,9 @@
   metaEntFromSerial' = {
     ifd, pure, allowedPaths, typecheck, basedir ? null
   } @ fenv: {
-    key
-  , ident       ? dirOf key
-  , version     ? baseNameOf key
+    key         ? ent.ident + "/" + ent.version
+  , ident       ? dirOf ent.key
+  , version     ? baseNameOf ent.key
   , scoped      ? lib.test "@[^@/]+/[^@/]+" ident
   , entFromtype ? "raw"
   , fetchInfo
