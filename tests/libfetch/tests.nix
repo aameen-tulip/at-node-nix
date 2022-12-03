@@ -4,13 +4,26 @@
 #
 # ---------------------------------------------------------------------------- #
 
-{ lib }: let
+{ lib
+, system    ? "unknown"
+, pure      ? lib.inPureEvalMode
+, ifd       ? ( builtins.currentSystem or null ) == system
+, typecheck ? true
+}: let
+
+# ---------------------------------------------------------------------------- #
+
+  fenv = {
+    inherit pure ifd typecheck;
+    allowedPaths = [( toString ./data )];
+  };
+
 
 # ---------------------------------------------------------------------------- #
 
   lockDir = toString ./data/proj2;
   plock   = lib.importJSON ( lockDir + "/package-lock.json" );
-  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
+  metaSet = lib.metaSetFromPlockV3 ( fenv // { inherit lockDir; } );
 
   proj2   = metaSet."proj2/1.0.0";
   lodash  = metaSet."lodash/5.0.0";
@@ -42,9 +55,12 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # XXX: I'm unsure of why `basedir' in `flocoFetcher' doesn't NEED to be set.
+    # I mean: it works, but it probably shouldn't for `projd'.
+
     testFlocoFetcher_ms = {
       expr = let
-        flocoFetcher = lib.mkFlocoFetcher {};
+        flocoFetcher = lib.mkFlocoFetcher ( fenv // { basedir = lockDir; } );
       in builtins.mapAttrs ( _: v: if v ? outPath then true else v ) {
         dir = flocoFetcher proj2;
         # NOTE: This test case will fail in GitHub Actions if you don't set up
@@ -65,7 +81,7 @@
 
     testFlocoFetcher_pl = {
       expr = let
-        flocoFetcher = lib.mkFlocoFetcher {};
+        flocoFetcher = lib.mkFlocoFetcher ( fenv // { basedir = lockDir; } );
       in builtins.mapAttrs ( k: v: v.ltype == k  ) {
         dir = flocoFetcher pl_proj2;
         # NOTE: This test case will fail in GitHub Actions if you don't set up
@@ -89,7 +105,7 @@
  
     testCwdFlocoFetcher = {
       expr = let
-        flocoFetcher = lib.mkFlocoFetcher { basedir = lockDir; };
+        flocoFetcher = lib.mkFlocoFetcher ( fenv // { basedir = lockDir; } );
         mapFetch = let
           doFetchPlock = pkey: plent:
             flocoFetcher ( { resolved = pkey; } // plent );
@@ -139,7 +155,7 @@
 
     testFlocoGitFetcher_0 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
+        fetched = lib.libfetch.flocoGitFetcher' fenv pl_lodash;
       in ( lib.isStorePath fetched.outPath ) &&
          ( fetched.ffamily == "git" ) && ( fetched.fetchInfo.type == "github" );
       expected = true;
@@ -147,14 +163,13 @@
 
     testFlocoGitFetcher_1 = {
       expr = let
-        fetched = lib.libfetch.flocoGitFetcher pl_lodash;
+        fetched = lib.libfetch.flocoGitFetcher' fenv pl_lodash;
       in fetched.fetchInfo.rev;
       expected = "2da024c3b4f9947a48517639de7560457cd4ec6c";
     };
 
     testFlocoGitFetcher_2 = let
-      prep =
-        lib.libfetch.flocoGitFetcher.__processArgs lib.libfetch.flocoGitFetcher;
+      prep = lib.processArgs ( lib.libfetch.flocoGitFetcher' fenv );
       base = "git+https://code.tvl.fyi/depot.git";
       ref  = "refs/heads/canon";
       rev  = "57cf952ea98db70fcf50ec31e1c1057562b0a1df";
@@ -174,7 +189,7 @@
 
     # NOTE: this fails if you try to include the params in `url'.
     testFlocoGitFetcher_3 = let
-      fetched = lib.libfetch.flocoGitFetcher {
+      fetched = lib.libfetch.flocoGitFetcher' fenv {
         name = "depot";
         url  = "https://code.tvl.fyi/depot.git";
         ref  = "refs/heads/canon";

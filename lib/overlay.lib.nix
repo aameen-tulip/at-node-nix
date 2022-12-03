@@ -93,8 +93,11 @@ in {
 
 
   inherit (final.libfetch)
-    flocoPathFetcher
-    flocoGitFetcher
+    flocoUrlFetcher'
+    flocoTarballFetcher'
+    flocoFileFetcher'
+    flocoPathFetcher'
+    flocoGitFetcher'
     mkFlocoFetcher
   ;
 

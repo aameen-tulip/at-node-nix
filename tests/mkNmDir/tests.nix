@@ -6,6 +6,9 @@
 
 { lib
 , pkgsFor
+, typecheck ? true
+, pure      ? lib.inPureEvalMode
+, ifd       ? ( builtins.currentSystem or null ) == pkgsFor.system
 , ...
 } @ globalArgs: let
 
@@ -22,7 +25,27 @@
   dataDir = toString ../libfetch/data;
   lockDir = toString ../libfetch/data/proj2;
   plock = lib.importJSON' ( toString ../libfetch/data/proj2/package-lock.json );
-  metaSet = lib.metaSetFromPlockV3 { inherit lockDir; };
+
+
+# ---------------------------------------------------------------------------- #
+
+  fenv = {
+    inherit typecheck ifd pure;
+    allowedPaths = [dataDir];
+  };
+
+  metaSet = lib.metaSetFromPlockV3 ( fenv // {
+    inherit lockDir;
+  } );
+
+
+# ---------------------------------------------------------------------------- #
+
+  flocoFetch    = lib.mkFlocoFetcher fenv;
+  flocoFetchCwd = lib.mkFlocoFetcher ( fenv // { basedir = lockDir; } );
+
+
+# ---------------------------------------------------------------------------- #
 
   plockBig = lib.importJSON' ( toString ../libplock/data/plv2-it.json );
 
@@ -32,12 +55,6 @@
 
   msTreeD = builtins.mapAttrs ( pkey: key: flocoFetch metaSet.${key} ) treeD;
   msTreeP = builtins.mapAttrs ( pkey: key: flocoFetch metaSet.${key} ) treeP;
-
-
-# ---------------------------------------------------------------------------- #
-
-  flocoFetchCwd = lib.mkFlocoFetcher { basedir = lockDir; };
-  flocoFetch    = lib.mkFlocoFetcher {};
 
 
 # ---------------------------------------------------------------------------- #

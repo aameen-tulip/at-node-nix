@@ -295,11 +295,11 @@
   # You can always wipe out or redefine that filter.
   # When using this with relative paths you need to set `basedir' to an absolute
   # path before calling:
-  #   ( lib.flocoPathFetcher // {
+  #   ( lib.flocoPathFetcher' fenv // {
   #       __thunk.basedir = toString ./../../foo; }
   #   ) "./baz"
   #   or
-  #   let fetchFromPWD = lib.flocoPathFetcher // {
+  #   let fetchFromPWD = lib.flocoPathFetcher' fenv // {
   #         __thunk.basedir = toString ./.;
   #       };
   #   in builtins.mapAttrs ( k: _: fetchFromPWD k ) ( builtins.readDir ./. );
@@ -429,7 +429,6 @@
   # XXX: This basically just processes args and merged configs.
   mkFlocoFetchers' = {
     __functionArgs = {
-      flocoConfig      = true;
       fetchers         = true;
 
       tarballFetcher   = true;
@@ -437,14 +436,16 @@
       gitFetcher       = true;
       pathFetcher      = true;
 
-      pure             = true;
-      typecheck        = true;
+      pure             = false;
+      typecheck        = false;
+      ifd              = false;
+      allowedPaths     = false;
       basedir          = true;
       allowSubstitutes = true;
     };
 
     __functor = self: args: let
-      allowSubstitutes = args.allowSubstitues or true;
+      allowSubstitutes = args.allowSubstitues or false;
       pure             = args.pure;
       typecheck        = args.typecheck;
       ifd              = args.ifd;

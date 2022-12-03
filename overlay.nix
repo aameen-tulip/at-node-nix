@@ -51,7 +51,7 @@ in {
     # builtins fetchers ( wrapped by `laika' ).
     # For URLs `sha512' is accepted using `laika#lib.fetchurlDrv'.
     flocoFetch = final.lib.libfetch.mkFlocoFetcher {
-      inherit (final.flocoEnv) pure typecheck;
+      inherit (final.flocoEnv) pure typecheck ifd allowedPaths;
     };
     # Default NmDir builder prefers symlinks
     mkNmDir = final.mkNmDirLinkCmd;
