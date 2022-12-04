@@ -94,8 +94,7 @@
            ${k} = ( prev.lib.apply final.mkSrcEnt' final.flocoEnv )
                                                    metaSet.${k};
          };
-         ents  = removeAttrs metaSet.__entries ["__meta" "_type"];
-       in builtins.foldl' proc {} ( builtins.attrNames ents ) );
+       in builtins.foldl' proc {} ( builtins.attrNames metaSet.__entries ) );
     };
 
     # Adds packages from `package-lock.json' to `flocoPackages' as "raw"
@@ -118,8 +117,7 @@
         proc = acc: k: if prev ? ${k} then acc else acc // {
           ${k} = ( prev.lib.apply final.mkSrcEnt' final.flocoEnv ) metaSet.${k};
         };
-        ents = removeAttrs metaSet.__entries ["__meta" "_type"];
-      in builtins.foldl' proc {} ( builtins.attrNames ents ) );
+      in builtins.foldl' proc {} ( builtins.attrNames metaSet.__entries ) );
     };
 
     # Composes upstream `flocoPackages' modules with definitions defined in
@@ -246,7 +244,7 @@
                 metaRaw =
                   if builtins.pathExists ./meta.nix then import ./meta.nix else
                   at-node-nix.lib.importJSONOr {} ./meta.json;
-              in metaRaw.__meta.trees.dev or
+              in metaRaw._meta.trees.dev or
                  ( throw "No tree definition found" );
               inherit (final) flocoPackages;
             };
@@ -306,7 +304,7 @@
                 metaRaw =
                   if builtins.pathExists ./meta.nix then import ./meta.nix else
                   at-node-nix.lib.importJSONOr {} ./meta.json;
-              in metaRaw.__meta.trees.prod or
+              in metaRaw._meta.trees.prod or
                  ( throw "No tree definition found" );
               inherit (pkgsFor) flocoPackages;
             } );

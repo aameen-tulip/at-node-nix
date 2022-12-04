@@ -80,7 +80,7 @@
     # Run a simple build that just creates a file `greeting.txt' with `echo'.
     testBuildPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
+      rootEnt = mkSrcEnt metaSet.${metaSet._meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.callWith fenv lib.idealTreePlockV3 {
@@ -118,7 +118,7 @@
     # Run a simple install that just creates a file `farewell.txt' with `echo'.
     testInstallPkgEntSimple = let
       # The `pkgEnt' for the lock we've parsed.
-      rootEnt  = mkSrcEnt metaSet.${metaSet.__meta.rootKey};
+      rootEnt  = mkSrcEnt metaSet.${metaSet._meta.rootKey};
       # Get our ideal tree, filtering out packages that are incompatible with
       # out system.
       tree = lib.callWith fenv lib.idealTreePlockV3 {

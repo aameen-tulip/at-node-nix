@@ -67,7 +67,12 @@
 { lib }: let
 
   yt = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
-  inherit (yt.FlocoMeta) _meta_ext_fields;
+
+  inherit (yt.FlocoMeta)
+    _meta_ext_fields
+    _meta_ent_core_fields
+    _meta_set_core_fields
+  ;
 
   inherit (lib.libmeta)
     serialAsIs serialIgnore serialDrop serialDefault
@@ -173,7 +178,7 @@
   # `__updateEx' recreates our attrset providing the opportunity to add
   # additional "extra" fields.
   #
-  # `__new' allows `mkExtInfo'' to be used as a "base class" for creating
+  # `__new' allows `_mkExtInfo' to be used as a "base class" for creating
   # other types of extensible attrsets based on the same interface.
   # You can think of this like the "constructor".
   #
@@ -182,7 +187,7 @@
   # You are welcome to override these, but pay attention to the application of
   # `self', and how this differs slightly from the default values defined
   # below ( `extra' functors must accept `self' as their first argument ).
-  mkExtInfo' = {
+  _mkExtInfo = {
     __serial  ? serialDefault
   , __entries ? self:
       removeAttrs self ( _meta_ext_fields ++ ( builtins.attrNames extra ) )
@@ -205,9 +210,9 @@
       in runStrict self after;
       __serial    = __serial self;
       __entries   = __entries self;
-      __new       = mkExtInfo' extra;
-      __updateEx  = extra': mkExtInfo' ( extra // extra' ) self;
-      __extendEx  = extraR: mkExtInfo' ( extraR extra ) self;
+      __new       = _mkExtInfo extra;
+      __updateEx  = extra': _mkExtInfo ( extra // extra' ) self;
+      __extendEx  = extraR: _mkExtInfo ( extraR extra ) self;
       __thunkWith = lib.callWithOvStrict self.__entries;
       # Turn a non-recursive attrset into an extension, then apply it.
       __update = info': self.__extend ( _: _: info' );
@@ -223,7 +228,7 @@
                              ( removeAttrs extra ["strict"] ) ) );
   in self;
 
-  mkExtInfo = mkExtInfo' {};
+  mkExtInfo = lib.libmeta._mkExtInfo {};
 
 
 # ---------------------------------------------------------------------------- #
@@ -244,11 +249,11 @@
         arg1 = yt.either yt.string ( yt.attrs yt.any );
       in [arg1 yt.string];
     };
-    __functionArgs = { fromType = true; entFromType = true; __meta = true; };
+    __functionArgs = { fromType = true; entFromType = true; _meta = true; };
 
     # TODO: yell at user for deprecated names
     __processArgs = self: arg: let
-      dargs = arg.fromType or arg.__meta.fromType or arg.entFromtype or "raw";
+      dargs = arg.fromType or arg._meta.fromType or arg.entFromtype or "raw";
     in if builtins.isString arg then arg else dargs;
 
     __innerFunction = self: targ:
@@ -342,13 +347,13 @@
   , ident       ? dirOf args.key
   , version     ? baseNameOf args.key
   , entFromtype ? "raw"
-  } @ args: mkExtInfo' {
-    __serial  = metaEntSerial;
+  } @ args: lib.libmeta._mkExtInfo {
+    __serial = metaEntSerial;
     # Ignore extra fields, and similar to `__serial' recur `__entries' calls.
     __entries = self: let
-      scrub = removeAttrs self ( _meta_ext_fields ++ [
-        "_type" "__pscope"
-      ] );
+      # NOTE: Do NOT use `_meta_ent_core_fields' since that would hide things
+      # like `key', `version', `ident', etc.
+      scrub = removeAttrs self ( _meta_ext_fields ++ ["_type" "__pscope"] );
       subEnts = _: v: if ( v ? __entries ) then v.__entries else v;
     in builtins.mapAttrs subEnts scrub;
   } {
@@ -409,13 +414,13 @@
     membersR = let
       # Non-recursive case
       membersRFromAS = final: members // {
-        __meta = ( members.__meta or {} ) // { __serial = false; };
+        _meta = { __serial = false; } // ( members._meta or {} );
         _type = "metaSet";
       };
       # `members' is already recursively defined so we must extend.
       membersRFromFn = let
         addMeta = final: prev: {
-          __meta = ( prev.__meta or {} ) // { __serial = false; };
+          _meta = { __serial = false; } // ( prev._meta or {} );
           _type  = "metaSet";
         };
       in lib.fixedPoints.extends addMeta members;
@@ -423,31 +428,36 @@
        assert builtins.isAttrs members;
        membersRFromAS;
     extras = let
-      __entries = self: removeAttrs self ( _meta_ext_fields ++ [
-        "__meta" "__pscope" "__unkey" "__mapEnts" "_type"
-        "__maybeApplyEnt"
-      ] );
+      # NOTE: This hides `_meta'
+      __entries = self:
+        removeAttrs self ( _meta_set_core_fields ++ ["__pscope"] );
     in {
-      __serial  = self: removeAttrs ( serialDefault self ) ["_type" "__pscope"];
+      __serial  = self:
+        removeAttrs ( serialDefault self ) ["_type" "__pscope"];
       inherit __entries;
       # We need to avoid infinite recursion with `__new', so we don't call
       # `mkMetaSet' directly here.
-      __new = self: lib.libmeta.mkExtInfo' extras;
+      __new = self: lib.libmeta._mkExtInfo extras;
       # Converts keys to groups of attrs with no special characters.
       # XXX: Really just for REPL usage. Do not use this in routines.
-      # FIXME: possible hide this behind a conditional for REPL only.
+      # TODO: possible hide this behind a conditional for REPL only?
       __unkey = unkeyAttrs __entries;
       # Apply a function to all entries preservice self reference.
       __mapEnts = self: fn:
-        self.__extend ( final: builtins.mapAttrs fn );
+        self.__extend ( final: prev:
+          builtins.mapAttrs fn ( removeAttrs prev [
+            "_meta" "_type" "__pscope"
+          ] )
+        );
       # Apply function to entry if it exists, otherwise do nothing.
       # This may seem superfulous but in practice this is an incredibly common
       # pattern when trying to override meta-data.
       __maybeApplyEnt = self: fn: field: let
         ov = final: prev: { ${field} = fn prev.${field}; };
       in if ! ( self.__entries ? ${field} ) then self else self.__extend ov;
+      __filterEnts = self: pred: lib.filterAttrs pred self.__entries;
     };
-  in lib.libmeta.mkExtInfo' extras membersR;
+  in lib.libmeta._mkExtInfo extras membersR;
 
 
 # ---------------------------------------------------------------------------- #
@@ -538,7 +548,7 @@
 in {
   # Base ExtInfo
   inherit
-    mkExtInfo'
+    _mkExtInfo
     mkExtInfo
   ;
   # Meta Entries

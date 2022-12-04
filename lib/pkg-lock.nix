@@ -476,7 +476,7 @@
     in builtins.mapAttrs flattenAssertUniq byKey;
     metaEntries = auditKeyValuesUnique;
     members = metaEntries // {
-      __meta = {
+      _meta = {
         __serial = false;
         rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0"}";
         inherit plock lockDir;

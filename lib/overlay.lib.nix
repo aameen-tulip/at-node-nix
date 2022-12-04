@@ -134,7 +134,7 @@ in {
   ;
 
   inherit (final.libmeta)
-    mkExtInfo'
+    _mkExtInfo
     mkExtInfo
     metaWasPlock
     metaWasYlock

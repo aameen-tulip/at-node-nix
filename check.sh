@@ -39,7 +39,7 @@ echo "Testing 'genMeta' Script" >&2;
 # Gen Meta
 BKEY="$(
   nix_w run "$FLAKE_REF#genMeta" -- '@babel/cli' --json  \
-    |$JQ -r '.__meta.rootKey';
+    |$JQ -r '._meta.rootKey';
 )";
 case "$BKEY" in
   @babel/cli/*) echo "PASS: genMeta"; ;;

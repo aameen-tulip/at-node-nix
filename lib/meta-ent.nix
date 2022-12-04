@@ -182,8 +182,8 @@
     ifd, pure, allowedPaths, typecheck, basedir ? null
   } @ fenv: members: let
       meEnv = {
-        basedir = members.__meta.basedir or members.__meta.lockDir or
-                  members.__meta.pjsDir or toString ./.;
+        basedir = members._meta.basedir or members._meta.lockDir or
+                  members._meta.pjsDir or toString ./.;
       } // fenv;
       deserial = name: value: let
         forEnt = metaEntFromSerial' meEnv value;
@@ -194,7 +194,7 @@
           pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
           plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
         } ) // value;
-      in if name == "__meta" then forMeta else
+      in if name == "_meta" then forMeta else
         if lib.hasPrefix "__" name then value else
         forEnt;
     in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
@@ -402,26 +402,26 @@
       mesPjs  = if mePjs == null then [] else [mePjs];
       meMfRaw = mfd.metaFiles.metaN or mfd.metaFiles.metaJ or null;
       mesMf   = let
-        fixTree = if ! ( meMfRaw ? __meta.trees ) then meMfRaw else meMfRaw // {
-          ${meMfRaw.__meta.rootKey} = meMfRaw.${meMfRaw.__meta.rootKey} // {
-            inherit (meMfRaw.__meta) trees;
+        fixTree = if ! ( meMfRaw ? _meta.trees ) then meMfRaw else meMfRaw // {
+          ${meMfRaw._meta.rootKey} = meMfRaw.${meMfRaw._meta.rootKey} // {
+            inherit (meMfRaw._meta) trees;
           };
         };
         meEnv = fenv // {
           basedir = pathlike.basedir or ( toString pathlike );
         };
         proc = key: v: lib.metaEntFromSerial' meEnv ( { inherit key; } // v );
-        ents = lib.mapAttrsToList proc ( removeAttrs fixTree ["__meta"] );
-        # `genMeta' writes `__meta.trees.{dev,prod}' which should really be
+        ents = lib.mapAttrsToList proc ( removeAttrs fixTree ["_meta"] );
+        # `genMeta' writes `_meta.trees.{dev,prod}' which should really be
         # pushed down into the `rootKey' entry.
       in if meMfRaw == null then [] else ents;
 
       allMetaEnts = mesPl ++ mesPjs ++ mesMf;
       grouped     = builtins.groupBy ( x: x.key ) allMetaEnts;
       members     = grouped // {
-        __meta = let
+        _meta = let
           rootKey =
-            if meMfRaw ? __meta.rootKey then meMfRaw.__meta.rootKey else
+            if meMfRaw ? _meta.rootKey then meMfRaw._meta.rootKey else
             if mfd ? metaFiles.pjs then mePjs.key else
             if ! ( mfd ? metaFiles.plock ) then null else
             mfd.metaFiles.plock.name + "/" + mfd.metaFiles.plock.version;
@@ -572,14 +572,9 @@
   metaSetFromDir' = { ifd, pure, allowedPaths, typecheck } @ fenv: let
     inner = pathlike: let
       lists = metaSetEntListsFromDir' fenv pathlike;
-    in lists.__extend ( final: prev:
-      builtins.mapAttrs ( _: mergeMetaEntList )
-                        ( removeAttrs prev ["__meta" "_type"] )
-    );
-    # TODO: make a real typedef for this.
-    rslt = yt.restrict "metaSet" ( x: ( x._type or null ) == "metaSet" )
-                                 ( yt.attrs yt.any );
-  in if typecheck then yt.defun [yt.Typeclasses.pathlike rslt] inner else inner;
+    in lists.__mapEnts mergeMetaEntList;
+  in if ! typecheck then inner else
+     yt.defun [yt.Typeclasses.pathlike yt.FlocoMeta.meta_set_shallow] inner;
 
 
 # ---------------------------------------------------------------------------- #

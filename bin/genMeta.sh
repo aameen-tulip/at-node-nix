@@ -451,13 +451,13 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
     in { prod = mkTree false; } // maybeDev;
 
     # Stash extra info in an "internal" attribute
-    __meta  = {
-      inherit (metaSet.__meta) fromType rootKey;
+    _meta  = {
+      inherit (metaSet._meta) fromType rootKey;
       inherit trees;
     };
 
     # Finalize data to be written
-    data = serial // { inherit __meta; };
+    data = serial // { inherit _meta; };
 
     # For Nix output put a header at the top of the file with instructions
     # on how to regenerate.

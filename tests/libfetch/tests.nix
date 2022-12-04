@@ -116,7 +116,7 @@
         in builtins.mapAttrs doFetch;
         checkAll = v: builtins.all ( b: b ) ( builtins.attrValues v );
       in builtins.mapAttrs ( _: checkAll ) {
-        plents = mapFetch metaSet.__meta.plock.packages;
+        plents = mapFetch metaSet._meta.plock.packages;
         msents = mapFetch metaSet.__entries;
       };
       expected = {

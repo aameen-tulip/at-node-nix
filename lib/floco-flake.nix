@@ -19,7 +19,7 @@
     metaSet
   , rootPriority ? "high"
   , depsPriority ? "low"
-  , rootKey      ? metaSet.__meta.rootKey or args.rootEnt.key or null
+  , rootKey      ? metaSet._meta.rootKey or args.rootEnt.key or null
   , rootEnt      ? if rootKey == null then null else metaSet.${rootKey} or null
   } @ args: let
     lows  = metaSet.__entries or metaSet;

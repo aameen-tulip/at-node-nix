@@ -51,22 +51,21 @@
 } @ args: let
 
   # Prepare all packages for consumption.
-  pkgSet = let
-    scrub = ms: removeAttrs ms ["_type" "__meta"];
-  in builtins.mapAttrs ( _: mkSrcEnt )
-                       ( scrub ( metaSet.__entries or metaSet ) );
+  pkgSet = builtins.mapAttrs ( _: mkSrcEnt ) ( metaSet.__entries or metaSet );
 
   # Assign `node_modules/' paths to `outPath' of associated package.
   # If the arg `tree' is given, the caller may have provided `pkgEnt' values
   # already, or they might be a mix of keys and `pkgEnt' - so this routine
   # ensures all keys are converted to packages.
   pkgTree = let
-    tree     = args.tree or metaSet.${metaSet.__meta.rootKey}.trees.prod;
+    tree     = args.tree or metaSet.${metaSet._meta.rootKey}.trees.prod;
     treeDone = builtins.all ( x: x ? outPath ) ( builtins.attrValues tree );
     fallback = builtins.mapAttrs ( nmPath: key: pkgSet.${key} ) tree;
   in if treeDone then tree else fallback;
 
-  pacoteEnt = pkgSet.${metaSet.__meta.rootKey};
+  pacoteEnt = pkgSet.${metaSet._meta.rootKey};
+
+  # TODO: define `pkgEnt' as a `metaExt' record?
 
   # We create a recursively defined package definition.
 in lib.makeExtensibleWithCustomName "__extend" ( self:

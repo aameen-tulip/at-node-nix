@@ -67,8 +67,8 @@
     ldmsg = "(idealTreePlockV3): You must provide an arg for me to find " +
             "your package lock. Recommended: `lockDir = <PATH>;'.";
   in {
-    plock ? args.__meta.plock or
-            ( if metaSet != null then metaSet.__meta.plock
+    plock ? args._meta.plock or
+            ( if metaSet != null then metaSet._meta.plock
               else lib.importJSON' "${lockDir}/package-lock.json" )
   , lockDir ? throw ldmsg
   # XXX: `metaSet' is optional when you provide `plock'.
@@ -82,7 +82,7 @@
   # This could be handled more gracefully by a more robust `mkNmDir'
   # implementation that created symlinks to the source directory; but frankly
   # dependency cycles like this are fucking evil.
-  , rootKey ? if metaSet != null then metaSet.__meta.rootKey else
+  , rootKey ? if metaSet != null then metaSet._meta.rootKey else
               "${plock.name}/${plock.version}"
   # Whether to include `dev' dependencies in tree.
   # Setting this to `false' will produce the equivalent of `--omit-dev'.

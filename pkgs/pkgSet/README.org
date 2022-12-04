@@ -160,7 +160,7 @@ If saved to a file you can read it back into Nix using =lib.libmeta.metaSetFromS
 
 The serialized =metaSet= will be read back as if it had been created from a =package-lock.json(V3)= with some gap filling from the top level package's source tree.
 
-One important caveat here is that certain fields such at =__meta.(plock|pjs|lockDir)= will not be present ( because they pointed to a temporary directory ) and =metaEnt= records won't have their =entries.(pjs|plock)= fields.
+One important caveat here is that certain fields such at =_meta.(plock|pjs|lockDir)= will not be present ( because they pointed to a temporary directory ) and =metaEnt= records won't have their =entries.(pjs|plock)= fields.
 This is fine because we've already scraped all the info we really care about from them.
 
 
@@ -186,14 +186,14 @@ For the purposes of this example I'll use a plain =default.nix= build, but the =
     # This is a "full" `pkgEnt', which is superfulous for this example; but useful in
     # real projects so I went the extra mile.
     pkgEnt = let
-      # The `meta.nix' file marked `__meta.rootKey = "@datadog/native-metrics/1.2.0"', but
+      # The `meta.nix' file marked `_meta.rootKey = "@datadog/native-metrics/1.2.0"', but
       # I avoided hard coding that key here to make it easier to reuse this snippet.
-      pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${metaSet.__meta.rootKey};
+      pkgEntSrc = pkgsFor.mkPkgEntSource metaSet.${metaSet._meta.rootKey};
       # The `installPkgEnt' builder is going to yank args from our `metaEnt' and `pkgEnt', and
       # then call `buildGyp' for us.
       installed = pkgsFor.installPkgEnt ( pkgEntSrc // {
         # Our generated metadata has stashed the ideal tree needed to create the `node_modules/' dir.
-        nmDirCmd = pkgsFor.mkNmDirLinkCmd { tree = metaSet.__meta.trees.prod; };
+        nmDirCmd = pkgsFor.mkNmDirLinkCmd { tree = metaSet._meta.trees.prod; };
       } );
       # Manually extend the `pkgEnt' with our install, and since we're done with this package
       # we'll also set `prepared' and a top level `outPath' to follow good `pkgEnt' conventions.
@@ -209,5 +209,5 @@ This may not be the case in your use case; but you can use this technique to chi
 
 For clarity: you'll use this exact pattern for builds that require non-Node.js =buildInputs= like =libfoo.so= and whatnot; you'll just add them as args to =installPkgEnt= ( which is just a frontend over =stdenv.mkDerivation= ).
 
-***** FIXME: =__meta.tree= has not been pruned for unsupported packages.
+***** FIXME: =_meta.tree= has not been pruned for unsupported packages.
 Either update this example or tweak the deserializer.

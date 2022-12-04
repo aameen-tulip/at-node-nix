@@ -104,6 +104,20 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Default/base serializer for `metaEnt' records.
+  # These almost always refer to individual packages.
+  # This form is intentionally minimal, it's probably best to do most
+  # specialization is extensions that wrap this.
+  #
+  # TODO: fetchInfo relative paths.
+  metaEntSerialDefault = self: let
+    drops = ["_type" "scoped"];
+    base = removeAttrs ( serialDefault self ) drops;
+  in base;
+
+
+# ---------------------------------------------------------------------------- #
+
   # Hide values which can be easily inferred from `package-lock.json' entry.
   # For example we know the entry must declare `hasInstallScript' so we can
   # safely omit it.
@@ -129,15 +143,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  metaEntSerialDefault = self: let
-    drops = ["_type" "scoped"];
-    base = removeAttrs ( serialDefault self ) drops;
-    # TODO: fetchInfo relative paths
-  in base;
-
-
-# ---------------------------------------------------------------------------- #
-
   # Maps `entFromtype' to default serializers.
   # Largely these hide additional fields which can be easily inferred using
   # `entFromtype`.
@@ -153,11 +158,20 @@
     "yarn.lock(v1)"         = metaEntSerialDefault;  # TODO
     "yarn.lock(v2)"         = metaEntSerialDefault;  # TODO
     "yarn.lock(v3)"         = metaEntSerialDefault;  # TODO
+    explicit                = metaEntSerialDefault;
     raw                     = metaEntSerialDefault;
-    _default                = metaEntSerialDefault;
+    cached                  = metaEntSerialDefault;
+    composite               = metaEntSerialDefault;
+    # In theory this should be unreachable but I don't want thing blowing up
+    # just because someone made a custom `entFromtype' and forgot to define
+    # a serializer.
+    _default = metaEntSerialDefault;
   };
 
 
+  # Serialize any `metaEnt' based on its `entFromtype'.
+  # this being separate allows use to combine serializers or call then on
+  # metadata that has already stripped off its member functions.
   metaEntSerial = { entFromtype ? "_default", ... } @ self:
     metaEntSerialByFromtype.${entFromtype} self;
 

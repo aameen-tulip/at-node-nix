@@ -131,7 +131,7 @@ jobs:
           nix run head#genMeta -- --dev "$PWD"|tee meta.nix;
 
           _es=0;
-          case "$( nix eval --raw -f ./meta.nix __meta.rootKey; )" in
+          case "$( nix eval --raw -f ./meta.nix _meta.rootKey; )" in
             @floco/test/4.2.0) echo "PASS"; _es=0; ;;
             *) echo "FAIL"; _es=1; ;;
           esac

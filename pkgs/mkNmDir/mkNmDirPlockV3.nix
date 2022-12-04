@@ -56,7 +56,7 @@
 , xorg
 } @ args: let
   # The `pkgEnt' for the lock we've parsed.
-  rootEnt  = metaSet.__meta.rootKey;
+  rootEnt  = metaSet._meta.rootKey;
   fenv = { inherit pure ifd allowedPaths typecheck; };
   mkNm = { copy ? false, dev ? true, ... } @ nmArgs: let
     # Get our ideal tree, filtering out packages that are incompatible with

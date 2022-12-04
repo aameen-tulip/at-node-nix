@@ -26,6 +26,18 @@
     "__updateEx"
   ];
 
+  _meta_ent_core_extra_fields = [
+    "_type" "key" "ident" "version" "entFromtype" "metaFiles"
+  ];
+  _meta_ent_core_fields =
+    yt.FlocoMeta._meta_ext_fields ++ yt.FlocoMeta._meta_ent_core_extra_fields;
+
+  _meta_set_core_extra_fields = [
+    "_type" "_meta" "__unkey" "__mapEnts" "__maybeApplyEnt" "__filterEnts"
+  ];
+  _meta_set_core_fields =
+    yt.FlocoMeta._meta_ext_fields ++ yt.FlocoMeta._meta_set_core_extra_fields;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -41,7 +53,11 @@
     "yarn.lock(v3)"
     "vinfo"
     "packument"
-    "raw"                    # Fallback/Default for manual entries
+    # Generic types, usually for manually provided or merged info
+    "explicit"   # High priority
+    "raw"        # Fallback/Default medium priority
+    "cached"     # Low priority
+    "composite"  # Merged from other types ( non-specific )
   ];
   Enums.meta_fromtype = yt.enum "meta_fromtype" yt.FlocoMeta._meta_fromtypes;
 
@@ -127,6 +143,8 @@ in {
 
   inherit
     _meta_ext_fields
+    _meta_ent_core_extra_fields _meta_ent_core_fields
+    _meta_set_core_extra_fields _meta_set_core_fields
     _meta_fromtypes
     _plock_fromtypes
     _ylock_fromtypes

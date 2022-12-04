@@ -274,7 +274,7 @@
     scoped = true;
     version = "2.0.0";
   };
-  __meta = {
+  _meta = {
     fromType = "package-lock.json(v3)";
     rootKey = "pacote/13.3.0";
   };
