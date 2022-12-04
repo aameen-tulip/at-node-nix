@@ -75,19 +75,11 @@
   # those to `_serial' ( value ), `_entries' ( value ), and
   # `__mapEntries' ( function ); but I'm not renaming that shit again.
   # TODO: rename that shit again.
-  # NOTE: it is impossible to encounted `serialIgnore' at the top level in this
-  # context ( or it should be made impossible if there's abuse ) because that
-  # field is strictly
   toSerial = x: let
-    pp  = lib.generators.toPretty { allowPrettyValues = true; } x;
-    msg = "toSerial: Non-recursive attrsets must not set '__serial' as a value."
-          + " Value was: '${pp}'";
     rsl =
       if x ? __toSerial then x.__toSerial x else
-      if x ? _serial then x._serial else
       if lib.isFunction ( x.__serial or null ) then x.__serial x else
-      if x ? __serial then throw msg else
-      lib.libmeta.serialDefault x;
+      if x ? __serial then x.__serial else lib.libmeta.serialDefault x;
   in if rsl == "__DROP__" then null else rsl;
 
 
@@ -107,7 +99,7 @@
   serialIgnore = let
     def = {
       _id        = "serialIgnore";
-      __functor  = _: throw (
+      __functor  = _: _: throw (
         "(at-node-nix#lib.libmeta.serialIgnore): Someone forgot to check" +
         " for the magic value 'serialIgnore' when writing a serializer."
       );

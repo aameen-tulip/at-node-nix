@@ -98,10 +98,10 @@
   pjsPath' = { discardStringContext }: pathlike: let
     p   = if builtins.isString pathlike then pathlike else toString pathlike;
     sub = if builtins.isPath pathlike then pathlike + "/package.json" else
-          if lib.test ".*/" pathlike then pathlike + "package.json" else
-          pathlike + "/package.json";
-    rsl = if ( baseNameOf pathlike ) == "package.json" then p else
-          if ( dirOf pathlike ) == "." then "package.json" else sub;
+          if lib.test ".*/" p then p + "package.json" else
+          p + "/package.json";
+    rsl = if ( baseNameOf p ) == "package.json" then p else
+          if ( dirOf p ) == "." then "package.json" else sub;
   in if discardStringContext then builtins.unsafeDiscardStringContext rsl
                              else rsl;
 

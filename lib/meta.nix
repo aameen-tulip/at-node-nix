@@ -414,7 +414,9 @@
     membersR = let
       # Non-recursive case
       membersRFromAS = final: members // {
-        _meta = { __serial = lib.libmeta.serialIgnore; } // ( members._meta or {} );
+        _meta = {
+          __serial = lib.libmeta.serialIgnore;
+        } // ( members._meta or {} );
         _type = "metaSet";
       };
       # `members' is already recursively defined so we must extend.

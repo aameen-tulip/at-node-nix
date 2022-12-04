@@ -114,7 +114,8 @@
       inherit (source) outPath;
       inherit (metaEnt) key ident version;
       passthru = {
-        metaEnt = removeAttrs ( metaEnt.__serial or metaEnt ) ["names"];
+        #metaEnt = removeAttrs ( metaEnt.__serial or metaEnt ) ["names"];
+        metaEnt = removeAttrs ( lib.toSerial metaEnt ) ["names"];
         # bname, genName, src, registryTarball, localTarball, tarball, ..
         # `tarball' is an alias of `registryTarball' by default, but may be
         # overidden by the user with a `metaEnt' overlay.

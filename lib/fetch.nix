@@ -213,7 +213,9 @@
         ffamily   = "file";
         ltype     = "file";
         fetchInfo = fetchInfo // {
-          type = if fetchInfo.unpack or false then "tarball" else "file";
+          type = args.type or (
+            if fetchInfo.unpack or false then "tarball" else "file"
+          );
         };
         inherit (sourceInfo) outPath;
         sourceInfo = if sourceInfo.narHash != null then sourceInfo else
