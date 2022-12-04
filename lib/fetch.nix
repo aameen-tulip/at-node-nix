@@ -513,8 +513,9 @@
       flocoTarballFetcher'
       #flocoProcessPathArgs'
       flocoPathFetcher'
-      mkFlocoFetchers'
-      mkFlocoFetcher'
+
+      #mkFlocoFetchers'
+      #mkFlocoFetcher'
     ;
   };
 

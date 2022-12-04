@@ -100,6 +100,9 @@
     id_locator_new_p =
       "${RE.id_new_p}@(${RE.version_p}|${yt.Uri.RE.uri_ref_p})";
 
+    id_version_old_p = "${RE.id_old_p}@${RE.version_p}";
+    id_version_new_p = "${RE.id_new_p}@${RE.version_p}";
+
     id_descriptor_old_p = "${RE.id_old_p}@${RE.descriptor_p}";
     id_descriptor_new_p = "${RE.id_new_p}@${RE.descriptor_p}";
 
@@ -189,6 +192,10 @@
                                           string;
     id_locator_new = restrict "new" ( lib.test RE.id_locator_new_p )
                                     Strings.id_locator;
+    id_version =
+      restrict "ident+version" ( lib.test RE.id_version_old_p ) string;
+    id_version_new =
+      restrict "ident+version" ( lib.test RE.id_version_new_p ) string;
 
 
     # FIXME
@@ -206,7 +213,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-    key = restrict "pkg-key" ( lib.test RE.key ) string;
+    key = restrict "ivkey" ( lib.test RE.key ) string;
 
     # used in `flocoPackages' to shard subdirs.
     sdir = let
@@ -232,6 +239,19 @@
     identifier = yt.struct "identifier" {
       bname = Strings.id_part;
       scope = option ( yt.either Strings.scope Structs.scope );
+    };
+
+    ident_version = yt.struct "ident+version" {
+      ident = Strings.identifier;
+      inherit (Strings) version;
+    };
+    identifier_version = yt.struct "identifier+version" {
+      ident = Strings.identifier;
+      inherit (Strings) version;
+    };
+    name_version = yt.struct "name+version" {
+      name = Strings.identifier;
+      inherit (Strings) version;
     };
 
     id_locator = yt.struct "identifier+locator" {
@@ -273,6 +293,11 @@
       range   = Strings.range;
       locator = yt.either Strings.locator Sums.locator;
     };
+    str_ident = yt.sum "identifier[string]" {
+      name       = Strings.identifier;
+      ident      = Strings.identifier;
+      identifier = Strings.identifier;
+    };
   };  # End Sums
 
 
@@ -281,6 +306,20 @@
   Eithers = {
     identifier = yt.either Strings.identifier Structs.identifier;
     scope      = yt.eitherN [yt.nil Strings.scope Structs.scope];
+
+    struct_id_version = yt.eitherN [
+      Structs.ident_version
+      Structs.identifier_version
+      Structs.name_version
+    ];
+
+    ivkeylike = yt.eitherN [
+      Structs.ident_version
+      Structs.identifier_version
+      Structs.name_version
+      Strings.key
+      Strings.id_version
+    ];
   };
 
 

@@ -16,9 +16,10 @@
   # Typeclass for Package/Module "Scope" name.
   Scope = let
     coercibleSums = yt.sum {
-      ident = pi.Strings.identifier_any;
-      name  = pi.Strings.identifier_any;
-      meta  = yt.attrs yt.any;
+      identifier = pi.Strings.identifier_any;
+      ident      = pi.Strings.identifier_any;
+      name       = pi.Strings.identifier_any;
+      meta       = yt.attrs yt.any;
       inherit (pi.Strings) key;
     };
     coercibleStructs_l = [
@@ -105,7 +106,7 @@
       val        = self.coerce x;
       __toString = child: self.toString child.val;
       __serial   = child: self.toAttrs child.val;
-      __vtype    = self.ytype;
+      _vtype     = self.ytype;
     };
   };
 

@@ -167,7 +167,7 @@
         if ( ident == null ) || ( version == null ) then "workspace/0.0.0" else
         ident + "/" + version;
       hasBin    = getHasBinPjs'  fenv gargs;
-      metaFiles = { __serial = false; inherit pjs wkey; } //
+      metaFiles = { __serial = lib.libmeta.serialIgnore; inherit pjs wkey; } //
                   ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
       inherit (deps) depInfo;
     } // ( if ( args ? ltype ) || isLocal then { inherit ltype; } else {} )

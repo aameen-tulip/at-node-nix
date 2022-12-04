@@ -280,7 +280,7 @@
   metaEntExtendWithNames = final: prev: {
     scoped = ( builtins.substring 0 1 prev.ident ) == "@";
     names = {
-      __serial = false;
+      __serial = lib.libmeta.serialIgnore;
       bname = baseNameOf prev.ident;
       scopeDir = if final.scoped then "${dirOf prev.ident}/" else "";
       node2nix =
@@ -361,7 +361,7 @@
     inherit key ident version entFromtype;
     # We don't hard code this in the serializer in case the user actually does
     # want to serialize their `entries', allowing them the ability to override.
-    metaFiles.__serial = false;
+    metaFiles.__serial = lib.libmeta.serialIgnore;
   };
 
 
@@ -414,13 +414,15 @@
     membersR = let
       # Non-recursive case
       membersRFromAS = final: members // {
-        _meta = { __serial = false; } // ( members._meta or {} );
+        _meta = { __serial = lib.libmeta.serialIgnore; } // ( members._meta or {} );
         _type = "metaSet";
       };
       # `members' is already recursively defined so we must extend.
       membersRFromFn = let
         addMeta = final: prev: {
-          _meta = { __serial = false; } // ( prev._meta or {} );
+          _meta = {
+            __serial = lib.libmeta.serialIgnore;
+          } // ( prev._meta or {} );
           _type  = "metaSet";
         };
       in lib.fixedPoints.extends addMeta members;

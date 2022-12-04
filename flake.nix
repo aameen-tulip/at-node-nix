@@ -184,6 +184,40 @@
       nixpkgs.legacyPackages.${system}.extend overlays.default
     );
 
+
+# ---------------------------------------------------------------------------- #
+
+    # Eval Envs
+    # These are subsets of the `floco' framework customized for specific tasks.
+    # Currently the "scrape" env is only definition, but others will likely
+    # be added in the future.
+
+    # Scrape Env
+    # Intended for collecting metadata impurely to be written to disk for later
+    # pure builds.
+    #
+    # You are still able to enable/disable IFD here, but the only real reason
+    # to do so is for bulk collection or running in CI/CD where you
+    # intentionally want to avoid building deps required to scrape.
+    # NOTE: IFD is not strictly enforced for every utility, so in this context
+    # the arg is more of a recommendation/preference.
+    flocoScrape = let
+      dft = {
+        ifd       = true;
+        typecheck = false;
+        lib       = nixpkgs.lib.extend libOverlays.default;
+        registryScopes._default = "https://registry.npmjs.org";
+        inherit nixpkgs rime;
+      };
+      fn    = import ./envs/scrape.nix;
+      mkEnv = ak-nix.lib.callWithOv dft fn;
+    in ( ak-nix.lib.eachDefaultSystemMap ( system:
+      mkEnv { libOnly = false; inherit system; }
+    ) ) // { lib = mkEnv { libOnly = true; system = "unknown"; }; };
+
+
+
+
 # ---------------------------------------------------------------------------- #
 
     # Made a function to block `nix flake check' from fetching.

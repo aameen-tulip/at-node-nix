@@ -56,18 +56,73 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # This is meant to run serializers on top-level attrsets.
+  # The reason I say "top level" is because the handling for "__DROP__" and
+  # `serialIgnore' is indistinguishable from explicit `null' at the top level.
+  # Presumably this doesn't really matter, because if you're serializing an
+  # attrset you /should/ get JSON attrs to the top level, otherwise you would
+  # a `__toString' routine, right?
+  # ( there's valid reasons to return strings even at the top level, just be
+  #   aware of the limitations that I'm highlighting ).
+  #
+  # NOTE: the name `__serial' and other "__<FN>" names used by `metaExt' records
+  # are fucky because the field can be either a value or a function.
+  # This makes sense in the context of those records because they are
+  # recursively defined; but it doesn't make a ton of sense for
+  # non-recursive records.
+  # Honestly what /would/ make the most sense is for `metaExt' to have fields
+  # `__toSerial', `__toEntries', `__mapEnts', etc, and when `fix' is run flatten
+  # those to `_serial' ( value ), `_entries' ( value ), and
+  # `__mapEntries' ( function ); but I'm not renaming that shit again.
+  # TODO: rename that shit again.
+  # NOTE: it is impossible to encounted `serialIgnore' at the top level in this
+  # context ( or it should be made impossible if there's abuse ) because that
+  # field is strictly
+  toSerial = x: let
+    pp  = lib.generators.toPretty { allowPrettyValues = true; } x;
+    msg = "toSerial: Non-recursive attrsets must not set '__serial' as a value."
+          + " Value was: '${pp}'";
+    rsl =
+      if x ? __toSerial then x.__toSerial x else
+      if x ? _serial then x._serial else
+      if lib.isFunction ( x.__serial or null ) then x.__serial x else
+      if x ? __serial then throw msg else
+      lib.libmeta.serialDefault x;
+  in if rsl == "__DROP__" then null else rsl;
+
+
+# ---------------------------------------------------------------------------- #
+
   # The simplest type of serializer.
   serialAsIs = self: removeAttrs self ( _meta_ext_fields ++ ["passthru"] );
 
   # Do not serialize attrsets with this serializer, you must explicitly check
   # for this reserved serializer.
   # See notes in section above.
-  serialIgnore = false;
+  # XXX: THIS MUST NOT BE USED AS A DEFINITION OF `__toSerial'.
+  # TODO: This was a stupid idea. As conenvient as it is you should have used
+  # a magic number or LISP `nil' ( `__serial = self: ( _: null )' ) so you could
+  # check to see if a function was returned.
+  # Actually the LISP nil is exactly what I should have done.
+  serialIgnore = let
+    def = {
+      _id        = "serialIgnore";
+      __functor  = _: throw (
+        "(at-node-nix#lib.libmeta.serialIgnore): Someone forgot to check" +
+        " for the magic value 'serialIgnore' when writing a serializer."
+      );
+      __toString = _: "";
+      __toPretty = _: "";
+    };
+  in assert ! ( ( def ? __toSerial ) || ( def ? __serial ) );
+     def;
 
-  # A second type of reserved serializer which allows recursive `__serialize'
+  # A second type of reserved serializer which allows recursive `__serial'
   # routines to dynamically hide members.
   # See notes in section above.
-  serialDrop   = self: "__DROP__";
+  # NOTE: This is allowed on a non-recursive record, and should be used instead
+  # of `serialIgnore' for anything with `__toSerial' defined at the top level.
+  serialDrop = self: "__DROP__";
 
 
 # ---------------------------------------------------------------------------- #
@@ -82,8 +137,9 @@
       inherit (builtins) isAttrs isString typeOf elem;
       keepType = elem ( typeOf v ) ["set" "string" "bool" "list" "int" "float"];
       keepAttrs =
+        if v ? __toSerial then v.__toSerial v else
         if v ? __serial then v.__serial != serialIgnore else
-          ( ! lib.isDerivation v );
+        ( ! lib.isDerivation v );
       keepStr = ! lib.hasPrefix "/nix/store/" v;
       keepT =
         if isAttrs  v then keepAttrs else
@@ -181,6 +237,7 @@
 in {
 
   inherit
+    toSerial
     serialAsIs
     serialIgnore
     serialDrop

@@ -81,10 +81,14 @@ in {
     getFlocoPkgModule'
     getMetaEntFromFlocoPkg'
     addFlocoPackages
+
+    # These sort of accomplish the same thing but one is a typeclass
+    IVKey        # IVKey.coerce is strictly typed regardless of `fenv'
+    coerceIVKey  # Always untyped, throws on failure
   ;
 
   inherit (final.libpkginfo)
-    Scope
+    Scope  # Typeclass
   ;
 
 
@@ -134,6 +138,7 @@ in {
   ;
 
   inherit (final.libmeta)
+    toSerial
     _mkExtInfo
     mkExtInfo
     metaWasPlock

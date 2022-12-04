@@ -78,8 +78,64 @@
 
 # ---------------------------------------------------------------------------- #
 
+  IVKey = let
+    coercibleType = yt.eitherN [
+      yt.PkgInfo.Eithers.ivkeylike
+      ( yt.restrict "ivkeylike[attrs]" ( x:
+        ( ( x.ident or x.name or x.identifier or x.key or null ) != null ) &&
+          ( ( x.version or x.key or null ) != null ) )
+        ( yt.attrs yt.any ) )
+    ];
+  in {
+    name        = "IVKey";
+    empty       = "@floco/dummy/0.0.0";
+    isType      = IVKey.ytype.check;
+    ytype       = ivkey;
+    fromNull    = yt.defun [yt.nil ivkey] ( _: IVKey.empty );
+    isCoercible = coercibleType.check;
+    fromString  = x: let
+      p = "(${yt.PkgInfo.RE.id_old_p})[@/](${yt.PkgInfo.RE.version_p}).*";
+      m = builtins.match p x;
+    in "${builtins.head m}/${builtins.elemAt m 2}";
+    toString = x:
+      if yt.PkgInfo.key.check x then x else
+      if builtins.isString x then IVKey.fromString x else
+      if builtins.isAttrs then x.key or ( IVKey.fromAttrs x ) else
+      if yt.Typeclasses.stringy x then IVKey.fromString ( toString x ) else
+      # Throw
+      ( coercibleType x );
+    fromAttrs = x: let
+      ident    = x.ident or x.name or x.identifier or null;
+      version  = x.version or x.locator or null;
+      canAttrs = ( ident != null ) && ( version != null );
+    in x.key or (
+      if canAttrs then "${ident}/${version}" else
+      IVKey.fromString ( toString ( coercibleType x ) )  # Probably throws
+    );
+    toAttrs = x: { ident = dirOf x; version = baseNameOf x; key = x; };
+    # Best effort conversion with typechecking
+    coerce = let
+      inner = x:
+        if x == null           then IVKey.empty else
+        if builtins.isString x then IVKey.fromString x
+        else IVKey.fromAttrs x;
+    in yt.defun [coercibleType IVKey.ytype] inner;
+    toSerial = IVKey.toString;
+    __functor = self: x: {
+      _type      = "ivkey";
+      val        = self.coerce x;
+      __toString = child: child.val;
+      __toSerial = child: child.val;
+      _vtype     = self.ytype;
+    };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  # No type assertions, possibly faster but who knows.
   coerceIVKey = keylike: let
-    ident = keylike.ident or keylike.name or null;
+    ident = keylike.ident or keylike.name or keylike.identifier or null;
     str   = toString keylike;
     msg   = "${mkLoc "coerceIVKey"} Cannot convert value '${pp keylike}' of " +
             "type '${builtins.typeOf keylike}' an '<IDENT>/<VERSION>' key.";
@@ -96,6 +152,7 @@
 
 in {
   inherit
+    IVKey
     coerceIVKey
   ;
 }

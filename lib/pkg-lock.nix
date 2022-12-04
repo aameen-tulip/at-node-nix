@@ -387,7 +387,7 @@
     # Only included when `includeTreeInfo' is `true'.
     # Otherwise including this info would cause key collisions in `metaSet'.
     metaFiles = {
-      __serial = false;
+      __serial = lib.libmeta.serialIgnore;
       plock = assert ! ( plent ? metaFiles );
               plent // { inherit pkey lockDir; };
     };
@@ -477,7 +477,7 @@
     metaEntries = auditKeyValuesUnique;
     members = metaEntries // {
       _meta = {
-        __serial = false;
+        __serial = lib.libmeta.serialIgnore;
         rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0"}";
         inherit plock lockDir;
         fromType = "package-lock.json(v${toString lockfileVersion})";

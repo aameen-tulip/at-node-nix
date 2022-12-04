@@ -59,7 +59,7 @@
   # TODO: certain `laika', `rime', and `ak-nix' lib routines could/should get
   # handled here as well.
   takeFenv = [
-    "libfetch"
+    "libfetch"    # FIXME: takes `fetchers' arg in `mkFlocoFetcher'.
     "libmeta"
     "libpjs"
     "libpkginfo"

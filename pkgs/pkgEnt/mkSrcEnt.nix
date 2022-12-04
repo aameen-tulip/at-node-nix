@@ -282,7 +282,7 @@ in {
 #      };
 #
 #      names = {
-#        __serial = false;
+#        __serial = <function>;  # serialIgnore
 #        bin = "css-tools-bin-4.0.1";
 #        bname = "css-tools";
 #        built = "css-tools-built-4.0.1";

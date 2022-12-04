@@ -427,7 +427,7 @@
             mfd.metaFiles.plock.name + "/" + mfd.metaFiles.plock.version;
           rootKey' = if rootKey == null then {} else { inherit rootKey; };
         in rootKey' // {
-          __serial = false;
+          __serial = lib.libmeta.serialIgnore;
           fromType = "directory-composite";
           dir = toString pathlike;
           inherit (mfd) metaFiles;
@@ -465,15 +465,18 @@
     # 0      ::= "highest priority"/"most trusted"
     # 999... ::= "total dogshit"/replace with any lower rank option
     fromTypesRank = {
-      raw                     = 0;   # Assumed to be explitly defined by user.
-      "package.json"          = 5;   # Once normalized this is most accurate.
-      "package-lock.json(v2)" = 10;  # Contains more info than v3.
-      "package-lock.json(v3)" = 15;  # Actually "better" than v2, but less info.
-      "package-lock.json(v1)" = 20;  # Only "better" for pinning dep versions.
-      "package-lock.json"     = 25;  # No internal routines mark this.
+      explicit                = 0;   # Assumed to be explitly defined by user.
+      raw                     = 5;
+      "package.json"          = 25;   # Once normalized this is most accurate.
+      cached                  = 50;
+      "package-lock.json(v2)" = 100;  # Contains more info than v3.
+      "package-lock.json(v3)" = 125;  # Actually "better" than v2, but less info.
+      "package-lock.json(v1)" = 150;  # Only "better" for pinning dep versions.
+      "package-lock.json"     = 200;  # No internal routines mark this.
+      composite               = 300;  # Merged from multiple others
       # From Registry - this info is often inaccurate
-      vinfo     = 50;  # A specific "abbreviated version" record in Packument.
-      packument = 60;  # Registry record for all package versions.
+      vinfo     = 500;   # A specific "abbreviated version" record in Packument.
+      packument = 1000;  # Registry record for all package versions.
 
       # Not supported/Yarn is garbage and if you're reading this you should
       # migrate your project away from it.
