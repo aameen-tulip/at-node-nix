@@ -47,7 +47,7 @@ in {
 
   Structs.fetch_info_fetchurl_drv = yt.struct "fetchInfo:fetchurlDrv" {
     url            = yt.Uri.Strings.uri_ref;
-    name           = yt.option yt.FS.store_filename;
+    name           = yt.option yt.FS.Strings.store_filename;
     hash           = yt.option yt.Hash.hash;
     md5            = yt.option yt.Hash.md5;
     sha1           = yt.option yt.Hash.sha1;

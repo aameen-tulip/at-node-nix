@@ -20,6 +20,8 @@
 , allowedPaths ? []
 , typecheck    ? true
 
+, flocoScrape ? at-node-nix.flocoScrape  # Only usable in impure with IFD
+
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
 , limit       ? 100    # Limits the max dataset for certain tests.
@@ -30,7 +32,9 @@
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  auto = {
+  auto = let
+    flocoScrape' = if pure || ( ! ifd ) then {} else { inherit flocoScrape; };
+  in {
     inherit lib pkgsFor;
 
     inherit limit;
@@ -38,6 +42,7 @@
     inherit (pkgsFor)
       mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
       mkTarballFromLocal
+      snapDerivation
     ;
     inherit
       flocoUnpack
@@ -47,7 +52,7 @@
       typecheck
       allowedPaths
     ;
-  } // args;
+  } // args // flocoScrape';
 
   tests = let
     testsFrom = file: let
@@ -71,6 +76,7 @@
     ./pkg-set
     ./build-support
     ./fpkgs
+    ./scrapePlock.nix
   ];
 
 # ---------------------------------------------------------------------------- #

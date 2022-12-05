@@ -126,6 +126,7 @@
       };
     in nixpkgs.lib.composeExtensions base fixGenMeta;
 
+
 # ---------------------------------------------------------------------------- #
 
     # Merged Overlay. Contains Nixpkgs, `ak-nix' and most overlays defined here.
@@ -216,12 +217,11 @@
     ) ) // { lib = mkEnv { libOnly = true; system = "unknown"; }; };
 
 
-
-
 # ---------------------------------------------------------------------------- #
 
     # Made a function to block `nix flake check' from fetching.
     testData = { ... }: import ./tests/data;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -230,6 +230,7 @@
     in {
       inherit (packages.${system}) tests;
     } );
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -250,7 +251,15 @@
       tree-bin.description = "a simple JS executable with tree.json file";
     };
 
+
 # ---------------------------------------------------------------------------- #
 
-  };  /* End outputs */
+  };  # End outputs
+
 }
+
+# ---------------------------------------------------------------------------- #
+#
+#
+#
+# ============================================================================ #
