@@ -213,7 +213,19 @@
       fn    = import ./envs/scrape.nix;
       mkEnv = ak-nix.lib.callWithOv dft fn;
     in ( ak-nix.lib.eachDefaultSystemMap ( system:
-      mkEnv { libOnly = false; inherit system; }
+      mkEnv {
+        libOnly = false;
+        inherit system;
+        # We are STRICTLY limiting this list to builders that do not accept
+        # flocoEnv args such as `pure' and `ifd'.
+        # It's too easy to shoot your foot off at this stage of development
+        # given how much I'm moving shit around to prep the first release.
+        # In the end when the arg passing is 100% verified clean this can be
+        # used more freely.
+        inherit (nixpkgs.legacyPackages.${system}.extend overlays.default)
+          collectTarballManifest
+        ;
+      }
     ) ) // { lib = mkEnv { libOnly = true; system = "unknown"; }; };
 
 

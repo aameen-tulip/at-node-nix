@@ -14,12 +14,13 @@
 
 # from `rime'. Made optional so `libOnly' can work.
 , urlFetchInfo ? rimePkgs.urlFetchInfo
+, collectTarballManifest
 
 , rimePkgs ? nixpkgs.legacyPackages.${system}.extend rime.overlays.default
 , nixpkgs
 , rime
 
-, libOnly ? system != "unknown"
+, libOnly ? system == "unknown"
 
 } @ globalArgs: assert builtins ? currentSystem; let
 
@@ -54,6 +55,8 @@
       inherit urlFetchInfo lib;
       pure = false;
     }) optimizeFetchInfo optimizeFetchInfoSet;
+
+    inherit collectTarballManifest;
 
   };
 
