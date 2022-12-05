@@ -101,6 +101,18 @@
 
 # ---------------------------------------------------------------------------- #
 
+    # XXX: if this test fails it's likely because you changed the `fetchInfo'
+    # argset to include `basedir' or something.
+    # Do not hesistate to modify how this test pulls the `package.json' file.
+    testMetaSetOpt_fetchInfo_path = {
+      expr = let
+        pjsPath = metaSetOpt.${rootKey}.fetchInfo.path + "/package.json";
+      in lib.importJSON pjsPath;
+      expected = pjs;
+    };
+
+# ---------------------------------------------------------------------------- #
+
   };  # End tests
 
 # ---------------------------------------------------------------------------- #
