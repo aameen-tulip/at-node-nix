@@ -12,7 +12,7 @@
 # NOTE: the same string or attrset may be a key in the context of one container,
 # but be a spec in the context of another container!
 # The distinction being that a "key" must uniquely refer to a record ( or
-# collection of records ), while a spec
+# collection of records ), while a spec always refers to a collection of records.
 #
 # The most common "key" is simply `<IDENT>/<VERSION>', which is used throughout
 # this codebase; but in retrospect these should have been named /IV Keys/, being
