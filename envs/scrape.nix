@@ -103,18 +103,11 @@
 
     flocoShowDir = pathlike: let
       ms = flocoScrapeEnv.scrapeDirTbDeps pathlike;
-      exSerial = ms.__extend ( final: prev: {
+      exSerial = ms.__mapEnts ( _: prev: prev.__update {
         metaFiles = let
-          newSerials = {
-            pjs   = builtins.toJSON;
-            plock = builtins.toJSON;
-          };
-          comm  = builtins.intersectAttrs prev.metaFiles newSerials;
-          merge = builtins.mapAttrs ( n: s: prev.metaFiles.${n} // {
-            __serial = s;
-          } ) comm;
+          dropS = removeAttrs prev.metaFiles ["__serial"];
         in if ! ( prev ? metaFiles ) then {} else
-           ( removeAttrs prev.metaFiles ["__serial"] ) // comm;
+           dropS // ( builtins.mapAttrs ( _: builtins.toJSON ) dropS );
       } );
     in exSerial.__serial;
 
