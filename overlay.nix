@@ -150,11 +150,18 @@ in {
     } ./pkgs/mkTarballFromLocal.nix;
   };
 
-  inherit ( import ./pkgs/optimizeFetchInfo.nix {
+  inherit (import ./pkgs/optimizeFetchInfo.nix {
     inherit (final) lib urlFetchInfo;
     inherit (final.flocoEnv) pure;
-  } ) optimizeFetchInfo' optimizeFetchInfo
-      optimizeFetchInfoSet' optimizeFetchInfoSet;
+  }) optimizeFetchInfo' optimizeFetchInfo
+     optimizeFetchInfoSet' optimizeFetchInfoSet;
+
+  # XXX: impure and IFD
+  # You can eliminate impure if you have a use case to justify it; but IFD
+  # can't be avoided without creating a Nix plugin.
+  inherit (import ./pkgs/collectTarballManifest.nix {
+    inherit (final) lib checkTarballPermsImpure;
+  }) _collectTarballManifest collectTarballManifest;
 
 
   inherit (final.lib.callWith final.flocoEnv ./pkgs/mkNmDir/mkNmDirCmd.nix {
