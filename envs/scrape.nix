@@ -46,6 +46,10 @@
       };
     };
 
+    flocoFetch = lib.mkFlocoFetcher ( flocoScrapeEnv.flocoEnv // {
+        inherit (flocoScrapeEnv.lib.libfetch) fetchers;
+      } );
+
     inherit (import ../pkgs/optimizeFetchInfo.nix {
       inherit urlFetchInfo lib;
       pure = false;

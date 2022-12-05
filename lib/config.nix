@@ -59,7 +59,7 @@
   # TODO: certain `laika', `rime', and `ak-nix' lib routines could/should get
   # handled here as well.
   takeFenv = [
-    "libfetch"    # FIXME: takes `fetchers' arg in `mkFlocoFetcher'.
+    "libfetch"    # NOTE: this requires special setup handled in `mkFenvLibSet'
     "libmeta"
     "libpjs"
     "libpkginfo"
@@ -87,7 +87,20 @@
     proc= acc: libname: acc // {
       ${libname} = lib.${libname}.__withFenv fenv;
     };
-  in builtins.foldl' proc {} takeFenv;
+    configured = builtins.foldl' proc {} takeFenv;
+    # TODO: IFD and `allowedPaths'
+    laikaFetchers = lib.libfetch.laikaFetchersConfigured {
+      inherit pure typecheck;
+    };
+    libfetch = lib.libfetch // configured.libfetch // laikaFetchers // {
+      fetchers = laikaFetchers;
+    };
+  in configured // { inherit libfetch; } // {
+    flocoFetch = libfetch.mkFlocoFetcher {
+      inherit (libfetch) fetchers;
+      inherit pure ifd allowedPaths typecheck;
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
