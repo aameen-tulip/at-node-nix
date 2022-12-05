@@ -21,7 +21,7 @@
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
   }: let
-    loc = self.__functionMeta.name or "libpjs";
+    loc  = self.__functionMeta.name or "libpjs";
     args = if wkey == "" then { inherit pjs wkey pjsDir fenv; } else
            throw "(${loc}): Reading workspaces has not been implemented.";
     targs = if self ? __thunk then self.__thunk // args else args;
@@ -95,8 +95,9 @@
   , isLocal ? true
   , ltype   ? "dir"
   , basedir ? toString pjsDir
+  , noFs    ? ! isLocal
   } @ args: let
-    gargs = removeAttrs args ["basedir" "ltype" "isLocal"];
+    gargs = removeAttrs args ["basedir" "ltype" "isLocal" "noFs"];
     abs = if yt.FS.abspath.check pjsDir then toString pjsDir else
           toString ( /. + ( ( basedir + "/" + pjsDir ) ) );
     rel = let
@@ -203,7 +204,7 @@
       ov = lib.composeExtensions ( _: prev:
         extra // infoFs // prev
       ) scriptInfo;
-    in meta.__extend ov;
+    in if noFs then meta else meta.__extend ov;
   in if wkey == "" then ex else
      throw "getIdentPjs: Reading workspaces has not been implemented.";
 

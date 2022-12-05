@@ -14,7 +14,9 @@
 
 # from `rime'. Made optional so `libOnly' can work.
 , urlFetchInfo ? rimePkgs.urlFetchInfo
-, collectTarballManifest
+, collectTarballManifest ? null
+
+, pacote ? null # Globally installed executable
 
 , rimePkgs ? nixpkgs.legacyPackages.${system}.extend rime.overlays.default
 , nixpkgs
@@ -56,9 +58,68 @@
       pure = false;
     }) optimizeFetchInfo optimizeFetchInfoSet;
 
-    inherit collectTarballManifest;
+    inherit
+      collectTarballManifest
+      pacote
+    ;
 
-  };
+    getFsMeta = ent: let
+      source = flocoScrapeEnv.flocoFetch ent;
+    in flocoScrapeEnv.lib.libmeta.tryCollectMetaFromDir source;
+
+    scrapeDirTbDeps = pathlike: let
+      ms = flocoScrapeEnv.lib.libmeta.metaSetEntListsFromDir pathlike;
+      # Merge existing entries and yank `fetchInfo'.
+      # In the majority of cases this only matters for the root project.
+      mkScrapedEnt = ents: let
+        merged = lib.libmeta.mergeMetaEntList ents;
+        opt    = if merged.fetchInfo.type == "file"
+                 then flocoScrapeEnv.optimizeFetchInfo merged
+                 else merged;
+        scrape = flocoScrapeEnv.getFsMeta opt;
+        sent   = lib.libmeta.mkMetaEnt ( scrape // {
+          inherit (merged) ident version key;
+          inherit (opt) fetchInfo;
+          entFromtype = "raw";
+          metaFiles   = {
+            __serial = lib.libmeta.serialIgnore;
+          } // ( scrape.metaFiles or {} );
+        } );
+        pjsEnt' = let
+          pent = flocoScrapeEnv.lib.libpjs.metaEntFromPjsNoWs {
+            inherit (opt) ltype;
+            inherit (scrape.metaFiles) pjs;
+            isLocal = false;
+            noFs    = true;
+          };
+        in if ! ( scrape ? metaFiles.pjs ) then [] else [pent];
+        # Don't add the scraped info if we already have an `srcdir' record.
+        #should = ( opt.fetchInfo != merged.fetchInfo ) ||
+        #         ( ! ( builtins.any ( e: e.entFromtype == "srcdir" ) ) );
+        should = true;
+      in if should then [sent] ++ pjsEnt' else [];
+      addScraped = ms.__mapEnts ( _: prev: ( mkScrapedEnt prev ) ++ prev );
+    in addScraped.__mapEnts ( _: lib.libmeta.mergeMetaEntList );
+
+    flocoShowDir = pathlike: let
+      ms = flocoScrapeEnv.scrapeDirTbDeps pathlike;
+      exSerial = ms.__extend ( final: prev: {
+        metaFiles = let
+          newSerials = {
+            pjs   = builtins.toJSON;
+            plock = builtins.toJSON;
+          };
+          comm  = builtins.intersectAttrs prev.metaFiles newSerials;
+          merge = builtins.mapAttrs ( n: s: prev.metaFiles.${n} // {
+            __serial = s;
+          } ) comm;
+        in if ! ( prev ? metaFiles ) then {} else
+           ( removeAttrs prev.metaFiles ["__serial"] ) // comm;
+      } );
+    in exSerial.__serial;
+
+
+  };  # End flocoScrapeEnv
 
 
 # ---------------------------------------------------------------------------- #

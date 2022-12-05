@@ -224,6 +224,7 @@
         # used more freely.
         inherit (nixpkgs.legacyPackages.${system}.extend overlays.default)
           collectTarballManifest
+          pacote
         ;
       }
     ) ) // { lib = mkEnv { libOnly = true; system = "unknown"; }; };

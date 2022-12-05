@@ -208,6 +208,7 @@
     "yarn.lock(v3)"         = metaEntSerialDefault;  # TODO
     explicit                = metaEntSerialDefault;
     raw                     = metaEntSerialDefault;
+    srcdir                  = metaEntSerialDefault;
     cached                  = metaEntSerialDefault;
     composite               = metaEntSerialDefault;
     # In theory this should be unreachable but I don't want thing blowing up

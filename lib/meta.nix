@@ -278,17 +278,19 @@
   # as "static", this also has the advantage of avoiding any accidental
   # recursion headaches with later extensions.
   metaEntExtendWithNames = final: prev: {
-    scoped = ( builtins.substring 0 1 prev.ident ) == "@";
-    names = {
+    names = let
+      scoped = ( builtins.substring 0 1 prev.ident ) == "@";
+    in {
       __serial = lib.libmeta.serialIgnore;
+      inherit scoped;
       bname = baseNameOf prev.ident;
-      scopeDir = if final.scoped then "${dirOf prev.ident}/" else "";
+      scopeDir = if scoped then "${dirOf prev.ident}/" else "";
       node2nix =
-        ( if final.scoped then "_at_${final.names.scope}_slash_" else "" ) +
-        "${final.names.bname}-${prev.version}";
+        ( if scoped then "_at_${final.names.scope}_slash_" else "" )
+        + "${final.names.bname}-${prev.version}";
       registryTarball = "${final.names.bname}-${prev.version}.tgz";
       localTarball =
-        ( if final.scoped then "${final.names.scope}-" else "" ) +
+        ( if scoped then "${final.names.scope}-" else "" ) +
         final.names.registryTarball;
       genName   = cat: "${final.names.bname}-${cat}-${prev.version}";
       tarball   = final.names.registryTarball;
@@ -301,7 +303,7 @@
       global    = "${final.names.bname}-${prev.version}";
       # Short "(<SCOPE>--)?<BNAME>"
       flake-id-s = let
-        sp = if final.scoped then "${final.names.scope}--" else "";
+        sp = if scoped then "${final.names.scope}--" else "";
         r  = "${sp}${final.names.bname}";
       in builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] r;
       # Long "(<SCOPE>--)?<BNAME>--<VERSION>"
@@ -311,10 +313,10 @@
       flake-ref = { id = final.names.flake-id-s; ref = prev.version; };
       shardScope = let
         fl = builtins.substring 0 1 final.ident;
-      in if final.scoped then final.names.scope else
+      in if scoped then final.names.scope else
         "unscoped/${fl}";
       shardDir = final.names.shardScope + "/" + final.names.bname;
-    } // ( lib.optionalAttrs final.scoped {
+    } // ( lib.optionalAttrs scoped {
       scope = lib.yank "@([^/]+)/.*" prev.ident;
     } );
   };
@@ -326,7 +328,7 @@
   # such as `npm:<IDENT>'; the recursive form is still far more flexible though.
   metaEntNames = { ident ? me.name, version, ... } @ me: let
     r = lib.extends metaEntExtendWithNames ( final: { inherit ident; } // me );
-  in { inherit (lib.fix r) scoped names; };
+  in { inherit (lib.fix r) names; };
 
 
 # ---------------------------------------------------------------------------- #

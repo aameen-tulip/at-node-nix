@@ -98,7 +98,6 @@
     key         ? ent.ident + "/" + ent.version
   , ident       ? dirOf ent.key
   , version     ? baseNameOf ent.key
-  , scoped      ? lib.test "@[^@/]+/[^@/]+" ident
   , entFromtype ? "raw"
   , fetchInfo
   # These are just here to get `builtins.intersectAttrs' to work.
@@ -124,7 +123,7 @@
       then { fetchInfo = fetchInfo // { inherit basedir; }; }
       else {};
     members =
-      { inherit ident version scoped entFromtype; } //
+      { inherit ident version entFromtype; } //
       ( lib.optionalAttrs ( ent ? bin || ent ? hasBin ) {
         inherit hasBin;
       } ) // ent // patchFetchInfo;
@@ -181,23 +180,23 @@
   metaSetFromSerial' = {
     ifd, pure, allowedPaths, typecheck, basedir ? null
   } @ fenv: members: let
-      meEnv = {
-        basedir = members._meta.basedir or members._meta.lockDir or
-                  members._meta.pjsDir or toString ./.;
-      } // fenv;
-      deserial = name: value: let
-        forEnt = metaEntFromSerial' meEnv value;
-        # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
-        # FIXME: this no shouldn't be reading the filesystem without being marked
-        # as "impure" or "ifd".
-        forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
-          pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
-          plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
-        } ) // value;
-      in if name == "_meta" then forMeta else
-        if lib.hasPrefix "__" name then value else
-        forEnt;
-    in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
+    meEnv = {
+      basedir = members._meta.basedir or members._meta.lockDir or
+                members._meta.pjsDir or toString ./.;
+    } // fenv;
+    deserial = name: value: let
+      forEnt = metaEntFromSerial' meEnv value;
+      # Regenerate missing `pjs' and `plock' fields if `lockDir' is defined.
+      # FIXME: this no shouldn't be reading the filesystem without being marked
+      # as "impure" or "ifd".
+      forMeta = ( lib.optionalAttrs ( value ? lockDir ) {
+        pjs   = lib.importJSON' ( value.lockDir + "/package.json" );
+        plock = lib.importJSON' ( value.lockDir + "/package-lock.json" );
+      } ) // value;
+    in if name == "_meta" then forMeta else
+      if lib.hasPrefix "__" name then value else
+      forEnt;
+  in lib.libmeta.mkMetaSet ( builtins.mapAttrs deserial members );
 
 
 # ---------------------------------------------------------------------------- #
@@ -326,18 +325,23 @@
         fromString = if yt.FS.Strings.store_path.check pathlike then {
           outPath = pathlike;
         } else null;
-      in if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
-        if pathlike ? outPath then pathlike else
-        if builtins.isPath pathlike then fromString else
-        if builtins.isString pathlike then fromString else
-        throw msg;
+      in pathlike.sourceInfo or (
+         if yt.FlocoFetch.source_info_floco.check pathlike then pathlike else
+         if pathlike ? outPath then pathlike else
+         if builtins.isPath pathlike then fromString else
+         if builtins.isString pathlike then fromString else
+         throw msg
+      );
       sourceInfo' = if sourceInfo != null then { inherit sourceInfo; } else {
         fetchInfo  = { type = "path"; path = toString pathlike; };
         sourceInfo = {
           outPath = builtins.path { recursive = true; path = pathlike; };
         };
       };
-      rsl = if ( readAllowed dir ) && isDir then bps' // sourceInfo' // {
+      fetchInfo' =
+        if pathlike ? fetchInfo then { inherit (pathlike) fetchInfo; } else {};
+      rsl = if ( readAllowed dir ) && isDir
+            then bps' // sourceInfo' // fetchInfo' // {
         metaFiles = lib.filterAttrs ( _: v: v != null ) {
           inherit pjs;
           plock = lib.importJSONOr null ( dir + "/package-lock.json" );
@@ -428,7 +432,7 @@
           rootKey' = if rootKey == null then {} else { inherit rootKey; };
         in rootKey' // {
           __serial = lib.libmeta.serialIgnore;
-          fromType = "directory-composite";
+          fromType = "composite";
           dir = toString pathlike;
           inherit (mfd) metaFiles;
           # TODO: `bin' and `gypfile' fields aren't processed
@@ -468,6 +472,7 @@
       explicit                = 0;   # Assumed to be explitly defined by user.
       raw                     = 5;
       "package.json"          = 25;   # Once normalized this is most accurate.
+      srcdir                  = 30;
       cached                  = 50;
       "package-lock.json(v2)" = 100;  # Contains more info than v3.
       "package-lock.json(v3)" = 125;  # Actually "better" than v2, but less info.
@@ -524,7 +529,7 @@
       ftype = e.entFromtype;
     in if ftype == "package.json" then "pjs" else
        if lib.hasPrefix "package-lock.json" ftype then "plock" else
-       if lib.hasPrefix "yarn.lock" then "ylock" else
+       if lib.hasPrefix "yarn.lock" ftype then "ylock" else
       ftype;
     # TODO: this is going to break `plock' entries with conflicting instances.
     byFtype' = builtins.groupBy genericFtype ents;
@@ -567,7 +572,7 @@
     # TODO: make `composed' `entFromtype'
   in if nents == 0 then null else
      if nents == 1 then builtins.head ents else
-     lib.libmeta.mkMetaEnt ( zipped // { entFromtype = "raw"; } );
+     lib.libmeta.mkMetaEnt ( zipped // { entFromtype = "composite"; } );
 
 
 # ---------------------------------------------------------------------------- #
@@ -575,7 +580,7 @@
   metaSetFromDir' = { ifd, pure, allowedPaths, typecheck } @ fenv: let
     inner = pathlike: let
       lists = metaSetEntListsFromDir' fenv pathlike;
-    in lists.__mapEnts mergeMetaEntList;
+    in lists.__mapEnts ( _: mergeMetaEntList );
   in if ! typecheck then inner else
      yt.defun [yt.Typeclasses.pathlike yt.FlocoMeta.meta_set_shallow] inner;
 
