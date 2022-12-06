@@ -58,19 +58,22 @@
   # If you modify `pjsDir', you expect `pjs' to update, but doing so reverts
   # `pjsDir' underneat itself becoming `null' again, which unfortunately turns
   # into "/package.json"...
+  #
+  # This is still fine to use as long as `sourceInfo' has been set.
   metaEntSetPjsDirOv = final: prev:
     if ( prev.metaFiles.pjsDir or null ) != null then prev else {
       metaFiles = ( prev.metaFiles or {} ) // {
-        pjsDir = final.sourceInfo.outPath or null;
+        pjsDir = prev.sourceInfo.outPath or null;
       };
     };
 
   # FIXME: see note above
+  # This is still fine to use as long as `metaFiles.pjsDir' has been set.
   metaEntSetPjsOv = final: prev:
     if ( metaEntGetPjsStrict prev ) != null then prev else {
       metaFiles = ( prev.metaFiles or {} ) // {
-        pjs = if ( final.metaFiles.pjsDir or null ) == null then null else
-              ( lib.importJSON ( final.metaFiles.pjsDir + "/package.json" ) );
+        pjs = if ( prev.metaFiles.pjsDir or null ) == null then null else
+              ( lib.importJSON ( prev.metaFiles.pjsDir + "/package.json" ) );
       };
     };
 
@@ -87,12 +90,18 @@
        ( pjs.bin or pjs.directories.bin or {} ) != {} );
   };
 
+  metaEntPjsSetDepInfo = final: prev:
+    if ( prev.depInfo or {} ) != {} then prev else {
+      depInfo = lib.libdep.depInfoFromFields ( metaEntGetPjsStrict prev );
+    };
+
 
   metaEntPjsBasicsOv = lib.composeManyExtensions [
     metaEntSetPjsDirOv
     metaEntSetPjsOv
     metaEntSetScriptsOv
     metaEntPjsHasBinOv
+    metaEntPjsSetDepInfo
   ];
 
 
@@ -321,11 +330,12 @@ in {
     metaEntGetPjsDirStrict
     metaEntGetPjs'
 
-    #metaEntSetPjsDirOv
-    #metaEntSetPjsOv
+    metaEntSetPjsDirOv
+    metaEntSetPjsOv
     metaEntSetScriptsOv
     metaEntPjsHasBinOv
-    #metaEntPjsBasicsOv
+    metaEntPjsSetDepInfo
+    metaEntPjsBasicsOv
 
     metaEntFromPjsNoWs'
   ;

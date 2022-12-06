@@ -286,6 +286,8 @@
 
   # TODO: `plent' is preferred for most fields, but misses `bundled' AFAIK.
   # TODO: `pjs' needs extra normalization.
+  #
+  # NOTE: `metaEntPjsSetDepInfo' exists already
   #metaEntDepInfoOv' = final:
 
 
