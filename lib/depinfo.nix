@@ -119,6 +119,7 @@
     markRt   = markField "runtime" ( joinRt plent );
     markDev  = markField "dev"     ( plent.devDependencies or {} );
     markPeer = markField "peer"    ( plent.peerDependencies or {} );
+    # TODO: `devDependenciesMeta' is used by Yarn
     markOpt  = let
       od = markField "optional" ( plent.optionalDependencies or {} );
       # Collect `optional' fields from peer meta; and assert that this is the
@@ -133,6 +134,36 @@
       cds pds markRt markDev markPeer markOpt
     ];
   in if ( plent.link or false ) then {} else merged;
+
+
+# ---------------------------------------------------------------------------- #
+
+  depInfoFromFields = {
+    dependencies         ? {}
+  , requires             ? {}
+  , devDependencies      ? {}
+  , devDependenciesMeta  ? {}
+  , optionalDependencies ? {}
+  , peerDependencies     ? {}
+  , peerDependenciesMeta ? {}
+  , bundleDependencies   ? false
+  , bundledDependencies  ? {}
+  , ...
+  } @ fields: let
+    emitWarns = x: let
+      warns = {
+        bundle.ok  = ( ! bundleDependencies ) && ( bundledDependencies == {} );
+        bundle.msg = "depInfoFromField: bundled deps are not supported.";
+        devOpt.ok  = devDependenciesMeta == {};  # not relevant to `plock'.
+        devOpt.msg = "depInfoFromField: devDependenciesMeta isn't handled.";
+      };
+      bundle = x:
+        if ! warns.bundle.ok then builtins.trace warns.bundle.msg x else x;
+      devOpt = x:
+        if ! warns.devOpt.ok then builtins.trace warns.devOpt.msg x else x;
+    in bundle ( devOpt x );
+    keeps = lib.canPassStrict depInfoFromFields fields;
+  in depInfoEntFromPlockV3 "" keeps;
 
 
 # ---------------------------------------------------------------------------- #
@@ -253,8 +284,21 @@
 
 # ---------------------------------------------------------------------------- #
 
-  depInfoAsArgs = { dev ? true }: let
-  in depInfo: null;
+  # TODO: `plent' is preferred for most fields, but misses `bundled' AFAIK.
+  # TODO: `pjs' needs extra normalization.
+  #metaEntDepInfoOv' = final:
+
+
+# ---------------------------------------------------------------------------- #
+
+  # TODO: handle bundled? ( likely in another non-"simple" routine )
+  depInfoAsArgsSimple = { dev ? true, peer ? false }: depInfo: let
+    cond = _: v: ( v.runtime or false ) ||
+                 ( ( v.dev or false ) && dev ) ||
+                 ( ( v.peer or false ) && peer );
+    keep = if dev && peer then depInfo else
+           lib.filterAttrs cond depInfo;
+  in builtins.mapAttrs ( _: v: v.optional or false ) keep;
 
 
 # ---------------------------------------------------------------------------- #
@@ -262,6 +306,7 @@
 in {
   inherit
     depInfoEntFromPlockV3
+    depInfoFromFields
     depInfoTreeFromPlockV3
     depInfoSetFromPlockV3
     pinDepInfoTreeFromPlockV3
@@ -269,6 +314,7 @@ in {
   ;
   inherit
     allDepFields
+    depInfoAsArgsSimple
   ;
   runtimeFields  = rtFields;
   pinnableFields = pinFields;

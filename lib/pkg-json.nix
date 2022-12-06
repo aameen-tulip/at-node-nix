@@ -13,6 +13,10 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Standard arg processor that accepts `pjs' or `pjsDir' as an arg used to
+  # access `package.json' info.
+  # The arg `wkey' is short for "workspace key", but is currently unused - this
+  # arg is a stub for future workspaces support.
   stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: self: {
     pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
   , wkey   ? ""
@@ -26,6 +30,70 @@
     fargs = if self ? __functionArgs then lib.canPassStrict self targs else
             targs;
   in fargs;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # Pull `pjs' info from a `metaEnt' without attempting to read anything from
+  # the filesystem or network.
+  # This is a simple accessor abstraction, nothing fancy.
+  metaEntGetPjsStrict    = metaEnt: metaEnt.metaFiles.pjs or null;
+  metaEntGetPjsDirStrict = metaEnt:
+    metaEnt.metaFiles.pjsDir or metaEnt.sourceInfo.outPath or null;
+
+  # Will read from filesystem but won't fetch.
+  metaEntGetPjs' = { pure, ifd, typecheck, allowedPaths } @ fenv: metaEnt: let
+    fromSrc = let
+      pjsDir = metaEntGetPjsDirStrict metaEnt;
+    in if pjsDir == null then null else ( stdPjsArgProc' fenv {} {
+      inherit pjsDir;
+    } ).pjs;
+    fromMF = metaEntGetPjsStrict metaEnt;
+  in if fromMF != null then fromMF else fromSrc;
+
+
+# ---------------------------------------------------------------------------- #
+
+  # FIXME: referring to `prev.metaFiles' here breaks things.
+  # If you modify `pjsDir', you expect `pjs' to update, but doing so reverts
+  # `pjsDir' underneat itself becoming `null' again, which unfortunately turns
+  # into "/package.json"...
+  metaEntSetPjsDirOv = final: prev:
+    if ( prev.metaFiles.pjsDir or null ) != null then prev else {
+      metaFiles = ( prev.metaFiles or {} ) // {
+        pjsDir = final.sourceInfo.outPath or null;
+      };
+    };
+
+  # FIXME: see note above
+  metaEntSetPjsOv = final: prev:
+    if ( metaEntGetPjsStrict prev ) != null then prev else {
+      metaFiles = ( prev.metaFiles or {} ) // {
+        pjs = if ( final.metaFiles.pjsDir or null ) == null then null else
+              ( lib.importJSON ( final.metaFiles.pjsDir + "/package.json" ) );
+      };
+    };
+
+  metaEntSetScriptsOv = final: prev: {
+    scripts = let
+      pjs = metaEntGetPjsStrict final;
+    in if pjs == null then null else ( pjs.scripts or {} );
+  };
+
+  metaEntPjsHasBinOv = final: prev: {
+    hasBin = prev.hasBin or ( let
+      pjs = metaEntGetPjsStrict final;
+    in if pjs == null then null else
+       ( pjs.bin or pjs.directories.bin or {} ) != {} );
+  };
+
+
+  metaEntPjsBasicsOv = lib.composeManyExtensions [
+    metaEntSetPjsDirOv
+    metaEntSetPjsOv
+    metaEntSetScriptsOv
+    metaEntPjsHasBinOv
+  ];
 
 
 # ---------------------------------------------------------------------------- #
@@ -248,6 +316,17 @@ in {
     getVersionPjs'
     getScriptsPjs'
     getHasBinPjs'
+
+    metaEntGetPjsStrict
+    metaEntGetPjsDirStrict
+    metaEntGetPjs'
+
+    #metaEntSetPjsDirOv
+    #metaEntSetPjsOv
+    metaEntSetScriptsOv
+    metaEntPjsHasBinOv
+    #metaEntPjsBasicsOv
+
     metaEntFromPjsNoWs'
   ;
 
