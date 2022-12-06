@@ -12,12 +12,58 @@ Normalizing, caching, and merging metadata from various sources comprises the
 bulk of this codebase which also means there's a lot for users to customize
 and tailer to their projects' needs.
 
-In general metadata processing routines have been designed for reuse and most
-carry a common set of =fenv= ( /Floco Eval Environment/ ) settings that allow
-processing pipelines to be used for scraping and executing builds with minimal
-modification - in most cases the defaults defined in
-[[file:../lib/meta-ent.nix::metaSetFromDir' =][metaSetFromDir]] should support
-the vast majority of projects /out of the box/.
+** =fenv=: /Floco Eval Environment/
+
+In general metadata processing routines have been designed for reuse and
+most carry a common set of =fenv= ( /Floco Eval Environment/ ) settings that
+allow processing pipelines to be used for scraping and executing builds with
+minimal modification - in most cases the defaults defined in
+[[file:../lib/meta-ent.nix::metaSetFromDir' =][metaSetFromDir]] should
+support the vast majority of projects /out of the box/.
+
+** =metaEnt= Overlays
+Metadata related to a single package is organized around a structure called
+=metaEnt=, short for "metadata entry", a more detailed discussion of this
+structure is covered [[file:./processes-and-metadata.org][here]].
+
+Collecting, normalizing, and transforming =metaEnt= records is generally
+handled by adding /overlays/, which we can think of as "layers", or
+processes in a pipeline.
+
+What makes /overlays/ special compared to regular functions is that they
+are allowed to refer to data that may or may not be defined yet.
+This accomplishes two things:
+1. Most ( but not all ) overlays are not sensitive to order of operations.
+   - This means I can simply state a definition for =hasBin= as
+     ~hasBin = ( final.bin or final.directories.bin or {} ) != {}~ to say
+     "in the finalized record, if =bin= or =directories.bin= are undefined
+     or empty, then we do not have any bins".
+     + Whether those fields are known at the time our overlay is "applied"
+       doesn't matter, =hasBin= will be set to the correct value.
+   - If either =bin= or =directories.bin= are modifed by another overlay
+     applied later, our definition will be "updated" to reflect the change.
+   - An earlier or later overlay can refer to =final.hasBin=, and Nix will
+     automatically work out the correct order of operations for us.
+2. Naive or slow overlays can be defined as "last resort" rules, and more
+   optimized overlays ( often requiring =impure= or =ifd= ) may be overwrite
+   those rules without needing to define an entirely new pipeline.
+   - This is how =floco= is able to recycle metadata scraping routines to
+     also be used as cache readers to feed builders.
+   - This allows users to easily customize routines to collect data from
+     alternative sources.
+
+I want to highlight that I said "most overlays are not sensitive to order
+of operations".
+In an overlay any references to =prev.<FIELD>= as opposed to =final.<FIELD>=
+are sensitive to ordering.
+You will generally only see these used in very early stages of metadata
+processing to do things like "given a directory name, set =metaFiles.pjs= to
+the contents of =package.json= from that dir", or routines that optimize or
+specialize fetchers.
+These types of overlays are almost always processed at the very beginning
+or very end of a pipeline in the default flows, and if you need more
+concise control over order of operations don't hesistate to copy the
+default pipeline and add, remove, or reorder overlays.
 
 * Categories of Scrapers
 Metadata collection and scraping routines fall into a few broad categories
@@ -29,13 +75,27 @@ scraping/collection usage to produce a metadata cache or set of generated
 builds, but a great deal of effort has been dedicated toward dynamically
 generating build recipes with pure/non-IFD Nix evaluation.
 
-** =package.json= Scraping
+** =package.json= Scraping ( =pjs= )
 This is your set of bread and butter collection routines that are used to
 create a =metaEnt= for any project with a "build" phase, test cases, or
 runtime environment ( such as a dev-shell ).
 
-This is also the most challenging form of metadata to normalize, because
-there is no universal standard for fields in =package.json=.
+Most routines related to =package.json= have "PJS" in their name, short for
+"package JSON".
+These are generally defined in [[file:../lib/pkginfo.nix][lib.libpkginfo]]
+and [[file:../lib/pkg-json.nix][lib.libpjs]], but because these fields are
+shared by the NPM package registry, and most lockfiles, you'll also find
+routines in [[file:../lib/depinfo.nix][lib.libdepinfo]],
+[[file:../lib/parse.nix][lib.libparse]],
+[[file:../lib/events.nix][lib.libevents]],
+[[file:../lib/system.nix][lib.libsys]],
+and others that are applicable to these files.
+
+Because of their flexibility, this is the most challenging form of metadata
+to normalize.
+There is no universal standard for fields in =package.json= and despite
+NPM's dominance as the de-facto standard, Yarn, PNPM, ESM, etc have their
+own extensions and variations that you might need to port with a shim.
 The good news is that the vast majority of projects adhere to a few common
 patterns that at least help us consume projects from distributed tarballs in
 a relatively consistent manner.
@@ -44,6 +104,97 @@ The most developed parts of this framework are dedicated to supporting NPM's
 standardized set of =package.json= fields, but you'll also find some older
 routines floating around [[file:../lib/yarn][lib/yarn/*]] that may help you
 port Yarn fields to NPM/Floco.
+
+*** Precautions
+One important thing to remember is: =package.json= is a freeform config,
+and authors often define miscellaneous fields for internal use with a
+particular package manager or build tool that could be misinterpreted if
+you aren't careful.
+
+The =engines= fields are often useful for determining which tooling the
+authors wrote their file for.
+This is perhaps most useful for discerning which versions of NPM or Yarn
+were used in cases where those tools broke backwards compatibility.
+
+I'll take this opportunity to note that this framework was developed
+alongside NPM v8.11 and higher, with Node.js 14.
+While I hope to have avoided biases based on those selections, I encourage
+you to file issue/bug reports if you catch issues with LATER versions of
+these tools.
+
+*** Queries and Generic Utils
+While most metadata processing is done using overlays and =metaEnt=
+records, a large number =package.json= helper routines are defined that
+can be used standalone directly.
+
+- [[file:../lib/pkginfo.nix::rewriteDescriptors =][=lib.libpkginfo.rewriteDescriptors=]]
+   Replace =package.json= style dependency descriptors ( ="^1.0.0"= )
+   with new values either by overriding or transforming them.
+
+   Takes an attrset of package names assigned to either strings
+   or functions.
+   For strings, override existing descriptors in package.json, for
+   functions apply them to the existing value to produce a new descriptor.
+
+  + Prototype
+    #+BEGIN_SRC nix
+      rewriteDescriptors = {
+        pjs                           # data to modify
+      , resolve                       # override values/functions
+      , depFields ? ["dependencies"]  # attrsets to be modified
+      }: <FUNCTION>;
+    #+END_SRC
+
+  + Example
+    #+BEGIN_SRC nix
+      { lib }: let
+        # Our phony `package.json' data
+        data = {
+          name                = "test-pkg";
+          version             = "0.0.1";
+          dependencies.foo    = "^1.0.0";
+          dependencies.bar    = "~1.0.0";
+          dependencies.baz    = "github:fake/repo";
+          devDependencies.foo = "^1.0.0";
+        };
+        # Our transfmormation rules.
+        xform = {
+          foo = "2.0.0";  # set `foo' to "2.0.0"
+          # strip off any modifiers: "^1.0.0" -> "1.0.0"
+          bar = d: let
+            m = builtins.match "[~=^]([0-9.]+)" d;
+          in if m == null then d else builtins.head m;
+          # Set to a store path ( in this case a dummy one )
+          baz  = "/nix/store/XXXXXXX-repo.tgz";
+          # Quux never appears in our data, but so this does nothing here.
+          # It covers us for other inputs that might contain it though.
+          quux = "4.0.0";
+        };
+      in {
+        # Call the routine
+        expr = lib.libpkginfo.rewriteDescriptors {
+          pjs       = data;
+          resolves  = xform;
+          depFields = ["dependencies"]
+        };
+        # What we expect the output to be.
+        expected = {
+          name                = "test-pkg";
+          version             = "0.0.1";
+          dependencies.foo    = "2.0.0";
+          dependencies.bar    = "1.0.0";
+          dependencies.baz    = "/nix/store/XXXXXXX-repo.tgz";
+          # Unmodified because `depFields' does not ask for
+          # `devDependencies' to be changed.
+          devDependencies.foo = "^1.0.0";
+        };
+      };
+    #+END_SRC
+
+
+
+*** Pipelines and Parts
+
 
 ** =package-lock.json=
 ** Registry /Packuments/ and /VInfo/
