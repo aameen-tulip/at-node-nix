@@ -146,8 +146,10 @@ can be used standalone directly.
     #+END_SRC
 
   + Example
-    #+BEGIN_SRC nix
-      { lib }: let
+    #+BEGIN_SRC nix :results output :exports both
+      let
+        inherit (builtins.getFlake "github:aameen-tulip/at-node-nix") lib;
+        pp = lib.generators.toPretty {};
         # Our phony `package.json' data
         data = {
           name                = "test-pkg";
@@ -170,31 +172,95 @@ can be used standalone directly.
           # It covers us for other inputs that might contain it though.
           quux = "4.0.0";
         };
-      in {
-        # Call the routine
-        expr = lib.libpkginfo.rewriteDescriptors {
+        new = lib.libpkginfo.rewriteDescriptors {
           pjs       = data;
           resolves  = xform;
-          depFields = ["dependencies"]
+          depFields = ["dependencies"];
         };
-        # What we expect the output to be.
-        expected = {
-          name                = "test-pkg";
-          version             = "0.0.1";
-          dependencies.foo    = "2.0.0";
-          dependencies.bar    = "1.0.0";
-          dependencies.baz    = "/nix/store/XXXXXXX-repo.tgz";
-          # Unmodified because `depFields' does not ask for
-          # `devDependencies' to be changed.
-          devDependencies.foo = "^1.0.0";
-        };
-      };
+      in pp new
     #+END_SRC
 
+    #+RESULTS:
+    #+begin_example
+    {
+      dependencies = {
+        bar = "1.0.0";
+        baz = "/nix/store/XXXXXXX-repo.tgz";
+        foo = "2.0.0";
+      };
+      devDependencies = {
+        foo = "^1.0.0";
+      };
+      name = "test-pkg";
+      version = "0.0.1";
+    }
+    #+end_example
 
 
 *** Pipelines and Parts
+- [[file:../lib/pkg-json.nix::metaEntFromPjsNoWs' =][lib.libpjs.metaEntFromPjsNoWs]]
+  Generic ~package.json -> metaEnt~ pipeline.
+  Accepts =fenv= args, followed by ~{ pjs?, pjsDir?, ... }:~ and a few
+  other configurables.
 
+  *WARNING: Soon to be split up.*
+
+  If you need an off the shelf solution to pull most info from a project,
+  this is a great one to reach for.
+  This routine is being split into parts to allow for more fine grained
+  control, but with the right =fenv= and =isLocal=, =noFs=, and =ltype=
+  arguments this can be tailored to meet your needs.
+
+  #+BEGIN_SRC nix :results output :exports both
+    let
+      inherit (builtins.getFlake "github:aameen-tulip/at-node-nix") lib;
+      pp = lib.generators.toPretty {};
+
+      # boilerplate environment setup.
+      fenv = {
+        pure         = true;
+        ifd          = true;
+        typecheck    = false;
+        allowedPaths = [];
+      };
+      # Lets grab a source tree to scrape from.
+      src = builtins.fetchTree {
+        type = "tarball";
+        narHash = "sha256-E3+DvwgglDWVPPUVoggGWI8OFZR0YJ5zk7nYB4+UwLI=";
+        url = "https://registry.npmjs.org/fsevents/-/fsevents-2.3.2.tgz";
+      };
+      # Lets scrape!
+      metaEnt = lib.libpjs.metaEntFromPjsNoWs' fenv {
+        pjsDir  = src.outPath;  # where to read `package.json' from.
+        ltype   = "file";       # set lifecycle for registry tarball.
+        isLocal = false;        # omits `fetchInfo' output.
+      };
+    in pp metaEnt.__serial
+  #+END_SRC
+
+  #+RESULTS:
+  #+begin_example
+  {
+    depInfo = {
+      node-gyp = {
+        descriptor = "^6.1.0";
+        dev = true;
+      };
+    };
+    entFromtype = "package.json";
+    hasBin = false;
+    ident = "fsevents";
+    key = "fsevents/2.3.2";
+    ltype = "file";
+    scripts = {
+      build = "node-gyp clean && rm -f fsevents.node && node-gyp rebuild && node-gyp clean";
+      clean = "node-gyp clean && rm -f fsevents.node";
+      prepublishOnly = "npm run build";
+      test = "/bin/bash ./test.sh 2>/dev/null";
+    };
+    version = "2.3.2";
+  }
+  #+end_example
 
 ** =package-lock.json=
 ** Registry /Packuments/ and /VInfo/
