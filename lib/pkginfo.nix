@@ -349,6 +349,32 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # This mostly exists for visibility and reference about what fields we need
+  # to fill in.
+  # [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/stdenv/generic/check-meta.nix][Nixpkgs Metadata Spec]]
+  defNixpkgsMeta = {
+    name
+  , version
+  , mainProgram
+  , executables      ? []
+  , description      ? ""
+  , longDescription  ? ""
+  , homepage
+  , licenses
+  , available        ? true
+  , unsupported      ? false
+  , broken           ? false
+  , platforms        ? lib.platforms.all
+  , hydraPlaforms    ? lib.platforms.all  # "CI platforms"
+  , badPlatforms     ? []
+  , outputsToInstall ? ["global"]
+  , tests            ? {}
+  }: {};
+
+
+
+# ---------------------------------------------------------------------------- #
+
   _fenvFns = {
     inherit
       readJSONFromPath'

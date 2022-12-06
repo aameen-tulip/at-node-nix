@@ -1,0 +1,52 @@
+#+TITLE: Scraping Metadata
+
+* Overview
+Metadata collection is essentially processing existing =package.json=,
+=package-lock.json=, =yarn.lock=, NPM registry info, etc from their original
+format into our standardized set of records so that they may be used to
+generate build recipes.
+
+There are a wide variety of possible inputs that may be used to feed our
+metadata creation/scraping systems.
+Normalizing, caching, and merging metadata from various sources comprises the
+bulk of this codebase which also means there's a lot for users to customize
+and tailer to their projects' needs.
+
+In general metadata processing routines have been designed for reuse and most
+carry a common set of =fenv= ( /Floco Eval Environment/ ) settings that allow
+processing pipelines to be used for scraping and executing builds with minimal
+modification - in most cases the defaults defined in
+[[file:../lib/meta-ent.nix::metaSetFromDir' =][metaSetFromDir]] should support
+the vast majority of projects /out of the box/.
+
+* Categories of Scrapers
+Metadata collection and scraping routines fall into a few broad categories
+based on their original source.
+
+Some categories availability or internal behavior depend on =fenv= settings
+like =pure= and =ifd= making some more suitable for "pre-build"
+scraping/collection usage to produce a metadata cache or set of generated
+builds, but a great deal of effort has been dedicated toward dynamically
+generating build recipes with pure/non-IFD Nix evaluation.
+
+** =package.json= Scraping
+This is your set of bread and butter collection routines that are used to
+create a =metaEnt= for any project with a "build" phase, test cases, or
+runtime environment ( such as a dev-shell ).
+
+This is also the most challenging form of metadata to normalize, because
+there is no universal standard for fields in =package.json=.
+The good news is that the vast majority of projects adhere to a few common
+patterns that at least help us consume projects from distributed tarballs in
+a relatively consistent manner.
+
+The most developed parts of this framework are dedicated to supporting NPM's
+standardized set of =package.json= fields, but you'll also find some older
+routines floating around [[file:../lib/yarn][lib/yarn/*]] that may help you
+port Yarn fields to NPM/Floco.
+
+** =package-lock.json=
+** Registry /Packuments/ and /VInfo/
+** Filesystem Probes
+** Tarball Probes
+** Caches
