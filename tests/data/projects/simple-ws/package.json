@@ -1,0 +1,5 @@
+{
+  "name": "@floco/simple-workspace",
+  "version": "0.0.1",
+  "workspaces": ["foo", "bar", "baz"]
+}
