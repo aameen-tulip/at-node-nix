@@ -163,7 +163,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  in assert tree? ${rootPath}; {
+  in assert tree ? ${rootPath}; {
     inherit
       resolveClosure'  resolveClosure
       pullDownClosure' pullDownClosure
