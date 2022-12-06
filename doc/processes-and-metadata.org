@@ -1,9 +1,14 @@
 #+TITLE: Processes and Metadata
 
 * Overview
-Our =metaEnt= and =metaSet= data is extensible, and different forms of input and varying limitations on the use if "impure" and IFD ( "import from derivation" ) effect the availability or complexity of inferring certain fields.
+Our =metaEnt= and =metaSet= data is extensible, and different forms of input
+and varying limitations on the use if /impure/ and
+[[*Import From Derivation ( IFD )][IFD ( /import from derivation/ )]]
+effect the availability or complexity of inferring certain fields.
 
-With that in mind it's good to know exactly what information we /really/ need to complete certain processes so we can avoid breaking our backs trying to infer information that we aren't actually going to use.
+With that in mind it's good to know exactly what information we /really/ need
+to complete certain processes so we can avoid breaking our backs trying to
+infer information that we aren't actually going to use.
 
 * Processes
 - Fetch sources
@@ -20,91 +25,174 @@ With that in mind it's good to know exactly what information we /really/ need to
 * Process Prerequisites
 ** Fetch Source
 - Create =fetchInfo= member ( ideally from =plock= input )
-  See =lib.libfetch.fetchurlNoteUnpackDrvW= for details.
-  + Executing an unpack routine may be deferred to a later build, install, or prepare process - but it must be identified and marked immediately.
+  See [[file:../lib/fetch.nix::mkFlocoFetchers'][=lib.libfetch=]]
+  for details.
+  + Executing an unpack routine may be deferred to a later build, install,
+    or prepare process - but it must be identified and marked immediately.
+  + We strongly prefer to unpack as soon as possible, especially using Nix's
+    =builtins.fetchTree= routine, since this allows us to read
+    =package.json= metadata to optimize our generated builders.
 
 ** Build Module
-- Only required for "local" or =git= projects that are being prepared "from source".
+- Only required for /local/ or =git= projects that are being
+  prepared /from source/.
 - Prepare all =runtime=, =dev=, and qualified =optional= dependencies.
   + TODO: Bundled dependencies may require install or preparation.
     I am unsure if these are allowed to run =build= routines themselves.
-    Currently we delete any bundled deps and reinstall them which "works" but isn't ideal since we are potentially clobbering patches applied by the consumer.
-    In fairness, I haven't actually encountered an issue with this in the field.
-- As an optimization you can accept hints from overlays or config files to eliminate unneeded =runtime= and =optional= dependencies that are not required for the build.
-  + This may eliminate cyclical dependencies and eliminate spurious rebuilds ( or at least help short-circuit them ).
-  + Similarly if you can identify which =dev= dependencies are used to build, test, prepare, and publish you can further reduce this list.
-    - For example =jest= or =semver= and shit like that is almost never a "real" build dependency - but detecting the cases where it actually is may require incremental dry runs.
-- Infer the "ideal tree" ( =node_modules/= dir ) required to build, and generate a script ( using =mkNmDirCmd*= ) to create it.
-- As an optimization if you're able to identify modules that are strictly used for =bin= executables, you can exclude them from ideal tree processing which can potentially simplify conflict resolution, cycle breaking, and reduce spurious rebuilds.
+    Currently we delete any bundled deps and reinstall them which "works" but
+    isn't ideal since we are potentially clobbering patches applied by
+    the consumer.
+    In fairness, I haven't actually encountered an issue with this in
+    the field.
+- As an optimization you can accept hints from overlays or config files to
+  eliminate unneeded =runtime= and =optional= dependencies that are not
+  required for the build.
+  + This may eliminate cyclical dependencies and eliminate spurious
+    rebuilds ( or at least help short-circuit them ).
+  + Similarly if you can identify which =dev= dependencies are used to
+    build, test, prepare, and publish you can further reduce this list.
+    - For example =jest= or =semver= and shit like that is almost never a
+      "real" build dependency - but detecting the cases where it actually is
+      may require incremental dry runs.
+- Infer the "ideal tree" ( =node_modules/= dir ) required to build, and
+  generate a script ( using =mkNmDirCmd*= ) to create it.
+- As an optimization if you're able to identify modules that are strictly
+  used for =bin= executables, you can exclude them from ideal tree
+  processing which can potentially simplify conflict resolution, cycle
+  breaking, and reduce spurious rebuilds.
 
 ** "Install" Module ( Execute System Dependent Processes  )
-- I need to state clearly up front that the term "install" concerning scripts/routines used by Node.js and web-developers is unique and will appear to be a misnomer to folks with more traditional package management backgrounds.
-  + When Node.js developers and package management tools discuss "installs", what they mean from the viewpoint of traditional package management is "host compilation" or plainly "any routine that is system dependant".
-  + I will do my best to distinguish between "install scripts" ( NPM/Node.js/Neanderthal terminology ) and "install phase" ( sensible terminology ); but it's a big codebase and I'll inevitable make ambiguous statements that require readers to use context and smarts to decipher.
-    - To clear the air: I am a package manager first and foremost which is why I created this framework.
-      I do not condone the use of JavaScript beyond the most basic CSS/HTML generation in a web-browser and I certainly don't condone the ass-backwards terminology their package management tools use.
-    - TODO: If this project hits critical mass, leverage the opportunity to correct the misuse of the term "install" as loudly as possible.
-      If I accomplish anything with all of this hard work I sincerely hope it might just be that web developers stop misusing terms like "host" ( they actually mean "build" system ), "native" ( they mean "compiled binary" for "host" runtime ), and "install" ( they actually mean "system-dependant process" ).
-- Required for any projects using =node-gyp=, and a small handful which define custom =[pre|post]install= hooks.
-- As an optimization you can identify some =node-gyp-build= installs that are distributed with pre-built binaries.
-  + Identifying these requires dry runs, and ultimately the user needs to run tests to see if the pre-built binaries work for their system.
-- As an optimization you can identify projects that abuse =[pre|post]install= routines to beg for money or spew emojis to the terminal to be skipped.
+- I need to state clearly up front that the term "install" concerning
+  scripts/routines used by Node.js and web-developers is unique and will
+  appear to be a misnomer to folks with more traditional package
+  management backgrounds.
+  + When Node.js developers and package management tools discuss "installs",
+    what they mean from the viewpoint of traditional package management is
+    "host compilation" or plainly "any routine that is system dependant".
+  + I will do my best to distinguish between "install scripts" (
+    NPM/Node.js/Neanderthal terminology ) and "install phase" ( sensible
+    terminology ); but it's a big codebase and I'll inevitable make
+    ambiguous statements that require readers to use context and smarts
+    to decipher.
+- Required for any projects using =node-gyp=, and a small handful which
+  define custom =[pre|post]install= hooks.
+- As an optimization you can identify some =node-gyp-build= installs that
+  are distributed with pre-built binaries.
+  + Identifying these requires dry runs, and ultimately the user needs to
+    run tests to see if the pre-built binaries work for their system.
+- As an optimization you can identify projects that abuse
+  =[pre|post]install= routines to beg for money or spew emojis to the
+  terminal to be skipped.
 - Requires dry runs and SHA diffs against =src= and =installed=.
   + Requires =runtime= and qualified =optional= dependencies to be prepared.
-- Similar to the "build module" process, we can try to identify which deps are actually used for the install and which aren't.
-  + For =node-gyp= builds in particular there is often a drastic reduction in the required dependency graph.
-  + In most cases =nan= and =node-gyp-build= are the only legitimate dependencies I've run into that are needed for these.
-  + NOTE: we make a diparture from NPM and Yarn's normal handling of dependencies insofar as we run builds, installs, and prepare routines in isolated environments.
-    - In theory this should only cause issues with =peerDependencies= in =postinstall= scripts which are very rare; but I want to highlight the potential for issues there.
-    - If you encounter trouble it's not difficult to handle those peer dependencies as an edge case; and it's certainly possible to write a generalized routine that uses a toposort to ensure that they're present.
-      However considering how rare these are, the effort involved in implementating such a routine, and the impact it would have on performance in the more common "false positive" case - it's not a high priority for, and I'm comfortable trusting the user to handle these when they occur.
+- Similar to the "build module" process, we can try to identify which deps
+  are actually used for the install and which aren't.
+  + For =node-gyp= builds in particular there is often a drastic reduction
+    in the required dependency graph.
+  + In most cases =nan= and =node-gyp-build= are the only legitimate
+    dependencies I've run into that are needed for these.
+  + NOTE: we make a diparture from NPM and Yarn's normal handling of
+    dependencies insofar as we run builds, installs, and prepare routines
+    in isolated environments.
+    - In theory this should only cause issues with =peerDependencies= in
+      =postinstall= scripts which are very rare; but I want to highlight the
+      potential for issues there.
+    - If you encounter trouble it's not difficult to handle those peer
+      dependencies as an edge case; and it's certainly possible to write a
+      generalized routine that uses a toposort to ensure that
+      they're present.
+
+      However considering how rare these are, the effort involved in
+      implementating such a routine, and the impact it would have on
+      performance in the more common "false positive" case - it's not a high
+      priority for, and I'm comfortable trusting the user to handle these
+      when they occur.
 
 ** Prepare Module
- - Requires fetched tarballs at a minimum and may be used to execute a queued unpack routine ( see note in "Fetch sources" process ).
+ - Requires fetched tarballs at a minimum and may be used to execute a
+   queued unpack routine ( see note in "Fetch sources" process ).
    If a build or install is defined those should also be run first.
- - This is a fuzzy one that's a bit of a catch all for getting a module ready for consumption.
- - Some packages explicitly define =[pre|post]prepare= scripts which should be run for "local" and =git= modules.
+ - This is a fuzzy one that's a bit of a catch all for getting a module
+   ready for consumption.
+ - Some packages explicitly define =[pre|post]prepare= scripts which should
+   be run for "local" and =git= modules.
    + These generally overlap with steps run before "publishing" a module.
-     There's a wonky history with NPM's script names surrounding "scripts to run before publishing" that led many legacy projects to conflict with new usages - NPM Packument data can identify these and the =engines= field may also help here; but they're rare enough that we are content to leave them as an edge case that users handle in the rare cases that they occur.
- - We also use this opportunity to handle any fixup/patching required by Nix as well in cases where there was no build/install routine where we had an opportunity to perform those steps.
+     There's a wonky history with NPM's script names surrounding "scripts to
+     run before publishing" that led many legacy projects to conflict with
+     new usages - NPM Packument data can identify these and the =engines=
+     field may also help here; but they're rare enough that we are content
+     to leave them as an edge case that users handle in the rare cases that
+     they occur.
+ - We also use this opportunity to handle any fixup/patching required by Nix
+   as well in cases where there was no build/install routine where we had an
+   opportunity to perform those steps.
 
 ** Test Module
-- Requires prepared module for the "package being tested" as well as all runtime, dev, and qualified optional dependencies.
-- As an optimization you can limit the list of dependencies required for testing by elimination against those marked as being used only for build, "install", and prepare routines in previous steps.
-- Testing packages with utilities like =jest= often requires members of ~node_modules/*~ to be copied instead of symlinked because the authors of =jest= couldn't be bothered to adhere to the Node.js specificiation for how module resolution works.
+- Requires prepared module for the "package being tested" as well as all
+  runtime, dev, and qualified optional dependencies.
+- As an optimization you can limit the list of dependencies required for
+  testing by elimination against those marked as being used only for build,
+  "install", and prepare routines in previous steps.
+- Testing packages with utilities like =jest= often requires members of
+  ~node_modules/*~ to be copied instead of symlinked because the authors of
+  =jest= couldn't be bothered to adhere to the Node.js specificiation for
+  how module resolution works.
 
 ** Run Bins
 - Requires preparation of the "package being executed" and its runtime deps.
-- Requires the package to be installed using a "global style" ( conventional ~bin/~ and ~lib/~ package installation paths used by sane package management tools ).
+- Requires the package to be installed using a "global style" ( conventional
+  ~bin/~ and ~lib/~ package installation paths used by sane package
+  management tools ).
   + Runtime deps may need to be installed as "bundled".
-- As an optimization you can wrap executables and set =NODE_PATH= to avoid copying/symlinking a ~node_modules/*~ dir into the package's working directory.
+- As an optimization you can wrap executables and set =NODE_PATH= to avoid
+  copying/symlinking a ~node_modules/*~ dir into the package's
+  working directory.
 
 ** Consume Module
-- Similar to running bins we need preparation of the module, and we need to prepare any runtime dependencies.
-- You can limit the list of runtime deps by dropping packages which are only used during "install" and prepare routines.
-- Forming the "ideal tree" which adds the consumed modules and ( maybe ) its dependendencies to the runtime environment is a task in and of itself.
-  + Because this framework ( currently ) lacks a complete implementation of =semver= parsing, we rely on trees produced by NPM ( generally from ~NPM_CONFIG_LOCKFILE_VERSION=3 npm install --ignore-scripts --package-lock-only;~ ) which are processed by =lib.libtree=.
+- Similar to running bins we need preparation of the module, and we need to
+  prepare any runtime dependencies.
+- You can limit the list of runtime deps by dropping packages which are only
+  used during "install" and prepare routines.
+- Forming the "ideal tree" which adds the consumed modules and ( maybe ) its
+  dependendencies to the runtime environment is a task in and of itself.
+  + Because this framework ( currently ) lacks a complete implementation of
+    =semver= parsing, we rely on trees produced by NPM ( generally from
+    ~NPM_CONFIG_LOCKFILE_VERSION=3 npm install --ignore-scripts
+    --package-lock-only;~ ) which are processed
+    by [[file:../lib/tree.nix::idealTreePlockV3][=lib.libtree=]].
 
 ** Publish ( Create Registry Tarball )
 - Some packages define a =prepublish= routine; but these are rare.
-  + If these are defined we are only concerned with them when consuming =git= dependencies and in niche cases local paths.
-- For our purposes we use this phase to "unpatch" and/or "bundle" ( conventional taxonomy, not NPM taxonomy ) any scripts, exucatbles, or other junk to get a Nix package to be consumable by non-Nix runtimes.
-  + Practically this means "unpatch shebang lines", make sure we haven't hard coded any store paths in TypeScript or Webpack shit, and unpatch =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp=.
-    - I have never seen =node-gyp= produce a dynamic library in the field, but I'm guessing that it can?
+  + If these are defined we are only concerned with them when consuming
+    =git= dependencies and in niche cases local paths.
+- For our purposes we use this phase to "unpatch" and/or "bundle"
+  ( conventional taxonomy, not NPM taxonomy ) any scripts, exucatbles, or
+  other junk to get a Nix package to be consumable by non-Nix runtimes.
+  + Practically this means "unpatch shebang lines", make sure we haven't
+    hard coded any store paths in TypeScript or Webpack shit, and unpatch
+    =RPATH= and =RUNPATH= in any dynamic libraries produced by =node-gyp=.
+    - I have never seen =node-gyp= produce a dynamic library in the field,
+      but I'm guessing that it can?
 
 * Fields and Records
 ** =metaEnt=
 *** Schemas
-While users will likely extend the "base" =metaEnt= record with additonal fields, these are what you'll see "out of the box".
+While users will likely extend the "base" =metaEnt= record with additonal
+fields, these are what you'll see "out of the box".
 
-The "core" schema below is the strictest minimum that you're guaranteed to have in any =metaEnt=, but in practice you're more commonly going to be working with a the expanded schema produced by =metaEntFrom*= seen after.
+The "core" schema below is the strictest minimum that you're guaranteed to
+have in any =metaEnt=, but in practice you're more commonly going to be
+working with a the expanded schema produced by =metaEntFrom*= seen after.
 
-Note that the =extInfo= "functor" members beginning with the prefix "__*" are not listed here.
+Note that the =extInfo= "functor" members beginning with the prefix "__*"
+are not listed here.
 
 **** Core
-These fields are guaranteed at a minimum as provided by =lib.libmeta.mkMetaEntCore=.
+These fields are guaranteed at a minimum as provided by
+[[file:../lib/meta.nix::mkMetaEntCore][=lib.libmeta.mkMetaEntCore=]].
 
-In practice you will almost always have additional fields added by =lib.libmeta.metaEntFrom*= routines though.
+In practice you will almost always have additional fields added by
+~lib.libmeta.metaEntFrom*~ routines though.
 
 #+BEGIN_SRC text
   {
@@ -116,10 +204,21 @@ In practice you will almost always have additional fields added by =lib.libmeta.
   }
 #+END_SRC
 
+***** Types
+- key: [[file:../types/pkginfo.nix::key = restrict][key]]
+- ident: [[file:../types/pkginfo.nix::identifier = Strings][identifier]]
+- version: [[file:../types/pkginfo.nix::version = restrict][version]]
+- entFromtype: [[file:../lib/serial.nix::metaEntSerialByFromtype][entFromtype]]
+  + not formally typed, effectively a string =enum=.
+
+
 **** Practical
 
-These are the fields you'll get using the default =lib.libmeta.metaEntFrom*= routines.
-They exist to provide information used by =mkPkgEntSource= and =(build|install|test)PkgEnt= routines which drive build pipelines.
+These are the fields you'll get using the default
+=lib.libmeta.metaEntFrom*= routines.
+
+They exist to provide information used by =mkPkgEntSource= and
+=(build|install|test)PkgEnt= routines which drive build pipelines.
 
 #+BEGIN_SRC text
   {
@@ -141,11 +240,16 @@ They exist to provide information used by =mkPkgEntSource= and =(build|install|t
   }
 #+END_SRC
 
-For the fields =fetchInfo= and =depInfo= there are sections below which detail these records.
+For the fields =fetchInfo= and =depInfo= there are sections below
+which detail these records.
 
-NOTE: As this project is prepared for release it's likely that some of these fields may change.
-I expect that the values in =depInfo= will be modified, and some fields may become optional.
-See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to date info.
+NOTE: As this project is prepared for release it's likely that some of
+these fields may change.
+
+I expect that the values in =depInfo= will be modified, and some fields
+may become optional.
+See [[file:../lib/meta-ent.nix::metaEntFromSerial][metaEntFrom*]] for
+the most up to date info.
 
 
 *** Example
@@ -155,19 +259,18 @@ See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to d
     ident            = "@babel/core";
     version          = "7.18.13";
     entFromtype      = "package-lock.json(v2)";
+    ltype            = "file";
     hasBin           = false;
     hasBuild         = false;
     hasInstallScript = false;
     hasTest          = false;
-    scoped           = true;
     # This package's `fetchInfo' field is for a tarball.
     # Other types of sources such as "path" or "git" have different fields.
     fetchInfo = {
-      entSubtype = "registry-tarball";
-      hash       = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
-      sha512     = "ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
-      type       = "tarball";
-      url        = "https://registry.npmjs.org/@babel/core/-/core-7.18.13.tgz";
+      type = "tarball";
+      hash = "sha512-ZisbOvRRusFktksHSG6pjj1CSvkPkcZq/KHD45LAkVP/oiHJkNBZWfpvlLmX8OtHDG8IuzsFlVRWo08w7Qxn0A==";
+      url  = "https://registry.npmjs.org/@babel/core/-/core-7.18.13.tgz";
+      ...
     };
     depInfo = {
       "@ampproject/remapping" = { descriptor = "^2.1.0"; runtime  = true; };
@@ -191,23 +294,37 @@ See [[file:../lib/meta-ent.nix][meta-ent.nix:metaEntFrom*]] for the most up to d
 *** Schema
 #+BEGIN_SRC text
   {
-    [outPath]    alias for most processed stage. ( ends with "prepared" )
+    key                 ( `[@SCOPE/]NAME/VERSION' )
+    ident
+    version
+    [outPath]           alias for most processed stage. ( ends with "prepared" )
     [tarball]
-    source       ( unpacked into "$out" )
-    [built]      ( `build'/`pre[pare|publish]' )
-    [installed]  ( `gyp' or `[pre|post]install' )
-    prepared     ( `[pre|post]prepare', or "most complete" of previous 3 ents )
-    TODO: [bin]        ( bins symlinked to "$out" from `source'/`built'/`installed' )
-    TODO: [global]     ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
-    TODO: module       ( `[/@SCOPE]/NAME' [+ `.bin/'] )
-    passthru     ( Holds the fields above + `nodejs', and a few other drvs )
-    key          ( `[@SCOPE/]NAME/VERSION' )
-    meta         ( package info yanked from locks, manifets, etc - no drvs! )
+    source              ( unpacked into "$out" )
+    [built]             ( `build'/`pre[pare|publish]' )
+    [installed]         ( `gyp' or `[pre|post]install' )
+    prepared            ( `[pre|post]prepare', or "most complete" of previous 3 ents )
+    TODO: [bin]         ( bins symlinked to "$out" from `source'/`built'/`installed' )
+    [global]            ( `lib/node_modules[/@SCOPE]/NAME[/VERSION]' [+ `bin/'] )
+    TODO: module        ( `[/@SCOPE]/NAME' [+ `.bin/'] )
+    passthru            ( Holds the fields above + `nodejs', and a few other drvs )
+    passthru.metaEnt    ( package info yanked from locks, manifets, etc - no drvs! )
   }
 #+END_SRC
 
-*** Example
+* Glossary
+** Import From Derivation ( IFD )
+When Nix evaluations need to read/import files/info from a derivation
+store path.
 
-** =fetchInfo=
+Ideally we like to avoid importing from derivations whenever possible for
+two reasons:
+1. IFD hurts performance.
+   Nix cannot parallelize or use its /eval cache/ for these evaluations.
+   You must spin up, build, and tear down a sandbox blocking eval.
+2. IFD becomes system dependent, meaning ~nix flake check~ and other
+   cross-platform evaluations cannot be performed from a single machine.
+   On the surface this may seem like it only matters for CI/CD - but in
+   practice this causes developers to publish code that "works on their
+   machine", but not other platforms.
 
-** =depInfo=
+[[https://nixos.wiki/wiki/Import_From_Derivation][More Info ( NixOS Wiki )]]

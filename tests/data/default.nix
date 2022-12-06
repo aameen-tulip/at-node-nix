@@ -3,6 +3,7 @@
   idents      = import ./idents.nix;
   packs       = import ./packuments.nix;
   descriptors = import ./descriptors.nix;
+  projects    = import ./projects.nix;
 
   # 130 cached so that you don't need a network connection or lock.
   # Each has between 5 and 20 versions.

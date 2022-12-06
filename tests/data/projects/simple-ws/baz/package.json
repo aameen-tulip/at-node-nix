@@ -2,7 +2,7 @@
   "name": "@floco/baz",
   "version": "0.0.1",
   "dependencies": {
-    "@floco/bar": "file:bar",
-    "@floco/foo": "file:foo"
+    "@floco/bar": "file:../bar",
+    "@floco/foo": "file:../foo"
   }
 }

@@ -7,9 +7,11 @@
 
   description = "a `package-lock.json(v3)' project with Floco";
 
-  inputs.nixpkgs.follows     = "/flocoPackages/nixpkgs";
-  inputs.at-node-nix.follows = "/flocoPackages/at-node-nix";
-  inputs.flocoPackages.url   = "github:aakropotkin/flocoPackages";
+  inputs.nixpkgs.follows   = "/at-node-nix/nixpkgs";
+  inputs.at-node-nix.url   = "github:aameen-tulip/at-node-nix";
+  inputs.flocoPackages.url = "github:aakropotkin/flocoPackages";
+  inputs.flocoPackages.inputs.at-node-nix.follows = "/at-node-nix";
+  inputs.flocoPackages.inputs.nixpkgs.follows     = "/nixpkgs";
 
 # ---------------------------------------------------------------------------- #
 
