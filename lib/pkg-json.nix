@@ -13,9 +13,7 @@
 
 # ---------------------------------------------------------------------------- #
 
-  stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in self: {
+  stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: self: {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
   , pjsDir ?
@@ -33,43 +31,33 @@
 # ---------------------------------------------------------------------------- #
 
   # Abstracts workspaces
-  getFieldPjs' = { field, default ? null }: {
-    pure, ifd, typecheck, allowedPaths
-  } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
-  , pjsDir ?
-    throw "getFieldPjs': Cannot read workspace members without 'pjsDir'."
-  }: if wkey == "" then pjs.${field} or default else
-     throw "getFieldPjs': Reading workspaces has not been implemented.";
 
-  getFieldsPjs' = { fields }: {
-    pure, ifd, typecheck, allowedPaths
-  } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
-  , pjsDir ?
-    throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
-  }: let
-    fa = if builtins.isAttrs fields then fields else
-         builtins.foldl' ( acc: f: acc // { ${f} = false; } ) {} fields;
-  in if wkey == "" then builtins.intersectAttrs fa pjs else
-     throw "getFieldsPjs': Reading workspaces has not been implemented.";
+  getFieldPjs' = { pure, ifd, typecheck, allowedPaths } @ fenv: {
+    __functionArgs.field   = false;
+    __functionArgs.default = null;
+    __processArgs          = stdPjsArgProc' fenv;
+    __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+    __innerFunction = { field, default }: { pjs }: pjs.${field} or default;
+  };
+
+  getFieldsPjs' = { pure, ifd, typecheck, allowedPaths } @ fenv: {
+    __functionArgs.fields  = false;
+    __functionArgs.default = null;
+    __processArgs          = stdPjsArgProc' fenv;
+    __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+    __innerFunction = { fields, default }: let
+      fattrs = builtins.foldl' ( acc: f: acc // { ${f} = false; } ) {} fields;
+    in { pjs }: builtins.intersectAttrs fattrs pjs;
+  };
 
 
 # ---------------------------------------------------------------------------- #
 
-  getIdentPjs'   = getFieldPjs'  { field = "name"; };
-  getVersionPjs' = getFieldPjs'  { field = "version"; };
-  getScriptsPjs' = getFieldPjs'  { field = "scripts"; default = {}; };
+  getIdentPjs'   = fenv: getFieldPjs' fenv { field = "name"; };
+  getVersionPjs' = fenv: getFieldPjs' fenv { field = "version"; };
+  getScriptsPjs' = fenv: getFieldPjs' fenv { field = "scripts"; default = {}; };
 
-  getHasBinPjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
+  getHasBinPjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: {
     pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
   , wkey   ? ""
   , pjsDir ?

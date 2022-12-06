@@ -57,8 +57,8 @@
       da = builtins.foldl' proc { cwd = ""; dirs = []; } dirPaths;
     in da.dirs;
 
-    reqsOf = { pkey, key ? treeFull.${pkey} }: let
-      deps = depsOf' { inherit key; dev = key == rootKey; };
+    reqsOf = { pkey, key ? treeFull.${pkey}, dev ? false }: let
+      deps = depsOf' { inherit key dev; };
       filt = i: ! ( treeFull ? "${pkey}/node_modules/${i}" );
     in builtins.filter filt ( builtins.attrNames deps );
 
@@ -75,9 +75,17 @@
 
 # ---------------------------------------------------------------------------- #
 
-    resolveClosure = pkey: let
+    resolveClosure' = { dev, pkey }: let
+      # If we want to include `dev' deps we must only do so for the initial
+      # entry, not for it's deps.
+      # Meaning "to focus foo, include its dev deps, but not dev deps of deps".
+      target = [{ key = pkey; }];
+      startSet = if ! dev then target else target ++ (
+        map ( i: { key = resolve pkey i; } )
+            ( builtins.attrNames ( depsOf' { inherit pkey dev; } ) )
+      );
       close = builtins.genericClosure {
-        startSet = [{ key = pkey; }];
+        inherit startSet;
         operator = { key }: let
           deps = builtins.attrNames ( depsOf' { pkey = key; } );
         in map ( i: { key = resolve key i; } ) deps;
@@ -86,10 +94,24 @@
     in builtins.foldl' proc {} close;
 
 
+    resolveClosure = {
+      __functionArgs = { dev = true; pkey = true; };
+      __thunk.pkey  = rootPath;
+      __processArgs = self: x:
+        if builtins.isString x then {
+          pkey = x; dev = x == rootPath;
+        } else self.__thunk // {
+          dev = ( x.pkey or self.__thunk.pkey ) == rootPath;
+        } // x;
+      __innerFunction = resolveClosure';
+      __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+    };
+
+
 # ---------------------------------------------------------------------------- #
 
-    pullDownClosure = pkey: let
-      close = resolveClosure pkey;
+    pullDownClosure' = { dev, pkey }: let
+      close = resolveClosure' { inherit dev pkey; };
       proc  = { tree, drop } @ acc: p: let
         lkey = lib.yank "${pkey}/(.*)" p;
       in if ! ( lib.hasPrefix "${pkey}/" p ) then acc else acc // {
@@ -124,12 +146,27 @@
         ( builtins.foldl' proc rough ( builtins.attrNames pulls ) );
     in fixClobbers;
 
+
+    pullDownClosure = {
+      __functionArgs = { dev = true; pkey = true; };
+      __thunk.pkey  = rootPath;
+      __processArgs = self: x:
+        if builtins.isString x then {
+          pkey = x; dev = x == rootPath;
+        } else self.__thunk // {
+          dev = ( x.pkey or self.__thunk.pkey ) == rootPath;
+        } // x;
+      __innerFunction = pullDownClosure';
+      __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+    };
+
+
 # ---------------------------------------------------------------------------- #
 
   in assert treeFull ? ${rootPath}; {
     inherit
-      resolveClosure
-      pullDownClosure
+      resolveClosure'  resolveClosure
+      pullDownClosure' pullDownClosure
     ;
     passthru = { inherit metaSet treeFull rootPath; };  # For reference
   };

@@ -93,6 +93,7 @@
             noFs    = true;
           };
         in if ! ( scrape ? metaFiles.pjs ) then [] else [pent];
+        # TODO:
         # Don't add the scraped info if we already have an `srcdir' record.
         #should = ( opt.fetchInfo != merged.fetchInfo ) ||
         #         ( ! ( builtins.any ( e: e.entFromtype == "srcdir" ) ) );
