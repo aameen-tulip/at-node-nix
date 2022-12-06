@@ -59,7 +59,7 @@
 
     reqsOf = { pkey, key ? tree.${pkey}, dev ? false }: let
       deps = depsOf' { inherit key dev; };
-      filt = i: ! ( tree? "${pkey}/node_modules/${i}" );
+      filt = i: ! ( tree ? "${pkey}/node_modules/${i}" );
     in builtins.filter filt ( builtins.attrNames deps );
 
     resolve = from: ident: let
@@ -68,7 +68,7 @@
         if tree? "${nmdir}/${ident}" then "${nmdir}/${ident}"
                                           else resolved;
       fromParent = builtins.foldl' proc null pnms;
-    in if tree? "${from}/node_modules/${ident}"
+    in if tree ? "${from}/node_modules/${ident}"
        then "${from}/node_modules/${ident}"
        else fromParent;
 
