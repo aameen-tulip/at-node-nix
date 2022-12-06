@@ -13,10 +13,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in self: {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
+  stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: self: {
+    pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
   , wkey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
@@ -25,75 +23,90 @@
     args = if wkey == "" then { inherit pjs wkey pjsDir fenv; } else
            throw "(${loc}): Reading workspaces has not been implemented.";
     targs = if self ? __thunk then self.__thunk // args else args;
-    fargs = if self ? __functionArgs
-            then lib.canPassStrict self.__functionArgs targs else targs;
+    fargs = if self ? __functionArgs then lib.canPassStrict self targs else
+            targs;
   in fargs;
 
 
 # ---------------------------------------------------------------------------- #
 
   # Abstracts workspaces
-  getFieldPjs' = { field, default ? null }: {
-    pure, ifd, typecheck, allowedPaths
-  } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
-  , pjsDir ?
-    throw "getFieldPjs': Cannot read workspace members without 'pjsDir'."
-  }: if wkey == "" then pjs.${field} or default else
-     throw "getFieldPjs': Reading workspaces has not been implemented.";
 
-  getFieldsPjs' = { fields }: {
-    pure, ifd, typecheck, allowedPaths
-  } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
-  , pjsDir ?
-    throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
-  }: let
-    fa = if builtins.isAttrs fields then fields else
-         builtins.foldl' ( acc: f: acc // { ${f} = false; } ) {} fields;
-  in if wkey == "" then builtins.intersectAttrs fa pjs else
-     throw "getFieldsPjs': Reading workspaces has not been implemented.";
+  getFieldPjs' = { pure, ifd, typecheck, allowedPaths } @ fenv: {
+    __functionArgs.field   = false;
+    __functionArgs.default = true;
+    __processArgs = self: x: let
+      fromFAttrs = { inherit (x) field; } //
+                   ( if ( x ? default ) then { inherit (x) default; } else {} );
+      fromTag = let
+        vt = lib.libtag.verifyTag x;
+      in if ! vt.isTag then throw vt.errmsg else {
+        field   = vt.name;
+        default = vt.val;
+      };
+    in if builtins.isString x then  { field = x; default = null; } else
+       if ( x ? field ) then fromFAttrs else fromTag;
+    __functor = self: x:
+      self.__innerFunction ( self.__processArgs self x );
+    __innerFunction = { field, default ? null }: {
+      __functionArgs.pjs = false;
+      __functor = iself: y:
+        iself.__innerFunction ( iself.__processArgs iself y );
+      __processArgs = stdPjsArgProc' fenv;
+      __innerFunction = { pjs }: pjs.${field} or default;
+    };
+  };
+
+  getFieldsPjs' = { pure, ifd, typecheck, allowedPaths } @ fenv: {
+    __functionArgs.fields  = false;
+    __processArgs = self: fields:
+        if builtins.isAttrs fields then fields else
+        builtins.foldl' ( acc: f: acc // { ${f} = false; } ) {} fields;
+    __functor = self: x: let
+      fields = self.__processArgs self ( x.fields or x );
+    in {
+      __functionArgs.pjs = false;
+      __processArgs   = stdPjsArgProc' fenv;
+      __innerFunction = { pjs }: builtins.intersectAttrs fields pjs;
+      __functor = iself: y:
+        iself.__innerFunction ( iself.__processArgs iself y );
+    };
+  };
 
 
 # ---------------------------------------------------------------------------- #
 
-  getIdentPjs'   = getFieldPjs'  { field = "name"; };
-  getVersionPjs' = getFieldPjs'  { field = "version"; };
-  getScriptsPjs' = getFieldPjs'  { field = "scripts"; default = {}; };
+  getIdentPjs'   = fenv: getFieldPjs' fenv { field = "name"; };
+  getVersionPjs' = fenv: getFieldPjs' fenv { field = "version"; };
+  getScriptsPjs' = fenv: getFieldPjs' fenv { field = "scripts"; default = {}; };
 
-  getHasBinPjs' = { pure, ifd, allowedPaths, typecheck } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-  in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
-  , pjsDir ?
-    throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
-  } @ args: let
-    fields = getFieldsPjs' {
+  getHasBinPjs' = fenv: let
+    getBinFields = getFieldsPjs' fenv {
       fields = { bin = true; directories = true; };
-    } fenv args;
-  in ( fields.bin or fields.directories.bin or {} ) != {};
+    };
+  in {
+    inherit (getBinFields) __functionArgs;
+    __innerFunction = fields:
+      ( fields.bin or fields.directories.bin or {} ) != {};
+    __processArgs = self: getBinFields;
+    __functor = self: x: self.__innerFunction ( self.__processArgs self x );
+  };
 
 
 # ---------------------------------------------------------------------------- #
 
   # FIXME: `metaEntOverlays'
   metaEntFromPjsNoWs' = { pure, ifd, typecheck, allowedPaths } @ fenv: let
-    rjenv = removeAttrs fenv ["metaEntOverlays"];
-    raenv = removeAttrs fenv ["typecheck" "metaEntOverlays"];
+    raenv = removeAttrs fenv ["typecheck"];
   in {
-    pjs    ? lib.libpkginfo.readJSONFromPath' rjenv ( pjsDir + "/package.json" )
+    pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
   , wkey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace/write fetchInfo without 'pjsDir'."
-  , isLocal ? true
-  , ltype   ? "dir"
+  , isLocal ? args ? pjsDir
+  , ltype   ?
+    if ( args ? pjsDir ) && ( ! ( lib.isStorePath pjsDir ) ) then "dir" else
+    "file"
   , basedir ? toString pjsDir
   , noFs    ? ! isLocal
   } @ args: let
@@ -122,7 +135,7 @@
         recursive = true;
       };
     };
-    extra = getFieldsPjs' {
+    extra = getFieldsPjs' fenv {
       fields = {
         bin         = true;
         directories = true;
@@ -131,12 +144,12 @@
         engines     = true;
         gypfile     = true;  # Rarely declared but it happens.
       };
-    } fenv gargs;
+    } gargs;
     # We recycle `depInfoEntFromPlockV3' since we don't have a generic form.
     # The regular routine is fine for this, we just pass in a phony path.
     # At time of writing the `path' field isn't used anyway.
     deps = let
-      plent = getFieldsPjs' {
+      plent = getFieldsPjs' fenv {
         fields = {
           dependencies         = true;
           devDependencies      = true;
@@ -144,7 +157,7 @@
           peerDependencies     = true;
           peerDependenciesMeta = true;
         };
-      } fenv gargs;
+      } gargs;
     in {
       depInfo   = lib.libdep.depInfoEntFromPlockV3 "" plent;
       depFields = plent;
@@ -152,9 +165,9 @@
     # Merged mispelled field because NPM allows either spelling because they
     # couldn't be bothered to write a linter.
     bundled' = let
-      fields = getFieldsPjs' {
+      fields = getFieldsPjs' fenv {
         fields = { bundledDependencies = true; bundleDependencies = true; };
-      } fenv gargs;
+      } gargs;
     in lib.libdep.getBundledDeps fields;
 
     ident   = getIdentPjs'   fenv gargs;
@@ -213,7 +226,8 @@
 
   _fenvFns = {
     inherit
-      # TODO: reorder args getField[s]Pjs'
+      getFieldPjs'
+      getFieldsPjs'
       getIdentPjs'
       getVersionPjs'
       getScriptsPjs'

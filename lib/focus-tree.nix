@@ -20,8 +20,8 @@
 
 # ---------------------------------------------------------------------------- #
 
-  focusTree = {
-    treeFull
+  mkTreeFocuser = {
+    tree
   , rootPath  # New root path, e.g. `foo' NOT a package "key".
   , metaSet   # used to lookup depInfo.  TODO: accept `depInfo' standalone.
   , ...
@@ -29,14 +29,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-    rootKey = treeFull.${rootPath};
+    rootKey = tree.${rootPath};
 
 # ---------------------------------------------------------------------------- #
 
     depsOf' = {
       ident   ? null
     , version ? null
-    , key ? if args ? pkey then treeFull.${args.pkey} else "${ident}/${version}"
+    , key ? if args ? pkey then tree.${args.pkey} else "${ident}/${version}"
     , dev ? false
     , ...
     } @ args: let
@@ -57,18 +57,18 @@
       da = builtins.foldl' proc { cwd = ""; dirs = []; } dirPaths;
     in da.dirs;
 
-    reqsOf = { pkey, key ? treeFull.${pkey}, dev ? false }: let
+    reqsOf = { pkey, key ? tree.${pkey}, dev ? false }: let
       deps = depsOf' { inherit key dev; };
-      filt = i: ! ( treeFull ? "${pkey}/node_modules/${i}" );
+      filt = i: ! ( tree? "${pkey}/node_modules/${i}" );
     in builtins.filter filt ( builtins.attrNames deps );
 
     resolve = from: ident: let
       pnms = parentNMs from;
       proc = resolved: nmdir:
-        if treeFull ? "${nmdir}/${ident}" then "${nmdir}/${ident}"
+        if tree? "${nmdir}/${ident}" then "${nmdir}/${ident}"
                                           else resolved;
       fromParent = builtins.foldl' proc null pnms;
-    in if treeFull ? "${from}/node_modules/${ident}"
+    in if tree? "${from}/node_modules/${ident}"
        then "${from}/node_modules/${ident}"
        else fromParent;
 
@@ -90,7 +90,7 @@
           deps = builtins.attrNames ( depsOf' { pkey = key; } );
         in map ( i: { key = resolve key i; } ) deps;
       };
-      proc = acc: { key }: acc // { ${key} = treeFull.${key}; };
+      proc = acc: { key }: acc // { ${key} = tree.${key}; };
     in builtins.foldl' proc {} close;
 
 
@@ -163,12 +163,12 @@
 
 # ---------------------------------------------------------------------------- #
 
-  in assert treeFull ? ${rootPath}; {
+  in assert tree? ${rootPath}; {
     inherit
       resolveClosure'  resolveClosure
       pullDownClosure' pullDownClosure
     ;
-    passthru = { inherit metaSet treeFull rootPath; };  # For reference
+    passthru = { inherit metaSet tree rootPath; };  # For reference
   };
 
   # End `focusTree' function.
@@ -177,7 +177,7 @@
 # ---------------------------------------------------------------------------- #
 
 in {
-  inherit focusTree;
+  inherit mkTreeFocuser;
 }
 
 # ---------------------------------------------------------------------------- #
