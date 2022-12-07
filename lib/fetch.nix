@@ -505,17 +505,9 @@
 
   _fenvFns = {
     inherit
-      flocoProcessGitArgs'
       flocoGitFetcher'
-      #flocoProcessUrlArgs'
-      flocoUrlFetcher'
-      #flocoProcessFileArgs'
-      flocoFileFetcher'
-      #flocoProcessTarballArgs'
-      flocoTarballFetcher'
-      #flocoProcessPathArgs'
+      flocoUrlFetcher' flocoFileFetcher' flocoTarballFetcher'
       flocoPathFetcher'
-
       #mkFlocoFetchers'
       #mkFlocoFetcher'
     ;
@@ -530,11 +522,8 @@ in {
     identifyFetchInfoFetcherFamily
 
     flocoUrlFetcher'
-
     flocoGitFetcher'
-    flocoTarballFetcher'
-    flocoFileFetcher'
-    flocoPathFetcher'
+    flocoTarballFetcher' flocoFileFetcher' flocoPathFetcher'
 
     mkFlocoFetchers'
     mkFlocoFetcher

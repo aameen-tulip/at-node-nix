@@ -119,7 +119,7 @@
   Strings = let
     # Helper to add length restriction to "new" identifiers.
     restrict_new_s = base_t: let
-      cond = builtins.test "${RE.id_new_p1}{0,214}";
+      cond = lib.test "${RE.id_new_p1}{0,214}";
     in restrict "new" cond base_t;
   in {
 
