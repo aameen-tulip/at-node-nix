@@ -7,8 +7,8 @@ while [[ "$#" -gt 0 ]]; do
     --bindir)    shift; BINDIR="$1"; ;;
     --libdir=*)  LIBDIR="${1#*=}"; ;;
     --libdir)    shift; LIBDIR="$1"; ;;
-    -g|--global) GLOBAL=1; ;;
-    -l|--local)  LOCAL=1; ;;
+    -g|--global) FSH=standard; ;;
+    -l|--local)  FSH=nmroot; ;;
     --node=*)    NODE="${1#*=}"; ;;
     --node)      shift; NODE="$1"; ;;
     -l|--lndirs) STYLE=lndirs; ;;
