@@ -91,7 +91,7 @@ in lib.makeExtensibleWithCustomName "__extend" ( self:
         mainProgram      = "pacote";
         description      = "JavaScript package downloader";
         homepage         = "https://github.com/npm/pacote#readme";
-        licenses         = [lib.license.isc];
+        licenses         = [lib.licenses.isc];
         outputsToInstall = ["global"];
       };
     } );

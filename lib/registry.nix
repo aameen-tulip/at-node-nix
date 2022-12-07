@@ -423,7 +423,7 @@ SEE ALSO:
       ${from.id} = if to.type == "indirect" then self.${to.id} else
                    ( ent.to // ( ent.fetchInfo or {} ) );
     };
-    self = builtins.foldl' proc {} ( lock.trees or lock.nodes or lock.flakes );
+    self = builtins.foldl' proc {} ( lock.trees or lock.flakes );
   in self;
 
 
@@ -435,7 +435,7 @@ SEE ALSO:
     name       ? null  # We don't use these, but I'm listing them for reference.
   , version    ? null
   , dist       ? {}
-  , _resolved
+  , _resolved  ? vinfo.resolved or vinfo.dist.tarball
   , _from      ? null  # The original descriptor
   , _integrity ? null  # sri+SHA512 ( which we can't use sadly... )
   , _id                # "@${scope}/${pname}@${version}"
@@ -444,12 +444,12 @@ SEE ALSO:
     # combine this in a `map' invocation, or will post process to extract the
     # ident to write it to a file.
   , withId ? false
-    # We can embed a `__toString' function for cases where the caller plans to
+    # We can embed a `__toPretty' function for cases where the caller plans to
     # write a generated flake, which is honestly how I expect this is going
     # to be used in most cases.
     # Just remember that you can't actually pass it to `getTree' with that
     # attribute preset ( use `removeAttrs' if you need both ).
-  , withToString ? false
+  , withToPretty ? false
     # We can use `fetchTree' to convert the URI to a SHA256 in impure mode,
     # but I've left it optional in case someone needs it.
   , lookupNar ? true
@@ -457,14 +457,15 @@ SEE ALSO:
   } @ vinfo: let
     dropAt = builtins.substring 1 ( builtins.stringLength _id ) _id;
     id = builtins.replaceStrings ["/" "@" "."] ["--" "--" "_"] _id;
-    maybeId = if withId then { inherit id; } else {};
+    id' = if withId then { inherit id; } else {};
     # FIXME: this will crash if bad directory perms are written in tarball.
     #ff = builtins.fetchTree { url = _resolved; type = "file"; };
     ft = builtins.fetchTree { url = _resolved; type = "tarball"; };
-    maybeNarHash = if lookupNar then { inherit (ft) narHash; } else {};
-    maybeToString =
-      if withToString then {
-        __toString = self: ''
+    nh' = if lookupNar then { inherit (ft) narHash; } else {};
+    toPretty' =
+      if withToPretty then {
+        val = { type = "tarball"; url = _resolved; } // nh';
+        __pretty = self: ''
           inputs.${id} = {
             type  = "${self.type}";
             url   = "${self.url}";
@@ -474,11 +475,11 @@ SEE ALSO:
           };
         '';
       } else {};
-  in {
+  in if withToPretty then toPretty' else {
     type = "tarball";
     url  = _resolved;
     flake = false;
-  } // maybeId // maybeNarHash // maybeToString;
+  } // id' // nh' // toPretty';
 
 
 # ---------------------------------------------------------------------------- #

@@ -15,31 +15,39 @@
 # Patching is performed when modules are installed globally or into a
 # `node_modules/' directory anyway so don't worry about it here.
 
-{ name        ? metaEnt.names.src or ( throw "Let untarSanPerms set the name" )
-, tarball     ? args.outPath or args.src
-, metaEnt     ? {}
-, setBinPerms ? true
+{ name          ? metaEnt.names.src or null
+, tarball       ? args.outPath or args.src
+, metaEnt       ? args.passthru.metaEnt or {}
+, setBinPerms   ? metaEnt.hasBin or true
 , untarSanPerms
 , jq
 , system
 , allowSubstitutes ? ( builtins.currentSystem or null ) != system
+# Fallbacks/Optionals
+, src      ? null
+, passthru ? {}
 , ...
 } @ args: let
-  addBinPerms =
-    if ! ( ( args.metaEnt.hasBin or true ) || setBinPerms ) then {} else {
-      postTar = ''
-        PATH="$PATH:${jq}/bin";
-        for f in $( jq -r '( .bin // {} )[]' "$out/package.json"; ); do
-          test -z "$f" && break;
+  addBinPerms' = if ! setBinPerms then {} else {
+    postTar = ''
+      for f in $( $JQ -r '
+        if .bin == null then "" else (
+          if ( .bin|type ) == "string" then .bin else .bin[] end
+        ) end
+      ' "$out/package.json"; ); do
+        if [[ -n "$f" ]]; then
           chmod -R +rw "$out/''${f%/*}";
           chmod +wxr "$out/$f";
-        done
-        for d in $( jq -r '.directories.bin // ""' "$out/package.json"; ); do
-          test -z "$f" && break;
-          chmod -R +wrx "$out/$d"
-        done
-      '';
-    };
+        else
+          d="$( $JQ -r '.directories.bin // ""' "$out/package.json"; )";
+          if [[ -n "$d" ]]; then
+            chmod -R +wrx "$out/$d";
+          fi
+        fi
+      done
+    '';
+  };
+  name' = if name == null then {} else { inherit name; };
 in untarSanPerms ( {
   inherit tarball;
   tarFlags = [
@@ -48,10 +56,11 @@ in untarSanPerms ( {
     "--delay-directory-restore"
     "--no-overwrite-dir"
   ];
-  extraDrvAttrs.allowSubstitutes = allowSubstitutes;
+  extraDrvAttrs = let
+    jq' = if setBinPerms then { JQ = "${jq}/bin/jq"; } else {};
+  in { allowSubstitutes = allowSubstitutes; } // jq';
   extraAttrs.meta     = args.meta or {};
-  extraAttrs.passthru = args.passthru or {};
-} // ( if (
-  ( args.name or args.metaEnt.names.src or null ) != null
-) then { name = args.name or args.metaEnt.names.src; } else {} ) //
-  addBinPerms )
+  extraAttrs.passthru = let
+    binPermsSet' = if ! setBinPerms then {} else { binPermsSet = true; };
+  in ( args.passthru or {} ) // binPermsSet';
+} // addBinPerms' )
