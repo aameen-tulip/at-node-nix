@@ -19,13 +19,9 @@
 }: let
   caArgs = if contentAddressedByDefault then {
     __contentAddressed = true;
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
+    outputHashMode     = "recursive";
+    outputHashAlgo     = "sha256";
   } else {};
-  # This prevents these attributes from being overrideable.
-  # We explicitly want to avoid things like `pkgsCross' and other
-  # `stdenv' modifiers from triggering cache misses on these derivations.
-  #
   # NOTE: You do not have GNU `tar' or any other compression programs here.
   # This is intentional.
   # If you need to (un)zip something do it in a separate derivation on it's own,
@@ -36,16 +32,12 @@
   # a different subdir.
   # Instead, unzip ONCE, and symlink if you need the contents in a subdir.
   # Matching the registry tarball's integrity hash is critical!
-  shell = "${bash}/bin/bash";
-  path  = "${coreutils}/bin";
-  inherit system;
-
-  mkDerivation = args: derivation ( {
+  snapDerivation = args: derivation ( {
     inherit system;
-    builder = shell;
-    PATH = path;
-    args = [
-      "-e"
+    preferLocalBuild = true;
+    builder = "${bash}/bin/bash";
+    PATH    = "${coreutils}/bin";
+    args = ["-e"
       ( args.builder or ( builtins.toFile "builder-${args.name}.sh" ''
           if test -e ".attrs.sh"; then
             source .attrs.sh;
@@ -53,8 +45,9 @@
           eval "$buildCommand";
         '' ) )
     ];
-  } // caArgs
-    // ( removeAttrs args ["builder" "meta"] ) )
-    // { meta = args.meta or {}; };
+  } // caArgs // ( removeAttrs args ["builder" "meta" "passthru"] ) ) // {
+   meta     = args.meta or {};
+   passthru = args.passthru or {};
+ };
 
-in mkDerivation
+in snapDerivation

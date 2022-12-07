@@ -30,11 +30,11 @@
         "rime": "rime"
       },
       "locked": {
-        "lastModified": 1670451999,
-        "narHash": "sha256-z6clIrJ9RhAR6Alc1YoggckOzpKN1Ca80HcaQ1YDHLI=",
+        "lastModified": 1670453319,
+        "narHash": "sha256-dpilrOgENctg5fiB2oLJbtNmf0on3k/VHAb17gTxLGg=",
         "owner": "aameen-tulip",
         "repo": "at-node-nix",
-        "rev": "6825fb9b5d6b18a227fe261613307ad10080a4ae",
+        "rev": "49447ab9799a6838e74c5b0d1175a68c507ca414",
         "type": "github"
       },
       "original": {
