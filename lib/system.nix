@@ -185,6 +185,36 @@
 
 # ---------------------------------------------------------------------------- #
 
+  metaEntGetSysInfoFromMetaFiles = metaEnt: let
+    mfs = builtins.filter builtins.isAttrs ( lib.libmeta.getMetaFiles metaEnt );
+    oss  = builtins.catAttrs "os"      mfs;
+    cpus = builtins.catAttrs "cpu"     mfs;
+    engs = builtins.catAttrs "engines" mfs;
+    nos  = map npmLookupOS ( builtins.head oss );
+    ncpu = map npmLookupProc ( builtins.head cpus );
+  in if mfs == [] then null else {
+    os      = if ( oss == [] )  then null else nos;
+    cpu     = if ( cpus == [] ) then null else ncpu;
+    engines = if ( engs == [] ) then null else builtins.head engs;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  metaEntSetSysInfoOv = final: prev: let
+    try = metaEntGetSysInfoFromMetaFiles final;
+  in if ( prev.sysInfo or null ) != null then prev else {
+    sysInfo = ( if try == null then {} else try ) // {
+      __serial = self: let
+        nn = lib.filterAttrs ( _: v: v != null)
+                              ( removeAttrs self ["__serial"] );
+      in if nn == {} then "__DROP__" else nn;
+    };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
   # FIXME: Handle `engines' particularly Node.js version.
   # Reading engine versions for NPM and Yarn may be useful indirectly to provide
   # hints to `metaEnt' functions; but I don't see any real reason to fool with
@@ -196,6 +226,9 @@
 in {
 
   inherit
+    npmLookupProc
+    npmLookupOS
+
     getNpmCpuForPlatform
     getNpmCpuForSystem
     getNpmOSForPlatform
@@ -206,6 +239,9 @@ in {
     pkgCpuCond
     pkgOSCond
     pkgSysCond
+
+    metaEntGetSysInfoFromMetaFiles
+    metaEntSetSysInfoOv
   ;
 
 }

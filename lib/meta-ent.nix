@@ -48,7 +48,8 @@
     scripts ? {}
   , ...
   } @ args: let
-    fromMetaFiles = builtins.catAttrs "scripts" ( getMetaFiles args );
+    mfs = builtins.filter builtins.isAttrs ( getMetaFiles args );
+    fromMetaFiles = builtins.catAttrs "scripts" mfs;
   in ( builtins.foldl' ( a: b: a // b ) {} fromMetaFiles ) // scripts;
 
 
