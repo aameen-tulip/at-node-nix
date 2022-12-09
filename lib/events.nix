@@ -165,13 +165,15 @@
       flt = ( eventsForLifecycleStrict' final.ltype ) // {
         build = final.ltype != "file";
       };
+      scripts = lib.libmeta.getScripts final;
+      # FIXME: `getScripts'
       ifdef = {
-        build   = lib.libpkginfo.hasBuildFromScripts final.scripts;
-        prepare = lib.libpkginfo.hasPrepareFromScripts final.scripts;
-        pack    = lib.libpkginfo.hasPackFromScripts final.scripts;
-        test    = lib.libpkginfo.hasTestFromScripts final.scripts;
-        publish = lib.libpkginfo.hasPublishFromScripts final.scripts;
-        install = lib.libpkginfo.hasInstallFromScripts final.scripts;
+        build   = lib.libpkginfo.hasBuildFromScripts scripts;
+        prepare = lib.libpkginfo.hasPrepareFromScripts scripts;
+        pack    = lib.libpkginfo.hasPackFromScripts scripts;
+        test    = lib.libpkginfo.hasTestFromScripts scripts;
+        publish = lib.libpkginfo.hasPublishFromScripts scripts;
+        install = lib.libpkginfo.hasInstallFromScripts scripts;
       };
       # These are special and need to be set to `null' if we aren't sure.
       hi' = if ( final.gypfile or null ) == null then { install = null; } else {

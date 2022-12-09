@@ -216,9 +216,6 @@
       fields = {
         bin         = true;
         directories = true;
-        os          = true;
-        cpu         = true;
-        engines     = true;
         gypfile     = true;  # Rarely declared but it happens.
       };
     } gargs;
@@ -280,20 +277,23 @@
     ex = let
       # TODO: this should be a separate overlay made to be general purpose.
       scriptInfo = final: prev: {
-        hasBuild         = lib.libpkginfo.hasBuildFromScripts prev.scripts;
-        hasPrepare       = lib.libpkginfo.hasPrepareFromScripts prev.scripts;
-        hasTest          = lib.libpkginfo.hasTestFromScripts prev.scripts;
-        hasPack          = lib.libpkginfo.hasPackFromScripts prev.scripts;
-        hasPublish       = lib.libpkginfo.hasPublishFromScripts prev.scripts;
+        hasBuild         = lib.libpkginfo.hasBuildFromScripts final.scripts;
+        hasPrepare       = lib.libpkginfo.hasPrepareFromScripts final.scripts;
+        hasTest          = lib.libpkginfo.hasTestFromScripts final.scripts;
+        hasPack          = lib.libpkginfo.hasPackFromScripts final.scripts;
+        hasPublish       = lib.libpkginfo.hasPublishFromScripts final.scripts;
         hasInstallScript =
-          if lib.libpkginfo.hasInstallFromScripts prev.scripts then true else
+          if lib.libpkginfo.hasInstallFromScripts final.scripts then true else
           null;
       };
       #ovs = metaEntOverlays or [];
       #...
-      ov = lib.composeExtensions ( _: prev:
-        extra // infoFs // prev
-      ) scriptInfo;
+      ov = lib.composeManyExtensions [
+        ( _: prev: extra // infoFs // prev )
+        lib.libsys.metaEntSetSysInfoOv
+        lib.libevent.metaEntLifecycleOverlay
+        scriptInfo
+      ];
     in if noFs then meta else meta.__extend ov;
   in if wkey == "" then ex else
      throw "getIdentPjs: Reading workspaces has not been implemented.";

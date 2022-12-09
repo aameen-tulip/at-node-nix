@@ -379,11 +379,6 @@
     hasBin = ( plent.bin or {} ) != {};
     key'   = ident + "/" + version;
     key    = if includeTreeInfo then key' + ":" + pkey else key';
-    extra  = builtins.intersectAttrs {
-      os      = true;
-      cpu     = true;
-      engines = true;
-    } plent;
     # Only included when `includeTreeInfo' is `true'.
     # Otherwise including this info would cause key collisions in `metaSet'.
     metaFiles = {
@@ -391,7 +386,7 @@
       plock = assert ! ( plent ? metaFiles );
               plent // { inherit pkey lockDir; };
     };
-    baseFields = extra // {
+    baseFields = {
       inherit key ident version;
       inherit hasBin;
       ltype            = lib.libplock.identifyPlentLifecycleV3' plent;
@@ -407,7 +402,10 @@
     ex = let
       # FIXME:
       #ovs = metaEntOverlays or [];
-      ovs = [];
+      ovs = [
+        lib.libsys.metaEntSetSysInfoOv
+        lib.libevent.metaEntLifecycleOverlay
+      ];
       ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
     in if ( ovs != [] ) then meta.__extend ov else meta;
   in ex;

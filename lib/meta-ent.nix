@@ -103,6 +103,7 @@
   , fetchInfo
   # These are just here to get `builtins.intersectAttrs' to work.
   , depInfo          ? {}
+  , sysInfo          ? {}
   , bin              ? {}
   , hasBuild         ? entHasBuildScript ent
   , hasPrepare       ? entHasPrepareScript ent
@@ -110,11 +111,9 @@
   , hasTest          ? entHasTestScript ent
   , gypfile          ? false  # XXX: do not read this field from registries
   , scripts          ? {}
-  , os               ? null
-  , cpu              ? null
-  , engines          ? null
   , trees            ? {}
   , hasBin ? lib.libpkginfo.pjsHasBin' ( removeAttrs fenv ["basedir"] ) ent
+  , metaFiles ? {}
   , ...
   } @ ent: let
     hasBuild' = lib.optionalAttrs ( hasBuild != null ) { inherit hasBuild; };
@@ -136,6 +135,7 @@
           hasBin
           hasInstallScript
           depInfo
+          sysInfo
         ;
       } // hasBuild';  # `hasBuild' will be inconclusive for some `git' deps.
       "package.json" = {
@@ -148,6 +148,7 @@
           hasInstallScript
           hasTest
           depInfo
+          sysInfo
         ;
       };
       # XXX: DO NOT READ `gypfile' field from registries!

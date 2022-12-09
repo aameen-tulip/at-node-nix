@@ -283,6 +283,8 @@
 
 # ---------------------------------------------------------------------------- #
 
+  isPartialVersion = v: ! ( lib.test "[0-9]+\\.[0-9]+\\.[0-9]+(-[^- ]+)?" v );
+
   # TODO: legacy parseVersionConstraint' deprecation.
   # The X parsing wasn't a part of my first draft of the regexes.
   # the regex pattern is a clusterfuck though so rather than fooling with it
@@ -291,20 +293,41 @@
   parseSemverStatement = v: let
     parsed   = parseVersionConstraint' ( cleanVersion v );
     forMod   = semverConst { op = parsed.mod; arg1 = parsed.version; };
-    forRange = semverConstRange parsed.from parsed.to;
-    forCmp = let
-      inherit (parsed) left right;
-      const1 = semverConst { inherit (left) op; arg1 = left.version; };
-      const2 = semverConst { inherit (right) op; arg1 = right.version; };
-    in if right.op == null then const1 else semverConstAnd const1 const2;
+    forRange = let
+      from = if ! ( isPartialVersion parsed.from ) then parsed.from else
+             normalizeVersionRoundDown parsed.from;
+      to = if ! ( isPartialVersion parsed.to ) then parsed.to else
+           normalizeVersionRoundUp parsed.to;
+    in semverConstRange from to;
     isPartial =
       ( lib.test "[^-]+\\.[xX*].*" v ) ||
       ( ( ( parsed.mod or null ) == "=" ) &&
-        ( ! ( lib.test "[0-9]+\\.[0-9]+\\.[0-9]+(-.*)?" v ) ) );
+        ( ! ( lib.test "[0-9]+\\.[0-9]+\\.[0-9]+(-[^- ]+)?" v ) ) );
+    # FIXME: you need to check each term for partials
+    forCmp = let
+      lr = if ! isPartial then  { inherit (parsed) left right; } else {
+        left = parsed.left // {
+          version = if builtins.elem parsed.left.op ["<" "=<" "<="]
+                    then normalizeVersionRoundUp   parsed.left.version
+                    else normalizeVersionRoundDown parsed.left.version;
+        };
+        right = if parsed.right.op == null then parsed.right else
+          parsed.right // {
+            version = if builtins.elem parsed.left.op ["<" "=<" "<="]
+                      then normalizeVersionRoundUp   parsed.left.version
+                      else normalizeVersionRoundDown parsed.left.version;
+          };
+      };
+      inherit (lr) left right;
+      const1 = semverConst { inherit (left) op; arg1 = left.version; };
+      const2 = semverConst { inherit (right) op; arg1 = right.version; };
+    in if right.op == null then const1 else semverConstAnd const1 const2;
+    # Quick and dirty way to handle keywords
     trimV = builtins.replaceStrings [" "] [""] v;
   in if builtins.elem trimV ["" "*" "latest" "next"] then semverConstAny else
-     if isPartial then parseSemverX v else
+     # NOTE: a `cmp' may contain a partial
      if parsed.type == "cmp" then forCmp else
+     if isPartial then parseSemverX v else
      if parsed.type == "range" then forRange else
      if parsed.type == "mod" then forMod else
      throw "Unrecognized semver type: ${parsed.type}";

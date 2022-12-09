@@ -156,7 +156,9 @@
   # If `flocoPackages' is defined but is not an extensible set,
   # make it extensible
   # If `flocoPackages' is defined and is extensible, return it.
-  initFlocoPkgs' = { ifd, pure, allowedPaths, typecheck } @ fenv: let
+  coerceFlocoPkgsFromNixpkgs' = {
+    ifd, pure, allowedPaths, typecheck
+  } @ fenv: let
     inner = prev:
       if prev ? flocoPackages.extend then prev.flocoPackages else
       if prev ? flocoPackages
@@ -171,7 +173,7 @@
   # Nipkgs -> [pkgDef] -> ( Nixpkgs // { flocoPackages += pkgDefs; } )
   addFlocoPackages' = { ifd, pure, allowedPaths, typecheck } @ fenv: let
     inner = prev: fpkgs: let
-      fp = initFlocoPkgs' fenv prev;
+      fp = coerceFlocoPkgsFromNixpkgs' fenv prev;
       fpkgsE =
         if ! ( lib.isFunction fpkgs ) then ( _: _: fpkgs ) else
         if ! ( lib.isFunction ( fpkgs {} ) ) then ( _: fpkgs ) else fpkgs;
@@ -184,6 +186,10 @@
 # ---------------------------------------------------------------------------- #
 
 in {
+  inherit
+    fpkgsEmpty_setIVK
+    fpkgsEmpty_simple
+  ;
 
   inherit
     showKey
@@ -191,7 +197,7 @@ in {
     satisfyFlocoPkg'
     getMetaEntFromFlocoPkg'
     getFlocoPkgModule'
-    initFlocoPkgs'
+    coerceFlocoPkgsFromNixpkgs'
     registerFlocoPkg'
     addFlocoPkg'
     addFlocoPackages'
@@ -207,24 +213,24 @@ in {
   # TODO: fenv/typed forms need to be implemented in most cases
   __withFenv = { ifd, pure, typecheck, allowedPaths } @ fenv: let
     app = builtins.mapAttrs ( _: f: lib.apply f fenv ) {
-      satisfyFlocoPkg         = lib.libfloco.satisfyFlocoPkg';
-      getFlocoPkg            = lib.libfloco.getFlocoPkg';
-      getMetaEntFromFlocoPkg = lib.libfloco.getMetaEntFromFlocoPkg';
-      getFlocoPkgModule      = lib.libfloco.getFlocoPkgModule';
-      initFlocoPkgs          = lib.libfloco.initFlocoPkgs';
-      registerFlocoPkg       = lib.libfloco.registerFlocoPkg';
-      addFlocoPkg            = lib.libfloco.addFlocoPkg';
-      addFlocoPackages       = lib.libfloco.addFlocoPackages';
+      satisfyFlocoPkg            = lib.libfloco.satisfyFlocoPkg';
+      getFlocoPkg                = lib.libfloco.getFlocoPkg';
+      getMetaEntFromFlocoPkg     = lib.libfloco.getMetaEntFromFlocoPkg';
+      getFlocoPkgModule          = lib.libfloco.getFlocoPkgModule';
+      registerFlocoPkg           = lib.libfloco.registerFlocoPkg';
+      addFlocoPkg                = lib.libfloco.addFlocoPkg';
+      addFlocoPackages           = lib.libfloco.addFlocoPackages';
+      coerceFlocoPkgsFromNixpkgs = lib.libfloco.coerceFlocoPkgsFromNixpkgs';
     };
     _with = builtins.mapAttrs ( _: lib.callWith fenv ) {
-      satisfyFlocoPkg'        = lib.libfloco.satisfyFlocoPkg';
-      getFlocoPkg'            = lib.libfloco.getFlocoPkg';
-      getMetaEntFromFlocoPkg' = lib.libfloco.getMetaEntFromFlocoPkg';
-      getFlocoPkgModule'      = lib.libfloco.getFlocoPkgModule';
-      initFlocoPkgs'          = lib.libfloco.initFlocoPkgs';
-      registerFlocoPkg'       = lib.libfloco.registerFlocoPkg';
-      addFlocoPkg'            = lib.libfloco.addFlocoPkg';
-      addFlocoPackages'       = lib.libfloco.addFlocoPackages';
+      satisfyFlocoPkg'           = lib.libfloco.satisfyFlocoPkg';
+      getFlocoPkg'               = lib.libfloco.getFlocoPkg';
+      getMetaEntFromFlocoPkg'    = lib.libfloco.getMetaEntFromFlocoPkg';
+      getFlocoPkgModule'         = lib.libfloco.getFlocoPkgModule';
+      registerFlocoPkg'          = lib.libfloco.registerFlocoPkg';
+      addFlocoPkg'               = lib.libfloco.addFlocoPkg';
+      addFlocoPackages'          = lib.libfloco.addFlocoPackages';
+      coerceFlocoPkgsFromNixpkgs = lib.libfloco.coerceFlocoPkgsFromNixpkgs';
     };
   in app // _with;
 
