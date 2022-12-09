@@ -25,73 +25,100 @@
 
 # ---------------------------------------------------------------------------- #
 
-  npmCpus = [
-    "x64"
-    "ia32"
-    "arm"
-    "arm64"
-    "s390x"     # Sounds made up TBH.
-    "ppc64"
-    "mips64el"
-  ];
-
-  npmProcessorMap = {
-    x86_64  = "x64";
-    aarch64 = "arm64";
-    i686    = "ia32";
+  nixArchToNpmCpuMap = {
+    x86_64      = "x64";
+    i686        = "ia32";
+    aarch       = "arm";
+    aarch64     = "arm64";
+    powerpc64le = "ppc64";
+    mipsel      = "mipsel64";
+    riscv64     = "riscv64";
+    unknown     = "unknown";
   };
+  nixArches = builtins.attrNames nixArchToNpmCpuMap;
 
-  npmLookupProc = p: let
+  npmCpuToNixArchMap = {
+    x64      = "x86_64";
+    ia32     = "i686";
+    arm      = "aarch";
+    arm64    = "aarch64";
+    s390x    = "unknown";
+    ppc64    = "powerpc64le";
+    mips64el = "mipsel";
+    riscv64  = "riscv64";
+    loong64  = "unknown";
+  };
+  npmCpus = builtins.attrNames npmCpuToNixArchMap;
+
+  nixArchToNpmCpu = p: let
     msg = "Unsupported CPU: ${p}. " +
           "( If this sounds wrong add it to the list in `lib/system.nix' )";
-    np = npmProcessorMap.${p} or ( throw msg );
+    np = nixArchToNpmCpuMap.${p} or ( throw msg );
   in builtins.deepSeq ( lib.assertOneOf "NPM CPU" np npmCpus ) np;
+
+  npmCpuToNixArch = p: let
+    msg = "Unsupported CPU: ${p}. " +
+          "( If this sounds wrong add it to the list in `lib/system.nix' )";
+    na = npmCpuToNixArchMap.${p} or ( throw msg );
+  in builtins.deepSeq ( lib.assertOneOf "Nix Arch" na nixArches ) na;
 
   # Takes a `nixpkgs.(build|host|target)Platform' attrset as an argument.
   # Returns the NPM CPU enum for that platform.
-  getNpmCpuForPlatform = { uname, ... }: npmLookupProc uname.processor;
+  getNpmCpuForPlatform = { uname, ... }: nixArchToNpmCpu uname.processor;
 
   # Takes a Nix system pair and returns the NPM CPU enum for that platform.
   getNpmCpuForSystem = system:
-    npmLookupProc ( builtins.head ( builtins.split "-" system ) );
+    nixArchToNpmCpu ( builtins.head ( builtins.split "-" system ) );
 
 
 # ---------------------------------------------------------------------------- #
 
-  npmOSs = [
-    "darwin"
-    "freebsd"
-    "linux"
-    "openbsd"
-    "sunprocess"
-    "win32"
-    "aix"
-    "android"
-  ];
-
   # Maps `platform.parsed.kernel.name' to NPM OS.
   # These are almost always the same; but there's a few exceptions so I won't
   # be lazy.
-  npmOSMap = {
-    darwin  = "darwin";
-    freebsd = "freebsd";
-    linux   = "linux";
-    openbsd = "openbsd";
-    solaris = "sunprocess";  # The oddball
-    win32   = "win32";
+  npmOSToNixOSMap = {
+    darwin   = "darwin";
+    freebsd  = "freebsd";
+    netbsd   = "netbsd";
+    linux    = "linux";
+    openbsd  = "openbsd";
+    sunos    = "sunprocess";
+    sunos-64 = "sunprocess";
+    solaris  = "sunprocess";
+    win32    = "win32";
     # Unsupported:
-    #  aix
-    #  android
+    aix     = "unknown";
+    android = "unknown";
+    unknown = "unknown";
   };
-
-  npmLookupOS = o: let
+  npmOSs = builtins.attrNames npmOSToNixOSMap;
+  npmOSToNixOS= o: let
     msg = "Unsupported OS: ${o}. " +
           "( If this sounds wrong add it to the list in `lib/system.nix' )";
-    no = npmOSMap.${o} or ( throw msg );
+    no = npmOSToNixOSMap.${o} or ( throw msg );
+  in builtins.deepSeq ( lib.assertOneOf "Nix OSs" no nixOSs ) no;
+
+
+  nixOSToNpmOSMap = {
+    darwin     = "darwin";
+    freebsd    = "freebsd";
+    netbsd     = "netbsd";
+    linux      = "linux";
+    openbsd    = "openbsd";
+    sunprocess = "solaris";
+    win32      = "win32";
+    # Unsupported:
+    unknown = "unknown";
+  };
+  nixOSs = builtins.attrNames nixOSToNpmOSMap;
+  nixOSToNpmOS = o: let
+    msg = "Unsupported OS: ${o}. " +
+          "( If this sounds wrong add it to the list in `lib/system.nix' )";
+    no = nixOSToNpmOSMap.${o} or ( throw msg );
   in builtins.deepSeq ( lib.assertOneOf "NPM OSs" no npmOSs ) no;
 
-  getNpmOSForPlatform = { parsed, ... }: npmLookupOS parsed.kernel.name;
-  getNpmOSForSystem   = system: npmLookupOS ( lib.yank "[^-]+-(.*)" system );
+  getNpmOSForPlatform = { parsed, ... }: nixOSToNpmOS parsed.kernel.name;
+  getNpmOSForSystem   = system: nixOSToNpmOS ( lib.yank "[^-]+-(.*)" system );
 
 
 # ---------------------------------------------------------------------------- #
@@ -190,8 +217,8 @@
     oss  = builtins.catAttrs "os"      mfs;
     cpus = builtins.catAttrs "cpu"     mfs;
     engs = builtins.catAttrs "engines" mfs;
-    nos  = map npmLookupOS ( builtins.head oss );
-    ncpu = map npmLookupProc ( builtins.head cpus );
+    nos  = map npmOSToNixOS ( builtins.head oss );
+    ncpu = map npmCpuToNixArch ( builtins.head cpus );
   in if mfs == [] then null else {
     os      = if ( oss == [] )  then null else nos;
     cpu     = if ( cpus == [] ) then null else ncpu;
@@ -226,8 +253,10 @@
 in {
 
   inherit
-    npmLookupProc
-    npmLookupOS
+    nixArchToNpmCpu
+    npmCpuToNixArch
+    nixOSToNpmOS
+    npmOSToNixOS
 
     getNpmCpuForPlatform
     getNpmCpuForSystem

@@ -131,44 +131,6 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # NOTE: `ak-nix' added robust range and comparator objects and predicates.
-  # For any complex expressions which `&&', `||', or ranges defer to those.
-
-  _verCmp = o: a: b: o ( builtins.compareVersions a b ) 0;
-  vg      = _verCmp ( a: b: a > b );
-  vge     = _verCmp ( a: b: a >= b );
-  vl      = _verCmp ( a: b: a < b );
-  vle     = _verCmp ( a: b: a <= b );
-  ve      = _verCmp ( a: b: a == b );
-
-
-  # TODO: you extended the version parser recently to support the FIXME issue.
-  # But you still need to implement this parser.
-  parseVersionConstraint = str: let
-    inherit (builtins) head compareVersions;
-    parsed = parseVersionConstraint str;
-    # FIXME: this needs to round up partials like "1.2.3 - 1.3" ==> "1.2.3 - 1.4.0"
-    fromRange = { from, to }: v: ( vge from v ) && ( vle to v );
-    fromCmp   = null;
-    fromMod   = null;
-  in null;
-
-
-  parseSemverStatements = str: let
-    ops   = [/*","*/ "&&" "||"];
-    #sp    = builtins.split " ?(,|[|][|]|&&) ?" str;
-    sp    = builtins.split " ?([|][|]|&&) ?" str;
-    len   = builtins.length sp;
-    # FIXME
-    tok = { left, op, right }: {
-      left = builtins.head sp;
-      op   = builtins.elemAt sp 1;
-    };
-  in if len <= 1 then str else null;
-
-
-# ---------------------------------------------------------------------------- #
-
   sortVersions' = descending: versions: let
     inherit (builtins) compareVersions sort;
     cmp' = a: b: ( compareVersions a b ) >= 0;
@@ -277,9 +239,13 @@
     core = builtins.head m;
     post = builtins.elemAt m 1;
     sx   = builtins.replaceStrings [".x" ".X" ".*"] ["" "" ""] core;
-  in if m == null then sv else
-     if post == null then sx else
-     "${sx}${post}";
+    c1   = if m == null then sv else
+           if post == null then sx else
+           "${sx}${post}";
+    ssp  = let
+      closeFor = [">=" ">" "<=" "<" "~" "^"];
+    in builtins.replaceStrings ( map ( o: o + " " ) closeFor ) closeFor c1;
+  in ssp;
 
 
 # ---------------------------------------------------------------------------- #
@@ -300,6 +266,7 @@
   normalizeVersionRoundUp   = normalizeVersion' parseSemverRoundUp;
   tryNormalizeVersionRoundDown = normalizeVersion' tryParseSemverRoundDown;
   tryNormalizeVersionRoundUp   = normalizeVersion' tryParseSemverRoundUp;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -333,8 +300,9 @@
     isPartial =
       ( lib.test "[^-]+\\.[xX*].*" v ) ||
       ( ( ( parsed.mod or null ) == "=" ) &&
-        ( ! ( lib.test "[^0-9]+\\.[^0-9]+\\.[0-9]+(-.*)?" v ) ) );
-  in if builtins.elem v ["" "*"] then semverConstAny else
+        ( ! ( lib.test "[0-9]+\\.[0-9]+\\.[0-9]+(-.*)?" v ) ) );
+    trimV = builtins.replaceStrings [" "] [""] v;
+  in if builtins.elem trimV ["" "*" "latest" "next"] then semverConstAny else
      if isPartial then parseSemverX v else
      if parsed.type == "cmp" then forCmp else
      if parsed.type == "range" then forRange else
@@ -344,8 +312,9 @@
   parseSemver = v: let
     sp     = builtins.split " ?[|][|] ?" v;
     parsed = map parseSemverStatement ( builtins.filter builtins.isString sp );
-  in builtins.foldl' semverConstOr ( builtins.head parsed )
-                                   ( builtins.tail parsed );
+    doOrs  = builtins.foldl' semverConstOr ( builtins.head parsed )
+                                           ( builtins.tail parsed );
+  in if 1 < ( builtins.length parsed ) then doOrs else builtins.head parsed;
 
 
 # ---------------------------------------------------------------------------- #
