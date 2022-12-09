@@ -21,7 +21,7 @@
     _type = "pkgEnt:source";
     inherit (metaEnt) key ident version;
     inherit source;
-    inherit (source) outPath;
+    inherit (source) outPath ltype;
     passthru = {
       metaEnt = metaEnt.__serial or metaEnt;
       names   =
@@ -51,7 +51,9 @@
 } @ args: let
 
   # Prepare all packages for consumption.
-  pkgSet = builtins.mapAttrs ( _: mkSrcEnt ) ( metaSet.__entries or metaSet );
+  pkgSet =
+    builtins.mapAttrs ( _: mkSrcEnt ) ( metaSet.__entries or
+                                        ( removeAttrs metaSet ["_meta"] ) );
 
   # Assign `node_modules/' paths to `outPath' of associated package.
   # If the arg `tree' is given, the caller may have provided `pkgEnt' values

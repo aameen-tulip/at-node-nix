@@ -136,7 +136,7 @@
           hasInstallScript
           depInfo
         ;
-      } // hasBuild' ;  # `hasBuild' will be inconclusive for some `git' deps.
+      } // hasBuild';  # `hasBuild' will be inconclusive for some `git' deps.
       "package.json" = {
         inherit
           bin

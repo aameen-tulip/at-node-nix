@@ -10,7 +10,6 @@
     };
     ident = "@gar/promisify";
     key = "@gar/promisify/1.1.3";
-    scoped = true;
     version = "1.1.3";
   };
   "@npmcli/fs/1.1.1" = {
@@ -33,7 +32,6 @@
     };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/1.1.1";
-    scoped = true;
     version = "1.1.1";
   };
   "@npmcli/fs/2.1.2" = {
@@ -56,7 +54,6 @@
     };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/2.1.2";
-    scoped = true;
     version = "2.1.2";
   };
   "@npmcli/git/3.0.2" = {
@@ -107,7 +104,6 @@
     };
     ident = "@npmcli/git";
     key = "@npmcli/git/3.0.2";
-    scoped = true;
     version = "3.0.2";
   };
   "@npmcli/installed-package-contents/1.0.7" = {
@@ -133,7 +129,6 @@
     hasBin = true;
     ident = "@npmcli/installed-package-contents";
     key = "@npmcli/installed-package-contents/1.0.7";
-    scoped = true;
     version = "1.0.7";
   };
   "@npmcli/move-file/1.1.2" = {
@@ -156,7 +151,6 @@
     };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/1.1.2";
-    scoped = true;
     version = "1.1.2";
   };
   "@npmcli/move-file/2.0.1" = {
@@ -179,7 +173,6 @@
     };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/2.0.1";
-    scoped = true;
     version = "2.0.1";
   };
   "@npmcli/node-gyp/2.0.0" = {
@@ -193,7 +186,6 @@
     };
     ident = "@npmcli/node-gyp";
     key = "@npmcli/node-gyp/2.0.0";
-    scoped = true;
     version = "2.0.0";
   };
   "@npmcli/promise-spawn/3.0.0" = {
@@ -212,7 +204,6 @@
     };
     ident = "@npmcli/promise-spawn";
     key = "@npmcli/promise-spawn/3.0.0";
-    scoped = true;
     version = "3.0.0";
   };
   "@npmcli/run-script/3.0.3" = {
@@ -243,7 +234,6 @@
     };
     ident = "@npmcli/run-script";
     key = "@npmcli/run-script/3.0.3";
-    scoped = true;
     version = "3.0.3";
   };
   "@tootallnate/once/1.1.2" = {
@@ -257,7 +247,6 @@
     };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/1.1.2";
-    scoped = true;
     version = "1.1.2";
   };
   "@tootallnate/once/2.0.0" = {
@@ -271,7 +260,6 @@
     };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/2.0.0";
-    scoped = true;
     version = "2.0.0";
   };
   _meta = {
@@ -289,7 +277,6 @@
     };
     ident = "abbrev";
     key = "abbrev/1.1.1";
-    scoped = false;
     version = "1.1.1";
   };
   "agent-base/6.0.2" = {
@@ -308,7 +295,6 @@
     };
     ident = "agent-base";
     key = "agent-base/6.0.2";
-    scoped = false;
     version = "6.0.2";
   };
   "agentkeepalive/4.2.1" = {
@@ -335,7 +321,6 @@
     };
     ident = "agentkeepalive";
     key = "agentkeepalive/4.2.1";
-    scoped = false;
     version = "4.2.1";
   };
   "aggregate-error/3.1.0" = {
@@ -358,7 +343,6 @@
     };
     ident = "aggregate-error";
     key = "aggregate-error/3.1.0";
-    scoped = false;
     version = "3.1.0";
   };
   "ansi-regex/5.0.1" = {
@@ -372,7 +356,6 @@
     };
     ident = "ansi-regex";
     key = "ansi-regex/5.0.1";
-    scoped = false;
     version = "5.0.1";
   };
   "aproba/2.0.0" = {
@@ -386,7 +369,6 @@
     };
     ident = "aproba";
     key = "aproba/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "are-we-there-yet/3.0.1" = {
@@ -409,7 +391,6 @@
     };
     ident = "are-we-there-yet";
     key = "are-we-there-yet/3.0.1";
-    scoped = false;
     version = "3.0.1";
   };
   "balanced-match/1.0.2" = {
@@ -423,7 +404,6 @@
     };
     ident = "balanced-match";
     key = "balanced-match/1.0.2";
-    scoped = false;
     version = "1.0.2";
   };
   "brace-expansion/1.1.11" = {
@@ -446,7 +426,6 @@
     };
     ident = "brace-expansion";
     key = "brace-expansion/1.1.11";
-    scoped = false;
     version = "1.1.11";
   };
   "brace-expansion/2.0.1" = {
@@ -465,7 +444,6 @@
     };
     ident = "brace-expansion";
     key = "brace-expansion/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "builtins/5.0.1" = {
@@ -484,7 +462,6 @@
     };
     ident = "builtins";
     key = "builtins/5.0.1";
-    scoped = false;
     version = "5.0.1";
   };
   "cacache/15.3.0" = {
@@ -571,7 +548,6 @@
     };
     ident = "cacache";
     key = "cacache/15.3.0";
-    scoped = false;
     version = "15.3.0";
   };
   "cacache/16.1.3" = {
@@ -658,7 +634,6 @@
     };
     ident = "cacache";
     key = "cacache/16.1.3";
-    scoped = false;
     version = "16.1.3";
   };
   "chownr/2.0.0" = {
@@ -672,7 +647,6 @@
     };
     ident = "chownr";
     key = "chownr/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "clean-stack/2.2.0" = {
@@ -686,7 +660,6 @@
     };
     ident = "clean-stack";
     key = "clean-stack/2.2.0";
-    scoped = false;
     version = "2.2.0";
   };
   "color-support/1.1.3" = {
@@ -703,7 +676,6 @@
     hasBin = true;
     ident = "color-support";
     key = "color-support/1.1.3";
-    scoped = false;
     version = "1.1.3";
   };
   "concat-map/0.0.1" = {
@@ -717,7 +689,6 @@
     };
     ident = "concat-map";
     key = "concat-map/0.0.1";
-    scoped = false;
     version = "0.0.1";
   };
   "console-control-strings/1.1.0" = {
@@ -731,7 +702,6 @@
     };
     ident = "console-control-strings";
     key = "console-control-strings/1.1.0";
-    scoped = false;
     version = "1.1.0";
   };
   "debug/4.3.4" = {
@@ -753,7 +723,6 @@
     };
     ident = "debug";
     key = "debug/4.3.4";
-    scoped = false;
     version = "4.3.4";
   };
   "delegates/1.0.0" = {
@@ -767,7 +736,6 @@
     };
     ident = "delegates";
     key = "delegates/1.0.0";
-    scoped = false;
     version = "1.0.0";
   };
   "depd/1.1.2" = {
@@ -781,7 +749,6 @@
     };
     ident = "depd";
     key = "depd/1.1.2";
-    scoped = false;
     version = "1.1.2";
   };
   "emoji-regex/8.0.0" = {
@@ -795,7 +762,6 @@
     };
     ident = "emoji-regex";
     key = "emoji-regex/8.0.0";
-    scoped = false;
     version = "8.0.0";
   };
   "encoding/0.1.13" = {
@@ -814,7 +780,6 @@
     };
     ident = "encoding";
     key = "encoding/0.1.13";
-    scoped = false;
     version = "0.1.13";
   };
   "env-paths/2.2.1" = {
@@ -828,7 +793,6 @@
     };
     ident = "env-paths";
     key = "env-paths/2.2.1";
-    scoped = false;
     version = "2.2.1";
   };
   "err-code/2.0.3" = {
@@ -842,7 +806,6 @@
     };
     ident = "err-code";
     key = "err-code/2.0.3";
-    scoped = false;
     version = "2.0.3";
   };
   "fs-minipass/2.1.0" = {
@@ -861,7 +824,6 @@
     };
     ident = "fs-minipass";
     key = "fs-minipass/2.1.0";
-    scoped = false;
     version = "2.1.0";
   };
   "fs.realpath/1.0.0" = {
@@ -875,7 +837,6 @@
     };
     ident = "fs.realpath";
     key = "fs.realpath/1.0.0";
-    scoped = false;
     version = "1.0.0";
   };
   "function-bind/1.1.1" = {
@@ -889,7 +850,6 @@
     };
     ident = "function-bind";
     key = "function-bind/1.1.1";
-    scoped = false;
     version = "1.1.1";
   };
   "gauge/4.0.4" = {
@@ -936,7 +896,6 @@
     };
     ident = "gauge";
     key = "gauge/4.0.4";
-    scoped = false;
     version = "4.0.4";
   };
   "glob/7.2.3" = {
@@ -975,7 +934,6 @@
     };
     ident = "glob";
     key = "glob/7.2.3";
-    scoped = false;
     version = "7.2.3";
   };
   "glob/8.0.3" = {
@@ -1010,7 +968,6 @@
     };
     ident = "glob";
     key = "glob/8.0.3";
-    scoped = false;
     version = "8.0.3";
   };
   "graceful-fs/4.2.10" = {
@@ -1024,7 +981,6 @@
     };
     ident = "graceful-fs";
     key = "graceful-fs/4.2.10";
-    scoped = false;
     version = "4.2.10";
   };
   "has-unicode/2.0.1" = {
@@ -1038,7 +994,6 @@
     };
     ident = "has-unicode";
     key = "has-unicode/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "has/1.0.3" = {
@@ -1057,7 +1012,6 @@
     };
     ident = "has";
     key = "has/1.0.3";
-    scoped = false;
     version = "1.0.3";
   };
   "hosted-git-info/5.2.1" = {
@@ -1076,7 +1030,6 @@
     };
     ident = "hosted-git-info";
     key = "hosted-git-info/5.2.1";
-    scoped = false;
     version = "5.2.1";
   };
   "http-cache-semantics/4.1.0" = {
@@ -1090,7 +1043,6 @@
     };
     ident = "http-cache-semantics";
     key = "http-cache-semantics/4.1.0";
-    scoped = false;
     version = "4.1.0";
   };
   "http-proxy-agent/4.0.1" = {
@@ -1117,7 +1069,6 @@
     };
     ident = "http-proxy-agent";
     key = "http-proxy-agent/4.0.1";
-    scoped = false;
     version = "4.0.1";
   };
   "http-proxy-agent/5.0.0" = {
@@ -1144,7 +1095,6 @@
     };
     ident = "http-proxy-agent";
     key = "http-proxy-agent/5.0.0";
-    scoped = false;
     version = "5.0.0";
   };
   "https-proxy-agent/5.0.1" = {
@@ -1167,7 +1117,6 @@
     };
     ident = "https-proxy-agent";
     key = "https-proxy-agent/5.0.1";
-    scoped = false;
     version = "5.0.1";
   };
   "humanize-ms/1.2.1" = {
@@ -1186,7 +1135,6 @@
     };
     ident = "humanize-ms";
     key = "humanize-ms/1.2.1";
-    scoped = false;
     version = "1.2.1";
   };
   "iconv-lite/0.6.3" = {
@@ -1205,7 +1153,6 @@
     };
     ident = "iconv-lite";
     key = "iconv-lite/0.6.3";
-    scoped = false;
     version = "0.6.3";
   };
   "ignore-walk/5.0.1" = {
@@ -1224,7 +1171,6 @@
     };
     ident = "ignore-walk";
     key = "ignore-walk/5.0.1";
-    scoped = false;
     version = "5.0.1";
   };
   "imurmurhash/0.1.4" = {
@@ -1238,7 +1184,6 @@
     };
     ident = "imurmurhash";
     key = "imurmurhash/0.1.4";
-    scoped = false;
     version = "0.1.4";
   };
   "indent-string/4.0.0" = {
@@ -1252,7 +1197,6 @@
     };
     ident = "indent-string";
     key = "indent-string/4.0.0";
-    scoped = false;
     version = "4.0.0";
   };
   "infer-owner/1.0.4" = {
@@ -1266,7 +1210,6 @@
     };
     ident = "infer-owner";
     key = "infer-owner/1.0.4";
-    scoped = false;
     version = "1.0.4";
   };
   "inflight/1.0.6" = {
@@ -1289,7 +1232,6 @@
     };
     ident = "inflight";
     key = "inflight/1.0.6";
-    scoped = false;
     version = "1.0.6";
   };
   "inherits/2.0.4" = {
@@ -1303,7 +1245,6 @@
     };
     ident = "inherits";
     key = "inherits/2.0.4";
-    scoped = false;
     version = "2.0.4";
   };
   "ip/2.0.0" = {
@@ -1317,7 +1258,6 @@
     };
     ident = "ip";
     key = "ip/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "is-core-module/2.11.0" = {
@@ -1336,7 +1276,6 @@
     };
     ident = "is-core-module";
     key = "is-core-module/2.11.0";
-    scoped = false;
     version = "2.11.0";
   };
   "is-fullwidth-code-point/3.0.0" = {
@@ -1350,7 +1289,6 @@
     };
     ident = "is-fullwidth-code-point";
     key = "is-fullwidth-code-point/3.0.0";
-    scoped = false;
     version = "3.0.0";
   };
   "is-lambda/1.0.1" = {
@@ -1364,7 +1302,6 @@
     };
     ident = "is-lambda";
     key = "is-lambda/1.0.1";
-    scoped = false;
     version = "1.0.1";
   };
   "isexe/2.0.0" = {
@@ -1378,7 +1315,6 @@
     };
     ident = "isexe";
     key = "isexe/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "json-parse-even-better-errors/2.3.1" = {
@@ -1392,7 +1328,6 @@
     };
     ident = "json-parse-even-better-errors";
     key = "json-parse-even-better-errors/2.3.1";
-    scoped = false;
     version = "2.3.1";
   };
   "jsonparse/1.3.1" = {
@@ -1406,7 +1341,6 @@
     };
     ident = "jsonparse";
     key = "jsonparse/1.3.1";
-    scoped = false;
     version = "1.3.1";
   };
   "lru-cache/6.0.0" = {
@@ -1425,7 +1359,6 @@
     };
     ident = "lru-cache";
     key = "lru-cache/6.0.0";
-    scoped = false;
     version = "6.0.0";
   };
   "lru-cache/7.14.0" = {
@@ -1439,7 +1372,6 @@
     };
     ident = "lru-cache";
     key = "lru-cache/7.14.0";
-    scoped = false;
     version = "7.14.0";
   };
   "make-fetch-happen/10.2.1" = {
@@ -1518,7 +1450,6 @@
     };
     ident = "make-fetch-happen";
     key = "make-fetch-happen/10.2.1";
-    scoped = false;
     version = "10.2.1";
   };
   "make-fetch-happen/9.1.0" = {
@@ -1597,7 +1528,6 @@
     };
     ident = "make-fetch-happen";
     key = "make-fetch-happen/9.1.0";
-    scoped = false;
     version = "9.1.0";
   };
   "minimatch/3.1.2" = {
@@ -1616,7 +1546,6 @@
     };
     ident = "minimatch";
     key = "minimatch/3.1.2";
-    scoped = false;
     version = "3.1.2";
   };
   "minimatch/5.1.0" = {
@@ -1635,7 +1564,6 @@
     };
     ident = "minimatch";
     key = "minimatch/5.1.0";
-    scoped = false;
     version = "5.1.0";
   };
   "minipass-collect/1.0.2" = {
@@ -1654,7 +1582,6 @@
     };
     ident = "minipass-collect";
     key = "minipass-collect/1.0.2";
-    scoped = false;
     version = "1.0.2";
   };
   "minipass-fetch/1.4.1" = {
@@ -1686,7 +1613,6 @@
     };
     ident = "minipass-fetch";
     key = "minipass-fetch/1.4.1";
-    scoped = false;
     version = "1.4.1";
   };
   "minipass-fetch/2.1.2" = {
@@ -1718,7 +1644,6 @@
     };
     ident = "minipass-fetch";
     key = "minipass-fetch/2.1.2";
-    scoped = false;
     version = "2.1.2";
   };
   "minipass-flush/1.0.5" = {
@@ -1737,7 +1662,6 @@
     };
     ident = "minipass-flush";
     key = "minipass-flush/1.0.5";
-    scoped = false;
     version = "1.0.5";
   };
   "minipass-json-stream/1.0.1" = {
@@ -1760,7 +1684,6 @@
     };
     ident = "minipass-json-stream";
     key = "minipass-json-stream/1.0.1";
-    scoped = false;
     version = "1.0.1";
   };
   "minipass-pipeline/1.2.4" = {
@@ -1779,7 +1702,6 @@
     };
     ident = "minipass-pipeline";
     key = "minipass-pipeline/1.2.4";
-    scoped = false;
     version = "1.2.4";
   };
   "minipass-sized/1.0.3" = {
@@ -1798,7 +1720,6 @@
     };
     ident = "minipass-sized";
     key = "minipass-sized/1.0.3";
-    scoped = false;
     version = "1.0.3";
   };
   "minipass/3.3.4" = {
@@ -1817,7 +1738,6 @@
     };
     ident = "minipass";
     key = "minipass/3.3.4";
-    scoped = false;
     version = "3.3.4";
   };
   "minizlib/2.1.2" = {
@@ -1840,7 +1760,6 @@
     };
     ident = "minizlib";
     key = "minizlib/2.1.2";
-    scoped = false;
     version = "2.1.2";
   };
   "mkdirp/1.0.4" = {
@@ -1857,7 +1776,6 @@
     hasBin = true;
     ident = "mkdirp";
     key = "mkdirp/1.0.4";
-    scoped = false;
     version = "1.0.4";
   };
   "ms/2.1.2" = {
@@ -1871,7 +1789,6 @@
     };
     ident = "ms";
     key = "ms/2.1.2";
-    scoped = false;
     version = "2.1.2";
   };
   "negotiator/0.6.3" = {
@@ -1885,7 +1802,6 @@
     };
     ident = "negotiator";
     key = "negotiator/0.6.3";
-    scoped = false;
     version = "0.6.3";
   };
   "node-gyp/8.4.1" = {
@@ -1943,7 +1859,6 @@
     hasBin = true;
     ident = "node-gyp";
     key = "node-gyp/8.4.1";
-    scoped = false;
     version = "8.4.1";
   };
   "nopt/5.0.0" = {
@@ -1965,7 +1880,6 @@
     hasBin = true;
     ident = "nopt";
     key = "nopt/5.0.0";
-    scoped = false;
     version = "5.0.0";
   };
   "normalize-package-data/4.0.1" = {
@@ -1996,7 +1910,6 @@
     };
     ident = "normalize-package-data";
     key = "normalize-package-data/4.0.1";
-    scoped = false;
     version = "4.0.1";
   };
   "npm-bundled/1.1.2" = {
@@ -2015,7 +1928,6 @@
     };
     ident = "npm-bundled";
     key = "npm-bundled/1.1.2";
-    scoped = false;
     version = "1.1.2";
   };
   "npm-bundled/2.0.1" = {
@@ -2034,7 +1946,6 @@
     };
     ident = "npm-bundled";
     key = "npm-bundled/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "npm-install-checks/5.0.0" = {
@@ -2053,7 +1964,6 @@
     };
     ident = "npm-install-checks";
     key = "npm-install-checks/5.0.0";
-    scoped = false;
     version = "5.0.0";
   };
   "npm-normalize-package-bin/1.0.1" = {
@@ -2067,7 +1977,6 @@
     };
     ident = "npm-normalize-package-bin";
     key = "npm-normalize-package-bin/1.0.1";
-    scoped = false;
     version = "1.0.1";
   };
   "npm-normalize-package-bin/2.0.0" = {
@@ -2081,7 +1990,6 @@
     };
     ident = "npm-normalize-package-bin";
     key = "npm-normalize-package-bin/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "npm-package-arg/9.1.2" = {
@@ -2112,7 +2020,6 @@
     };
     ident = "npm-package-arg";
     key = "npm-package-arg/9.1.2";
-    scoped = false;
     version = "9.1.2";
   };
   "npm-packlist/5.1.3" = {
@@ -2146,7 +2053,6 @@
     hasBin = true;
     ident = "npm-packlist";
     key = "npm-packlist/5.1.3";
-    scoped = false;
     version = "5.1.3";
   };
   "npm-pick-manifest/7.0.2" = {
@@ -2177,7 +2083,6 @@
     };
     ident = "npm-pick-manifest";
     key = "npm-pick-manifest/7.0.2";
-    scoped = false;
     version = "7.0.2";
   };
   "npm-registry-fetch/13.3.1" = {
@@ -2220,7 +2125,6 @@
     };
     ident = "npm-registry-fetch";
     key = "npm-registry-fetch/13.3.1";
-    scoped = false;
     version = "13.3.1";
   };
   "npmlog/6.0.2" = {
@@ -2251,7 +2155,6 @@
     };
     ident = "npmlog";
     key = "npmlog/6.0.2";
-    scoped = false;
     version = "6.0.2";
   };
   "once/1.4.0" = {
@@ -2270,7 +2173,6 @@
     };
     ident = "once";
     key = "once/1.4.0";
-    scoped = false;
     version = "1.4.0";
   };
   "p-map/4.0.0" = {
@@ -2289,7 +2191,6 @@
     };
     ident = "p-map";
     key = "p-map/4.0.0";
-    scoped = false;
     version = "4.0.0";
   };
   "pacote/13.3.0" = {
@@ -2391,7 +2292,6 @@
     hasBin = true;
     ident = "pacote";
     key = "pacote/13.3.0";
-    scoped = false;
     trees = {
       prod = {
         "node_modules/@gar/promisify" = "@gar/promisify/1.1.3";
@@ -2556,7 +2456,6 @@
     };
     ident = "path-is-absolute";
     key = "path-is-absolute/1.0.1";
-    scoped = false;
     version = "1.0.1";
   };
   "proc-log/2.0.1" = {
@@ -2570,7 +2469,6 @@
     };
     ident = "proc-log";
     key = "proc-log/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "promise-inflight/1.0.1" = {
@@ -2584,7 +2482,6 @@
     };
     ident = "promise-inflight";
     key = "promise-inflight/1.0.1";
-    scoped = false;
     version = "1.0.1";
   };
   "promise-retry/2.0.1" = {
@@ -2607,7 +2504,6 @@
     };
     ident = "promise-retry";
     key = "promise-retry/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "read-package-json-fast/2.0.3" = {
@@ -2630,7 +2526,6 @@
     };
     ident = "read-package-json-fast";
     key = "read-package-json-fast/2.0.3";
-    scoped = false;
     version = "2.0.3";
   };
   "read-package-json/5.0.2" = {
@@ -2661,7 +2556,6 @@
     };
     ident = "read-package-json";
     key = "read-package-json/5.0.2";
-    scoped = false;
     version = "5.0.2";
   };
   "readable-stream/3.6.0" = {
@@ -2688,7 +2582,6 @@
     };
     ident = "readable-stream";
     key = "readable-stream/3.6.0";
-    scoped = false;
     version = "3.6.0";
   };
   "retry/0.12.0" = {
@@ -2702,7 +2595,6 @@
     };
     ident = "retry";
     key = "retry/0.12.0";
-    scoped = false;
     version = "0.12.0";
   };
   "rimraf/3.0.2" = {
@@ -2724,7 +2616,6 @@
     hasBin = true;
     ident = "rimraf";
     key = "rimraf/3.0.2";
-    scoped = false;
     version = "3.0.2";
   };
   "safe-buffer/5.2.1" = {
@@ -2738,7 +2629,6 @@
     };
     ident = "safe-buffer";
     key = "safe-buffer/5.2.1";
-    scoped = false;
     version = "5.2.1";
   };
   "safer-buffer/2.1.2" = {
@@ -2752,7 +2642,6 @@
     };
     ident = "safer-buffer";
     key = "safer-buffer/2.1.2";
-    scoped = false;
     version = "2.1.2";
   };
   "semver/7.3.8" = {
@@ -2774,7 +2663,6 @@
     hasBin = true;
     ident = "semver";
     key = "semver/7.3.8";
-    scoped = false;
     version = "7.3.8";
   };
   "set-blocking/2.0.0" = {
@@ -2788,7 +2676,6 @@
     };
     ident = "set-blocking";
     key = "set-blocking/2.0.0";
-    scoped = false;
     version = "2.0.0";
   };
   "signal-exit/3.0.7" = {
@@ -2802,7 +2689,6 @@
     };
     ident = "signal-exit";
     key = "signal-exit/3.0.7";
-    scoped = false;
     version = "3.0.7";
   };
   "smart-buffer/4.2.0" = {
@@ -2816,7 +2702,6 @@
     };
     ident = "smart-buffer";
     key = "smart-buffer/4.2.0";
-    scoped = false;
     version = "4.2.0";
   };
   "socks-proxy-agent/6.2.1" = {
@@ -2843,7 +2728,6 @@
     };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/6.2.1";
-    scoped = false;
     version = "6.2.1";
   };
   "socks-proxy-agent/7.0.0" = {
@@ -2870,7 +2754,6 @@
     };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/7.0.0";
-    scoped = false;
     version = "7.0.0";
   };
   "socks/2.7.1" = {
@@ -2893,7 +2776,6 @@
     };
     ident = "socks";
     key = "socks/2.7.1";
-    scoped = false;
     version = "2.7.1";
   };
   "spdx-correct/3.1.1" = {
@@ -2916,7 +2798,6 @@
     };
     ident = "spdx-correct";
     key = "spdx-correct/3.1.1";
-    scoped = false;
     version = "3.1.1";
   };
   "spdx-exceptions/2.3.0" = {
@@ -2930,7 +2811,6 @@
     };
     ident = "spdx-exceptions";
     key = "spdx-exceptions/2.3.0";
-    scoped = false;
     version = "2.3.0";
   };
   "spdx-expression-parse/3.0.1" = {
@@ -2953,7 +2833,6 @@
     };
     ident = "spdx-expression-parse";
     key = "spdx-expression-parse/3.0.1";
-    scoped = false;
     version = "3.0.1";
   };
   "spdx-license-ids/3.0.12" = {
@@ -2967,7 +2846,6 @@
     };
     ident = "spdx-license-ids";
     key = "spdx-license-ids/3.0.12";
-    scoped = false;
     version = "3.0.12";
   };
   "ssri/8.0.1" = {
@@ -2986,7 +2864,6 @@
     };
     ident = "ssri";
     key = "ssri/8.0.1";
-    scoped = false;
     version = "8.0.1";
   };
   "ssri/9.0.1" = {
@@ -3005,7 +2882,6 @@
     };
     ident = "ssri";
     key = "ssri/9.0.1";
-    scoped = false;
     version = "9.0.1";
   };
   "string-width/4.2.3" = {
@@ -3032,7 +2908,6 @@
     };
     ident = "string-width";
     key = "string-width/4.2.3";
-    scoped = false;
     version = "4.2.3";
   };
   "string_decoder/1.3.0" = {
@@ -3051,7 +2926,6 @@
     };
     ident = "string_decoder";
     key = "string_decoder/1.3.0";
-    scoped = false;
     version = "1.3.0";
   };
   "strip-ansi/6.0.1" = {
@@ -3070,7 +2944,6 @@
     };
     ident = "strip-ansi";
     key = "strip-ansi/6.0.1";
-    scoped = false;
     version = "6.0.1";
   };
   "tar/6.1.12" = {
@@ -3109,7 +2982,6 @@
     };
     ident = "tar";
     key = "tar/6.1.12";
-    scoped = false;
     version = "6.1.12";
   };
   "unique-filename/1.1.1" = {
@@ -3128,7 +3000,6 @@
     };
     ident = "unique-filename";
     key = "unique-filename/1.1.1";
-    scoped = false;
     version = "1.1.1";
   };
   "unique-filename/2.0.1" = {
@@ -3147,7 +3018,6 @@
     };
     ident = "unique-filename";
     key = "unique-filename/2.0.1";
-    scoped = false;
     version = "2.0.1";
   };
   "unique-slug/2.0.2" = {
@@ -3166,7 +3036,6 @@
     };
     ident = "unique-slug";
     key = "unique-slug/2.0.2";
-    scoped = false;
     version = "2.0.2";
   };
   "unique-slug/3.0.0" = {
@@ -3185,7 +3054,6 @@
     };
     ident = "unique-slug";
     key = "unique-slug/3.0.0";
-    scoped = false;
     version = "3.0.0";
   };
   "util-deprecate/1.0.2" = {
@@ -3199,7 +3067,6 @@
     };
     ident = "util-deprecate";
     key = "util-deprecate/1.0.2";
-    scoped = false;
     version = "1.0.2";
   };
   "validate-npm-package-license/3.0.4" = {
@@ -3222,7 +3089,6 @@
     };
     ident = "validate-npm-package-license";
     key = "validate-npm-package-license/3.0.4";
-    scoped = false;
     version = "3.0.4";
   };
   "validate-npm-package-name/4.0.0" = {
@@ -3241,7 +3107,6 @@
     };
     ident = "validate-npm-package-name";
     key = "validate-npm-package-name/4.0.0";
-    scoped = false;
     version = "4.0.0";
   };
   "which/2.0.2" = {
@@ -3263,7 +3128,6 @@
     hasBin = true;
     ident = "which";
     key = "which/2.0.2";
-    scoped = false;
     version = "2.0.2";
   };
   "wide-align/1.1.5" = {
@@ -3282,7 +3146,6 @@
     };
     ident = "wide-align";
     key = "wide-align/1.1.5";
-    scoped = false;
     version = "1.1.5";
   };
   "wrappy/1.0.2" = {
@@ -3296,7 +3159,6 @@
     };
     ident = "wrappy";
     key = "wrappy/1.0.2";
-    scoped = false;
     version = "1.0.2";
   };
   "yallist/4.0.0" = {
@@ -3310,7 +3172,6 @@
     };
     ident = "yallist";
     key = "yallist/4.0.0";
-    scoped = false;
     version = "4.0.0";
   };
 }

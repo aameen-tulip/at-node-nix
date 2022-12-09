@@ -104,7 +104,6 @@
         " for the magic value 'serialIgnore' when writing a serializer."
       );
       __toString = _: "";
-      __toPretty = _: "";
     };
   in assert ! ( ( def ? __toSerial ) || ( def ? __serial ) );
      def;
@@ -152,16 +151,37 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # Drop redundant `bin' fields.
+  _metaEntSerialBins = self: let
+    dropDirsBin = x: let
+      d = x // { directories = removeAttrs x.directories ["bin"]; };
+    in if ! ( x ? directories ) then x else
+       if d.directories == {} then removeAttrs x ["directories"] else d;
+    doHbb = x:
+      if ( x.bin or null ) == null then removeAttrs x ["bin"] else
+      removeAttrs x ["hasBin"];
+    # Prefer `bin' over `directories.bin'.
+    doBdB = x:
+      if ( x ? bin ) && ( x ? directories.bin ) then dropDirsBin x else x;
+    clean = doBdB ( doHbb self );
+  in if ! ( clean ? bin ) then clean else clean // {
+    bin = yt.PkgInfo.bin_pairs clean.bin;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
   # Default/base serializer for `metaEnt' records.
   # These almost always refer to individual packages.
   # This form is intentionally minimal, it's probably best to do most
   # specialization is extensions that wrap this.
   #
   # TODO: fetchInfo relative paths.
-  metaEntSerialDefault = self: let
-    drops = ["_type" "scoped"];
-    base = removeAttrs ( serialDefault self ) drops;
-  in base;
+  metaEntSerialDefault = self: lib.pipe self [
+    serialDefault
+    ( x: removeAttrs x ["_type"] )
+    _metaEntSerialBins
+  ];
 
 
 # ---------------------------------------------------------------------------- #
@@ -185,8 +205,12 @@
       cond = k: v:
         ( builtins.elem k hides ) && ( builtins.isBool v ) && v;
     in lib.filterAttrs cond dft;
+    noEmpty = lib.flip lib.pipe [
+      ( x: if ( x.bin or {} ) != {} then x else removeAttrs x ["bin"] )
+      ( x: if ( x.depInfo or {} ) != {} then x else removeAttrs x ["depInfo"] )
+    ];
   in assert metaWasPlock self;
-     hide // keepTrue;
+     noEmpty ( hide // keepTrue );
 
 
 # ---------------------------------------------------------------------------- #

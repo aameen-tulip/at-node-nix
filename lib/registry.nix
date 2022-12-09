@@ -429,7 +429,7 @@ SEE ALSO:
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: use `lib.generators.toPretty'
+  # FIXME: use `lib.generators.toString'
   # FIXME: use `checkPermsDrv' from `flocoPackages' to avoid crashes.
   flakeInputFromVInfoTarball = {
     name       ? null  # We don't use these, but I'm listing them for reference.
@@ -444,12 +444,12 @@ SEE ALSO:
     # combine this in a `map' invocation, or will post process to extract the
     # ident to write it to a file.
   , withId ? false
-    # We can embed a `__toPretty' function for cases where the caller plans to
+    # We can embed a `__toString' function for cases where the caller plans to
     # write a generated flake, which is honestly how I expect this is going
     # to be used in most cases.
     # Just remember that you can't actually pass it to `getTree' with that
     # attribute preset ( use `removeAttrs' if you need both ).
-  , withToPretty ? false
+  , withToString ? false
     # We can use `fetchTree' to convert the URI to a SHA256 in impure mode,
     # but I've left it optional in case someone needs it.
   , lookupNar ? true
@@ -462,10 +462,9 @@ SEE ALSO:
     #ff = builtins.fetchTree { url = _resolved; type = "file"; };
     ft = builtins.fetchTree { url = _resolved; type = "tarball"; };
     nh' = if lookupNar then { inherit (ft) narHash; } else {};
-    toPretty' =
-      if withToPretty then {
-        val = { type = "tarball"; url = _resolved; } // nh';
-        __pretty = self: ''
+    toString' =
+      if withToString then {
+        __toString = self: ''
           inputs.${id} = {
             type  = "${self.type}";
             url   = "${self.url}";
@@ -475,11 +474,11 @@ SEE ALSO:
           };
         '';
       } else {};
-  in if withToPretty then toPretty' else {
+  in if withToString then toString' else {
     type = "tarball";
     url  = _resolved;
     flake = false;
-  } // id' // nh' // toPretty';
+  } // id' // nh' // toString';
 
 
 # ---------------------------------------------------------------------------- #

@@ -13,7 +13,7 @@
 { lib, patch-shebangs }: let
 
   genSetBinPermissionsHook = {
-    meta
+    metaEnt
   , relDir                 ? "$out"
   , dontPatchShebangs      ? false
   , usePatchShebangsScript ? false
@@ -24,9 +24,9 @@
                      else "patchShebangs";
     from = let m = builtins.match "(.*)/" relDir; in
             if m == null then relDir else m;
-    binPaths = map ( p: "${from}/${p}" ) ( builtins.attrValues meta.bin );
+    binPaths = map ( p: "${from}/${p}" ) ( builtins.attrValues metaEnt.bin );
     targets =
-      if meta.bin ? __DIR__ then "${from}/${meta.bin.__DIR__}/*" else
+      if metaEnt.bin ? __DIR__ then "${from}/${metaEnt.bin.__DIR__}/*" else
       builtins.concatStringsSep " " binPaths;
   in "chmod +x ${targets}\n" + ( lib.optionalString ( ! dontPatchShebangs ) ''
      ${PATCH_SHEBANGS} -- ${targets}

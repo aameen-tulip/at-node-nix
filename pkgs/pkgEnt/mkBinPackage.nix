@@ -14,10 +14,10 @@
 # ---------------------------------------------------------------------------- #
 
 { lib
-, name        ? metaEnt.names.global or "${baseNameOf ident}-${version}"
-, ident       ? args.metaEnt.ident or ( dirOf args.key )
-, version     ? args.metaEnt.version or ( baseNameOf args.key )
-, key         ? args.metaEnt.key or "${ident}/${version}"
+, name    ? metaEnt.names.global or "${baseNameOf ident}-${version}"
+, ident   ? args.metaEnt.ident or ( dirOf args.key )
+, version ? args.metaEnt.version or ( baseNameOf args.key )
+, key     ? args.metaEnt.key or "${ident}/${version}"
 , src
 , globalNmDirCmd ? args.nmDirCmd or ":"
 , metaEnt        ? lib.libmetaEnt.mkMetaEntCore { inherit ident version; }
