@@ -112,8 +112,10 @@
     tree' = let
       npmSys   = lib.getNpmSys { inherit system; };
       cond     = k: v: let
-        isKey   = yt.PkgInfo.key.check v;
-        fpkg    = if isKey then lib.getFlocoPkg' fenv flocoPackages v else null;
+        isKey = yt.PkgInfo.key.check v;
+        fpkg  =
+          if isKey then lib.getFlocoPkg' fenv flocoPackages v else
+          if lib.hasPrefix "pkgEnt" ( v._type or "" ) then v else null;
         metaEnt =
           if fpkg != null then lib.getMetaEntFromFlocoPkg' fenv fpkg else null;
         supported =
