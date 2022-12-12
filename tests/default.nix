@@ -71,6 +71,7 @@
     ./librange
     ./types
     ./libtree
+    ./libevent
     # Derivations
     ./mkNmDir
     ./pkg-set

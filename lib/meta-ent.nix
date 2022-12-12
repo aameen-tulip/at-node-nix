@@ -110,6 +110,7 @@
   , hasInstallScript ? entHasInstallScript ent
   , hasTest          ? entHasTestScript ent
   , gypfile          ? false  # XXX: do not read this field from registries
+  , lifecycle        ? {}
   , scripts          ? {}
   , trees            ? {}
   , hasBin ? lib.libpkginfo.pjsHasBin' ( removeAttrs fenv ["basedir"] ) ent
@@ -149,6 +150,7 @@
           hasTest
           depInfo
           sysInfo
+          lifecycle
         ;
       };
       # XXX: DO NOT READ `gypfile' field from registries!

@@ -160,13 +160,13 @@
 
 # ---------------------------------------------------------------------------- #
 
+  # FIXME: disconnected from `hasInstallScript'
   metaEntLifecycleOverlay = final: prev: {
     lifecycle = let
       flt = ( eventsForLifecycleStrict' final.ltype ) // {
         build = final.ltype != "file";
       };
       scripts = lib.libmeta.getScripts final;
-      # FIXME: `getScripts'
       ifdef = {
         build   = lib.libpkginfo.hasBuildFromScripts scripts;
         prepare = lib.libpkginfo.hasPrepareFromScripts scripts;
@@ -181,7 +181,18 @@
       };
       proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
       base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
-    in base // hi';
+      fromPartial =
+        if ( prev.lifecycle or null ) == null then {} else {
+          build   = false;
+          prepare = false;
+          pack    = false;
+          test    = false;
+          publish = false;
+          install = if ( prev.lifecycle.install or false ) == null
+                    then hi'.install
+                    else prev.lifecycle.install or false;
+        };
+    in base // hi' // fromPartial;
   };
 
 
