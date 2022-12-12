@@ -183,11 +183,11 @@
       base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
       fromPartial =
         if ( prev.lifecycle or null ) == null then {} else {
-          build   = false;
-          prepare = false;
-          pack    = false;
-          test    = false;
-          publish = false;
+          build   = prev.lifecycle.build or false;
+          prepare = prev.lifecycle.prepared or false;
+          pack    = prev.lifecycle.pack or false;
+          test    = prev.lifecycle.test or false;
+          publish = prev.lifecycle.publish or false;
           install = if ( prev.lifecycle.install or false ) == null
                     then hi'.install
                     else prev.lifecycle.install or false;
