@@ -125,3 +125,8 @@ directory relative to =sourceInfo= where =package.json= is located.
 :PROPERTIES:
 :Optional: true
 :END:
+
+** treeInfo
+:PROPERTIES:
+:Optional: true
+:END:

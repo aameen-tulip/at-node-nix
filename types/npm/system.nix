@@ -39,7 +39,8 @@
   };
 
   Structs.sys_info =
-    yt.struct "sys_info" ( builtins.mapAttrs yt.option _sys_info_fields );
+    yt.struct "sys_info" ( builtins.mapAttrs ( _: yt.option )
+                                             _sys_info_fields );
 
 
 # ---------------------------------------------------------------------------- #
