@@ -125,11 +125,61 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _bin_info_fields = {
+    binPairs = yt.PkgInfo.bin_pairs;
+    binDir   = yt.FS.relpath;
+  };
+
+  Structs.bin_info_raw = yt.struct "bin_info" {
+    binPairs = yt.option _bin_info_fields.binPairs;
+    binDir   = yt.option _bin_info_fields.binDir;
+  };
+
+  Structs.bin_info = typedef' {
+    name      = "bin_info";
+    checkType = v: let
+      raw     = yt.FlocoMeta.Structs.bin_info_raw.checkType v;
+      base    = if raw.ok then removeAttrs raw ["err"] else raw;
+      hasAtLeastOne = let
+        ok   = ( v ? binPairs ) || ( v ? binDir );
+        err' = if ok then {} else {
+          err =
+            "expected 'bin_info', but value '${yt.__internal.prettyPrint v}' " +
+            "lacks either a 'binPairs' or 'binDir' field.";
+        };
+      in if raw.ok then { inherit ok; } // err' else {};
+    in base // hasAtLeastOne // { ok = raw.ok && hasAtLeastOne.ok; };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  _meta_ent_info_fields = {
+    inherit (yt.PkgInfo) key version;
+    ident       = yt.PkgInfo.identifier;
+    entFromType = yt.FlocoMeta.Enums.meta_fromtype;
+    inherit (ytypes.Npm.Enums) ltype;
+    binInfo    = yt.FlocoMeta.Structs.bin_info;
+    depInfo    = yt.DepInfo.dep_info;
+    fetchInfo  = yt.FlocoFetch.fetch_info_type_floco;
+    sourceInfo = yt.FlocoFetch.source_info_floco;
+    sysInfo    = yt.Npm.sys_info;
+    treeInfo   = /* TODO */ yt.attrs yt.any;
+    lifecycle  = /* TODO */ yt.attrs yt.bool;
+    fsInfo     = /* TODO */ yt.attrs yt.any;
+    metaFiles  = /* TODO */ yt.attrs yt.any;
+  };
+
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     Enums
     Attrs
     Typeclasses
+    Structs
   ;
   inherit (Typeclasses)
     meta_ext
@@ -140,6 +190,9 @@ in {
     meta_ent_shallow
     meta_set_shallow
   ;
+  inherit (Structs)
+    bin_info
+  ;
 
   inherit
     _meta_ext_fields
@@ -148,7 +201,10 @@ in {
     _meta_fromtypes
     _plock_fromtypes
     _ylock_fromtypes
+    _bin_info_fields
+    _meta_ent_info_fields
   ;
+
 }
 
 

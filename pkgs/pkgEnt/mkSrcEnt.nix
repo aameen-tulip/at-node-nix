@@ -116,7 +116,7 @@
   _pkg_ent_src_fields = {
     _type = yt.enum "_type[pkgEnt:source]" ["pkgEnt:source"];
     ident = yt.PkgInfo.identifier;
-    inherit (yt.NpmLifecycle.Enums) ltype;
+    inherit (yt.Npm.Enums) ltype;
     inherit (yt.PkgInfo) version key;
     outPath  = yt.FS.store_path;
     tarball  = yt.option yt.FlocoFetch.fetched;

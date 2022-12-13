@@ -1,0 +1,127 @@
+#+TITLE: Meta Ent
+
+* Fields
+** key
+:PROPERTIES:
+:Optional: false
+:END:
+
+** ident
+:PROPERTIES:
+:Optional: false
+:END:
+
+** version
+:PROPERTIES:
+:Optional: false
+:END:
+
+** entFromtype
+:PROPERTIES:
+:Optional: false
+:END:
+
+** ltype
+:PROPERTIES:
+:Optional: false
+:END:
+One of:
+- file
+- dir
+- git
+
+** binInfo
+:PROPERTIES:
+:Optional: true
+:END:
+*** binPairs
+*** binDir
+
+** depInfo
+:PROPERTIES:
+:Optional: false
+:END:
+*** descriptor
+*** runtime
+*** dev
+*** optional
+*** peer
+*** peerDescriptor
+
+** fetchInfo
+:PROPERTIES:
+:Optional: false
+:END:
+*** type
+*** narHash
+
+*** url
+*** unpack
+
+*** path
+*** basedir
+*** recursive
+
+*** owner
+*** repo
+*** rev
+
+** lifecycle
+:PROPERTIES:
+:Optional: false
+:END:
+*** build
+*** prepare
+*** pack
+*** test
+*** publish
+*** install
+
+** treeInfo
+:PROPERTIES:
+:Optional: true
+:END:
+*** keyTree
+
+** sysInfo
+:PROPERTIES:
+:Optional: false
+:END:
+*** cpu
+*** os
+*** engines
+**** node
+
+** metaFiles
+:PROPERTIES:
+:Optional: true
+:END:
+*** pjsDir
+*** lockDir
+*** vinfoUrl
+*** packumentUrl
+
+*** metaRaw
+*** pjs
+*** plock
+*** plent
+**** pkey
+*** vinfo
+*** packument
+
+*** trees
+**** dev
+**** prod
+
+** fsInfo
+:PROPERTIES:
+:Optional: true
+:END:
+*** gypfile
+*** dir
+directory relative to =sourceInfo= where =package.json= is located.
+
+** sourceInfo
+:PROPERTIES:
+:Optional: true
+:END:

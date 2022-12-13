@@ -45,12 +45,16 @@
 
   # Abstraction to refer to `package.json' scripts fields.
   getScripts = {
-    scripts ? {}
+    scripts ? null
   , ...
   } @ args: let
-    mfs = builtins.filter builtins.isAttrs ( getMetaFiles args );
-    fromMetaFiles = builtins.catAttrs "scripts" mfs;
-  in ( builtins.foldl' ( a: b: a // b ) {} fromMetaFiles ) // scripts;
+    mfs            = builtins.filter builtins.isAttrs ( getMetaFiles args );
+    fromMetaFiles  = builtins.catAttrs "scripts" mfs;
+    mergeMetaFiles =
+      ( builtins.foldl' ( a: b: a // b ) {} fromMetaFiles ) //
+      ( args.scripts or {} );
+  in if ( scripts == null ) && ( mfs == [] ) then null else
+     if mfs != [] then mergeMetaFiles else scripts;
 
 
 # ---------------------------------------------------------------------------- #
@@ -102,22 +106,17 @@
   , entFromtype ? "raw"
   , fetchInfo
   # These are just here to get `builtins.intersectAttrs' to work.
-  , depInfo          ? {}
-  , sysInfo          ? {}
-  , bin              ? {}
-  , hasBuild         ? entHasBuildScript ent
-  , hasPrepare       ? entHasPrepareScript ent
-  , hasInstallScript ? entHasInstallScript ent
-  , hasTest          ? entHasTestScript ent
-  , gypfile          ? false  # XXX: do not read this field from registries
-  , lifecycle        ? {}
-  , scripts          ? {}
-  , trees            ? {}
+  , depInfo   ? {}
+  , sysInfo   ? {}
+  , bin       ? {}
+  , gypfile   ? false  # XXX: do not read this field from registries
+  , lifecycle ? {}
+  , scripts   ? {}
+  , trees     ? {}
   , hasBin ? lib.libpkginfo.pjsHasBin' ( removeAttrs fenv ["basedir"] ) ent
   , metaFiles ? {}
   , ...
   } @ ent: let
-    hasBuild' = lib.optionalAttrs ( hasBuild != null ) { inherit hasBuild; };
     patchFetchInfo =
       if basedir == null then {} else
       if ( fetchInfo.type == "path" ) && ( yt.FS.relpath.check fetchInfo.path )
@@ -134,23 +133,17 @@
         inherit
           bin
           hasBin
-          hasInstallScript
           depInfo
           sysInfo
         ;
-      } // hasBuild';  # `hasBuild' will be inconclusive for some `git' deps.
+      };  # `hasBuild' will be inconclusive for some `git' deps.
       "package.json" = {
         inherit
           bin
           hasBin
-          hasBuild
           scripts
-          hasPrepare
-          hasInstallScript
-          hasTest
           depInfo
           sysInfo
-          lifecycle
         ;
       };
       # XXX: DO NOT READ `gypfile' field from registries!

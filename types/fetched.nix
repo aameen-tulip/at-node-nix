@@ -112,7 +112,7 @@ in {
 
   Structs.fetched = yt.struct "fetched" {
     _type      = yt.restrict "_type[fetched]" ( s: s == "fetched" ) yt.string;
-    ltype      = yt.option yt.NpmLifecycle.Enums.ltype;
+    ltype      = yt.option yt.Npm.Enums.ltype;
     ffamily    = yt.FlocoFetch.Enums.fetcher_family;
     outPath    = yt.FS.store_path;
     fetchInfo  = yt.FlocoFetch.Eithers.fetch_info_floco;

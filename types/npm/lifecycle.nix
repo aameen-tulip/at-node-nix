@@ -56,7 +56,7 @@
 { ytypes }: let
 
   yt  = ytypes // ytypes.Core // ytypes.Prim;
-  nlc = yt.NpmLifecycle // yt.NpmLifecycle.Enums;
+  nlc = yt.Npm // yt.Npm.Enums;
 
 # ---------------------------------------------------------------------------- #
 
@@ -71,7 +71,7 @@ in {
   Enums.source_type =
     yt.enum "npm:lifecycle:source_type" nlc._source_types;
 
-  Enums.ltype = yt.NpmLifecycle.Enums.source_type;
+  Enums.ltype = yt.Npm.Enums.source_type;
 
 
 # ---------------------------------------------------------------------------- #

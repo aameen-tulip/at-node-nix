@@ -31,7 +31,7 @@
 { lib }: let
 
   yt  = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
-  nlc = yt.NpmLifecycle // yt.NpmLifecycle.Enums;
+  nlc = yt.Npm // yt.Npm.Enums;
   inherit (nlc)
     _source_types
     _events
@@ -167,7 +167,7 @@
         build = final.ltype != "file";
       };
       scripts = lib.libmeta.getScripts final;
-      ifdef = {
+      ifdef = if scripts == null then {} else {
         build   = lib.libpkginfo.hasBuildFromScripts scripts;
         prepare = lib.libpkginfo.hasPrepareFromScripts scripts;
         pack    = lib.libpkginfo.hasPackFromScripts scripts;
@@ -176,8 +176,20 @@
         install = lib.libpkginfo.hasInstallFromScripts scripts;
       };
       # These are special and need to be set to `null' if we aren't sure.
-      hi' = if ( final.gypfile or null ) == null then { install = null; } else {
-        install = flt.install && ( ifdef.install || final.gypfile );
+      hi' = {
+        install = let
+          proc = acc: p:
+            if acc == true then acc else
+            if acc == null then p else
+            acc || p;
+          checks = [
+            ( final.gypfile or null )
+            ( final.hasInstallScript or null )
+            ( final.metaFiles.plock.hasInstallScript or null )
+            ( ifdef.install or null )
+          ];
+          has = builtins.foldl' proc null checks;
+        in flt.install && has;
       };
       proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
       base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
