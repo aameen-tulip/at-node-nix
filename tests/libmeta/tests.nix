@@ -73,7 +73,7 @@
 
     testGetEntFromtype_0 = {
       expr     = lib.libmeta.getEntFromtype metaEnt;
-      expected = "raw";
+      expected = "package.json";
     };
 
     testGetLtype_0 = {

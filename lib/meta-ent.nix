@@ -42,26 +42,54 @@
   # We use this accessor to refer to them so that users can override this
   # function with custom implementations that fetch these files.
   # TODO: deprecate `entries' field.
-  getMetaFiles = {
-    metaFiles ? {}
-  , ...
-  } @ args: metaFiles;
+  getMetaFiles = { metaFiles ? {}, ... }:
+    yt.FlocoMeta._meta_ent_info_fields.metaFiles metaFiles;
 
   # Abstraction to refer to `package.json' scripts fields.
   getScripts = {
-    metaFiles ? {}
+    metaFiles ? getMetaFiles ent
   , ...
-  } @ args: let
-  in if ! ( metaFiles ? pjs ) then null else
-     metaFiles.pjs.scripts or {};
+  } @ ent: metaFiles.metaRaw.scripts or (
+    if ! ( metaFiles ? pjs ) then null else metaFiles.pjs.scripts or {}
+  );
 
   getGypfile = {
-    metaFiles ? {}
+    metaFiles ? getMetaFiles ent
   , fsInfo    ? null
   , ...
   } @ ent:
-    metaFiles.pjs.gypfile or
+    metaFiles.metaRaw.gypfile or metaFiles.pjs.gypfile or
     ( if fsInfo == null then null else fsInfo.gypfile );
+
+
+# ---------------------------------------------------------------------------- #
+
+  metaEntFromRaw' = { typecheck, ... } @ fenv: {
+    key     ? metaRaw.ident + "/" + metaRaw.version
+  , ident   ? dirOf metaRaw.key
+  , version ? baseNameOf metaRaw.key
+  , ltype
+  , fetchInfo
+  # Mandatory fields with fallbacks:
+  , entFromtype ? "raw"
+  , lifecycle   ? { install = false; build = false; }
+  , depInfo     ? {}
+  , sysInfo     ? {}
+  # Optional Fields:
+  , binInfo     ? null
+  , treeInfo    ? null
+  , fsInfo      ? null
+  , sourceInfo  ? null
+  } @ metaRaw: let
+    members = {
+      # Mandatory fields
+      inherit
+        key ident version entFromtype ltype fetchInfo depInfo sysInfo lifecycle
+      ;
+      metaFiles = { inherit metaRaw; };
+    } // metaRaw;
+    metaEnt = lib.libmeta.mkMetaEnt members;
+  in if typecheck then yt.FlocoMeta.meta_ent_info metaEnt else metaEnt;
 
 
 # ---------------------------------------------------------------------------- #
@@ -74,7 +102,7 @@
     fetchInfo ? null
   , ...
   } @ metaEnt: let
-    plent = ( getMetaFiles metaEnt ).plock or null;
+    plent = ( getMetaFiles metaEnt ).plent or null;
   in if fetchInfo != null
      then lib.libfetch.identifyFetchInfoFetcherFamily fetchInfo else
      if plent != null then lib.libplock.identifyPlentFetcherFamily plent else
@@ -86,7 +114,7 @@
   # Identify Lifecycle "For Any"
   identifyLifecycle = x: let
     fromFi    = throw "identifyLifecycleType: TODO from fetchInfo";
-    plent'    = ( getMetaFiles x ).plock or x;
+    plent'    = ( getMetaFiles x ).plent or x;
     fromPlent = lib.libplock.identifyPlentLifecycleV3 plent';
   in if builtins.isString x then x else
      if yt.NpmLock.package.check plent' then fromPlent else
@@ -130,6 +158,7 @@
   _fenvFns = {
     inherit
       metaEntBinPairs'
+      metaEntFromRaw'
     ;
   };
 
@@ -148,6 +177,7 @@ in {
     getGypfile
 
     metaEntBinPairs'
+    metaEntFromRaw'
     identifyMetaEntFetcherFamily
     identifyLifecycle
   ;

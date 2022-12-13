@@ -109,26 +109,11 @@ Entry Fields
 *** publish
 *** install
 
-** treeInfo
-:PROPERTIES:
-:Optional: true
-:DerivedFrom: metaFiles.plock | metaFiles.trees
-:END:
-*** dev
-:PROPERTIES:
-:Type: attrs<key>
-:Default: {}
-:END:
-*** prod
-:PROPERTIES:
-:Type: attrs<key>
-:Default: {}
-:END:
-
 ** sysInfo
 :PROPERTIES:
 :Optional: false
 :DerivedFrom: metaFiles.pjs | metaFiles.plent
+:Default: {}
 :END:
 *** cpu
 :PROPERTIES:
@@ -146,6 +131,22 @@ Entry Fields
 :Default: null
 :END:
 **** node
+
+** treeInfo
+:PROPERTIES:
+:Optional: true
+:DerivedFrom: metaFiles.plock | metaFiles.trees
+:END:
+*** dev
+:PROPERTIES:
+:Type: attrs<key>
+:Default: {}
+:END:
+*** prod
+:PROPERTIES:
+:Type: attrs<key>
+:Default: {}
+:END:
 
 ** metaFiles
 :PROPERTIES:
@@ -166,25 +167,21 @@ Entry Fields
 *** vinfo
 *** packument
 
-*** trees
-**** dev
-**** prod
-
 ** fsInfo
 :PROPERTIES:
 :Optional: true
-:DerivedFrom: sourceInfo
 :Default: null
 :END:
 *** gypfile
 :PROPERTIES:
 :Type: bool
+:DerivedFrom: sourceInfo
 :Default: false
 :END:
 *** dir
 :PROPERTIES:
 :Type: relpath
-:Default: "./."
+:Default: "."
 :END:
 directory relative to =sourceInfo= where =package.json= is located.
 
