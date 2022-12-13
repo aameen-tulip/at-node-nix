@@ -213,7 +213,9 @@
 # ---------------------------------------------------------------------------- #
 
   metaEntGetSysInfoFromMetaFiles = metaEnt: let
-    mfs = builtins.filter builtins.isAttrs ( lib.libmeta.getMetaFiles metaEnt );
+    mfs  = builtins.filter builtins.isAttrs
+                           ( builtins.attrValues
+                             ( lib.libmeta.getMetaFiles metaEnt ) );
     oss  = builtins.catAttrs "os"      mfs;
     cpus = builtins.catAttrs "cpu"     mfs;
     engs = builtins.catAttrs "engines" mfs;

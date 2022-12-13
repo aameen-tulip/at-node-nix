@@ -184,12 +184,13 @@
             if p == null then acc else
             acc || p;
           checks = [
-            ( final.gypfile or null )
+            ( lib.libmeta.getGypfile final )
             ( final.metaFiles.plock.hasInstallScript or null )
             ( ifdef.install or null )
           ];
           has = builtins.foldl' proc null checks;
-        in flt.install && has;
+        in if flt.install == null then has else
+           if has == null then flt.install else flt.install && has;
       };
       proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
       base = builtins.foldl' proc {} ( builtins.attrNames ifdef );

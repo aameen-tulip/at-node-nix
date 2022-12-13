@@ -275,24 +275,10 @@
 
     meta = lib.libmeta.mkMetaEnt infoNoFs;
     ex = let
-      # TODO: this should be a separate overlay made to be general purpose.
-      scriptInfo = final: prev: {
-        hasBuild         = lib.libpkginfo.hasBuildFromScripts final.scripts;
-        hasPrepare       = lib.libpkginfo.hasPrepareFromScripts final.scripts;
-        hasTest          = lib.libpkginfo.hasTestFromScripts final.scripts;
-        hasPack          = lib.libpkginfo.hasPackFromScripts final.scripts;
-        hasPublish       = lib.libpkginfo.hasPublishFromScripts final.scripts;
-        hasInstallScript =
-          if lib.libpkginfo.hasInstallFromScripts final.scripts then true else
-          null;
-      };
-      #ovs = metaEntOverlays or [];
-      #...
       ov = lib.composeManyExtensions [
         ( _: prev: extra // infoFs // prev )
         lib.libsys.metaEntSetSysInfoOv
         lib.libevent.metaEntLifecycleOverlay
-        scriptInfo
       ];
     in if noFs then meta else meta.__extend ov;
   in if wkey == "" then ex else
