@@ -4,35 +4,62 @@
 ** key
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: ident version
+:Default: "@floco/phony/0.0.0-missing"
 :END:
 
 ** ident
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: metaFiles.plent | metaFiles.pjs
+:Default: "@floco/phony"
 :END:
 
 ** version
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: metaFiles.plent | metaFiles.pjs
+:Default: "0.0.0-missing"
 :END:
 
 ** entFromtype
 :PROPERTIES:
 :Optional: false
+:Default: "raw"
 :END:
 
 ** ltype
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: fetchInfo | metaFiles.plent
 :END:
-One of:
-- file
-- dir
-- git
+NPM _lifecycle type_, or "source type".
+This field dictates the availability of certain lifecycle events such that
+it may cause scripts declared in =package.json= to be ignored in some cases.
+
+- One of:
+  + file
+  + dir
+  + git
+  + link
+- =file= lifecycle types are associated with distributed tarballs - this
+  =ltype= will not run =build=, =prepare=, or =publish=
+  events when processed for consumption ( only =install= is run ).
+- =git= lifecycle types have =devDependencies= available when processing
+  =prepublish= events, while other lifecycle types do not.
+- =link= lifecycle types are processed very differently by this framework
+  than they are with NPM.
+  Please refer to the [[file:../lib/events.nix][libevent]] docs for details.
+- =dir= lifecycle types almost always refer to the "target" project in the
+  context of a given build.
+  + A =keyTree= style attrset should contain no more than one =dir= entry in
+    most cases.
 
 ** binInfo
 :PROPERTIES:
 :Optional: true
+:DerivedFrom: metaFiles.pjs fsInfo | metaFiles.plent
+:Default: null
 :END:
 *** binPairs
 *** binDir
@@ -40,7 +67,10 @@ One of:
 ** depInfo
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: metaFiles.pjs | metaFiles.plent
+:Default: {}
 :END:
+Entry Fields
 *** descriptor
 *** runtime
 *** dev
@@ -51,6 +81,7 @@ One of:
 ** fetchInfo
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: metaFiles.plent
 :END:
 *** type
 *** narHash
@@ -69,6 +100,7 @@ One of:
 ** lifecycle
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: fsInfo metaFiles.pjs ltype | metaFiles.plent metaFiles.pjs
 :END:
 *** build
 *** prepare
@@ -80,21 +112,46 @@ One of:
 ** treeInfo
 :PROPERTIES:
 :Optional: true
+:DerivedFrom: metaFiles.plock | metaFiles.trees
 :END:
-*** keyTree
+*** dev
+:PROPERTIES:
+:Type: attrs<key>
+:Default: {}
+:END:
+*** prod
+:PROPERTIES:
+:Type: attrs<key>
+:Default: {}
+:END:
 
 ** sysInfo
 :PROPERTIES:
 :Optional: false
+:DerivedFrom: metaFiles.pjs | metaFiles.plent
 :END:
 *** cpu
+:PROPERTIES:
+:Type: list<cpu[npm]>
+:Default: null
+:END:
 *** os
+:PROPERTIES:
+:Type: list<os[npm]>
+:Default: null
+:END:
 *** engines
+:PROPERTIES:
+:Type: attrs<descriptor>
+:Default: null
+:END:
 **** node
 
 ** metaFiles
 :PROPERTIES:
 :Optional: true
+:Serialized: false
+:Default: {}
 :END:
 *** pjsDir
 *** lockDir
@@ -116,17 +173,45 @@ One of:
 ** fsInfo
 :PROPERTIES:
 :Optional: true
+:DerivedFrom: sourceInfo
+:Default: null
 :END:
 *** gypfile
+:PROPERTIES:
+:Type: bool
+:Default: false
+:END:
 *** dir
+:PROPERTIES:
+:Type: relpath
+:Default: "./."
+:END:
 directory relative to =sourceInfo= where =package.json= is located.
 
 ** sourceInfo
 :PROPERTIES:
 :Optional: true
+:DerivedFrom: fetchInfo
+:Default: null
 :END:
+A directory in the Nix Store containing the module.
+This directory must have =package.json= at its top-level,
+or ~${fsInfo.dir}/package.json~.
 
-** treeInfo
+- Pure libs can produce =sourceInfo= from =fetchInfo= if the fetcher
+  produces a directory in the Nix Store in most cases.
+- Tarballs with incorrect directory permissions prevent us from unpacking a
+  relatively small number of tarballs using ~builtins.fetchTree~ or
+  ~builtins.fetchTarball~, meaning we would require IFD to produce a
+  =sourceInfo= field.
+- When =fsInfo.dir= is set, =sourceInfo= in the =metaEnt= may differ from
+  the =outPath= found in the =pkgEnt:source= record.
+
+** names
 :PROPERTIES:
-:Optional: true
+:Optional: false
+:DerivedFrom: name version | key
+:Serialized: false
 :END:
+This attrset is derived and should not be set by the user unless you are
+intentionally trying to override names.

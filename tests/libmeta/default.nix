@@ -8,51 +8,19 @@
 # ---------------------------------------------------------------------------- #
 
 { system      ? builtins.currentSystem
-, at-node-nix ? builtins.getFlake ( toString ../. )
+, at-node-nix ? builtins.getFlake ( toString ../.. )
 , pkgsFor     ? at-node-nix.legacyPackages.${system}
-, lib         ? at-node-nix.lib
 , writeText   ? pkgsFor.writeText
-
-, flocoUnpack  ? pkgsFor.flocoUnpack
-, flocoFetch   ? lib.mkFlocoFetcher { inherit ifd pure allowedPaths typecheck; }
-, ifd          ? ( builtins.currentSystem or null ) == system
-, pure         ? lib.inPureEvalMode
-, allowedPaths ? []
-, typecheck    ? true
-
-, flocoScrape ? at-node-nix.flocoScrape  # Only usable in impure with IFD
-
+, lib         ? at-node-nix.lib
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
-, limit       ? null   # Limits the max dataset for certain tests.
-                       # Generally subdirs raise their limit.
 , ...
 } @ args: let
 
 # ---------------------------------------------------------------------------- #
 
   # Used to import test files.
-  auto = let
-    flocoScrape' = if pure || ( ! ifd ) then {} else { inherit flocoScrape; };
-  in {
-    inherit lib pkgsFor system;
-
-    inherit limit;
-
-    inherit (pkgsFor)
-      mkNmDirCmdWith mkNmDirCopyCmd mkNmDirLinkCmd
-      mkTarballFromLocal
-      snapDerivation
-    ;
-    inherit
-      flocoUnpack
-      flocoFetch
-      ifd
-      pure
-      typecheck
-      allowedPaths
-    ;
-  } // args // flocoScrape';
+  auto = { inherit lib; } // args;
 
   tests = let
     testsFrom = file: let
@@ -62,24 +30,7 @@
     in assert builtins.isAttrs ts;
        ts.tests or ts;
   in builtins.foldl' ( ts: file: ts // ( testsFrom file ) ) {} [
-    ./libpkginfo
-    ./libplock
-    ./libfetch
-    ./libsys
-    ./libdep
-    ./libreg
-    ./librange
-    ./types
-    ./libtree
-    ./libevent
-    ./types
-    ./libmeta
-    # Derivations
-    ./mkNmDir
-    ./pkg-set
-    ./build-support
-    ./fpkgs
-    ./scrapePlock.nix
+    ./tests.nix
   ];
 
 # ---------------------------------------------------------------------------- #
@@ -89,7 +40,7 @@
   # of `mkCheckerDrv'.
   harness = let
     purity = if lib.inPureEvalMode then "pure" else "impure";
-    name = "at-node-nix tests ${system} ${purity}";
+    name = "libmeta-tests (${system}, ${purity})";
   in lib.libdbg.mkTestHarness {
     inherit name keepFailed tests writeText;
     mkCheckerDrv = {
@@ -105,8 +56,9 @@
     in builtins.deepSeq msg rsl;
   };
 
-in harness
+# ---------------------------------------------------------------------------- #
 
+in harness
 
 # ---------------------------------------------------------------------------- #
 #

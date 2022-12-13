@@ -185,7 +185,6 @@
             acc || p;
           checks = [
             ( final.gypfile or null )
-            ( final.hasInstallScript or null )
             ( final.metaFiles.plock.hasInstallScript or null )
             ( ifdef.install or null )
           ];

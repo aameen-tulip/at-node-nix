@@ -139,22 +139,11 @@ in {
 
   inherit (final.libmeta)
     toSerial
-    _mkExtInfo
-    mkExtInfo
+    _mkExtInfo mkExtInfo
     metaWasPlock
     metaWasYlock
-
-    mkMetaEnt'
-    mkMetaEnt
+    mkMetaEnt' mkMetaEnt
     mkMetaSet
-
-    genMetaEntAdd
-    genMetaEntUp
-    genMetaEntExtend
-    genMetaEntRules
-
-    metaEntFromSerial'
-    metaSetFromSerial'
   ;
 
   inherit (final.libtree)

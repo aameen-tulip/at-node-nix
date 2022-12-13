@@ -23,21 +23,20 @@
     };
   };
 
-  mefsStrict = lib.libmeta.metaEntFromSerial' {
-    ifd = false; pure = true; allowedPaths = []; typecheck = true;
-  };
-  mefsLc = m: ( mefsStrict m ).__extend lib.libevent.metaEntLifecycleOverlay;
+  mefsLc = m:
+    ( lib.libmeta.mkMetaEnt m ).__extend lib.libevent.metaEntLifecycleOverlay;
 
 
 # ---------------------------------------------------------------------------- #
 
   tests = {
 
-    data = {
+    env = {
       inherit
         metaRaw
       ;
     };
+
 
 # ---------------------------------------------------------------------------- #
 
