@@ -81,7 +81,7 @@
     testPartialLc_lodash_Deserial_2 = {
       expr = ( mefsLc metaRaw_lfb ).lifecycle;
       expected = {
-        build   = true;
+        build   = false;
         prepare = false;
         pack    = false;
         test    = false;

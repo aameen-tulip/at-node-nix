@@ -181,6 +181,7 @@
           proc = acc: p:
             if acc == true then acc else
             if acc == null then p else
+            if p == null then acc else
             acc || p;
           checks = [
             ( final.gypfile or null )

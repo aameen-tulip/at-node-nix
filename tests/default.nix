@@ -24,7 +24,7 @@
 
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
-, limit       ? 100    # Limits the max dataset for certain tests.
+, limit       ? null   # Limits the max dataset for certain tests.
                        # Generally subdirs raise their limit.
 , ...
 } @ args: let
@@ -35,7 +35,7 @@
   auto = let
     flocoScrape' = if pure || ( ! ifd ) then {} else { inherit flocoScrape; };
   in {
-    inherit lib pkgsFor;
+    inherit lib pkgsFor system;
 
     inherit limit;
 
@@ -72,6 +72,7 @@
     ./types
     ./libtree
     ./libevent
+    ./types
     # Derivations
     ./mkNmDir
     ./pkg-set

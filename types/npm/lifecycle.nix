@@ -390,7 +390,7 @@ in {
   lifecycle = yt.__internal.typedef' {
     name = "lifecycle_info";
     checkType = v: let
-      raw       = ( yt.attrs yt.bool ).checkType v;
+      raw       = ( yt.attrs ( yt.either yt.nil yt.bool ) ).checkType v;
       base      = if raw.ok then removeAttrs raw ["err"] else raw;
       mandatory = ( v ? install ) && ( v ? build );
       mandErr   =
