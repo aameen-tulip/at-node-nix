@@ -61,7 +61,7 @@
     inner = fpkg: let
       pt = fpkg.passthru.metaEnt;
     in if yt.FlocoMeta.meta_ent_shallow.check pt then pt else
-       lib.libmeta.metaEntFromRaw' fenv pt;
+       lib.libmeta.mkMetaEnt pt;
   in inner;
 
 

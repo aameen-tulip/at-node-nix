@@ -24,7 +24,7 @@
   };
 
   mefsLc = m:
-    ( lib.libmeta.mkMetaEnt m ).__extend lib.libevent.metaEntLifecycleOverlay;
+    ( lib.libmeta.mkMetaEnt m ).__extend lib.libevent.metaEntLifecycleOv;
 
 
 # ---------------------------------------------------------------------------- #
@@ -44,10 +44,6 @@
       expr = ( mefsLc ( metaRaw // { lifecycle.install = false; } ) ).lifecycle;
       expected = {
         build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
         install = false;
       };
     };
@@ -56,10 +52,6 @@
       expr = ( mefsLc ( metaRaw // { lifecycle.install = true; } ) ).lifecycle;
       expected = {
         build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
         install = true;
       };
     };
@@ -71,24 +63,16 @@
       } ) ).lifecycle;
       expected = {
         build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
-        install = false;
+        install = null;
       };
     };
 
     testPartialLc_lodash_Deserial_3 = {
       expr = ( mefsLc ( metaRaw // {
-        metaFiles.plock.hasInstallScript = true;
+        metaFiles.plent.hasInstallScript = true;
       } ) ).lifecycle;
       expected = {
         build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
         install = true;
       };
     };
@@ -99,10 +83,6 @@
       } ) ).lifecycle;
       expected = {
         build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
         install = true;
       };
     };

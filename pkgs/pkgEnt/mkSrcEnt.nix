@@ -152,8 +152,7 @@
       } dir;
     in if readAllowed && isDir then {
       metaFiles = { inherit pjs; };
-      gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
-      scripts   = pjs.scripts or {};
+      fsInfo.gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
     } else {};
 
     # A base `pkgEnt:source' record using our updated `metaEnt'.
@@ -165,7 +164,7 @@
         # Only runs if allowed
         merged = ( metaEnt.__extend ( final: prev:
           lib.recursiveUpdate ( scrape source ) prev
-        ) ).__extend lib.libevent.metaEntLifecycleOverlay;
+        ) ).__extend lib.libevent.metaEntLifecycleOv;
       in if typecheck then yt.FlocoMeta.meta_ent_shallow merged else merged;
     };
   in if ! typecheck then sent else pkg_ent_src sent;

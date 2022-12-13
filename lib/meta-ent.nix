@@ -43,7 +43,8 @@
   # function with custom implementations that fetch these files.
   # TODO: deprecate `entries' field.
   getMetaFiles = { metaFiles ? {}, ... }:
-    yt.FlocoMeta._meta_ent_info_fields.metaFiles metaFiles;
+    yt.FlocoMeta._meta_ent_info_fields.metaFiles
+      ( removeAttrs metaFiles ["__serial"] );
 
   # Abstraction to refer to `package.json' scripts fields.
   getScripts = {
@@ -126,6 +127,19 @@
 
 # ---------------------------------------------------------------------------- #
 
+  genericMetaEnt' = { typecheck, ifd, pure, allowedPaths } @ fenv: members: let
+    base = lib.libmeta.mkMetaEnt members;
+  in base.__extend ( lib.composeManyExtensions [
+    ( lib.libbininfo.binInfoFromMetaFilesOv' {
+        inherit typecheck ifd pure allowedPaths;
+      } )
+    lib.libsys.metaEntSetSysInfoOv
+    lib.libevent.metaEntLifecycleOv
+  ] );
+
+
+# ---------------------------------------------------------------------------- #
+
   # `null' means we aren't sure.
   # Input will be normalized to pairs.
   # If `metaEnt' has `directories.bin' we may use IFD in helper routines.
@@ -159,6 +173,7 @@
     inherit
       metaEntBinPairs'
       metaEntFromRaw'
+      genericMetaEnt'
     ;
   };
 
@@ -176,6 +191,7 @@ in {
     getScripts
     getGypfile
 
+    genericMetaEnt'
     metaEntBinPairs'
     metaEntFromRaw'
     identifyMetaEntFetcherFamily

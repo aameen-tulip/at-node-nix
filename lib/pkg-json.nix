@@ -278,7 +278,7 @@
       ov = lib.composeManyExtensions [
         ( _: prev: extra // infoFs // prev )
         lib.libsys.metaEntSetSysInfoOv
-        lib.libevent.metaEntLifecycleOverlay
+        lib.libevent.metaEntLifecycleOv
       ];
     in if noFs then meta else meta.__extend ov;
   in if wkey == "" then ex else
