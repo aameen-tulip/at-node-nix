@@ -23,13 +23,6 @@
     };
   };
 
-  metaRaw_lfi0  = metaRaw // { lifecycle.install = false; };
-  metaRaw_lfi1  = metaRaw // { lifecycle.install = true; };
-  metaRaw_lfb   = metaRaw // { ltype = "dir"; lifecycle.build = false; };
-  metaRaw_lfmfi = metaRaw // { metaFiles.plock.hasInstallScript = true; };
-  metaRaw_lfhi  = metaRaw // { hasInstallScript = true; };
-  metaRaw_lfmfs = metaRaw // { metaFiles.pjs.scripts.preinstall = ":"; };
-
   mefsStrict = lib.libmeta.metaEntFromSerial' {
     ifd = false; pure = true; allowedPaths = []; typecheck = true;
   };
@@ -43,19 +36,13 @@
     data = {
       inherit
         metaRaw
-        metaRaw_lfi0
-        metaRaw_lfi1
-        metaRaw_lfb
-        metaRaw_lfmfi
-        metaRaw_lfhi
-        metaRaw_lfmfs
       ;
     };
 
 # ---------------------------------------------------------------------------- #
 
     testPartialLc_lodash_Deserial_0 = {
-      expr = ( mefsLc metaRaw_lfi0 ).lifecycle;
+      expr = ( mefsLc ( metaRaw // { lifecycle.install = false; } ) ).lifecycle;
       expected = {
         build   = false;
         prepare = false;
@@ -67,7 +54,7 @@
     };
 
     testPartialLc_lodash_Deserial_1 = {
-      expr = ( mefsLc metaRaw_lfi1 ).lifecycle;
+      expr = ( mefsLc ( metaRaw // { lifecycle.install = true; } ) ).lifecycle;
       expected = {
         build   = false;
         prepare = false;
@@ -79,7 +66,10 @@
     };
 
     testPartialLc_lodash_Deserial_2 = {
-      expr = ( mefsLc metaRaw_lfb ).lifecycle;
+      expr = ( mefsLc ( metaRaw // {
+        ltype           = "dir";
+        lifecycle.build = false;
+      } ) ).lifecycle;
       expected = {
         build   = false;
         prepare = false;
@@ -91,7 +81,9 @@
     };
 
     testPartialLc_lodash_Deserial_3 = {
-      expr = ( mefsLc metaRaw_lfmfi ).lifecycle;
+      expr = ( mefsLc ( metaRaw // {
+        metaFiles.plock.hasInstallScript = true;
+      } ) ).lifecycle;
       expected = {
         build   = false;
         prepare = false;
@@ -103,19 +95,9 @@
     };
 
     testPartialLc_lodash_Deserial_4 = {
-      expr = ( mefsLc metaRaw_lfhi ).lifecycle;
-      expected = {
-        build   = false;
-        prepare = false;
-        pack    = false;
-        test    = false;
-        publish = false;
-        install = true;
-      };
-    };
-
-    testPartialLc_lodash_Deserial_5 = {
-      expr = ( mefsLc metaRaw_lfmfs ).lifecycle;
+      expr = ( mefsLc ( metaRaw // {
+        metaFiles.pjs.scripts.preinstall = ":";
+      } ) ).lifecycle;
       expected = {
         build   = false;
         prepare = false;
