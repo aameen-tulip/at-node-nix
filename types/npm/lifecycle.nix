@@ -386,6 +386,24 @@ in {
 
 # ---------------------------------------------------------------------------- #
 
+  # For `metaEnt'
+  lifecycle = yt.__internal.typedef' {
+    name = "lifecycle_info";
+    checkType = v: let
+      raw       = ( yt.attrs yt.bool ).checkType v;
+      base      = if raw.ok then removeAttrs raw ["err"] else raw;
+      mandatory = ( v ? install ) && ( v ? build );
+      mandErr   =
+        "expected 'lifecycle_info', but value '${yt.__internal.prettyPrint v}' "
+        + "lacks required field(s): 'install' and 'build'.";
+      err' = if ! raw.ok then { inherit (raw) err; } else
+             if ! mandatory then { err = mandErr; } else {};
+    in { ok = raw.ok && mandatory; } // err';
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 }
 
 

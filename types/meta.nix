@@ -154,6 +154,44 @@
 
 # ---------------------------------------------------------------------------- #
 
+  Structs.tree_info = yt.struct "tree_info" {
+    prod = yt.option ( yt.attrs yt.PkgInfo.key );
+    dev  = yt.option ( yt.attrs yt.PkgInfo.key );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  Structs.filesystem_info = yt.struct "filesystem_info" {
+    gypfile = yt.bool;
+    dir     = yt.FS.relpath;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  _meta_files_info_fields = {
+    pjsDir       = yt.FS.abspath;
+    lockDir      = yt.FS.abspath;
+    vinfoUrl     = yt.Uri.Strings.uri_ref;
+    packumentUrl = yt.Uri.Strings.uri_ref;
+    metaRaw      = yt.attrs yt.any;
+    pjs          = yt.attrs yt.any;
+    plock        = yt.NpmLock.plock_shallow;
+    plent        = yt.NpmLock.package;
+    plentKey     = yt.NpmLock.pkey;
+    vinfo        = yt.Packument.vinfo_meta;
+    packument    = yt.Packument.packument;
+    trees        = yt.FlocoMeta.Structs.tree_info;
+  };
+
+  Structs.meta_files_info =
+    yt.struct "meta_files_info"
+      ( builtins.mapAttrs ( _: yt.option ) yt.FlocoMeta._meta_files_fields );
+
+
+# ---------------------------------------------------------------------------- #
+
   _meta_ent_info_fields = {
     inherit (yt.PkgInfo) key version;
     ident       = yt.PkgInfo.identifier;
@@ -164,10 +202,10 @@
     fetchInfo  = yt.FlocoFetch.fetch_info_type_floco;
     sourceInfo = yt.FlocoFetch.source_info_floco;
     sysInfo    = yt.Npm.sys_info;
-    treeInfo   = /* TODO */ yt.attrs yt.any;
-    lifecycle  = /* TODO */ yt.attrs yt.bool;
-    fsInfo     = /* TODO */ yt.attrs yt.any;
-    metaFiles  = /* TODO */ yt.attrs yt.any;
+    inherit (yt.Npm) lifecycle;
+    treeInfo   = yt.FlocoMeta.Structs.tree_info;
+    fsInfo     = yt.FlocoMeta.Structs.filesystem_info;
+    metaFiles  = yt.FlocoMeta.Structs.meta_files_info;
   };
 
 
@@ -192,6 +230,9 @@ in {
   ;
   inherit (Structs)
     bin_info
+    tree_info
+    filesystem_info
+    meta_files_info
   ;
 
   inherit
@@ -202,6 +243,7 @@ in {
     _plock_fromtypes
     _ylock_fromtypes
     _bin_info_fields
+    _meta_files_info_fields
     _meta_ent_info_fields
   ;
 
