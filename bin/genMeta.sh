@@ -441,9 +441,19 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
       in dropJunk ( optFi ent );
     in builtins.mapAttrs ( _: prepEnt ) base;
 
-    # Add metadata about the node_modules/ tree.
+    # Add metadata about the node_modules/ tree, and any build info
     rootEntWithTrees = {
       ${metaSet._meta.rootKey} = serial.${metaSet._meta.rootKey} // {
+        lifecycle =
+          if ! isDev then serial.${metaSet._meta.rootKey}.lifecycle else
+          serial.${metaSet._meta.rootKey}.lifecycle // {
+            build = let
+              fetched =
+                pkgsFor.flocoEnv.flocoFetch metaSet.${metaSet._meta.rootKey};
+              unpacked = pkgsFor.flocoEnv.coerceUnpacked fetched;
+              pjs = lib.importJSON "${unpacked}/package.json";
+            in lib.libpkginfo.hasBuildFromScripts ( pjs.scripts or {} );
+          };
         treeInfo = let
           mkTree = dev: lib.libtree.idealTreePlockV3 {
             inherit lockDir dev metaSet;
