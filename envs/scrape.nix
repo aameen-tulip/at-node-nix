@@ -63,56 +63,6 @@
       pacote
     ;
 
-    getFsMeta = ent: let
-      source = flocoScrapeEnv.flocoFetch ent;
-    in flocoScrapeEnv.lib.libmeta.tryCollectMetaFromDir source;
-
-    scrapeDirTbDeps = pathlike: let
-      ms = flocoScrapeEnv.lib.libmeta.metaSetEntListsFromDir pathlike;
-      # Merge existing entries and yank `fetchInfo'.
-      # In the majority of cases this only matters for the root project.
-      mkScrapedEnt = ents: let
-        merged = lib.libmeta.mergeMetaEntList ents;
-        opt    = if merged.fetchInfo.type == "file"
-                 then flocoScrapeEnv.optimizeFetchInfo merged
-                 else merged;
-        scrape = flocoScrapeEnv.getFsMeta opt;
-        sent   = lib.libmeta.mkMetaEnt ( scrape // {
-          inherit (merged) ident version key;
-          inherit (opt) fetchInfo;
-          entFromtype = "raw";
-          metaFiles   = {
-            __serial = lib.libmeta.serialIgnore;
-          } // ( scrape.metaFiles or {} );
-        } );
-        pjsEnt' = let
-          pent = flocoScrapeEnv.lib.libpjs.metaEntFromPjsNoWs {
-            inherit (opt) ltype;
-            inherit (scrape.metaFiles) pjs;
-            isLocal = false;
-            noFs    = true;
-          };
-        in if ! ( scrape ? metaFiles.pjs ) then [] else [pent];
-        # TODO:
-        # Don't add the scraped info if we already have an `srcdir' record.
-        #should = ( opt.fetchInfo != merged.fetchInfo ) ||
-        #         ( ! ( builtins.any ( e: e.entFromtype == "srcdir" ) ) );
-        should = true;
-      in if should then [sent] ++ pjsEnt' else [];
-      addScraped = ms.__mapEnts ( _: prev: ( mkScrapedEnt prev ) ++ prev );
-    in addScraped.__mapEnts ( _: lib.libmeta.mergeMetaEntList );
-
-    flocoShowDir = pathlike: let
-      ms = flocoScrapeEnv.scrapeDirTbDeps pathlike;
-      exSerial = ms.__mapEnts ( _: prev: prev.__update {
-        metaFiles = let
-          dropS = removeAttrs prev.metaFiles ["__serial"];
-        in if ! ( prev ? metaFiles ) then {} else
-           dropS // ( builtins.mapAttrs ( _: builtins.toJSON ) dropS );
-      } );
-    in exSerial.__serial;
-
-
   };  # End flocoScrapeEnv
 
 

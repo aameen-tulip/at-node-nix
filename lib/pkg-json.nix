@@ -153,11 +153,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-  getIdentPjs'   = fenv: getFieldPjs' fenv { field = "name"; };
-  getVersionPjs' = fenv: getFieldPjs' fenv { field = "version"; };
-  getScriptsPjs' = fenv: getFieldPjs' fenv { field = "scripts"; default = {}; };
+  getIdentPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "name"; };
+  getVersionPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "version"; };
+  getScriptsPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "scripts"; default = {}; };
 
-  getHasBinPjs' = fenv: let
+  getHasBinPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv: let
     getBinFields = getFieldsPjs' fenv {
       fields = { bin = true; directories = true; };
     };

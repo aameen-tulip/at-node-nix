@@ -2586,7 +2586,7 @@
     ident = "pacote";
     key = "pacote/13.3.0";
     ltype = "file";
-    trees = {
+    treeInfo = {
       prod = {
         "node_modules/@gar/promisify" = "@gar/promisify/1.1.3";
         "node_modules/@npmcli/fs" = "@npmcli/fs/2.1.2";
