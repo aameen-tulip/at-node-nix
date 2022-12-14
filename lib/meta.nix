@@ -383,7 +383,9 @@
   assert ! ( members ? entFromType ); let
     args = { inherit ident version key; } // members;
     core = lib.apply mkMetaEntCore args;
-    base = core.__update members;
+    base = core.__update ( {
+      metaFiles = core.metaFiles // ( members.metaFiles or {} );
+    } // members );
     # Add `names' either as a flat field or recursively.
     withNames = if recNames then base.__extend metaEntExtendWithNames else
                 base.__add ( metaEntNames core );

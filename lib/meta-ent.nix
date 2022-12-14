@@ -82,13 +82,16 @@
   , fsInfo      ? null
   , sourceInfo  ? null
   } @ metaRaw: let
+    # Serialized `binInfo' records may be compressed to `binInfo = false', which
+    # we are responsible for expanding here.
+    binInfo' = if binInfo == false then { binInfo.binPairs = {}; } else {};
     members = {
       # Mandatory fields
       inherit
         key ident version entFromtype ltype fetchInfo depInfo sysInfo lifecycle
       ;
-      metaFiles = { inherit metaRaw; };
-    } // metaRaw;
+      metaFiles = { __serial = lib.libmeta.serialIgnore; inherit metaRaw; };
+    } // metaRaw // binInfo';
     metaEnt = lib.libmeta.mkMetaEnt members;
   in if typecheck then yt.FlocoMeta.meta_ent_info metaEnt else metaEnt;
 

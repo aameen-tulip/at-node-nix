@@ -15,16 +15,16 @@
 
   # Standard arg processor that accepts `pjs' or `pjsDir' as an arg used to
   # access `package.json' info.
-  # The arg `wkey' is short for "workspace key", but is currently unused - this
+  # The arg `pjsKey' is short for "workspace key", but is currently unused - this
   # arg is a stub for future workspaces support.
   stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: self: {
     pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
+  , pjsKey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
   }: let
     loc  = self.__functionMeta.name or "libpjs";
-    args = if wkey == "" then { inherit pjs wkey pjsDir fenv; } else
+    args = if pjsKey == "" then { inherit pjs pjsKey pjsDir fenv; } else
            throw "(${loc}): Reading workspaces has not been implemented.";
     targs = if self ? __thunk then self.__thunk // args else args;
     fargs = if self ? __functionArgs then lib.canPassStrict self targs else
@@ -177,7 +177,7 @@
     raenv = removeAttrs fenv ["typecheck"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
+  , pjsKey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace/write fetchInfo without 'pjsDir'."
   , isLocal ? args ? pjsDir
@@ -208,7 +208,7 @@
                            ( "./" + rel );
         };
         type      = "path";
-        path      = assert wkey == "";  pjsDir;
+        path      = assert pjsKey == "";  pjsDir;
         recursive = true;
       };
     };
@@ -255,8 +255,10 @@
         if ( ident == null ) || ( version == null ) then "workspace/0.0.0" else
         ident + "/" + version;
       hasBin    = getHasBinPjs'  fenv gargs;
-      metaFiles = { __serial = lib.libmeta.serialIgnore; inherit pjs wkey; } //
-                  ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
+      metaFiles = {
+        __serial = lib.libmeta.serialIgnore;
+        inherit pjs pjsKey;
+      } // ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
       inherit (deps) depInfo;
     } // ( if ( args ? ltype ) || isLocal then { inherit ltype; } else {} )
       // ( if isLocal then forLocal else {} );
@@ -281,7 +283,7 @@
         lib.libevent.metaEntLifecycleOv
       ];
     in if noFs then meta else meta.__extend ov;
-  in if wkey == "" then ex else
+  in if pjsKey == "" then ex else
      throw "getIdentPjs: Reading workspaces has not been implemented.";
 
 

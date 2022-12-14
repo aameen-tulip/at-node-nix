@@ -130,6 +130,10 @@
     binDir   = yt.FS.relpath;
   };
 
+  # NOTE: serialized form may be compressed as:
+  #   binInfo = false;
+  # Implying:
+  #   binInfo.binPairs = {};
   Structs.bin_info_raw = yt.struct "bin_info" {
     binPairs = yt.option _bin_info_fields.binPairs;
     binDir   = yt.option _bin_info_fields.binDir;
@@ -178,6 +182,7 @@
     packumentUrl = yt.Uri.Strings.uri_ref;
     metaRaw      = yt.attrs yt.any;
     pjs          = yt.attrs yt.any;
+    pjsKey       = yt.FS.relpath;
     plock        = yt.NpmLock.plock_shallow;
     plent        = yt.NpmLock.package;
     plentKey     = yt.NpmLock.pkey;

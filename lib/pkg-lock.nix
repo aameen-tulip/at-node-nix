@@ -389,7 +389,11 @@
       fetchInfo         = lib.libplock.fetchInfoGenericFromPlentV3' fenv
                             { inherit lockDir; } { inherit plentKey plent; };
       metaFiles =
-        if includeTreeInfo then { inherit plent plentKey lockDir; } else {
+        if includeTreeInfo then {
+          __serial = lib.libmeta.serialIgnore;
+          inherit plent plentKey lockDir;
+        } else {
+          __serial = lib.libmeta.serialIgnore;
           inherit lockDir;
           # TODO: this probably is going to blow up for `requires' vs
           # `dependencies' when merging conflicting instances.

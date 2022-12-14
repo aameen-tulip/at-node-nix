@@ -5,7 +5,7 @@
 :PROPERTIES:
 :Optional: false
 :DerivedFrom: ident version
-:Default: "@floco/phony/0.0.0-missing"
+:Default: "@floco/phony/0.0.0-none"
 :END:
 
 ** ident
@@ -19,7 +19,7 @@
 :PROPERTIES:
 :Optional: false
 :DerivedFrom: metaFiles.plent | metaFiles.pjs
-:Default: "0.0.0-missing"
+:Default: "0.0.0-none"
 :END:
 
 ** entFromtype
@@ -154,17 +154,21 @@ Entry Fields
 :Serialized: false
 :Default: {}
 :END:
-*** pjsDir
-*** lockDir
-*** vinfoUrl
-*** packumentUrl
-
 *** metaRaw
+
+*** pjsDir
 *** pjs
+*** pjsKey
+
+*** lockDir
 *** plock
 *** plent
 *** plentKey
+
+*** vinfoUrl
 *** vinfo
+
+*** packumentUrl
 *** packument
 
 ** fsInfo
