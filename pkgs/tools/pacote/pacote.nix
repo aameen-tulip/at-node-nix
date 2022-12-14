@@ -60,7 +60,7 @@
   # already, or they might be a mix of keys and `pkgEnt' - so this routine
   # ensures all keys are converted to packages.
   pkgTree = let
-    tree     = args.tree or metaSet.${metaSet._meta.rootKey}.trees.prod;
+    tree     = args.tree or metaSet.${metaSet._meta.rootKey}.treeInfo.prod;
     treeDone = builtins.all ( x: x ? outPath ) ( builtins.attrValues tree );
     fallback = builtins.mapAttrs ( nmPath: key: pkgSet.${key} ) tree;
   in if treeDone then tree else fallback;

@@ -224,10 +224,10 @@
     typecheck, pure, ifd, allowedPaths
   } @ fenv: { postFn ? ( x: x ) }: let
     inner = {
-      resolved ? _pkey
+      resolved ? _plentKey
     , link     ? false
     , _lockDir
-    , _pkey
+    , _plentKey
     , ...
     } @ args: let
       tagged = lib.discr [  # A list is used to prevent sorting by keys.
@@ -237,15 +237,15 @@
         { relpath = lib.ytypes.FS.Strings.relpath.check; }
       ] resolved;
       tname = lib.tagName tagged;
-      # `pkey' is relative, so all `link' entries and any entry without
+      # `plentKey' is relative, so all `link' entries and any entry without
       # `resolved' don't need to be checked with regex.
-      isRelpathByPkey     = ! ( ( args ? resolved ) || link );
+      isRelpathByPlentKey     = ! ( ( args ? resolved ) || link );
       isRelpathByResolved = builtins.elem tname ["uri_rel" "relpath"];
-      isRelpath = isRelpathByPkey || isRelpathByResolved;
-      noUri     = if isRelpathByPkey then resolved else
+      isRelpath = isRelpathByPlentKey || isRelpathByResolved;
+      noUri     = if isRelpathByPlentKey then resolved else
                   lib.yankN 1 "(file:)?(.*)" resolved;
       abspath =
-        if _pkey == "" then _lockDir else
+        if _plentKey == "" then _lockDir else
         if ! isRelpath then noUri else
         builtins.concatStringsSep "/" [_lockDir noUri];
       # TODO: apply filter to `file:' entries?
@@ -265,8 +265,8 @@
         signature = let
           argt = yt.struct {
             lockDir = yt.FS.abspath;
-            #pkey    = yt.FS.Strings.relpath;
-            pkey    = yt.NpmLock.pkey;
+            #plentKey    = yt.FS.Strings.relpath;
+            plentKey    = yt.NpmLock.pkey;
             plent   = yt.NpmLock.Structs.pkg_path_v3;
           };
           # FIXME: this routine lies about being "generic" but the generic
@@ -279,13 +279,16 @@
       # TODO: arg processor to curry
       __functionArgs = {
         lockDir   = false;
-        pkey      = false;
+        plentKey      = false;
         resolved  = false;
         link      = true;
       };
       __innerFunction = inner;
       __functor = self: args: let
-        args'   = args.plent // { _lockDir = args.lockDir; _pkey = args.pkey; };
+        args'   = args.plent // {
+          _lockDir = args.lockDir;
+          _plentKey = args.plentKey;
+        };
         result  = self.__innerFunction args';
         checked =
           if ! typecheck then result else
@@ -332,11 +335,11 @@
       file = plockEntryToGenericUrlArgs'  fenv {};
       path = plockEntryToGenericPathArgs' fenv {};
     };
-  in { pkey, plent }: let
+  in { plentKey, plent }: let
     byFF  = discrPlentFetcherFamily plent;
     ftype = lib.tagName byFF;
     prep  = if ftype != "path" then byFF else
-            { path = { inherit lockDir pkey plent; }; };
+            { path = { inherit lockDir plentKey plent; }; };
   in postFn ( toGenericArgs prep );
 
 
@@ -364,51 +367,45 @@
   , allowedPaths    ? []
   , plock           ? lib.importJSON ( lockDir + "/package-lock.json" )
   , includeTreeInfo ? false  # Includes info about this instance and changes
-                             # the `key' field to include the `pkey' path.
+                             # the `key' field to include the `plentKey' path.
   }:
-  # `mapAttrs' args. ( `pkey' and `args' ).
+  # `mapAttrs' args. ( `plentKey' and `args' ).
   # `args' may be either an entry pulled directly from a lock, or a `metaEnt'
   # skeleton with the `plent' stashed in `args.metaFiles.plock'.
-  pkey:
+  plentKey:
   {
-    ident   ? args.name or ( lib.libplock.getIdentPlV3 plock pkey )
-  , version ? args.version or ( lib.libplock.getVersionPlV3 plock pkey )
+    ident   ? plent.name or ( lib.libplock.getIdentPlV3 plock plentKey )
+  , version ? plent.version or ( lib.libplock.getVersionPlV3 plock plentKey )
   , ...
-  } @ args: let
-    plent  = args.metaFiles.plock or args;
-    hasBin = ( plent.bin or {} ) != {};
-    key'   = ident + "/" + version;
-    key    = if includeTreeInfo then key' + ":" + pkey else key';
-    # Only included when `includeTreeInfo' is `true'.
-    # Otherwise including this info would cause key collisions in `metaSet'.
-    metaFiles = {
-      __serial = lib.libmeta.serialIgnore;
-      plock = assert ! ( plent ? metaFiles );
-              plent // { inherit pkey lockDir; };
-    };
+  } @ plent: let
+    fenv = { inherit pure ifd typecheck allowedPaths; };
     baseFields = {
-      inherit key ident version;
-      inherit hasBin;
-      ltype            = lib.libplock.identifyPlentLifecycleV3' plent;
-      depInfo          = lib.libdep.depInfoEntFromPlockV3 pkey plent;
-      hasInstallScript = plent.hasInstallScript or false;
-      entFromtype      = "package-lock.json(v${toString lockfileVersion})";
-      fetchInfo        = lib.libplock.fetchInfoGenericFromPlentV3' {
-        inherit pure ifd typecheck allowedPaths;
-      } { inherit lockDir; } { inherit pkey; plent = args; };
-    } // ( lib.optionalAttrs hasBin { inherit (plent) bin; } )
-      // ( lib.optionalAttrs includeTreeInfo { inherit metaFiles; } );
-    meta = lib.libmeta.mkMetaEnt baseFields;
-    ex = let
-      # FIXME:
-      #ovs = metaEntOverlays or [];
-      ovs = [
-        lib.libsys.metaEntSetSysInfoOv
-        lib.libevent.metaEntLifecycleOverlay
-      ];
-      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then meta.__extend ov else meta;
-  in ex;
+      inherit ident version;
+      key               = ident + "/" + version;
+      ltype             = lib.libplock.identifyPlentLifecycleV3' plent;
+      depInfo           = lib.libdep.depInfoEntFromPlockV3 plentKey plent;
+      lifecycle.install = plent.hasInstallScript or false;
+      entFromtype       = "package-lock.json(v${toString lockfileVersion})";
+      fetchInfo         = lib.libplock.fetchInfoGenericFromPlentV3' fenv
+                            { inherit lockDir; } { inherit plentKey plent; };
+      metaFiles =
+        if includeTreeInfo then {
+          __serial = lib.libmeta.serialIgnore;
+          inherit plent plentKey lockDir;
+        } else {
+          __serial = lib.libmeta.serialIgnore;
+          inherit lockDir;
+          # TODO: this probably is going to blow up for `requires' vs
+          # `dependencies' when merging conflicting instances.
+          plent = builtins.intersectAttrs {
+            cpu              = true;
+            os               = true;
+            engines          = true;
+            hasInstallScript = true;
+          } plent;
+        };
+    };
+  in lib.libmeta.genericMetaEnt' fenv baseFields;
 
 
 # ---------------------------------------------------------------------------- #
@@ -437,11 +434,28 @@
     # FIXME: we are going to merge multiple instances in a really dumb way here
     # until we get this moved into the spec for proper sub-instances.
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
+    rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0-none"}";
     auditKeyValuesUnique = let
       toSerial = e: e.__serial or e;
-      toCmp = e:
-        lib.filterAttrsRecursive ( _: v: ! ( builtins.isFunction v ) )
-                                 ( e.__entries or e );
+      toCmp = e: let
+        base = lib.filterAttrsRecursive ( _: v: ! ( builtins.isFunction v ) )
+                                        ( e.__entries or e );
+      # There's an edge case for lockfiles with self referential `rootKey'
+      # entries ( fucking projects with dep cycles against themselves...
+      # `@babel/core' for example ) where the instance at the root of the
+      # lockfile will have different `dependencies' and `requires' fields than
+      # the subdir entry.
+      # Why aren't these links you might ask: excellent question, because they
+      # absolutely should be, except for the fact that NPM won't link to a
+      # subdir ( `node_modules/foo' -> `node_modules/bar/node_modules/foo' ),
+      # instead it copies these.
+      # The approach taken by NPM here is incredibly fragile, and odds are if
+      # you arrived at this inline comment because of a crash in `genMeta' -
+      # I'm going to advise that you manually construct your metadata from a
+      # non-dev tree ( by adding entries ).
+      # Yeah I know it sucks, so feel free to PR a fix on this - because I'm
+      # a hard "won't fix" on this one.
+      in if e.key == rootKey then removeAttrs base ["depInfo"] else base;
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
                                       ( toSerial e );
       # XXX: This is important to pay attention to.
@@ -459,6 +473,7 @@
       # XXX: ^^^ Don't scroll past this if you're learning. ^^^
       noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
       byKey   = builtins.groupBy ( x: x.key ) noLinks;
+
       flattenAssertUniq = key: values: let
         uniq   = lib.unique ( map toCmp values );
         nconfs = builtins.length uniq;
@@ -472,23 +487,17 @@
         msg = builtins.concatStringsSep "\n" [header ( pp diff ) more];
       in if nconfs == 1 then builtins.head values else throw msg;
     in builtins.mapAttrs flattenAssertUniq byKey;
+
     metaEntries = auditKeyValuesUnique;
+
     members = metaEntries // {
       _meta = {
         __serial = lib.libmeta.serialIgnore;
-        rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0"}";
-        inherit plock lockDir;
+        inherit plock lockDir rootKey;
         fromType = "package-lock.json(v${toString lockfileVersion})";
       };
     };
-    base = lib.libmeta.mkMetaSet members;
-    ex = let
-      # FIXME:
-      #ovs = metaSetOverlays or [];
-      ovs = [];
-      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then base.__extend ov else base;
-  in ex;
+  in lib.libmeta.mkMetaSet members;
 
 
 # ---------------------------------------------------------------------------- #
@@ -501,7 +510,7 @@
   # any other package information.
   # This helps us fetch the "real" entry so we can look up metadata.
   realEntry = plock: path: let
-    e = plock.packages.${path};
+    e     = plock.packages.${path};
     entry = if e.link or false then plock.packages.${e.resolved} else e;
   in assert supportsPlV3 plock;
      entry;
@@ -516,23 +525,26 @@
 
   # Used to lookup idents for symlinks.
   # For example if a `node_modules/foo' links to `../foo', the plent
-  # for the real dir has a `pkey' of "../foo" with no `name' field.
+  # for the real dir has a `plentKey' of "../foo" with no `name' field.
   # The `libplock.pathId' routine cannot scrape the name when processing
   # that path during its first pass so we need to go look it up.`
-  lookupRelPathIdentV3 = plock: pkey: let
+  lookupRelPathIdentV3 = plock: plentKey: let
     isM = _: { resolved ? null, link ? false, ... }:
-          link && ( resolved == pkey );
-    m = lib.filterAttrs isM plock.packages;
-    gn = path: v: v // { ident = v.name or ( lib.libplock.pathId path ); };
+      link && ( resolved == plentKey );
+    m       = lib.filterAttrs isM plock.packages;
+    gn      = path: v: v // { ident = v.name or ( lib.libplock.pathId path ); };
     matches = lib.mapAttrsToList gn m;
-    len = builtins.length matches;
-    ec  = builtins.addErrorContext "lookupRelPathIdentV3:${pkey}";
-    te  = x: if 0 < len then x else
-             throw "ERROR: Could not find linked module for path: ${pkey}";
-    fromPath = let fpi = pathId pkey; in if pkey == "" then plock.name else
-                                      if fpi != null then fpi else null;
-    fromRel  = ( builtins.head matches ).ident;
-    rsl      = if fromPath != null then fromPath else te fromRel;
+    len     = builtins.length matches;
+    ec      = builtins.addErrorContext "lookupRelPathIdentV3:${plentKey}";
+    te      = x:
+      if 0 < len then x else
+      throw "ERROR: Could not find linked module for path: ${plentKey}";
+    fromPath = let
+      fpi = pathId plentKey;
+    in if plentKey == "" then plock.name else
+       if fpi != null then fpi else null;
+    fromRel = ( builtins.head matches ).ident;
+    rsl     = if fromPath != null then fromPath else te fromRel;
   in ec rsl;
 
 
@@ -555,7 +567,6 @@
   getIdentPlV3 = plock: path: let
     plent = plock.packages.${path};
   in plent.name or ( lookupRelPathIdentV3 plock path );
-
 
   # Same deal as `getIdentPlV3' but to lookup keys.
   getVersionPlV3' = plock: path: data: let

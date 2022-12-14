@@ -1,6 +1,8 @@
 {
   "@gar/promisify/1.1.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -10,10 +12,13 @@
     };
     ident = "@gar/promisify";
     key = "@gar/promisify/1.1.3";
+    ltype = "file";
     version = "1.1.3";
   };
   "@npmcli/fs/1.1.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@gar/promisify" = {
         descriptor = "^1.0.1";
@@ -32,10 +37,13 @@
     };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/1.1.1";
+    ltype = "file";
     version = "1.1.1";
   };
   "@npmcli/fs/2.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@gar/promisify" = {
         descriptor = "^1.1.3";
@@ -54,10 +62,13 @@
     };
     ident = "@npmcli/fs";
     key = "@npmcli/fs/2.1.2";
+    ltype = "file";
     version = "2.1.2";
   };
   "@npmcli/git/3.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@npmcli/promise-spawn" = {
         descriptor = "^3.0.0";
@@ -104,11 +115,14 @@
     };
     ident = "@npmcli/git";
     key = "@npmcli/git/3.0.2";
+    ltype = "file";
     version = "3.0.2";
   };
   "@npmcli/installed-package-contents/1.0.7" = {
-    bin = {
-      installed-package-contents = "index.js";
+    binInfo = {
+      binPairs = {
+        installed-package-contents = "index.js";
+      };
     };
     depInfo = {
       npm-bundled = {
@@ -126,13 +140,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/@npmcli/installed-package-contents/-/installed-package-contents-1.0.7.tgz";
     };
-    hasBin = true;
     ident = "@npmcli/installed-package-contents";
     key = "@npmcli/installed-package-contents/1.0.7";
+    ltype = "file";
     version = "1.0.7";
   };
   "@npmcli/move-file/1.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       mkdirp = {
         descriptor = "^1.0.4";
@@ -151,10 +167,13 @@
     };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/1.1.2";
+    ltype = "file";
     version = "1.1.2";
   };
   "@npmcli/move-file/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       mkdirp = {
         descriptor = "^1.0.4";
@@ -173,10 +192,13 @@
     };
     ident = "@npmcli/move-file";
     key = "@npmcli/move-file/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "@npmcli/node-gyp/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -186,10 +208,13 @@
     };
     ident = "@npmcli/node-gyp";
     key = "@npmcli/node-gyp/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "@npmcli/promise-spawn/3.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       infer-owner = {
         descriptor = "^1.0.4";
@@ -204,10 +229,13 @@
     };
     ident = "@npmcli/promise-spawn";
     key = "@npmcli/promise-spawn/3.0.0";
+    ltype = "file";
     version = "3.0.0";
   };
   "@npmcli/run-script/3.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@npmcli/node-gyp" = {
         descriptor = "^2.0.0";
@@ -234,10 +262,13 @@
     };
     ident = "@npmcli/run-script";
     key = "@npmcli/run-script/3.0.3";
+    ltype = "file";
     version = "3.0.3";
   };
   "@tootallnate/once/1.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -247,10 +278,13 @@
     };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/1.1.2";
+    ltype = "file";
     version = "1.1.2";
   };
   "@tootallnate/once/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -260,6 +294,7 @@
     };
     ident = "@tootallnate/once";
     key = "@tootallnate/once/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   _meta = {
@@ -267,7 +302,9 @@
     rootKey = "pacote/13.3.0";
   };
   "abbrev/1.1.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -277,10 +314,13 @@
     };
     ident = "abbrev";
     key = "abbrev/1.1.1";
+    ltype = "file";
     version = "1.1.1";
   };
   "agent-base/6.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       debug = {
         descriptor = "4";
@@ -295,10 +335,13 @@
     };
     ident = "agent-base";
     key = "agent-base/6.0.2";
+    ltype = "file";
     version = "6.0.2";
   };
   "agentkeepalive/4.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       debug = {
         descriptor = "^4.1.0";
@@ -321,10 +364,13 @@
     };
     ident = "agentkeepalive";
     key = "agentkeepalive/4.2.1";
+    ltype = "file";
     version = "4.2.1";
   };
   "aggregate-error/3.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       clean-stack = {
         descriptor = "^2.0.0";
@@ -343,10 +389,13 @@
     };
     ident = "aggregate-error";
     key = "aggregate-error/3.1.0";
+    ltype = "file";
     version = "3.1.0";
   };
   "ansi-regex/5.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -356,10 +405,13 @@
     };
     ident = "ansi-regex";
     key = "ansi-regex/5.0.1";
+    ltype = "file";
     version = "5.0.1";
   };
   "aproba/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -369,10 +421,13 @@
     };
     ident = "aproba";
     key = "aproba/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "are-we-there-yet/3.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       delegates = {
         descriptor = "^1.0.0";
@@ -391,10 +446,13 @@
     };
     ident = "are-we-there-yet";
     key = "are-we-there-yet/3.0.1";
+    ltype = "file";
     version = "3.0.1";
   };
   "balanced-match/1.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -404,10 +462,13 @@
     };
     ident = "balanced-match";
     key = "balanced-match/1.0.2";
+    ltype = "file";
     version = "1.0.2";
   };
   "brace-expansion/1.1.11" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       balanced-match = {
         descriptor = "^1.0.0";
@@ -426,10 +487,13 @@
     };
     ident = "brace-expansion";
     key = "brace-expansion/1.1.11";
+    ltype = "file";
     version = "1.1.11";
   };
   "brace-expansion/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       balanced-match = {
         descriptor = "^1.0.0";
@@ -444,10 +508,13 @@
     };
     ident = "brace-expansion";
     key = "brace-expansion/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "builtins/5.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       semver = {
         descriptor = "^7.0.0";
@@ -462,10 +529,13 @@
     };
     ident = "builtins";
     key = "builtins/5.0.1";
+    ltype = "file";
     version = "5.0.1";
   };
   "cacache/15.3.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@npmcli/fs" = {
         descriptor = "^1.0.0";
@@ -548,10 +618,13 @@
     };
     ident = "cacache";
     key = "cacache/15.3.0";
+    ltype = "file";
     version = "15.3.0";
   };
   "cacache/16.1.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@npmcli/fs" = {
         descriptor = "^2.1.0";
@@ -634,10 +707,13 @@
     };
     ident = "cacache";
     key = "cacache/16.1.3";
+    ltype = "file";
     version = "16.1.3";
   };
   "chownr/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -647,10 +723,13 @@
     };
     ident = "chownr";
     key = "chownr/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "clean-stack/2.2.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -660,11 +739,14 @@
     };
     ident = "clean-stack";
     key = "clean-stack/2.2.0";
+    ltype = "file";
     version = "2.2.0";
   };
   "color-support/1.1.3" = {
-    bin = {
-      color-support = "bin.js";
+    binInfo = {
+      binPairs = {
+        color-support = "bin.js";
+      };
     };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
@@ -673,13 +755,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/color-support/-/color-support-1.1.3.tgz";
     };
-    hasBin = true;
     ident = "color-support";
     key = "color-support/1.1.3";
+    ltype = "file";
     version = "1.1.3";
   };
   "concat-map/0.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -689,10 +773,13 @@
     };
     ident = "concat-map";
     key = "concat-map/0.0.1";
+    ltype = "file";
     version = "0.0.1";
   };
   "console-control-strings/1.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -702,16 +789,20 @@
     };
     ident = "console-control-strings";
     key = "console-control-strings/1.1.0";
+    ltype = "file";
     version = "1.1.0";
   };
   "debug/4.3.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       ms = {
         descriptor = "2.1.2";
         runtime = true;
       };
       supports-color = {
+        peerDescriptor = "*";
         optional = true;
       };
     };
@@ -723,10 +814,13 @@
     };
     ident = "debug";
     key = "debug/4.3.4";
+    ltype = "file";
     version = "4.3.4";
   };
   "delegates/1.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -736,10 +830,13 @@
     };
     ident = "delegates";
     key = "delegates/1.0.0";
+    ltype = "file";
     version = "1.0.0";
   };
   "depd/1.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -749,10 +846,13 @@
     };
     ident = "depd";
     key = "depd/1.1.2";
+    ltype = "file";
     version = "1.1.2";
   };
   "emoji-regex/8.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -762,10 +862,13 @@
     };
     ident = "emoji-regex";
     key = "emoji-regex/8.0.0";
+    ltype = "file";
     version = "8.0.0";
   };
   "encoding/0.1.13" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       iconv-lite = {
         descriptor = "^0.6.2";
@@ -780,10 +883,13 @@
     };
     ident = "encoding";
     key = "encoding/0.1.13";
+    ltype = "file";
     version = "0.1.13";
   };
   "env-paths/2.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -793,10 +899,13 @@
     };
     ident = "env-paths";
     key = "env-paths/2.2.1";
+    ltype = "file";
     version = "2.2.1";
   };
   "err-code/2.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -806,10 +915,13 @@
     };
     ident = "err-code";
     key = "err-code/2.0.3";
+    ltype = "file";
     version = "2.0.3";
   };
   "fs-minipass/2.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -824,10 +936,13 @@
     };
     ident = "fs-minipass";
     key = "fs-minipass/2.1.0";
+    ltype = "file";
     version = "2.1.0";
   };
   "fs.realpath/1.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -837,10 +952,13 @@
     };
     ident = "fs.realpath";
     key = "fs.realpath/1.0.0";
+    ltype = "file";
     version = "1.0.0";
   };
   "function-bind/1.1.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -850,10 +968,13 @@
     };
     ident = "function-bind";
     key = "function-bind/1.1.1";
+    ltype = "file";
     version = "1.1.1";
   };
   "gauge/4.0.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       aproba = {
         descriptor = "^1.0.3 || ^2.0.0";
@@ -896,10 +1017,13 @@
     };
     ident = "gauge";
     key = "gauge/4.0.4";
+    ltype = "file";
     version = "4.0.4";
   };
   "glob/7.2.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "fs.realpath" = {
         descriptor = "^1.0.0";
@@ -934,10 +1058,13 @@
     };
     ident = "glob";
     key = "glob/7.2.3";
+    ltype = "file";
     version = "7.2.3";
   };
   "glob/8.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "fs.realpath" = {
         descriptor = "^1.0.0";
@@ -968,10 +1095,13 @@
     };
     ident = "glob";
     key = "glob/8.0.3";
+    ltype = "file";
     version = "8.0.3";
   };
   "graceful-fs/4.2.10" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -981,10 +1111,13 @@
     };
     ident = "graceful-fs";
     key = "graceful-fs/4.2.10";
+    ltype = "file";
     version = "4.2.10";
   };
   "has-unicode/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -994,10 +1127,13 @@
     };
     ident = "has-unicode";
     key = "has-unicode/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "has/1.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       function-bind = {
         descriptor = "^1.1.1";
@@ -1012,10 +1148,13 @@
     };
     ident = "has";
     key = "has/1.0.3";
+    ltype = "file";
     version = "1.0.3";
   };
   "hosted-git-info/5.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       lru-cache = {
         descriptor = "^7.5.1";
@@ -1030,10 +1169,13 @@
     };
     ident = "hosted-git-info";
     key = "hosted-git-info/5.2.1";
+    ltype = "file";
     version = "5.2.1";
   };
   "http-cache-semantics/4.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1043,10 +1185,13 @@
     };
     ident = "http-cache-semantics";
     key = "http-cache-semantics/4.1.0";
+    ltype = "file";
     version = "4.1.0";
   };
   "http-proxy-agent/4.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@tootallnate/once" = {
         descriptor = "1";
@@ -1069,10 +1214,13 @@
     };
     ident = "http-proxy-agent";
     key = "http-proxy-agent/4.0.1";
+    ltype = "file";
     version = "4.0.1";
   };
   "http-proxy-agent/5.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       "@tootallnate/once" = {
         descriptor = "2";
@@ -1095,10 +1243,13 @@
     };
     ident = "http-proxy-agent";
     key = "http-proxy-agent/5.0.0";
+    ltype = "file";
     version = "5.0.0";
   };
   "https-proxy-agent/5.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       agent-base = {
         descriptor = "6";
@@ -1117,10 +1268,13 @@
     };
     ident = "https-proxy-agent";
     key = "https-proxy-agent/5.0.1";
+    ltype = "file";
     version = "5.0.1";
   };
   "humanize-ms/1.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       ms = {
         descriptor = "^2.0.0";
@@ -1135,10 +1289,13 @@
     };
     ident = "humanize-ms";
     key = "humanize-ms/1.2.1";
+    ltype = "file";
     version = "1.2.1";
   };
   "iconv-lite/0.6.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       safer-buffer = {
         descriptor = ">= 2.1.2 < 3.0.0";
@@ -1153,10 +1310,13 @@
     };
     ident = "iconv-lite";
     key = "iconv-lite/0.6.3";
+    ltype = "file";
     version = "0.6.3";
   };
   "ignore-walk/5.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minimatch = {
         descriptor = "^5.0.1";
@@ -1171,10 +1331,13 @@
     };
     ident = "ignore-walk";
     key = "ignore-walk/5.0.1";
+    ltype = "file";
     version = "5.0.1";
   };
   "imurmurhash/0.1.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1184,10 +1347,13 @@
     };
     ident = "imurmurhash";
     key = "imurmurhash/0.1.4";
+    ltype = "file";
     version = "0.1.4";
   };
   "indent-string/4.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1197,10 +1363,13 @@
     };
     ident = "indent-string";
     key = "indent-string/4.0.0";
+    ltype = "file";
     version = "4.0.0";
   };
   "infer-owner/1.0.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1210,10 +1379,13 @@
     };
     ident = "infer-owner";
     key = "infer-owner/1.0.4";
+    ltype = "file";
     version = "1.0.4";
   };
   "inflight/1.0.6" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       once = {
         descriptor = "^1.3.0";
@@ -1232,10 +1404,13 @@
     };
     ident = "inflight";
     key = "inflight/1.0.6";
+    ltype = "file";
     version = "1.0.6";
   };
   "inherits/2.0.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1245,10 +1420,13 @@
     };
     ident = "inherits";
     key = "inherits/2.0.4";
+    ltype = "file";
     version = "2.0.4";
   };
   "ip/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1258,10 +1436,13 @@
     };
     ident = "ip";
     key = "ip/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "is-core-module/2.11.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       has = {
         descriptor = "^1.0.3";
@@ -1276,10 +1457,13 @@
     };
     ident = "is-core-module";
     key = "is-core-module/2.11.0";
+    ltype = "file";
     version = "2.11.0";
   };
   "is-fullwidth-code-point/3.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1289,10 +1473,13 @@
     };
     ident = "is-fullwidth-code-point";
     key = "is-fullwidth-code-point/3.0.0";
+    ltype = "file";
     version = "3.0.0";
   };
   "is-lambda/1.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1302,10 +1489,13 @@
     };
     ident = "is-lambda";
     key = "is-lambda/1.0.1";
+    ltype = "file";
     version = "1.0.1";
   };
   "isexe/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1315,10 +1505,13 @@
     };
     ident = "isexe";
     key = "isexe/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "json-parse-even-better-errors/2.3.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1328,10 +1521,13 @@
     };
     ident = "json-parse-even-better-errors";
     key = "json-parse-even-better-errors/2.3.1";
+    ltype = "file";
     version = "2.3.1";
   };
   "jsonparse/1.3.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1341,10 +1537,13 @@
     };
     ident = "jsonparse";
     key = "jsonparse/1.3.1";
+    ltype = "file";
     version = "1.3.1";
   };
   "lru-cache/6.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       yallist = {
         descriptor = "^4.0.0";
@@ -1359,10 +1558,13 @@
     };
     ident = "lru-cache";
     key = "lru-cache/6.0.0";
+    ltype = "file";
     version = "6.0.0";
   };
   "lru-cache/7.14.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1372,10 +1574,13 @@
     };
     ident = "lru-cache";
     key = "lru-cache/7.14.0";
+    ltype = "file";
     version = "7.14.0";
   };
   "make-fetch-happen/10.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       agentkeepalive = {
         descriptor = "^4.2.1";
@@ -1450,10 +1655,13 @@
     };
     ident = "make-fetch-happen";
     key = "make-fetch-happen/10.2.1";
+    ltype = "file";
     version = "10.2.1";
   };
   "make-fetch-happen/9.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       agentkeepalive = {
         descriptor = "^4.1.3";
@@ -1528,10 +1736,13 @@
     };
     ident = "make-fetch-happen";
     key = "make-fetch-happen/9.1.0";
+    ltype = "file";
     version = "9.1.0";
   };
   "minimatch/3.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       brace-expansion = {
         descriptor = "^1.1.7";
@@ -1546,10 +1757,13 @@
     };
     ident = "minimatch";
     key = "minimatch/3.1.2";
+    ltype = "file";
     version = "3.1.2";
   };
   "minimatch/5.1.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       brace-expansion = {
         descriptor = "^2.0.1";
@@ -1564,10 +1778,13 @@
     };
     ident = "minimatch";
     key = "minimatch/5.1.0";
+    ltype = "file";
     version = "5.1.0";
   };
   "minipass-collect/1.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -1582,10 +1799,13 @@
     };
     ident = "minipass-collect";
     key = "minipass-collect/1.0.2";
+    ltype = "file";
     version = "1.0.2";
   };
   "minipass-fetch/1.4.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       encoding = {
         descriptor = "^0.1.12";
@@ -1613,10 +1833,13 @@
     };
     ident = "minipass-fetch";
     key = "minipass-fetch/1.4.1";
+    ltype = "file";
     version = "1.4.1";
   };
   "minipass-fetch/2.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       encoding = {
         descriptor = "^0.1.13";
@@ -1644,10 +1867,13 @@
     };
     ident = "minipass-fetch";
     key = "minipass-fetch/2.1.2";
+    ltype = "file";
     version = "2.1.2";
   };
   "minipass-flush/1.0.5" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -1662,10 +1888,13 @@
     };
     ident = "minipass-flush";
     key = "minipass-flush/1.0.5";
+    ltype = "file";
     version = "1.0.5";
   };
   "minipass-json-stream/1.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       jsonparse = {
         descriptor = "^1.3.1";
@@ -1684,10 +1913,13 @@
     };
     ident = "minipass-json-stream";
     key = "minipass-json-stream/1.0.1";
+    ltype = "file";
     version = "1.0.1";
   };
   "minipass-pipeline/1.2.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -1702,10 +1934,13 @@
     };
     ident = "minipass-pipeline";
     key = "minipass-pipeline/1.2.4";
+    ltype = "file";
     version = "1.2.4";
   };
   "minipass-sized/1.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -1720,10 +1955,13 @@
     };
     ident = "minipass-sized";
     key = "minipass-sized/1.0.3";
+    ltype = "file";
     version = "1.0.3";
   };
   "minipass/3.3.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       yallist = {
         descriptor = "^4.0.0";
@@ -1738,10 +1976,13 @@
     };
     ident = "minipass";
     key = "minipass/3.3.4";
+    ltype = "file";
     version = "3.3.4";
   };
   "minizlib/2.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.0.0";
@@ -1760,11 +2001,14 @@
     };
     ident = "minizlib";
     key = "minizlib/2.1.2";
+    ltype = "file";
     version = "2.1.2";
   };
   "mkdirp/1.0.4" = {
-    bin = {
-      mkdirp = "bin/cmd.js";
+    binInfo = {
+      binPairs = {
+        mkdirp = "bin/cmd.js";
+      };
     };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
@@ -1773,13 +2017,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/mkdirp/-/mkdirp-1.0.4.tgz";
     };
-    hasBin = true;
     ident = "mkdirp";
     key = "mkdirp/1.0.4";
+    ltype = "file";
     version = "1.0.4";
   };
   "ms/2.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1789,10 +2035,13 @@
     };
     ident = "ms";
     key = "ms/2.1.2";
+    ltype = "file";
     version = "2.1.2";
   };
   "negotiator/0.6.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1802,11 +2051,14 @@
     };
     ident = "negotiator";
     key = "negotiator/0.6.3";
+    ltype = "file";
     version = "0.6.3";
   };
   "node-gyp/8.4.1" = {
-    bin = {
-      node-gyp = "bin/node-gyp.js";
+    binInfo = {
+      binPairs = {
+        node-gyp = "bin/node-gyp.js";
+      };
     };
     depInfo = {
       env-paths = {
@@ -1856,14 +2108,16 @@
       type = "tarball";
       url = "https://registry.npmjs.org/node-gyp/-/node-gyp-8.4.1.tgz";
     };
-    hasBin = true;
     ident = "node-gyp";
     key = "node-gyp/8.4.1";
+    ltype = "file";
     version = "8.4.1";
   };
   "nopt/5.0.0" = {
-    bin = {
-      nopt = "bin/nopt.js";
+    binInfo = {
+      binPairs = {
+        nopt = "bin/nopt.js";
+      };
     };
     depInfo = {
       abbrev = {
@@ -1877,13 +2131,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/nopt/-/nopt-5.0.0.tgz";
     };
-    hasBin = true;
     ident = "nopt";
     key = "nopt/5.0.0";
+    ltype = "file";
     version = "5.0.0";
   };
   "normalize-package-data/4.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       hosted-git-info = {
         descriptor = "^5.0.0";
@@ -1910,10 +2166,13 @@
     };
     ident = "normalize-package-data";
     key = "normalize-package-data/4.0.1";
+    ltype = "file";
     version = "4.0.1";
   };
   "npm-bundled/1.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       npm-normalize-package-bin = {
         descriptor = "^1.0.1";
@@ -1928,10 +2187,13 @@
     };
     ident = "npm-bundled";
     key = "npm-bundled/1.1.2";
+    ltype = "file";
     version = "1.1.2";
   };
   "npm-bundled/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       npm-normalize-package-bin = {
         descriptor = "^2.0.0";
@@ -1946,10 +2208,13 @@
     };
     ident = "npm-bundled";
     key = "npm-bundled/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "npm-install-checks/5.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       semver = {
         descriptor = "^7.1.1";
@@ -1964,10 +2229,13 @@
     };
     ident = "npm-install-checks";
     key = "npm-install-checks/5.0.0";
+    ltype = "file";
     version = "5.0.0";
   };
   "npm-normalize-package-bin/1.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1977,10 +2245,13 @@
     };
     ident = "npm-normalize-package-bin";
     key = "npm-normalize-package-bin/1.0.1";
+    ltype = "file";
     version = "1.0.1";
   };
   "npm-normalize-package-bin/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -1990,10 +2261,13 @@
     };
     ident = "npm-normalize-package-bin";
     key = "npm-normalize-package-bin/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "npm-package-arg/9.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       hosted-git-info = {
         descriptor = "^5.0.0";
@@ -2020,11 +2294,14 @@
     };
     ident = "npm-package-arg";
     key = "npm-package-arg/9.1.2";
+    ltype = "file";
     version = "9.1.2";
   };
   "npm-packlist/5.1.3" = {
-    bin = {
-      npm-packlist = "bin/index.js";
+    binInfo = {
+      binPairs = {
+        npm-packlist = "bin/index.js";
+      };
     };
     depInfo = {
       glob = {
@@ -2050,13 +2327,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/npm-packlist/-/npm-packlist-5.1.3.tgz";
     };
-    hasBin = true;
     ident = "npm-packlist";
     key = "npm-packlist/5.1.3";
+    ltype = "file";
     version = "5.1.3";
   };
   "npm-pick-manifest/7.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       npm-install-checks = {
         descriptor = "^5.0.0";
@@ -2083,10 +2362,13 @@
     };
     ident = "npm-pick-manifest";
     key = "npm-pick-manifest/7.0.2";
+    ltype = "file";
     version = "7.0.2";
   };
   "npm-registry-fetch/13.3.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       make-fetch-happen = {
         descriptor = "^10.0.6";
@@ -2125,10 +2407,13 @@
     };
     ident = "npm-registry-fetch";
     key = "npm-registry-fetch/13.3.1";
+    ltype = "file";
     version = "13.3.1";
   };
   "npmlog/6.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       are-we-there-yet = {
         descriptor = "^3.0.0";
@@ -2155,10 +2440,13 @@
     };
     ident = "npmlog";
     key = "npmlog/6.0.2";
+    ltype = "file";
     version = "6.0.2";
   };
   "once/1.4.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       wrappy = {
         descriptor = "1";
@@ -2173,10 +2461,13 @@
     };
     ident = "once";
     key = "once/1.4.0";
+    ltype = "file";
     version = "1.4.0";
   };
   "p-map/4.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       aggregate-error = {
         descriptor = "^3.0.0";
@@ -2191,11 +2482,14 @@
     };
     ident = "p-map";
     key = "p-map/4.0.0";
+    ltype = "file";
     version = "4.0.0";
   };
   "pacote/13.3.0" = {
-    bin = {
-      pacote = "lib/bin.js";
+    binInfo = {
+      binPairs = {
+        pacote = "lib/bin.js";
+      };
     };
     depInfo = {
       "@npmcli/git" = {
@@ -2289,10 +2583,10 @@
       type = "tarball";
       url = "https://registry.npmjs.org/pacote/-/pacote-13.3.0.tgz";
     };
-    hasBin = true;
     ident = "pacote";
     key = "pacote/13.3.0";
-    trees = {
+    ltype = "file";
+    treeInfo = {
       prod = {
         "node_modules/@gar/promisify" = "@gar/promisify/1.1.3";
         "node_modules/@npmcli/fs" = "@npmcli/fs/2.1.2";
@@ -2446,7 +2740,9 @@
     version = "13.3.0";
   };
   "path-is-absolute/1.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2456,10 +2752,13 @@
     };
     ident = "path-is-absolute";
     key = "path-is-absolute/1.0.1";
+    ltype = "file";
     version = "1.0.1";
   };
   "proc-log/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2469,10 +2768,13 @@
     };
     ident = "proc-log";
     key = "proc-log/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "promise-inflight/1.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2482,10 +2784,13 @@
     };
     ident = "promise-inflight";
     key = "promise-inflight/1.0.1";
+    ltype = "file";
     version = "1.0.1";
   };
   "promise-retry/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       err-code = {
         descriptor = "^2.0.2";
@@ -2504,10 +2809,13 @@
     };
     ident = "promise-retry";
     key = "promise-retry/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "read-package-json-fast/2.0.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       json-parse-even-better-errors = {
         descriptor = "^2.3.0";
@@ -2526,10 +2834,13 @@
     };
     ident = "read-package-json-fast";
     key = "read-package-json-fast/2.0.3";
+    ltype = "file";
     version = "2.0.3";
   };
   "read-package-json/5.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       glob = {
         descriptor = "^8.0.1";
@@ -2556,10 +2867,13 @@
     };
     ident = "read-package-json";
     key = "read-package-json/5.0.2";
+    ltype = "file";
     version = "5.0.2";
   };
   "readable-stream/3.6.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       inherits = {
         descriptor = "^2.0.3";
@@ -2582,10 +2896,13 @@
     };
     ident = "readable-stream";
     key = "readable-stream/3.6.0";
+    ltype = "file";
     version = "3.6.0";
   };
   "retry/0.12.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2595,11 +2912,14 @@
     };
     ident = "retry";
     key = "retry/0.12.0";
+    ltype = "file";
     version = "0.12.0";
   };
   "rimraf/3.0.2" = {
-    bin = {
-      rimraf = "bin.js";
+    binInfo = {
+      binPairs = {
+        rimraf = "bin.js";
+      };
     };
     depInfo = {
       glob = {
@@ -2613,13 +2933,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/rimraf/-/rimraf-3.0.2.tgz";
     };
-    hasBin = true;
     ident = "rimraf";
     key = "rimraf/3.0.2";
+    ltype = "file";
     version = "3.0.2";
   };
   "safe-buffer/5.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2629,10 +2951,13 @@
     };
     ident = "safe-buffer";
     key = "safe-buffer/5.2.1";
+    ltype = "file";
     version = "5.2.1";
   };
   "safer-buffer/2.1.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2642,11 +2967,14 @@
     };
     ident = "safer-buffer";
     key = "safer-buffer/2.1.2";
+    ltype = "file";
     version = "2.1.2";
   };
   "semver/7.3.8" = {
-    bin = {
-      semver = "bin/semver.js";
+    binInfo = {
+      binPairs = {
+        semver = "bin/semver.js";
+      };
     };
     depInfo = {
       lru-cache = {
@@ -2660,13 +2988,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/semver/-/semver-7.3.8.tgz";
     };
-    hasBin = true;
     ident = "semver";
     key = "semver/7.3.8";
+    ltype = "file";
     version = "7.3.8";
   };
   "set-blocking/2.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2676,10 +3006,13 @@
     };
     ident = "set-blocking";
     key = "set-blocking/2.0.0";
+    ltype = "file";
     version = "2.0.0";
   };
   "signal-exit/3.0.7" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2689,10 +3022,13 @@
     };
     ident = "signal-exit";
     key = "signal-exit/3.0.7";
+    ltype = "file";
     version = "3.0.7";
   };
   "smart-buffer/4.2.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2702,10 +3038,13 @@
     };
     ident = "smart-buffer";
     key = "smart-buffer/4.2.0";
+    ltype = "file";
     version = "4.2.0";
   };
   "socks-proxy-agent/6.2.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       agent-base = {
         descriptor = "^6.0.2";
@@ -2728,10 +3067,13 @@
     };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/6.2.1";
+    ltype = "file";
     version = "6.2.1";
   };
   "socks-proxy-agent/7.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       agent-base = {
         descriptor = "^6.0.2";
@@ -2754,10 +3096,13 @@
     };
     ident = "socks-proxy-agent";
     key = "socks-proxy-agent/7.0.0";
+    ltype = "file";
     version = "7.0.0";
   };
   "socks/2.7.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       ip = {
         descriptor = "^2.0.0";
@@ -2776,10 +3121,13 @@
     };
     ident = "socks";
     key = "socks/2.7.1";
+    ltype = "file";
     version = "2.7.1";
   };
   "spdx-correct/3.1.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       spdx-expression-parse = {
         descriptor = "^3.0.0";
@@ -2798,10 +3146,13 @@
     };
     ident = "spdx-correct";
     key = "spdx-correct/3.1.1";
+    ltype = "file";
     version = "3.1.1";
   };
   "spdx-exceptions/2.3.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2811,10 +3162,13 @@
     };
     ident = "spdx-exceptions";
     key = "spdx-exceptions/2.3.0";
+    ltype = "file";
     version = "2.3.0";
   };
   "spdx-expression-parse/3.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       spdx-exceptions = {
         descriptor = "^2.1.0";
@@ -2833,10 +3187,13 @@
     };
     ident = "spdx-expression-parse";
     key = "spdx-expression-parse/3.0.1";
+    ltype = "file";
     version = "3.0.1";
   };
   "spdx-license-ids/3.0.12" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -2846,10 +3203,13 @@
     };
     ident = "spdx-license-ids";
     key = "spdx-license-ids/3.0.12";
+    ltype = "file";
     version = "3.0.12";
   };
   "ssri/8.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.1.1";
@@ -2864,10 +3224,13 @@
     };
     ident = "ssri";
     key = "ssri/8.0.1";
+    ltype = "file";
     version = "8.0.1";
   };
   "ssri/9.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       minipass = {
         descriptor = "^3.1.1";
@@ -2882,10 +3245,13 @@
     };
     ident = "ssri";
     key = "ssri/9.0.1";
+    ltype = "file";
     version = "9.0.1";
   };
   "string-width/4.2.3" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       emoji-regex = {
         descriptor = "^8.0.0";
@@ -2908,10 +3274,13 @@
     };
     ident = "string-width";
     key = "string-width/4.2.3";
+    ltype = "file";
     version = "4.2.3";
   };
   "string_decoder/1.3.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       safe-buffer = {
         descriptor = "~5.2.0";
@@ -2926,10 +3295,13 @@
     };
     ident = "string_decoder";
     key = "string_decoder/1.3.0";
+    ltype = "file";
     version = "1.3.0";
   };
   "strip-ansi/6.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       ansi-regex = {
         descriptor = "^5.0.1";
@@ -2944,10 +3316,13 @@
     };
     ident = "strip-ansi";
     key = "strip-ansi/6.0.1";
+    ltype = "file";
     version = "6.0.1";
   };
   "tar/6.1.12" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       chownr = {
         descriptor = "^2.0.0";
@@ -2982,10 +3357,13 @@
     };
     ident = "tar";
     key = "tar/6.1.12";
+    ltype = "file";
     version = "6.1.12";
   };
   "unique-filename/1.1.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       unique-slug = {
         descriptor = "^2.0.0";
@@ -3000,10 +3378,13 @@
     };
     ident = "unique-filename";
     key = "unique-filename/1.1.1";
+    ltype = "file";
     version = "1.1.1";
   };
   "unique-filename/2.0.1" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       unique-slug = {
         descriptor = "^3.0.0";
@@ -3018,10 +3399,13 @@
     };
     ident = "unique-filename";
     key = "unique-filename/2.0.1";
+    ltype = "file";
     version = "2.0.1";
   };
   "unique-slug/2.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       imurmurhash = {
         descriptor = "^0.1.4";
@@ -3036,10 +3420,13 @@
     };
     ident = "unique-slug";
     key = "unique-slug/2.0.2";
+    ltype = "file";
     version = "2.0.2";
   };
   "unique-slug/3.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       imurmurhash = {
         descriptor = "^0.1.4";
@@ -3054,10 +3441,13 @@
     };
     ident = "unique-slug";
     key = "unique-slug/3.0.0";
+    ltype = "file";
     version = "3.0.0";
   };
   "util-deprecate/1.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -3067,10 +3457,13 @@
     };
     ident = "util-deprecate";
     key = "util-deprecate/1.0.2";
+    ltype = "file";
     version = "1.0.2";
   };
   "validate-npm-package-license/3.0.4" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       spdx-correct = {
         descriptor = "^3.0.0";
@@ -3089,10 +3482,13 @@
     };
     ident = "validate-npm-package-license";
     key = "validate-npm-package-license/3.0.4";
+    ltype = "file";
     version = "3.0.4";
   };
   "validate-npm-package-name/4.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       builtins = {
         descriptor = "^5.0.0";
@@ -3107,11 +3503,14 @@
     };
     ident = "validate-npm-package-name";
     key = "validate-npm-package-name/4.0.0";
+    ltype = "file";
     version = "4.0.0";
   };
   "which/2.0.2" = {
-    bin = {
-      node-which = "bin/node-which";
+    binInfo = {
+      binPairs = {
+        node-which = "bin/node-which";
+      };
     };
     depInfo = {
       isexe = {
@@ -3125,13 +3524,15 @@
       type = "tarball";
       url = "https://registry.npmjs.org/which/-/which-2.0.2.tgz";
     };
-    hasBin = true;
     ident = "which";
     key = "which/2.0.2";
+    ltype = "file";
     version = "2.0.2";
   };
   "wide-align/1.1.5" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = {
       string-width = {
         descriptor = "^1.0.2 || 2 || 3 || 4";
@@ -3146,10 +3547,13 @@
     };
     ident = "wide-align";
     key = "wide-align/1.1.5";
+    ltype = "file";
     version = "1.1.5";
   };
   "wrappy/1.0.2" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -3159,10 +3563,13 @@
     };
     ident = "wrappy";
     key = "wrappy/1.0.2";
+    ltype = "file";
     version = "1.0.2";
   };
   "yallist/4.0.0" = {
-    bin = { };
+    binInfo = {
+      binPairs = { };
+    };
     depInfo = { };
     entFromtype = "package-lock.json(v3)";
     fetchInfo = {
@@ -3172,6 +3579,7 @@
     };
     ident = "yallist";
     key = "yallist/4.0.0";
+    ltype = "file";
     version = "4.0.0";
   };
 }

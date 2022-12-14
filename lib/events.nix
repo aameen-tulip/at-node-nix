@@ -31,7 +31,7 @@
 { lib }: let
 
   yt  = lib.ytypes // lib.ytypes.Core // lib.ytypes.Prim;
-  nlc = yt.NpmLifecycle // yt.NpmLifecycle.Enums;
+  nlc = yt.Npm // yt.Npm.Enums;
   inherit (nlc)
     _source_types
     _events
@@ -160,39 +160,21 @@
 
 # ---------------------------------------------------------------------------- #
 
-  # FIXME: disconnected from `hasInstallScript'
-  metaEntLifecycleOverlay = final: prev: {
-    lifecycle = let
-      flt = ( eventsForLifecycleStrict' final.ltype ) // {
-        build = final.ltype != "file";
-      };
-      scripts = lib.libmeta.getScripts final;
-      ifdef = {
-        build   = lib.libpkginfo.hasBuildFromScripts scripts;
-        prepare = lib.libpkginfo.hasPrepareFromScripts scripts;
-        pack    = lib.libpkginfo.hasPackFromScripts scripts;
-        test    = lib.libpkginfo.hasTestFromScripts scripts;
-        publish = lib.libpkginfo.hasPublishFromScripts scripts;
-        install = lib.libpkginfo.hasInstallFromScripts scripts;
-      };
-      # These are special and need to be set to `null' if we aren't sure.
-      hi' = if ( final.gypfile or null ) == null then { install = null; } else {
-        install = flt.install && ( ifdef.install || final.gypfile );
-      };
-      proc = acc: event: acc // { ${event} = flt.${event} && ifdef.${event}; };
-      base = builtins.foldl' proc {} ( builtins.attrNames ifdef );
-      fromPartial =
-        if ( prev.lifecycle or null ) == null then {} else {
-          build   = prev.lifecycle.build or false;
-          prepare = prev.lifecycle.prepared or false;
-          pack    = prev.lifecycle.pack or false;
-          test    = prev.lifecycle.test or false;
-          publish = prev.lifecycle.publish or false;
-          install = if ( prev.lifecycle.install or false ) == null
-                    then hi'.install
-                    else prev.lifecycle.install or false;
-        };
-    in base // hi' // fromPartial;
+  metaEntLifecycleOv = final: prev: {
+    lifecycle = {
+      install =
+        if prev ? metaFiles.plent then
+          prev.metaFiles.plent.hasInstallScript or false
+        else if prev ? metaFiles.pjs then
+          lib.libpkginfo.hasInstallFromScripts ( lib.libmeta.getScripts prev )
+        else lib.libmeta.getGypfile prev;
+      build =
+        if ( lib.libmeta.getLtype prev ) == "file" then false else
+        if ( lib.libmeta.getScripts prev ) == null then null else
+        ( lib.libpkginfo.hasBuildFromScripts ( lib.libmeta.getScripts prev ) );
+    } // ( lib.filterAttrs ( _: v: v != null )
+                           ( ( prev.metaFiles.metaRaw.lifecycle or {} ) //
+                             ( prev.lifecycle or {} ) ) );
   };
 
 
@@ -205,7 +187,7 @@ in {
     eventHooksForLtype' eventHooksForLtype
 
     eventsForLifecycleStrict'
-    metaEntLifecycleOverlay
+    metaEntLifecycleOv
   ;
 
 }

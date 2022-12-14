@@ -125,11 +125,141 @@
 
 # ---------------------------------------------------------------------------- #
 
+  _bin_info_fields = {
+    binPairs = yt.PkgInfo.bin_pairs;
+    binDir   = yt.FS.relpath;
+  };
+
+  # NOTE: serialized form may be compressed as:
+  #   binInfo = false;
+  # Implying:
+  #   binInfo.binPairs = {};
+  Structs.bin_info_raw = yt.struct "bin_info" {
+    binPairs = yt.option _bin_info_fields.binPairs;
+    binDir   = yt.option _bin_info_fields.binDir;
+  };
+
+  Structs.bin_info = typedef' {
+    name      = "bin_info";
+    checkType = v: let
+      raw     = yt.FlocoMeta.Structs.bin_info_raw.checkType v;
+      base    = if raw.ok then removeAttrs raw ["err"] else raw;
+      hasAtLeastOne = let
+        ok   = ( v ? binPairs ) || ( v ? binDir );
+        err' = if ok then {} else {
+          err =
+            "expected 'bin_info', but value '${yt.__internal.prettyPrint v}' " +
+            "lacks either a 'binPairs' or 'binDir' field.";
+        };
+      in if raw.ok then { inherit ok; } // err' else {};
+    in base // hasAtLeastOne // { ok = raw.ok && hasAtLeastOne.ok; };
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  Structs.tree_info = yt.struct "tree_info" {
+    prod = yt.option ( yt.attrs yt.PkgInfo.key );
+    dev  = yt.option ( yt.attrs yt.PkgInfo.key );
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  Structs.filesystem_info = yt.struct "filesystem_info" {
+    gypfile = yt.bool;
+    dir     = yt.FS.relpath;
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
+  _meta_files_info_fields = {
+    __serial     = yt.either yt.function ( yt.attrs yt.any );
+    pjsDir       = yt.FS.abspath;
+    lockDir      = yt.FS.abspath;
+    vinfoUrl     = yt.Uri.Strings.uri_ref;
+    packumentUrl = yt.Uri.Strings.uri_ref;
+    metaRaw      = yt.attrs yt.any;
+    pjs          = yt.attrs yt.any;
+    pjsKey       = yt.FS.relpath;
+    plock        = yt.NpmLock.plock_shallow;
+    plent        = yt.NpmLock.package;
+    plentKey     = yt.NpmLock.pkey;
+    vinfo        = yt.Packument.vinfo_meta;
+    packument    = yt.Packument.packument;
+    trees        = yt.FlocoMeta.Structs.tree_info;
+  };
+
+  Structs.meta_files_info =
+    yt.struct "meta_files_info"
+      ( builtins.mapAttrs ( _: yt.option )
+                          yt.FlocoMeta._meta_files_info_fields );
+
+
+# ---------------------------------------------------------------------------- #
+
+  _meta_ent_info_fields = {
+    _type = yt.enum "_type[metaEnt]" ["metaEnt"];
+    inherit (yt.PkgInfo) key version;
+    ident       = yt.PkgInfo.identifier;
+    entFromtype = yt.FlocoMeta.Enums.meta_fromtype;
+    names       = yt.attrs ( yt.eitherN [
+      yt.function yt.string yt.bool ( yt.attrs yt.string )
+    ] );
+    inherit (ytypes.Npm.Enums) ltype;
+    binInfo    = yt.FlocoMeta.Structs.bin_info;
+    depInfo    = yt.attrs yt.DepInfo.dep_info;
+    fetchInfo  = yt.FlocoFetch.Eithers.fetch_info_floco;
+    sourceInfo = yt.FlocoFetch.source_info_floco;
+    sysInfo    = yt.Npm.sys_info;
+    inherit (yt.Npm) lifecycle;
+    treeInfo   = yt.FlocoMeta.Structs.tree_info;
+    fsInfo     = yt.FlocoMeta.Structs.filesystem_info;
+    metaFiles  = yt.FlocoMeta.Structs.meta_files_info;
+  };
+
+  meta_ent_info = let
+    mandatory = {
+      inherit (yt.FlocoMeta._meta_ent_info_fields)
+        _type key version ident entFromtype ltype depInfo fetchInfo lifecycle
+        sysInfo names
+      ;
+    };
+    optional = builtins.mapAttrs ( _: yt.option ) {
+      inherit (yt.FlocoMeta._meta_ent_info_fields)
+        binInfo metaFiles fsInfo treeInfo sourceInfo
+      ;
+    };
+    innerType = yt.struct "metaEnt:info" ( mandatory // optional );
+    checkedFields = v: let
+      ignore = k: ( builtins.substring 0 2 k ) == "__";
+      drops  = builtins.filter ignore ( builtins.attrNames v );
+    in removeAttrs v drops;
+    ec = v:
+      builtins.addErrorContext "while typechecking '${v.key or "No Key"}'";
+  in yt.__internal.typedef' {
+    name = "metaEnt";
+    checkType = v: let
+      shallow = yt.FlocoMeta.Attrs.meta_ent_shallow.checkType v;
+      info    = checkedFields v;
+      innerCt = innerType.checkType info;
+      ok      = shallow.ok && innerCt.ok;
+      err'    = if ok then {} else
+                if shallow.ok then { inherit (innerCt) err; } else
+                { inherit (shallow) err; };
+    in { inherit ok; } // err';
+  };
+
+
+# ---------------------------------------------------------------------------- #
+
 in {
   inherit
     Enums
     Attrs
     Typeclasses
+    Structs
   ;
   inherit (Typeclasses)
     meta_ext
@@ -140,6 +270,12 @@ in {
     meta_ent_shallow
     meta_set_shallow
   ;
+  inherit (Structs)
+    bin_info
+    tree_info
+    filesystem_info
+    meta_files_info
+  ;
 
   inherit
     _meta_ext_fields
@@ -148,7 +284,15 @@ in {
     _meta_fromtypes
     _plock_fromtypes
     _ylock_fromtypes
+    _bin_info_fields
+    _meta_files_info_fields
+    _meta_ent_info_fields
   ;
+
+  inherit
+    meta_ent_info
+  ;
+
 }
 
 

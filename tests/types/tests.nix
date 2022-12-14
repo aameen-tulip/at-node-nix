@@ -5,8 +5,11 @@
 # ---------------------------------------------------------------------------- #
 
 { lib
-, limit ? 1000  # Limit the number of entries used for testing.
-                # In the top level flake we don't want to check 1,000 packuments
+# Limit the number of entries used for testing.
+# `null' causes cached packuments be used, which does not require fetching.
+# In the top level flake we don't want to check 1,000 packuments
+, limit ? null
+
 }: let
 
 # ---------------------------------------------------------------------------- #
@@ -34,8 +37,32 @@
     arb3
   ;
 
+  inherit ( import ../data ) packsCached;
   allPacks = import ../data/packuments.nix;
-  packs = if limit < 1000 then lib.take limit allPacks else allPacks;
+  packs    = if limit == null then packsCached else
+             if limit < 1000  then lib.take limit allPacks else allPacks;
+
+
+  metaRawLodash = {
+    ident            = "lodash";
+    version          = "4.17.21";
+    key              = "lodash/4.17.21";
+    entFromtype      = "raw";
+    ltype            = "file";
+    binInfo.binPairs = {};
+    depInfo          = {};
+    sysInfo          = {};
+    lifecycle        = { build = false; install = false; };
+    fsInfo           = { dir = "./."; gypfile = false; };
+    fetchInfo        = {
+      type    = "tarball";
+      url     = "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz";
+      narHash = "sha256-amyN064Yh6psvOfLgcpktd5dRNQStUYHHoIqiI6DMek=";
+    };
+  };
+
+  metaEntLodash = lib.mkMetaEnt metaRawLodash;
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -62,14 +89,16 @@
             expected = p._id;
           };
         };
-    in if lib.inPureEvalMode then {} else builtins.foldl' proc {} packs;
+    in if lib.inPureEvalMode && ( limit != null ) then {} else
+       builtins.foldl' proc {} packs;
 
     # The `@floco/arbor' lock only uses registry tarballs.
     plockEnts = let
       pkgs = let
         named = lib.libattrs.pushDownNames arb3.packages;
         vals  = builtins.attrValues named;
-      in if limit < 1000 then lib.take limit vals else vals;
+      in if limit == null then vals else
+         if limit < 1000 then lib.take limit vals else vals;
       proc = acc: p: let
         tname = if p.name == "" then "ROOT" else p.name;
         ent = if p.name == "" then p // { inherit (arb3.packages."") name; }
@@ -183,6 +212,14 @@
     in {
       expr     = pkg_git_v3 ent;
       expected = ent;
+    };
+
+
+# ---------------------------------------------------------------------------- #
+
+    testMetaEntLodash_0 = {
+      expr     = yt.FlocoMeta.meta_ent_info.checkType metaEntLodash;
+      expected = { ok = true; };
     };
 
 

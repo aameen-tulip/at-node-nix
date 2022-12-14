@@ -110,15 +110,17 @@
   depInfoEntFromPlockV3 = path: plent: let
     markField = field: builtins.mapAttrs ( _: _: { ${field} = true; } );
     cds = builtins.mapAttrs ( _: v: { descriptor = v; } ) ( joinPins plent );
+    peerEnts =
+      ( builtins.mapAttrs ( _: _: "*" ) ( plent.peerDependenciesMeta or {} ) )
+      // ( plent.peerDependencies or {} );
     # Some dependencies may be `peer' and `runtime' but have different
     # descriptors, so we record these with distinct names.
     # This matters if we expect to produce overlays which mix locks.
     # NOTE: A lot of packages have conflicting descriptors this matters.
-    pds = builtins.mapAttrs ( _: v: { peerDescriptor = v; } )
-                            ( plent.peerDependencies or {} );
+    pds      = builtins.mapAttrs ( _: v: { peerDescriptor = v; } ) peerEnts;
     markRt   = markField "runtime" ( joinRt plent );
     markDev  = markField "dev"     ( plent.devDependencies or {} );
-    markPeer = markField "peer"    ( plent.peerDependencies or {} );
+    markPeer = markField "peer"    peerEnts;
     # TODO: `devDependenciesMeta' is used by Yarn
     markOpt  = let
       od = markField "optional" ( plent.optionalDependencies or {} );

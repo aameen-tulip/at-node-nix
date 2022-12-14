@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------- #
 
 final: prev: {
-  NpmLifecycle = import ./npm/lifecycle.nix { ytypes = final; };
+  Npm          = import ./npm               { ytypes = final; };
   NpmLock      = import ./npm-lock.nix      { ytypes = final; };
   Packument    = import ./packument.nix     { ytypes = final; };
   PkgInfo      = import ./pkginfo.nix       { ytypes = final; };

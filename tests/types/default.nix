@@ -14,7 +14,7 @@
 , writeText   ? pkgsFor.writeText
 , keepFailed  ? false  # Useful if you run the test explicitly.
 , doTrace     ? true   # We want this disabled for `nix flake check'
-, limit       ? 1000
+, limit       ? null
 , ...
 } @ args: let
 

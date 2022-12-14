@@ -59,6 +59,7 @@ in {
   libtree    = callLibs [./tree.nix ./focus-tree.nix];
   libsys     = callLib  ./system.nix;
   libmeta    = callLibs [./meta.nix ./meta-ent.nix ./serial.nix];
+  libbininfo = callLib  ./bin-info.nix;
   libdep     = callLib  ./depinfo.nix;
   libsat     = callLib  ./sat.nix;
   libevent   = callLib  ./events.nix;
@@ -139,22 +140,11 @@ in {
 
   inherit (final.libmeta)
     toSerial
-    _mkExtInfo
-    mkExtInfo
+    _mkExtInfo mkExtInfo
     metaWasPlock
     metaWasYlock
-
-    mkMetaEnt'
-    mkMetaEnt
+    mkMetaEnt' mkMetaEnt
     mkMetaSet
-
-    genMetaEntAdd
-    genMetaEntUp
-    genMetaEntExtend
-    genMetaEntRules
-
-    metaEntFromSerial'
-    metaSetFromSerial'
   ;
 
   inherit (final.libtree)

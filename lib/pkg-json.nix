@@ -15,16 +15,16 @@
 
   # Standard arg processor that accepts `pjs' or `pjsDir' as an arg used to
   # access `package.json' info.
-  # The arg `wkey' is short for "workspace key", but is currently unused - this
+  # The arg `pjsKey' is short for "workspace key", but is currently unused - this
   # arg is a stub for future workspaces support.
   stdPjsArgProc' = { pure, ifd, typecheck, allowedPaths } @ fenv: self: {
     pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
+  , pjsKey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace members without 'pjsDir'."
   }: let
     loc  = self.__functionMeta.name or "libpjs";
-    args = if wkey == "" then { inherit pjs wkey pjsDir fenv; } else
+    args = if pjsKey == "" then { inherit pjs pjsKey pjsDir fenv; } else
            throw "(${loc}): Reading workspaces has not been implemented.";
     targs = if self ? __thunk then self.__thunk // args else args;
     fargs = if self ? __functionArgs then lib.canPassStrict self targs else
@@ -153,11 +153,14 @@
 
 # ---------------------------------------------------------------------------- #
 
-  getIdentPjs'   = fenv: getFieldPjs' fenv { field = "name"; };
-  getVersionPjs' = fenv: getFieldPjs' fenv { field = "version"; };
-  getScriptsPjs' = fenv: getFieldPjs' fenv { field = "scripts"; default = {}; };
+  getIdentPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "name"; };
+  getVersionPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "version"; };
+  getScriptsPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv:
+    getFieldPjs' fenv { field = "scripts"; default = {}; };
 
-  getHasBinPjs' = fenv: let
+  getHasBinPjs' = { ifd, pure, typecheck, allowedPaths } @ fenv: let
     getBinFields = getFieldsPjs' fenv {
       fields = { bin = true; directories = true; };
     };
@@ -177,7 +180,7 @@
     raenv = removeAttrs fenv ["typecheck"];
   in {
     pjs    ? lib.libpkginfo.readJSONFromPath' fenv ( pjsDir + "/package.json" )
-  , wkey   ? ""
+  , pjsKey   ? ""
   , pjsDir ?
     throw "getIdentPjs: Cannot read workspace/write fetchInfo without 'pjsDir'."
   , isLocal ? args ? pjsDir
@@ -208,7 +211,7 @@
                            ( "./" + rel );
         };
         type      = "path";
-        path      = assert wkey == "";  pjsDir;
+        path      = assert pjsKey == "";  pjsDir;
         recursive = true;
       };
     };
@@ -255,8 +258,10 @@
         if ( ident == null ) || ( version == null ) then "workspace/0.0.0" else
         ident + "/" + version;
       hasBin    = getHasBinPjs'  fenv gargs;
-      metaFiles = { __serial = lib.libmeta.serialIgnore; inherit pjs wkey; } //
-                  ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
+      metaFiles = {
+        __serial = lib.libmeta.serialIgnore;
+        inherit pjs pjsKey;
+      } // ( if ! ( args ? pjsDir ) then {} else { inherit pjsDir; } );
       inherit (deps) depInfo;
     } // ( if ( args ? ltype ) || isLocal then { inherit ltype; } else {} )
       // ( if isLocal then forLocal else {} );
@@ -275,27 +280,13 @@
 
     meta = lib.libmeta.mkMetaEnt infoNoFs;
     ex = let
-      # TODO: this should be a separate overlay made to be general purpose.
-      scriptInfo = final: prev: {
-        hasBuild         = lib.libpkginfo.hasBuildFromScripts final.scripts;
-        hasPrepare       = lib.libpkginfo.hasPrepareFromScripts final.scripts;
-        hasTest          = lib.libpkginfo.hasTestFromScripts final.scripts;
-        hasPack          = lib.libpkginfo.hasPackFromScripts final.scripts;
-        hasPublish       = lib.libpkginfo.hasPublishFromScripts final.scripts;
-        hasInstallScript =
-          if lib.libpkginfo.hasInstallFromScripts final.scripts then true else
-          null;
-      };
-      #ovs = metaEntOverlays or [];
-      #...
       ov = lib.composeManyExtensions [
         ( _: prev: extra // infoFs // prev )
         lib.libsys.metaEntSetSysInfoOv
-        lib.libevent.metaEntLifecycleOverlay
-        scriptInfo
+        lib.libevent.metaEntLifecycleOv
       ];
     in if noFs then meta else meta.__extend ov;
-  in if wkey == "" then ex else
+  in if pjsKey == "" then ex else
      throw "getIdentPjs: Reading workspaces has not been implemented.";
 
 

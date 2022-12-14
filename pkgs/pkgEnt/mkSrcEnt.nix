@@ -116,7 +116,7 @@
   _pkg_ent_src_fields = {
     _type = yt.enum "_type[pkgEnt:source]" ["pkgEnt:source"];
     ident = yt.PkgInfo.identifier;
-    inherit (yt.NpmLifecycle.Enums) ltype;
+    inherit (yt.Npm.Enums) ltype;
     inherit (yt.PkgInfo) version key;
     outPath  = yt.FS.store_path;
     tarball  = yt.option yt.FlocoFetch.fetched;
@@ -152,8 +152,7 @@
       } dir;
     in if readAllowed && isDir then {
       metaFiles = { inherit pjs; };
-      gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
-      scripts   = pjs.scripts or {};
+      fsInfo.gypfile   = builtins.pathExists ( dir + "/binding.gyp" );
     } else {};
 
     # A base `pkgEnt:source' record using our updated `metaEnt'.
@@ -165,7 +164,7 @@
         # Only runs if allowed
         merged = ( metaEnt.__extend ( final: prev:
           lib.recursiveUpdate ( scrape source ) prev
-        ) ).__extend lib.libevent.metaEntLifecycleOverlay;
+        ) ).__extend lib.libevent.metaEntLifecycleOv;
       in if typecheck then yt.FlocoMeta.meta_ent_shallow merged else merged;
     };
   in if ! typecheck then sent else pkg_ent_src sent;
