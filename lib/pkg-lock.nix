@@ -397,9 +397,12 @@
           inherit lockDir;
           # TODO: this probably is going to blow up for `requires' vs
           # `dependencies' when merging conflicting instances.
-          plent = removeAttrs plent [
-            "dev" "optional" "peer"
-          ];
+          plent = builtins.intersectAttrs {
+            cpu              = true;
+            os               = true;
+            engines          = true;
+            hasInstallScript = true;
+          } plent;
         };
     };
   in lib.libmeta.genericMetaEnt' fenv baseFields;
@@ -431,11 +434,28 @@
     # FIXME: we are going to merge multiple instances in a really dumb way here
     # until we get this moved into the spec for proper sub-instances.
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
+    rootKey = ( plock.name or "anon" ) + "/" + ( plock.version or "0.0.0" );
     auditKeyValuesUnique = let
       toSerial = e: e.__serial or e;
-      toCmp = e:
-        lib.filterAttrsRecursive ( _: v: ! ( builtins.isFunction v ) )
-                                 ( e.__entries or e );
+      toCmp = e: let
+        base = lib.filterAttrsRecursive ( _: v: ! ( builtins.isFunction v ) )
+                                        ( e.__entries or e );
+      # There's an edge case for lockfiles with self referential `rootKey'
+      # entries ( fucking projects with dep cycles against themselves...
+      # `@babel/core' for example ) where the instance at the root of the
+      # lockfile will have different `dependencies' and `requires' fields than
+      # the subdir entry.
+      # Why aren't these links you might ask: excellent question, because they
+      # absolutely should be, except for the fact that NPM won't link to a
+      # subdir ( `node_modules/foo' -> `node_modules/bar/node_modules/foo' ),
+      # instead it copies these.
+      # The approach taken by NPM here is incredibly fragile, and odds are if
+      # you arrived at this inline comment because of a crash in `genMeta' -
+      # I'm going to advise that you manually construct your metadata from a
+      # non-dev tree ( by adding entries ).
+      # Yeah I know it sucks, so feel free to PR a fix on this - because I'm
+      # a hard "won't fix" on this one.
+      in if e.key == rootKey then removeAttrs base ["depInfo"] else base;
       pp = e: lib.generators.toPretty { allowPrettyValues = true; }
                                       ( toSerial e );
       # XXX: This is important to pay attention to.
@@ -453,6 +473,7 @@
       # XXX: ^^^ Don't scroll past this if you're learning. ^^^
       noLinks = builtins.filter ( e: e.ltype != "link" ) metaEntryList;
       byKey   = builtins.groupBy ( x: x.key ) noLinks;
+
       flattenAssertUniq = key: values: let
         uniq   = lib.unique ( map toCmp values );
         nconfs = builtins.length uniq;
@@ -466,23 +487,17 @@
         msg = builtins.concatStringsSep "\n" [header ( pp diff ) more];
       in if nconfs == 1 then builtins.head values else throw msg;
     in builtins.mapAttrs flattenAssertUniq byKey;
+
     metaEntries = auditKeyValuesUnique;
+
     members = metaEntries // {
       _meta = {
         __serial = lib.libmeta.serialIgnore;
-        rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0"}";
-        inherit plock lockDir;
+        inherit plock lockDir rootKey;
         fromType = "package-lock.json(v${toString lockfileVersion})";
       };
     };
-    base = lib.libmeta.mkMetaSet members;
-    ex = let
-      # FIXME:
-      #ovs = metaSetOverlays or [];
-      ovs = [];
-      ov  = if builtins.isList ovs then lib.composeManyExtensions ovs else ovs;
-    in if ( ovs != [] ) then base.__extend ov else base;
-  in ex;
+  in lib.libmeta.mkMetaSet members;
 
 
 # ---------------------------------------------------------------------------- #

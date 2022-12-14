@@ -442,22 +442,25 @@ $NIX eval --impure $EXTRA_NIX_FLAGS $OUT_TYPE  \
     in builtins.mapAttrs ( _: prepEnt ) base;
 
     # Add metadata about the node_modules/ tree.
-    trees = let
-      mkTree = dev: lib.libtree.idealTreePlockV3 {
-        inherit lockDir dev metaSet;
-        skipUnsupported = false;
+    rootEntWithTrees = {
+      ${metaSet._meta.rootKey} = serial.${metaSet._meta.rootKey} // {
+        treeInfo = let
+          mkTree = dev: lib.libtree.idealTreePlockV3 {
+            inherit lockDir dev metaSet;
+            skipUnsupported = false;
+          };
+          maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
+        in { prod = mkTree false; } // maybeDev;
       };
-      maybeDev = lib.optionalAttrs isDev { dev = mkTree true; };
-    in { prod = mkTree false; } // maybeDev;
+    };
 
     # Stash extra info in an "internal" attribute
     _meta  = {
       inherit (metaSet._meta) fromType rootKey;
-      inherit trees;
     };
 
     # Finalize data to be written
-    data = serial // { inherit _meta; };
+    data = serial // rootEntWithTrees // { inherit _meta; };
 
     # For Nix output put a header at the top of the file with instructions
     # on how to regenerate.
