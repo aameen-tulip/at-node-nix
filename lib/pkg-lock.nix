@@ -434,7 +434,7 @@
     # FIXME: we are going to merge multiple instances in a really dumb way here
     # until we get this moved into the spec for proper sub-instances.
     metaEntryList = lib.mapAttrsToList mkOne plock.packages;
-    rootKey = ( plock.name or "anon" ) + "/" + ( plock.version or "0.0.0" );
+    rootKey = "${plock.name or "anon"}/${plock.version or "0.0.0-none"}";
     auditKeyValuesUnique = let
       toSerial = e: e.__serial or e;
       toCmp = e: let
