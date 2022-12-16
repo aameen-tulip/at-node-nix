@@ -219,12 +219,15 @@ nativeBuildInputs = let
     fi
   '';
 
-  installPhase = lib.withHooks "install" ''
+  installPhase = let
+    mout = if moduleOutput != null then "$" + moduleOutput else "/dev/null";
+    gout = if globalOutput != null then "$" + globalOutput else "/dev/null";
+  in lib.withHooks "install" ''
     if test "''${moduleInstall:-0}" != 0; then
-      pjsAddModCopy . "${"$" + moduleOutput}"
+      pjsAddModCopy . "${mout}";
     fi
     if test "''${globalInstall:-0}" != 0; then
-      installGlobalNodeModule "${"$" + globalOutput}";
+      installGlobalNodeModule "${gout}";
     fi
   '';
 

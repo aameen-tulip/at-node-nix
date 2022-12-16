@@ -20,7 +20,7 @@
 , key     ? args.metaEnt.key or "${ident}/${version}"
 , src
 , globalNmDirCmd ? args.nmDirCmd or ":"
-, metaEnt        ? lib.libmetaEnt.mkMetaEntCore { inherit ident version; }
+, metaEnt        ? lib.libmeta.mkMetaEntCore { inherit ident version; }
 , evalScripts
 , ...
 } @ args: let
