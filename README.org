@@ -2,6 +2,8 @@
 #+AUTHOR: Alex Ameen
 #+EMAIL: alex.ameen.tx@gmail.com
 
+XXX: This project has moved to https://github.com/aakropotkin/floco
+
 Node.js Nix expressions. 
 
 Dynamically convert =package.json=, =package-lock.json=, NPM Registry Packuments, and other forms of package metadata to a common Nix friendly format: =metaEnt= and =metaSet=.
